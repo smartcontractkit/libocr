@@ -96,21 +96,25 @@ func (router DHTRouter) Start() {
 			}
 		}
 
-		router.logger().Info("DHT initial bootstrap complete", nil)
+		router.logger().Info("DHT initial bootstrap complete", types.LogFields{
+			"bnodes": router.config.bootstrapNodes,
+		})
 
 		
-		
-		
-		router.processes.RepeatWithCancel("bootstrap", 10*time.Second, router.ctx, func() {
+		router.processes.RepeatWithCancel("bootstrap", router.config.bootstrapCheckInterval, router.ctx, func() {
 			toConnect := false
-			for _, peer := range router.config.bootstrapNodes {
-				if router.aclHost.Network().Connectedness(peer.ID) != network.Connected {
+			for _, p := range router.config.bootstrapNodes {
+				
+				if router.aclHost.Network().Connectedness(p.ID) != network.Connected {
 					toConnect = true
 					break
 				}
 			}
 
 			if toConnect {
+				router.logger().Debug("connect to bootstrap nodes", types.LogFields{
+					"bnodes": router.config.bootstrapNodes,
+				})
 				if err := tryConnectToBootstrappers(router.ctx, router.aclHost, router.config.bootstrapNodes); err != nil {
 					router.logger().Warn("DHT has no connection to any bootstrappers", types.LogFields{
 						"err": err.Error(),
@@ -280,13 +284,12 @@ func (router DHTRouter) printRoutingTableAndAclTable(interval time.Duration) {
 	}
 
 	router.processes.RepeatWithCancel("periodical report", interval, router.ctx, func() {
-		var rtString []string
-
 		myKadId := kbucket.ConvertPeerID(router.dht.PeerID())
 		rt := router.dht.RoutingTable()
 
+		rtString := []string{fmt.Sprintf("RT has %d entries,", len(rt.ListPeers()))}
 		for _, p := range rt.ListPeers() {
-			rtString = append(rtString, fmt.Sprintf("peerId=%s, kadId=%s,allowed=%t, cpl=%d",
+			rtString = append(rtString, fmt.Sprintf("peerId=%s, kadId=%s,allowed=%t, cpl=%d,",
 				p.Pretty(),
 				hex.EncodeToString(kbucket.ConvertPeerID(p)),
 				router.aclHost.GetACL().IsAllowed(p, router.config.ProtocolID()),

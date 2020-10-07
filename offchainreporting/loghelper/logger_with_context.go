@@ -17,14 +17,15 @@ func MakeLoggerWithContext(logger types.Logger, context types.LogFields) LoggerW
 
 func (l LoggerWithContext) addContextToFieldsIfNotPresent(fields types.LogFields) types.LogFields {
 	if fields == nil {
-		fields = l.context
-	} else {
-		for k, v := range l.context {
-			if _, ok := fields[k]; !ok {
-				fields[k] = v
-			}
+		fields = types.LogFields{}
+	}
+
+	for k, v := range l.context {
+		if _, ok := fields[k]; !ok {
+			fields[k] = v
 		}
 	}
+
 	return fields
 }
 

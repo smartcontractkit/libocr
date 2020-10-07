@@ -4,7 +4,6 @@ package managed
 
 import (
 	"context"
-
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"

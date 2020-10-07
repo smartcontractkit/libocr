@@ -52,6 +52,12 @@ type EndpointConfig struct {
 	
 	
 	DHTLookupInterval int
+
+	
+	
+	
+	
+	BootstrapCheckInterval time.Duration
 }
 
 type ocrEndpointState int
@@ -241,6 +247,7 @@ func (o *ocrEndpoint) setupDHT() (err error) {
 		dhtPrefix,
 		o.configDigest,
 		o.logger,
+		o.config.BootstrapCheckInterval,
 		o.failureThreshold,
 		false,
 	)

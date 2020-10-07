@@ -181,7 +181,7 @@ func (p *concretePeer) MakeBootstrapper(configDigest types.ConfigDigest, pids []
 		return nil, errors.Wrap(err, "could not decode bootstrappers")
 	}
 
-	return newBootstrapper(p.logger, configDigest, p, peerIDs, bnAddrs, F)
+	return newBootstrapper(p.logger, configDigest, p, peerIDs, bnAddrs, F, p.endpointConfig.BootstrapCheckInterval)
 }
 
 func (p *concretePeer) register(r registrant) error {

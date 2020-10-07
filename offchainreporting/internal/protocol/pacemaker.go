@@ -279,17 +279,20 @@ func (pace *pacemakerState) persist() {
 	highestReceivedEpoch := make([]uint32, pace.config.N())
 	copy(highestReceivedEpoch, pace.newepoch)
 
+	state := types.PersistentState{
+		pace.e,
+		pace.ne,
+		highestReceivedEpoch,
+	}
+
 	var err error
 	ok := pace.subprocesses.BlockForAtMost(pace.ctx, pace.localConfig.DatabaseTimeout,
 		func(ctx context.Context) {
+			
 			err = pace.database.WriteState(
 				ctx,
 				pace.config.ConfigDigest,
-				types.PersistentState{
-					pace.e,
-					pace.ne,
-					highestReceivedEpoch,
-				},
+				state,
 			)
 		},
 	)

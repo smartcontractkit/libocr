@@ -2,7 +2,6 @@ package offchainreporting
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"

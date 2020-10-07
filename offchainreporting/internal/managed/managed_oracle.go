@@ -3,7 +3,6 @@ package managed
 import (
 	"context"
 	"fmt"
-
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/shim"

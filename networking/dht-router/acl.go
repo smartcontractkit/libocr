@@ -51,6 +51,7 @@ func (acl permitList) Activate(protocol protocol.ID, permitted ...peer.ID) {
 	acl.logger.Debug("New ACL activated", types.LogFields{
 		"id":         "DHT_ACL",
 		"protocolID": protocol,
+		"acl":        acl.allowed,
 	})
 }
 

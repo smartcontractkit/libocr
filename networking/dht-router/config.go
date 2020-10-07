@@ -2,6 +2,7 @@ package dhtrouter
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -10,24 +11,28 @@ import (
 )
 
 type DHTNodeConfig struct {
-	prefix             protocol.ID
-	extension          protocol.ID
-	bootstrapNodes     []peer.AddrInfo
-	logger             types.Logger
-	failureThreshold   int
-	extendedDHTLogging bool
+	prefix         protocol.ID
+	extension      protocol.ID
+	bootstrapNodes []peer.AddrInfo
+	logger         types.Logger
+
+	
+	bootstrapCheckInterval time.Duration
+	failureThreshold       int
+	extendedDHTLogging     bool
 }
 
 func BuildConfig(bootstrapNodes []peer.AddrInfo, prefix protocol.ID, configDigest types.ConfigDigest,
-	logger types.Logger, failureThreshold int, extendedDHTLogging bool) DHTNodeConfig {
+	logger types.Logger, bootstrapConnectionCheckInterval time.Duration, failureThreshold int, extendedDHTLogging bool) DHTNodeConfig {
 	extension := protocol.ID(fmt.Sprintf("/%x", configDigest))
 
 	c := DHTNodeConfig{
-		bootstrapNodes:     bootstrapNodes,
-		prefix:             prefix,
-		extension:          extension,
-		failureThreshold:   failureThreshold,
-		extendedDHTLogging: extendedDHTLogging,
+		bootstrapNodes:         bootstrapNodes,
+		prefix:                 prefix,
+		extension:              extension,
+		bootstrapCheckInterval: bootstrapConnectionCheckInterval,
+		failureThreshold:       failureThreshold,
+		extendedDHTLogging:     extendedDHTLogging,
 	}
 
 	logger = loghelper.MakeLoggerWithContext(logger, types.LogFields{

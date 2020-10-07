@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"sync"
+	"time"
 
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
@@ -16,17 +17,18 @@ var (
 )
 
 type bootstrapper struct {
-	peer             *concretePeer
-	peerAllowlist    map[p2ppeer.ID]struct{}
-	bootstrappers    []p2ppeer.AddrInfo
-	routing          dhtrouter.PeerDiscoveryRouter
-	logger           types.Logger
-	configDigest     types.ConfigDigest
-	ctx              context.Context
-	ctxCancel        context.CancelFunc
-	state            bootstrapperState
-	stateMu          *sync.Mutex
-	failureThreshold int
+	peer                   *concretePeer
+	peerAllowlist          map[p2ppeer.ID]struct{}
+	bootstrappers          []p2ppeer.AddrInfo
+	routing                dhtrouter.PeerDiscoveryRouter
+	logger                 types.Logger
+	configDigest           types.ConfigDigest
+	ctx                    context.Context
+	ctxCancel              context.CancelFunc
+	state                  bootstrapperState
+	stateMu                *sync.Mutex
+	bootstrapCheckInterval time.Duration
+	failureThreshold       int
 }
 
 type bootstrapperState int
@@ -38,7 +40,7 @@ const (
 )
 
 func newBootstrapper(logger types.Logger, configDigest types.ConfigDigest,
-	peer *concretePeer, peerIDs []p2ppeer.ID, bootstrappers []p2ppeer.AddrInfo, F int,
+	peer *concretePeer, peerIDs []p2ppeer.ID, bootstrappers []p2ppeer.AddrInfo, F int, bootstrapCheckInterval time.Duration,
 ) (*bootstrapper, error) {
 	allowlist := make(map[p2ppeer.ID]struct{})
 	for _, pid := range peerIDs {
@@ -66,6 +68,7 @@ func newBootstrapper(logger types.Logger, configDigest types.ConfigDigest,
 		cancel,
 		bootstrapperUnstarted,
 		new(sync.Mutex),
+		bootstrapCheckInterval,
 		F,
 	}, nil
 }
@@ -99,6 +102,7 @@ func (b *bootstrapper) setupDHT() (err error) {
 		dhtPrefix,
 		b.configDigest,
 		b.logger,
+		b.bootstrapCheckInterval,
 		b.failureThreshold,
 		true,
 	)

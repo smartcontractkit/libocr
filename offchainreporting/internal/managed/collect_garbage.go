@@ -28,17 +28,20 @@ func collectGarbage(
 			logger.Info("collectGarbage: starting collection of old transmissions", types.LogFields{
 				"olderThan": olderThan,
 			})
-			childCtx, childCancel := context.WithTimeout(ctx, localConfig.DatabaseTimeout)
-			defer childCancel()
-			err := database.DeletePendingTransmissionsOlderThan(childCtx, time.Now().Add(-olderThan))
-			if err != nil {
-				logger.Info("collectGarbage: error in DeletePendingTransmissionsOlderThan", types.LogFields{
-					"error":     err,
-					"olderThan": olderThan,
-				})
-			} else {
-				logger.Info("collectGarbage: finished collection", nil)
-			}
+			
+			func() {
+				childCtx, childCancel := context.WithTimeout(ctx, localConfig.DatabaseTimeout)
+				defer childCancel()
+				err := database.DeletePendingTransmissionsOlderThan(childCtx, time.Now().Add(-olderThan))
+				if err != nil {
+					logger.Info("collectGarbage: error in DeletePendingTransmissionsOlderThan", types.LogFields{
+						"error":     err,
+						"olderThan": olderThan,
+					})
+				} else {
+					logger.Info("collectGarbage: finished collection", nil)
+				}
+			}()
 		case <-ctx.Done():
 			logger.Info("collectGarbage: exiting", nil)
 			return
