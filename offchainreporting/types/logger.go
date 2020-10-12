@@ -1,5 +1,7 @@
 package types
 
+
+
 type Logger interface {
 	Trace(msg string, fields LogFields)
 	Debug(msg string, fields LogFields)

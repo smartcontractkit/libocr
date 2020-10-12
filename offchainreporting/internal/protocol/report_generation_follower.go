@@ -365,7 +365,7 @@ func (repgen *reportGenerationState) shouldReport(observations []Observation) bo
 	}
 
 	initialRound := contractConfigDigest == repgen.config.ConfigDigest && contractEpoch == 0 && contractRound == 0
-	deviation := observations[len(observations)/2].Value.Deviates(answer, repgen.config.Alpha)
+	deviation := observations[len(observations)/2].Value.Deviates(answer, repgen.config.AlphaPPB)
 	deltaCTimeout := timestamp.Add(repgen.config.DeltaC).Before(time.Now())
 	result := initialRound || deviation || deltaCTimeout
 

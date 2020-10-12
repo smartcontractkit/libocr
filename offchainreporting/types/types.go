@@ -36,6 +36,8 @@ func BytesToConfigDigest(b []byte) (g ConfigDigest) {
 
 
 
+
+
 type BinaryNetworkEndpoint interface {
 	
 	SendTo(payload []byte, to OracleID)
@@ -49,15 +51,25 @@ type BinaryNetworkEndpoint interface {
 	Close() error
 }
 
+
+
+
+
 type Bootstrapper interface {
 	Start() error
 	Close() error
 }
 
+
+
+
 type BinaryNetworkEndpointFactory interface {
 	MakeEndpoint(cd ConfigDigest, peerIDs []string, bootstrappers []string, failureThreshold int) (BinaryNetworkEndpoint, error)
 	PeerID() string
 }
+
+
+
 
 type BootstrapperFactory interface {
 	MakeBootstrapper(cd ConfigDigest, peerIDs []string, bootstrappers []string, failureThreshold int) (Bootstrapper, error)
@@ -82,9 +94,13 @@ type DataSource interface {
 }
 
 
+
+
 type MonitoringEndpoint interface {
 	SendLog(log []byte)
 }
+
+
 
 
 type ContractTransmitter interface {
@@ -109,6 +125,8 @@ type ContractTransmitter interface {
 
 	FromAddress() common.Address
 }
+
+
 
 
 type ContractConfigTracker interface {
@@ -146,6 +164,8 @@ type OnChainSigningAddress common.Address
 
 
 type SharedSecretEncryptionPublicKey [curve25519.PointSize]byte 
+
+
 
 
 

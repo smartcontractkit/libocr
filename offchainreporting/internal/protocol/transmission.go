@@ -351,7 +351,7 @@ func (t *transmissionState) shouldTransmit(o ContractReportWithSignatures, contr
 		return false
 	}
 
-	deviates := t.latestMedian.Deviates(oMedian, t.config.Alpha)
+	deviates := t.latestMedian.Deviates(oMedian, t.config.AlphaPPB)
 	nothingPending := t.latestEpochRound.Less(contractEpochRound) || t.latestEpochRound == contractEpochRound
 	result := deviates || nothingPending
 

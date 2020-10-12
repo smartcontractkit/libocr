@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/leanovate/gopter"
@@ -53,7 +52,7 @@ func (o Observation) IsMissingValue() bool { return o.v == nil }
 
 func (o Observation) GoEthereumValue() *big.Int { return o.v }
 
-func (o Observation) Deviates(old Observation, threshold float64) bool {
+func (o Observation) Deviates(old Observation, thresholdPPB uint64) bool {
 	if old.v.Cmp(i(0)) == 0 {
 		if o.v.Cmp(i(0)) == 0 {
 			return false 
@@ -61,8 +60,15 @@ func (o Observation) Deviates(old Observation, threshold float64) bool {
 		return true 
 	}
 	
-	f64, _ := (&big.Rat{}).SetFrac(i(0).Sub(o.v, old.v), old.v).Float64()
-	return math.Abs(f64) > threshold
+	change := &big.Rat{}
+	change.SetFrac(i(0).Sub(o.v, old.v), old.v)
+	change.Abs(change)
+	threshold := &big.Rat{}
+	threshold.SetFrac(
+		(&big.Int{}).SetUint64(thresholdPPB),
+		(&big.Int{}).SetUint64(1000000000),
+	)
+	return change.Cmp(threshold) > 0
 }
 
 

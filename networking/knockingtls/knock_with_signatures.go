@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -19,11 +20,12 @@ import (
 const ID = "cl_knockingtls/1.0.0"
 
 type KnockingTLSTransport struct {
-	tls        *p2ptls.Transport 
-	allowlist  []peer.ID         
-	privateKey *p2pcrypto.Ed25519PrivateKey
-	myId       peer.ID
-	logger     types.Logger
+	tls            *p2ptls.Transport 
+	allowlistMutex sync.RWMutex      
+	allowlist      []peer.ID         
+	privateKey     *p2pcrypto.Ed25519PrivateKey
+	myId           peer.ID
+	logger         types.Logger
 }
 
 var (
@@ -35,9 +37,8 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	signatureReceived := make([]byte, ed25519.SignatureSize)
 
 	logger := loghelper.MakeLoggerWithContext(c.logger, types.LogFields{
-		"remoteAddr":   insecure.RemoteAddr(),
-		"localAddr":    insecure.LocalAddr(),
-		"allowlistLen": len(c.allowlist),
+		"remoteAddr": insecure.RemoteAddr(),
+		"localAddr":  insecure.LocalAddr(),
 	})
 
 	n, err := insecure.Read(signatureReceived)
@@ -58,24 +59,34 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 
 	var wg sync.WaitGroup
 	admissionChan := make(chan peer.ID)
-	
-	for _, peerId := range c.allowlist {
-		wg.Add(1)
-		go func(id peer.ID) {
-			defer wg.Done()
-			pk, err := id.ExtractPublicKey()
-			if err != nil {
-				return
-			}
-			verified, err := pk.Verify([]byte(c.myId.Pretty()), signatureReceived)
-			if err != nil {
-				return
-			}
-			if verified {
-				admissionChan <- id
-			}
-		}(peerId)
-	}
+
+	func() {
+		c.allowlistMutex.RLock()
+		defer c.allowlistMutex.RUnlock()
+
+		logger.Debug("verifying incoming knock", types.LogFields{
+			"allowList": c.allowlist,
+		})
+
+		
+		for _, peerId := range c.allowlist {
+			wg.Add(1)
+			go func(id peer.ID) {
+				defer wg.Done()
+				pk, err := id.ExtractPublicKey()
+				if err != nil {
+					return
+				}
+				verified, err := pk.Verify([]byte(c.myId.Pretty()), signatureReceived)
+				if err != nil {
+					return
+				}
+				if verified {
+					admissionChan <- id
+				}
+			}(peerId)
+		}
+	}()
 
 	go func() {
 		
@@ -94,10 +105,18 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		sconn, err := c.tls.SecureInbound(ctx, insecure)
 
 		if err != nil {
-			logger.Error("tls connection errored", types.LogFields{
-				"err":           err,
-				"sigVerifiedAs": admittedId,
-			})
+			
+			if strings.Contains(err.Error(), "connection reset by peer") {
+				logger.Debug("tls connection reset", types.LogFields{
+					"err":           err,
+					"sigVerifiedAs": admittedId,
+				})
+			} else {
+				logger.Error("tls connection errored", types.LogFields{
+					"err":           err,
+					"sigVerifiedAs": admittedId,
+				})
+			}
 		}
 		return sconn, err
 	}
@@ -129,15 +148,14 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 }
 
 func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
+	c.allowlistMutex.Lock()
+	defer c.allowlistMutex.Unlock()
+
 	c.logger.Debug("allowlist updated", types.LogFields{
 		"old": c.allowlist,
 		"new": allowlist,
 	})
 	c.allowlist = allowlist
-}
-
-func (c *KnockingTLSTransport) GetAllowlist() []peer.ID {
-	return c.allowlist
 }
 
 
@@ -161,10 +179,11 @@ func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, allowlist 
 	}
 
 	return &KnockingTLSTransport{
-		tls:        tls,
-		allowlist:  allowlist,
-		privateKey: ed25515Key,
-		myId:       id,
+		tls:            tls,
+		allowlistMutex: sync.RWMutex{},
+		allowlist:      allowlist,
+		privateKey:     ed25515Key,
+		myId:           id,
 		logger: loghelper.MakeLoggerWithContext(logger, types.LogFields{
 			"id": "KnockingTLS",
 		}),

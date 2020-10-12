@@ -20,7 +20,7 @@ type PublicConfig struct {
 	DeltaRound       time.Duration
 	DeltaGrace       time.Duration
 	DeltaC           time.Duration
-	Alpha            float64
+	AlphaPPB         uint64
 	DeltaStage       time.Duration
 	RMax             uint8
 	S                []int
@@ -76,7 +76,7 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		oc.DeltaRound,
 		oc.DeltaGrace,
 		oc.DeltaC,
-		oc.Alpha,
+		oc.AlphaPPB,
 		oc.DeltaStage,
 		oc.RMax,
 		oc.S,

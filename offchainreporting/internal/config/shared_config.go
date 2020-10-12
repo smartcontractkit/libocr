@@ -71,7 +71,7 @@ func SharedConfigFromContractConfig(
 				if identity.TransmitAddress != transmitAddress {
 					return SharedConfig{}, 0, errors.Errorf(
 						"OnChainSigningAddress (0x%x) in publicConfig matches "+
-							"mine, but TransmitAddress does not: %v (config) vs %v (mine)",
+							"mine, but TransmitAddress does not: 0x%x (config) vs 0x%x (mine)",
 						address, identity.TransmitAddress, transmitAddress)
 				}
 				oracleID = types.OracleID(i)
@@ -125,7 +125,7 @@ func XXXContractSetConfigArgsFromSharedConfig(
 		c.DeltaRound,
 		c.DeltaGrace,
 		c.DeltaC,
-		c.Alpha,
+		c.AlphaPPB,
 		c.DeltaStage,
 		c.RMax,
 		c.S,

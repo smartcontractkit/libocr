@@ -32,7 +32,7 @@ const setConfigEncodedComponentsABI = `[
         "type": "int64"
       },
       {
-        "name": "alpha",
+        "name": "alphaPPB",
         "type": "uint64"
       },
       {

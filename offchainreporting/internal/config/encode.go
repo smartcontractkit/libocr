@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"strings"
 	"time"
@@ -23,7 +22,7 @@ type setConfigEncodedComponents struct {
 	DeltaRound              time.Duration
 	DeltaGrace              time.Duration
 	DeltaC                  time.Duration
-	Alpha                   float64
+	AlphaPPB                uint64
 	DeltaStage              time.Duration
 	RMax                    uint8
 	S                       []int
@@ -41,7 +40,7 @@ type setConfigSerializationTypes struct {
 	DeltaRound              int64
 	DeltaGrace              int64
 	DeltaC                  int64
-	Alpha                   uint64 
+	AlphaPPB                uint64
 	DeltaStage              int64
 	RMax                    uint8
 	S                       []uint8
@@ -112,7 +111,7 @@ func (o setConfigEncodedComponents) serializationRepresentation() setConfigSeria
 		int64(o.DeltaRound),
 		int64(o.DeltaGrace),
 		int64(o.DeltaC),
-		math.Float64bits(o.Alpha),
+		o.AlphaPPB,
 		int64(o.DeltaStage),
 		o.RMax,
 		transmitDelays,
@@ -123,7 +122,6 @@ func (o setConfigEncodedComponents) serializationRepresentation() setConfigSeria
 }
 
 func (or setConfigSerializationTypes) golangRepresentation() setConfigEncodedComponents {
-	alpha := math.Float64frombits(or.Alpha)
 	transmitDelays := make([]int, len(or.S))
 	for i, d := range or.S {
 		transmitDelays[i] = int(d)
@@ -142,7 +140,7 @@ func (or setConfigSerializationTypes) golangRepresentation() setConfigEncodedCom
 		time.Duration(or.DeltaRound),
 		time.Duration(or.DeltaGrace),
 		time.Duration(or.DeltaC),
-		alpha,
+		or.AlphaPPB,
 		time.Duration(or.DeltaStage),
 		or.RMax,
 		transmitDelays,
