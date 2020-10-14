@@ -194,7 +194,7 @@ func (p *concretePeer) register(r registrant) error {
 	defer p.registrantsMu.Unlock()
 
 	if _, ok := p.registrants[configDigest]; ok {
-		return errors.Errorf("endpoint with getProtocol ID %s has already been registered", configDigest)
+		return errors.Errorf("endpoint with config digest %s has already been registered", configDigest.Hex())
 	}
 	p.registrants[configDigest] = struct{}{}
 
@@ -215,9 +215,9 @@ func (p *concretePeer) deregister(r registrant) error {
 	defer p.registrantsMu.Unlock()
 
 	if _, ok := p.registrants[configDigest]; !ok {
-		return errors.Errorf("endpoint with getProtocol ID %s is not currently registered", configDigest)
+		return errors.Errorf("endpoint with config digest %s is not currently registered", configDigest.Hex())
 	}
-	p.registrants[configDigest] = struct{}{}
+	delete(p.registrants, configDigest)
 
 	p.gater.remove(r)
 
