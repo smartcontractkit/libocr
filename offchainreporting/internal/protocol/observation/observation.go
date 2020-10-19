@@ -5,6 +5,7 @@ package observation
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -128,6 +129,16 @@ func (o Observation) String() string {
 
 func (o Observation) Equal(o2 Observation) bool {
 	return o.v.Cmp(o2.v) == 0
+}
+
+var _ encoding.TextMarshaler = Observation{}
+
+func (o Observation) MarshalText() (text []byte, err error) {
+	if o.v == nil {
+		return []byte{}, nil
+	}
+
+	return o.v.MarshalText()
 }
 
 var topBit, allBits uint8 = 1 << 7, (1 << 8) - 1

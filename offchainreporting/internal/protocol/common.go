@@ -1,10 +1,10 @@
 package protocol
 
 type EpochRound struct {
-	epoch uint32
-	round uint8
+	Epoch uint32
+	Round uint8
 }
 
 func (x EpochRound) Less(y EpochRound) bool {
-	return x.epoch < y.epoch || (x.epoch == y.epoch && x.round < y.round)
+	return x.Epoch < y.Epoch || (x.Epoch == y.Epoch && x.Round < y.Round)
 }
