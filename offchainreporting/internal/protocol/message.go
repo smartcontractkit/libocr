@@ -197,7 +197,7 @@ func (msg MessageReport) processReportGeneration(repgen *reportGenerationState, 
 	repgen.messageReport(msg, sender)
 }
 
-func (msg MessageReport) Equals(m2 MessageReport) bool {
+func (msg MessageReport) Equal(m2 MessageReport) bool {
 	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.ContractReport.Equal(m2.ContractReport)
 }
 
@@ -207,7 +207,6 @@ func (msg MessageReport) Equals(m2 MessageReport) bool {
 
 type MessageFinal struct {
 	Epoch  uint32
-	Leader types.OracleID
 	Round  uint8
 	Report ContractReportWithSignatures
 }
@@ -222,8 +221,8 @@ func (msg MessageFinal) processReportGeneration(repgen *reportGenerationState, s
 	repgen.messageFinal(msg, sender)
 }
 
-func (msg MessageFinal) Equals(m2 MessageFinal) bool {
-	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.Report.Equals(m2.Report)
+func (msg MessageFinal) Equal(m2 MessageFinal) bool {
+	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.Report.Equal(m2.Report)
 }
 
 
@@ -241,8 +240,8 @@ func (msg MessageFinalEcho) processReportGeneration(repgen *reportGenerationStat
 	repgen.messageFinalEcho(msg, sender)
 }
 
-func (msg MessageFinalEcho) Equals(m2 MessageFinalEcho) bool {
-	return msg.MessageFinal.Equals(m2.MessageFinal)
+func (msg MessageFinalEcho) Equal(m2 MessageFinalEcho) bool {
+	return msg.MessageFinal.Equal(m2.MessageFinal)
 }
 
 

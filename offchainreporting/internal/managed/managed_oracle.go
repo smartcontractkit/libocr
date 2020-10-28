@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"fmt"
+
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/shim"
@@ -21,6 +22,7 @@ func RunManagedOracle(
 	datasource types.DataSource,
 	localConfig types.LocalConfig,
 	logger types.Logger,
+	monitoringEndpoint types.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	privateKeys types.PrivateKeys,
 ) {
@@ -34,6 +36,7 @@ func RunManagedOracle(
 		datasource:          datasource,
 		localConfig:         localConfig,
 		logger:              logger,
+		monitoringEndpoint:  monitoringEndpoint,
 		netEndpointFactory:  netEndpointFactory,
 		privateKeys:         privateKeys,
 	}
@@ -54,6 +57,7 @@ type managedOracleState struct {
 	datasource          types.DataSource
 	localConfig         types.LocalConfig
 	logger              types.Logger
+	monitoringEndpoint  types.MonitoringEndpoint
 	netEndpointFactory  types.BinaryNetworkEndpointFactory
 	privateKeys         types.PrivateKeys
 
@@ -192,6 +196,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 			mo.privateKeys,
 			mo.localConfig,
 			childLogger,
+			mo.monitoringEndpoint,
 			mo.netEndpoint,
 		)
 	})

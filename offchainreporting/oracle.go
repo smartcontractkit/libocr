@@ -94,6 +94,7 @@ func (o *Oracle) Start() error {
 			o.oracleArgs.Datasource,
 			o.oracleArgs.LocalConfig,
 			o.oracleArgs.Logger,
+			o.oracleArgs.MonitoringEndpoint,
 			o.oracleArgs.BinaryNetworkEndpointFactory,
 			o.oracleArgs.PrivateKeys,
 		)

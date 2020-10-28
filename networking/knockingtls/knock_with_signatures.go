@@ -2,10 +2,11 @@ package knockingtls
 
 import (
 	"context"
+	"crypto"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -18,6 +19,7 @@ import (
 )
 
 const ID = "cl_knockingtls/1.0.0"
+const domainSeparator = "knockknock" + ID
 
 type KnockingTLSTransport struct {
 	tls            *p2ptls.Transport 
@@ -30,120 +32,142 @@ type KnockingTLSTransport struct {
 
 var (
 	errInvalidConnection = errors.New("invalid connection")
-	errInvalidSignature  = errors.New("invalid signature")
+	errInvalidSignature  = errors.New("invalid signature in knock")
 )
 
+func buildKnockMessage(p peer.ID) ([]byte, error) {
+	
+	if len(p.Pretty()) > 128 {
+		return nil, errors.New("too big id. looks suspicious")
+	}
+	h := crypto.SHA256.New()
+	h.Write([]byte(domainSeparator))
+	h.Write([]byte(p.Pretty()))
+
+	return h.Sum(nil), nil
+}
+
 func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.Conn) (sec.SecureConn, error) {
-	signatureReceived := make([]byte, ed25519.SignatureSize)
+	
+	shouldClose := true
+	defer func() {
+		if shouldClose {
+			insecure.Close()
+		}
+	}()
+
+	
+	
+	const knockSize = ed25519.PublicKeySize + ed25519.SignatureSize
+	knock := make([]byte, knockSize)
 
 	logger := loghelper.MakeLoggerWithContext(c.logger, types.LogFields{
 		"remoteAddr": insecure.RemoteAddr(),
 		"localAddr":  insecure.LocalAddr(),
 	})
 
-	n, err := insecure.Read(signatureReceived)
+	n, err := insecure.Read(knock)
 	if err != nil {
-		insecure.Close()
 		return nil, fmt.Errorf("can't read sig: %w", err)
 	}
 
-	if n < ed25519.SignatureSize {
+	if n < knockSize {
 		
 		
 		
-		
-		
-		err = insecure.Close()
 		return nil, fmt.Errorf("can't read sig: %w", err)
 	}
 
-	var wg sync.WaitGroup
-	admissionChan := make(chan peer.ID)
+	pk, err := p2pcrypto.UnmarshalEd25519PublicKey(knock[:ed25519.PublicKeySize])
+	if err != nil {
+		return nil, err
+	}
 
+	peerId, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		return nil, err
+	}
+
+	inAllowList := false
+	
 	func() {
 		c.allowlistMutex.RLock()
 		defer c.allowlistMutex.RUnlock()
 
-		logger.Debug("verifying incoming knock", types.LogFields{
-			"allowList": c.allowlist,
+		logger.Trace("verifying a knock", types.LogFields{
+			"allowlist": c.allowlist,
+			"fromId":    peerId.Pretty(),
+			"knock":     hex.EncodeToString(knock),
 		})
 
-		
-		for _, peerId := range c.allowlist {
-			wg.Add(1)
-			go func(id peer.ID) {
-				defer wg.Done()
-				pk, err := id.ExtractPublicKey()
-				if err != nil {
-					return
-				}
-				verified, err := pk.Verify([]byte(c.myId.Pretty()), signatureReceived)
-				if err != nil {
-					return
-				}
-				if verified {
-					admissionChan <- id
-				}
-			}(peerId)
-		}
-	}()
-
-	go func() {
-		
-		wg.Wait()
-		close(admissionChan)
-	}()
-
-	
-	admittedId, ok := <-admissionChan
-
-	
-	if !ok {
-		insecure.Close()
-		return nil, errInvalidSignature
-	} else {
-		sconn, err := c.tls.SecureInbound(ctx, insecure)
-
-		if err != nil {
-			
-			if strings.Contains(err.Error(), "connection reset by peer") {
-				logger.Debug("tls connection reset", types.LogFields{
-					"err":           err,
-					"sigVerifiedAs": admittedId,
-				})
-			} else {
-				logger.Error("tls connection errored", types.LogFields{
-					"err":           err,
-					"sigVerifiedAs": admittedId,
-				})
+		for i := range c.allowlist {
+			if peerId == c.allowlist[i] {
+				inAllowList = true
+				break
 			}
 		}
-		return sconn, err
+	}()
+
+	if !inAllowList {
+		return nil, errors.New(fmt.Sprintf("remote peer %s not in the list", peerId.Pretty()))
 	}
+
+	knockMsg, err := buildKnockMessage(c.myId)
+	if err != nil {
+		return nil, err
+	}
+
+	verified, err := pk.Verify(knockMsg, knock[ed25519.PublicKeySize:])
+	if err != nil {
+		return nil, err
+	}
+
+	if !verified {
+		return nil, errInvalidSignature
+	}
+
+	
+	shouldClose = false
+
+	return c.tls.SecureInbound(ctx, insecure)
 }
 
 func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
-	sig, err := c.privateKey.Sign([]byte(p.Pretty()))
-	if err != nil {
-		insecure.Close()
-		return nil, err
+	
+	shouldClose := true
+	defer func() {
+		if shouldClose {
+			insecure.Close()
+		}
+	}()
+
+	pk, err := c.privateKey.GetPublic().Raw()
+	if err != nil || len(pk) != ed25519.PublicKeySize {
+		return nil, errors.New("can't get PK")
 	}
 
-	if len(sig) != ed25519.SignatureSize {
-		insecure.Close()
-		return nil, errors.New("sign returned invalid sig")
-	}
-
-	n, err := insecure.Write(sig)
+	knockMsg, err := buildKnockMessage(p)
 	if err != nil {
-		insecure.Close()
 		return nil, err
 	}
-	if n != len(sig) {
-		insecure.Close()
+	sig, err := c.privateKey.Sign(knockMsg)
+	if err != nil || len(sig) != ed25519.SignatureSize {
+		return nil, errors.New("can't sign")
+	}
+
+	
+	knock := append(pk, sig...)
+
+	n, err := insecure.Write(knock)
+	if err != nil {
+		return nil, err
+	}
+	if n != len(pk)+len(sig) {
 		return nil, errors.New("can't send all tag")
 	}
 
+	
+	shouldClose = false
 	return c.tls.SecureOutbound(ctx, insecure, p)
 }
 

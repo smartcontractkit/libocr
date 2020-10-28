@@ -43,7 +43,7 @@ func (ann *Announcement) UnmarshalJSON(b []byte) error {
 	d := json.NewDecoder(bytes.NewBuffer(b))
 	d.UseNumber()
 	if err := d.Decode(&data); err != nil {
-		panic(err)
+		return err
 	}
 
 	addrs := data["addrs"].([]interface{})
@@ -52,21 +52,26 @@ func (ann *Announcement) UnmarshalJSON(b []byte) error {
 	}
 
 	timestamp := data["timestamp"].(json.Number)
-	i64, _ := strconv.ParseInt(string(timestamp), 10, 64)
+	i64, err := strconv.ParseInt(string(timestamp), 10, 64)
+	if err != nil {
+		return err
+	}
 	ann.timestamp = i64
 
 	pkBytes, err := base64.StdEncoding.DecodeString(data["pk"].(string))
 	if err != nil {
+		return err
 	}
 
 	pk, err := ic.UnmarshalPublicKey(pkBytes)
 	if err != nil {
-		return nil
+		return err
 	}
 	ann.Pk = pk
 
 	sigBytes, err := base64.StdEncoding.DecodeString(data["sig"].(string))
 	if err != nil {
+		return err
 	}
 	ann.Sig = sigBytes
 
@@ -122,12 +127,12 @@ func (ann Announcement) SelfVerify() (verified bool, err error) {
 }
 
 func (ann Announcement) String() string {
-	b, e := ann.Pk.Bytes()
-	if e != nil {
-		panic(e)
+	pkStr := "can't stringify PK"
+	if b, err := ann.Pk.Bytes(); err == nil {
+		pkStr = base64.StdEncoding.EncodeToString(b)
 	}
 	return fmt.Sprintf("addrs=%s, pk=%s, sig=%s",
 		ann.Addrs,
-		base64.StdEncoding.EncodeToString(b),
+		pkStr,
 		base64.StdEncoding.EncodeToString(ann.Sig))
 }

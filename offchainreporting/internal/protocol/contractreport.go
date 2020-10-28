@@ -109,7 +109,7 @@ func (c *ContractReport) observers() (rv common.Hash, err error) {
 }
 
 
-func (c ContractReportWithSignatures) Equals(c2 ContractReportWithSignatures) bool {
+func (c ContractReportWithSignatures) Equal(c2 ContractReportWithSignatures) bool {
 	if (!c.ContractReport.Equal(c2.ContractReport)) ||
 		(len(c.Signatures) != len(c2.Signatures)) {
 		return false

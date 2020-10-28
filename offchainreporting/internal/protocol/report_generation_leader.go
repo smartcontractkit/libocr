@@ -226,7 +226,6 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 		if repgen.config.F < len(sigs) {
 			repgen.netSender.Broadcast(MessageFinal{
 				repgen.e,
-				repgen.l,
 				repgen.leaderState.r,
 				ContractReportWithSignatures{
 					ContractReport: msg.ContractReport,

@@ -289,7 +289,7 @@ func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 	{
 		count := 0 
 		for _, msgFe := range repgen.followerState.finalEcho {
-			if msgFe != nil && msgFe.Report.Equals(msg.Report) {
+			if msgFe != nil && msgFe.Report.Equal(msg.Report) {
 				count++
 			}
 		}

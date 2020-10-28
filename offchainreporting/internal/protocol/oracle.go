@@ -24,6 +24,7 @@ func RunOracle(
 	keys types.PrivateKeys,
 	localConfig types.LocalConfig,
 	logger types.Logger,
+	monitoringEndpoint types.MonitoringEndpoint,
 	netEndpoint NetworkEndpoint,
 ) {
 	o := oracleState{
@@ -36,6 +37,7 @@ func RunOracle(
 		id:                  id,
 		localConfig:         localConfig,
 		logger:              logger,
+		monitoringEndpoint:  monitoringEndpoint,
 		netEndpoint:         netEndpoint,
 		PrivateKeys:         keys,
 	}
@@ -53,6 +55,7 @@ type oracleState struct {
 	id                  types.OracleID
 	localConfig         types.LocalConfig
 	logger              types.Logger
+	monitoringEndpoint  types.MonitoringEndpoint
 	netEndpoint         NetworkEndpoint
 	PrivateKeys         types.PrivateKeys
 
@@ -122,6 +125,7 @@ func (o *oracleState) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
+			o.monitoringEndpoint,
 			o.netEndpoint,
 			o.PrivateKeys,
 		)
