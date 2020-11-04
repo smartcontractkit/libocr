@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"sync"
 
@@ -31,8 +30,10 @@ const (
 
 type PeerConfig struct {
 	PrivKey        p2pcrypto.PrivKey
-	ListenPort     uint16
 	ListenIP       net.IP
+	ListenPort     uint16
+	AnnounceIP     net.IP
+	AnnouncePort   uint16
 	Logger         types.Logger
 	Peerstore      p2ppeerstore.Peerstore
 	EndpointConfig EndpointConfig
@@ -67,17 +68,17 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "error extracting peer ID from private key")
 	}
 
-	ip4 := c.ListenIP.To4()
-	if ip4 == nil {
-		return nil, errors.Errorf("listen address must be a valid ipv4 address, got: %s", c.ListenIP.String())
+	listenAddr, err := makeMultiaddr(c.ListenIP, c.ListenPort)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not make listen multiaddr")
 	}
-	listenAddr := fmt.Sprintf("/ip4/%s/tcp/%d", ip4.String(), c.ListenPort)
 
 	logger := loghelper.MakeLoggerWithContext(c.Logger, types.LogFields{
 		"id":         "Peer",
 		"peerID":     peerID.Pretty(),
 		"listenPort": c.ListenPort,
-		"listenAddr": listenAddr,
+		"listenIP":   c.ListenIP.String(),
+		"listenAddr": listenAddr.String(),
 	})
 
 	gater, err := newConnectionGater(logger)
@@ -85,19 +86,25 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not create gater")
 	}
 
-	tlsId := knockingtls.ID
+	tlsID := knockingtls.ID
 	tls, err := knockingtls.NewKnockingTLS(logger, c.PrivKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create knocking tls")
 	}
 
+	addrsFactory, err := makeAddrsFactory(c.AnnounceIP, c.AnnouncePort)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not make addrs factory")
+	}
+
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(listenAddr),
+		libp2p.ListenAddrs(listenAddr),
 		libp2p.Identity(c.PrivKey),
 		libp2p.DisableRelay(),
-		libp2p.Security(tlsId, tls),
+		libp2p.Security(tlsID, tls),
 		libp2p.ConnectionGater(gater),
 		libp2p.Peerstore(c.Peerstore),
+		libp2p.AddrsFactory(addrsFactory),
 	}
 
 	basicHost, err := libp2p.New(context.Background(), opts...)

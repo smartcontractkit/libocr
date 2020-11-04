@@ -125,6 +125,12 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
+	if latestConfigDigest == (types.ConfigDigest{}) {
+		state.logger.Error("TrackConfig: LatestConfigDetails() returned a zero configDigest. Looks like the contract has not been configured", types.LogFields{
+			"configDigest": latestConfigDigest,
+		})
+		return nil, false
+	}
 	if state.configDigest == latestConfigDigest {
 		return nil, false
 	}

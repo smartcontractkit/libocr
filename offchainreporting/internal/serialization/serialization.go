@@ -126,12 +126,18 @@ func (wrapper *MessageWrapper) fromProtoMessage() (protocol.Message, error) {
 }
 
 func (m *MessageNewEpoch) fromProtoMessage() (protocol.MessageNewEpoch, error) {
+	if m == nil {
+		return protocol.MessageNewEpoch{}, errors.New("Unable to extract a MessageNewEpoch value")
+	}
 	return protocol.MessageNewEpoch{
 		Epoch: uint32(m.Epoch),
 	}, nil
 }
 
 func (m *MessageObserveReq) fromProtoMessage() (protocol.MessageObserveReq, error) {
+	if m == nil {
+		return protocol.MessageObserveReq{}, errors.New("Unable to extract a MessageObserveReq value")
+	}
 	return protocol.MessageObserveReq{
 		Round: uint8(m.Round),
 		Epoch: uint32(m.Epoch),
@@ -139,6 +145,9 @@ func (m *MessageObserveReq) fromProtoMessage() (protocol.MessageObserveReq, erro
 }
 
 func (m *MessageObserve) fromProtoMessage() (protocol.MessageObserve, error) {
+	if m == nil {
+		return protocol.MessageObserve{}, errors.New("Unable to extract a MessageObserve value")
+	}
 	obs, err := m.Obs.fromProtoMessage()
 	if err != nil {
 		return protocol.MessageObserve{}, nil
@@ -151,6 +160,9 @@ func (m *MessageObserve) fromProtoMessage() (protocol.MessageObserve, error) {
 }
 
 func (m *MessageReportReq) fromProtoMessage() (protocol.MessageReportReq, error) {
+	if m == nil {
+		return protocol.MessageReportReq{}, errors.New("Unable to extract a MessageReportReq value")
+	}
 	observations, err := Observations(m.Observations).fromProtoMessage()
 	if err != nil {
 		return protocol.MessageReportReq{}, err
@@ -163,6 +175,9 @@ func (m *MessageReportReq) fromProtoMessage() (protocol.MessageReportReq, error)
 }
 
 func (o *ObservationValue) fromProtoMessage() (observation.Observation, error) {
+	if o == nil {
+		return observation.Observation{}, errors.New("Unable to extract a ObservationValue value")
+	}
 	obs, err := observation.UnmarshalObservation(o.Value)
 	if err != nil {
 		return observation.Observation{}, errors.Errorf(`could not deserialize bytes as `+
@@ -172,6 +187,9 @@ func (o *ObservationValue) fromProtoMessage() (observation.Observation, error) {
 }
 
 func (m *ContractReport) fromProtoMessage() (protocol.ContractReport, error) {
+	if m == nil {
+		return protocol.ContractReport{}, errors.New("Unable to extract a ContractReport value")
+	}
 	if m == nil {
 		return protocol.ContractReport{}, nil
 	}
@@ -202,6 +220,9 @@ func (m *ContractReport) fromProtoMessage() (protocol.ContractReport, error) {
 }
 
 func (r *ReportingContext) fromProtoMessage() (signature.ReportingContext, error) {
+	if r == nil {
+		return signature.ReportingContext{}, errors.New("Unable to extract a ReportingContext value")
+	}
 	return signature.ReportingContext{
 		ConfigDigest: types.BytesToConfigDigest(r.ConfigDigest),
 		Epoch:        uint32(r.Epoch),
@@ -210,6 +231,9 @@ func (r *ReportingContext) fromProtoMessage() (signature.ReportingContext, error
 }
 
 func (m *MessageReport) fromProtoMessage() (protocol.MessageReport, error) {
+	if m == nil {
+		return protocol.MessageReport{}, errors.New("Unable to extract a MessageReport value")
+	}
 	contractReport, err := m.ContractReport.fromProtoMessage()
 	if err != nil {
 		return protocol.MessageReport{}, err
@@ -223,6 +247,9 @@ func (m *MessageReport) fromProtoMessage() (protocol.MessageReport, error) {
 }
 
 func (m *ContractReportWithSignatures) fromProtoMessage() (protocol.ContractReportWithSignatures, error) {
+	if m == nil {
+		return protocol.ContractReportWithSignatures{}, errors.New("Unable to extract a ContractReportWithSignatures value")
+	}
 	signatures := make([][]byte, len(m.Signatures))
 	for i, s := range m.Signatures {
 		sig := s.Signature
@@ -242,6 +269,9 @@ func (m *ContractReportWithSignatures) fromProtoMessage() (protocol.ContractRepo
 }
 
 func (m *MessageFinal) fromProtoMessage() (protocol.MessageFinal, error) {
+	if m == nil {
+		return protocol.MessageFinal{}, errors.New("Unable to extract a MessageFinal value")
+	}
 	report, err := m.Report.fromProtoMessage()
 	if err != nil {
 		return protocol.MessageFinal{}, nil
@@ -254,6 +284,9 @@ func (m *MessageFinal) fromProtoMessage() (protocol.MessageFinal, error) {
 }
 
 func (m *MessageFinalEcho) fromProtoMessage() (protocol.MessageFinalEcho, error) {
+	if m == nil {
+		return protocol.MessageFinalEcho{}, errors.New("Unable to extract a MessageFinalEcho value")
+	}
 	final, err := m.Final.fromProtoMessage()
 	if err != nil {
 		return protocol.MessageFinalEcho{}, err
@@ -265,6 +298,9 @@ func (m *MessageFinalEcho) fromProtoMessage() (protocol.MessageFinalEcho, error)
 type Observations []*Observation
 
 func (ms Observations) fromProtoMessage() ([]protocol.Observation, error) {
+	if ms == nil {
+		return []protocol.Observation{}, errors.New("Unable to extract an array of Observations")
+	}
 	observations := make([]protocol.Observation, len(ms))
 	for i, o := range ms {
 		obs, err := o.fromProtoMessage()
@@ -277,6 +313,9 @@ func (ms Observations) fromProtoMessage() ([]protocol.Observation, error) {
 }
 
 func (m *Observation) fromProtoMessage() (protocol.Observation, error) {
+	if m == nil {
+		return protocol.Observation{}, errors.New("Unable to extract an Observation value")
+	}
 	sig := m.Signature
 	if sig == nil {
 		sig = []byte{}
