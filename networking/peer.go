@@ -2,10 +2,13 @@ package networking
 
 import (
 	"context"
+	"github.com/libp2p/go-libp2p-core/transport"
+	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
+	"github.com/libp2p/go-tcp-transport"
+	"github.com/smartcontractkit/libocr/networking/knockingtls"
 	"net"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/networking/knockingtls"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 
@@ -97,6 +100,18 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not make addrs factory")
 	}
 
+	
+	transportCon := func(upgrader *tptu.Upgrader) transport.Transport {
+		betterUpgrader := tptu.Upgrader{
+			upgrader.PSK,
+			tls,
+			upgrader.Muxer,
+			upgrader.ConnGater,
+		}
+
+		return tcp.NewTCPTransport(&betterUpgrader)
+	}
+
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(listenAddr),
 		libp2p.Identity(c.PrivKey),
@@ -105,6 +120,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		libp2p.ConnectionGater(gater),
 		libp2p.Peerstore(c.Peerstore),
 		libp2p.AddrsFactory(addrsFactory),
+		libp2p.Transport(transportCon),
 	}
 
 	basicHost, err := libp2p.New(context.Background(), opts...)
@@ -126,7 +142,16 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 }
 
 
-func (p *concretePeer) MakeEndpoint(configDigest types.ConfigDigest, pids []string, bootstrappers []string, failureThreshold int) (types.BinaryNetworkEndpoint, error) {
+func (p *concretePeer) MakeEndpoint(
+	configDigest types.ConfigDigest,
+	pids []string,
+	bootstrappers []string,
+	failureThreshold int,
+	
+	tokenBucketRefillRate float64,
+	
+	tokenBucketSize int,
+) (types.BinaryNetworkEndpoint, error) {
 	if failureThreshold <= 0 {
 		return nil, errors.New("can't set F to 0 or smaller")
 	}
@@ -143,7 +168,7 @@ func (p *concretePeer) MakeEndpoint(configDigest types.ConfigDigest, pids []stri
 	if err != nil {
 		return nil, errors.Wrap(err, "could not decode bootstrappers")
 	}
-	return newOCREndpoint(p.logger, configDigest, p, peerIDs, bnAddrs, p.endpointConfig, failureThreshold)
+	return newOCREndpoint(p.logger, configDigest, p, peerIDs, bnAddrs, p.endpointConfig, failureThreshold, tokenBucketRefillRate, tokenBucketSize)
 }
 
 func decodeBootstrappers(bootstrappers []string) (bnAddrs []p2ppeer.AddrInfo, err error) {

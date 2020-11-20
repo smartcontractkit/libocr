@@ -16,6 +16,8 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/libp2p/go-libp2p-tls v0.1.3
+	github.com/libp2p/go-libp2p-transport-upgrader v0.3.0
+	github.com/libp2p/go-tcp-transport v0.2.0
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/onsi/ginkgo v1.14.1 // indirect
 	github.com/pkg/errors v0.9.1
@@ -26,6 +28,7 @@ require (
 	go.uber.org/multierr v1.5.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	golang.org/x/tools v0.0.0-20200930143006-c8c0a1c0177f // indirect
 	google.golang.org/protobuf v1.25.0
 )

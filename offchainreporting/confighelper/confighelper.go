@@ -56,7 +56,12 @@ func configDigest(
 		panic(err)
 	}
 	rawHash := crypto.Keccak256(msg)
-	return types.BytesToConfigDigest(rawHash)
+	configDigest := types.ConfigDigest{}
+	if n := copy(configDigest[:], rawHash); n != len(configDigest) {
+		
+		panic("copy too little data")
+	}
+	return configDigest
 }
 
 func ContractConfigFromConfigSetEvent(changed offchainaggregator.OffchainAggregatorConfigSet) types.ContractConfig {

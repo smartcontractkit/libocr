@@ -2,6 +2,7 @@ package offchainreporting
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
@@ -16,6 +17,7 @@ type BootstrapNodeArgs struct {
 	Database              types.Database
 	LocalConfig           types.LocalConfig
 	Logger                types.Logger
+	MonitoringEndpoint    types.MonitoringEndpoint
 }
 
 
@@ -35,7 +37,7 @@ type BootstrapNode struct {
 }
 
 func NewBootstrapNode(args BootstrapNodeArgs) (*BootstrapNode, error) {
-	if err := validateLocalConfig(args.LocalConfig); err != nil {
+	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
 		return nil, errors.Wrapf(err,
 			"bad local config while creating bootstrap node")
 	}

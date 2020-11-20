@@ -70,8 +70,6 @@ func onChainHash(msg []byte) []byte {
 	return crypto.Keccak256(msg)
 }
 
-
-
 func (k OnChainPublicKey) Address() types.OnChainSigningAddress {
 	return types.OnChainSigningAddress(crypto.PubkeyToAddress(ecdsa.PublicKey(k)))
 }

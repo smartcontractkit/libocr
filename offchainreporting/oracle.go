@@ -67,7 +67,7 @@ type Oracle struct {
 
 
 func NewOracle(args OracleArgs) (*Oracle, error) {
-	if err := validateLocalConfig(args.LocalConfig); err != nil {
+	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
 		return nil, errors.Wrapf(err, "bad local config while creating new oracle")
 	}
 	return &Oracle{

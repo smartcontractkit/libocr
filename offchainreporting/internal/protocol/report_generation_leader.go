@@ -4,7 +4,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/internal/signature"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -28,6 +27,14 @@ var englishPhase = map[phase]string{
 	phaseFinal:   "final",
 }
 
+func (repgen *reportGenerationState) leaderReportContext() ReportContext {
+	return ReportContext{repgen.config.ConfigDigest, repgen.e, repgen.leaderState.r}
+}
+
+
+
+
+
 func (repgen *reportGenerationState) eventTRoundTimeout() {
 	repgen.startRound()
 }
@@ -45,7 +52,7 @@ func (repgen *reportGenerationState) startRound() {
 		return
 	}
 	repgen.leaderState.r = rPlusOne
-	repgen.leaderState.observe = make([]*MessageObserve, repgen.config.N())
+	repgen.leaderState.observe = make([]*SignedObservation, repgen.config.N())
 	repgen.leaderState.phase = phaseObserve
 	repgen.netSender.Broadcast(MessageObserveReq{Epoch: repgen.e, Round: repgen.leaderState.r})
 	repgen.leaderState.tRound = time.After(repgen.config.DeltaRound)
@@ -100,32 +107,31 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 		return
 	}
 
-	senderPublicKey := signature.OffchainPublicKey(
-		repgen.config.OracleIdentities[sender].OffchainPublicKey)
-	if !senderPublicKey.Verify(msg.Obs.wireMessage(), msg.Obs.Sig) {
-		repgen.logger.Warn("MessageObserve has invalid signature", types.LogFields{
+	if err := msg.SignedObservation.Verify(repgen.leaderReportContext(), repgen.config.OracleIdentities[sender].OffchainPublicKey); err != nil {
+		repgen.logger.Warn("MessageObserve carries invalid SignedObservation", types.LogFields{
 			"round":  repgen.leaderState.r,
 			"sender": sender,
 			"msg":    msg,
+			"error":  err,
 		})
 		return
 	}
 
-	repgen.logger.Debug("MessageObserve has valid signature", types.LogFields{
+	repgen.logger.Debug("MessageObserve has valid SignedObservation", types.LogFields{
 		"round":    repgen.leaderState.r,
 		"sender":   sender,
 		"msgEpoch": msg.Epoch,
 		"msgRound": msg.Round,
 	})
 
-	repgen.leaderState.observe[sender] = &msg
+	repgen.leaderState.observe[sender] = &msg.SignedObservation
 
 	
 	switch repgen.leaderState.phase {
 	case phaseObserve:
 		observationCount := 0 
-		for _, obs := range repgen.leaderState.observe {
-			if obs != nil {
+		for _, so := range repgen.leaderState.observe {
+			if so != nil {
 				observationCount++
 			}
 		}
@@ -154,19 +160,22 @@ func (repgen *reportGenerationState) eventTGraceTimeout() {
 		})
 		return
 	}
-	observations := []Observation{}
-	for _, msgObs := range repgen.leaderState.observe {
-		if msgObs != nil {
-			observations = append(observations, msgObs.Obs)
+	asos := []AttributedSignedObservation{}
+	for oid, so := range repgen.leaderState.observe {
+		if so != nil {
+			asos = append(asos, AttributedSignedObservation{
+				*so,
+				types.OracleID(oid),
+			})
 		}
 	}
-	sort.Slice(observations, func(i, j int) bool {
-		return observations[i].Value.Less(observations[j].Value)
+	sort.Slice(asos, func(i, j int) bool {
+		return asos[i].SignedObservation.Observation.Less(asos[j].SignedObservation.Observation)
 	})
 	repgen.netSender.Broadcast(MessageReportReq{
-		Epoch:        repgen.e,
-		Round:        repgen.leaderState.r,
-		Observations: observations,
+		repgen.e,
+		repgen.leaderState.r,
+		asos,
 	})
 	repgen.leaderState.phase = phaseReport
 }
@@ -185,7 +194,7 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 	}
 	if msg.Round != repgen.leaderState.r {
 		repgen.logger.Debug(dropPrefix+"wrong round",
-			types.LogFields{"round": repgen.followerState.r, "msgRound": msg.Round})
+			types.LogFields{"round": repgen.leaderState.r, "msgRound": msg.Round})
 		return
 	}
 	if repgen.leaderState.phase != phaseReport {
@@ -193,9 +202,14 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 			types.LogFields{"currentPhase": englishPhase[repgen.leaderState.phase]})
 		return
 	}
+	if repgen.leaderState.report[sender] != nil {
+		repgen.logger.Warn(dropPrefix+"having already received sender's report",
+			types.LogFields{"sender": sender, "msg": msg})
+		return
+	}
 
 	a := types.OnChainSigningAddress(repgen.config.OracleIdentities[sender].OnChainSigningAddress)
-	err := msg.ContractReport.verify(a)
+	err := msg.Report.Verify(repgen.leaderReportContext(), a)
 	if err != nil {
 		repgen.logger.Error("could not validate signature", types.LogFields{
 			"error": err,
@@ -204,21 +218,21 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 		return
 	}
 
-	repgen.leaderState.report[sender] = &msg
+	repgen.leaderState.report[sender] = &msg.Report
 
 	
 	{ 
 		sigs := [][]byte{}
-		for _, msgR := range repgen.leaderState.report {
-			if msgR == nil {
+		for _, report := range repgen.leaderState.report {
+			if report == nil {
 				continue
 			}
-			if msgR.ContractReport.Equal(msg.ContractReport) {
-				sigs = append(sigs, msgR.ContractReport.Sig)
+			if report.AttributedObservations.Equal(msg.Report.AttributedObservations) {
+				sigs = append(sigs, report.Signature)
 			} else {
-				repgen.logger.Warn("received disparate contractReport messages", types.LogFields{
-					"msg1": msgR,
-					"msg2": msg,
+				repgen.logger.Warn("received disparate reports messages", types.LogFields{
+					"previousReport": report,
+					"msgReport":      msg,
 				})
 			}
 		}
@@ -227,9 +241,9 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 			repgen.netSender.Broadcast(MessageFinal{
 				repgen.e,
 				repgen.leaderState.r,
-				ContractReportWithSignatures{
-					ContractReport: msg.ContractReport,
-					Signatures:     sigs,
+				AttestedReportMany{
+					msg.Report.AttributedObservations,
+					sigs,
 				},
 			})
 			repgen.leaderState.phase = phaseFinal

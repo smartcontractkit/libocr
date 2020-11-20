@@ -2,6 +2,7 @@ package config
 
 import (
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -60,6 +61,12 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		return PublicConfig{}, SharedSecretEncryptions{}, err
 	}
 
+	
+	
+	if err := checkIdentityListsHaveTheSameLength(change, oc); err != nil {
+		return PublicConfig{}, SharedSecretEncryptions{}, err
+	}
+
 	identities := []OracleIdentity{}
 	for i := range change.Signers {
 		identities = append(identities, OracleIdentity{
@@ -84,4 +91,26 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		int(change.Threshold),
 		change.ConfigDigest,
 	}, oc.SharedSecretEncryptions, nil
+}
+
+func checkIdentityListsHaveTheSameLength(
+	change types.ContractConfig, oc setConfigEncodedComponents,
+) error {
+	expectedLength := len(change.Signers)
+	errorMsg := "%s list must have same length as onchain signers list: %d ≠ " +
+		strconv.Itoa(expectedLength)
+	for _, identityList := range []struct {
+		length int
+		name   string
+	}{
+		{len(oc.PeerIDs) , "peer ID"},
+		{len(oc.OffchainPublicKeys) , "offchain public keys"},
+		{len(change.Transmitters) , "transmitter address"},
+		{len(oc.SharedSecretEncryptions.Encryptions), "shared-secret encryptions"},
+	} {
+		if identityList.length != expectedLength {
+			return errors.Errorf(errorMsg, identityList.name, identityList.length)
+		}
+	}
+	return nil
 }

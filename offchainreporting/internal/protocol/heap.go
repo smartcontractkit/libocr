@@ -7,50 +7,50 @@ import (
 )
 
 
-type MinHeapTimeToContractReport struct {
-	internal MinHeapTimeToContractReportInternal
+type MinHeapTimeToPendingTransmission struct {
+	internal MinHeapTimeToPendingTransmissionInternal
 }
 
-func (h *MinHeapTimeToContractReport) Push(item MinHeapTimeToContractReportItem) {
+func (h *MinHeapTimeToPendingTransmission) Push(item MinHeapTimeToPendingTransmissionItem) {
 	heap.Push(&h.internal, item)
 }
 
-func (h *MinHeapTimeToContractReport) Pop() MinHeapTimeToContractReportItem {
-	return heap.Pop(&h.internal).(MinHeapTimeToContractReportItem)
+func (h *MinHeapTimeToPendingTransmission) Pop() MinHeapTimeToPendingTransmissionItem {
+	return heap.Pop(&h.internal).(MinHeapTimeToPendingTransmissionItem)
 }
 
-func (h *MinHeapTimeToContractReport) Peek() MinHeapTimeToContractReportItem {
+func (h *MinHeapTimeToPendingTransmission) Peek() MinHeapTimeToPendingTransmissionItem {
 	return h.internal[0]
 }
 
-func (h *MinHeapTimeToContractReport) Len() int {
+func (h *MinHeapTimeToPendingTransmission) Len() int {
 	return h.internal.Len()
 }
 
-type MinHeapTimeToContractReportItem struct {
+type MinHeapTimeToPendingTransmissionItem struct {
 	types.PendingTransmissionKey
 	types.PendingTransmission
 }
 
 
-type MinHeapTimeToContractReportInternal []MinHeapTimeToContractReportItem
+type MinHeapTimeToPendingTransmissionInternal []MinHeapTimeToPendingTransmissionItem
 
-func (pq MinHeapTimeToContractReportInternal) Len() int { return len(pq) }
+func (pq MinHeapTimeToPendingTransmissionInternal) Len() int { return len(pq) }
 
-func (pq MinHeapTimeToContractReportInternal) Less(i, j int) bool {
+func (pq MinHeapTimeToPendingTransmissionInternal) Less(i, j int) bool {
 	return pq[i].Time.Before(pq[j].Time)
 }
 
-func (pq MinHeapTimeToContractReportInternal) Swap(i, j int) {
+func (pq MinHeapTimeToPendingTransmissionInternal) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 }
 
-func (pq *MinHeapTimeToContractReportInternal) Push(x interface{}) {
-	item := x.(MinHeapTimeToContractReportItem)
+func (pq *MinHeapTimeToPendingTransmissionInternal) Push(x interface{}) {
+	item := x.(MinHeapTimeToPendingTransmissionItem)
 	*pq = append(*pq, item)
 }
 
-func (pq *MinHeapTimeToContractReportInternal) Pop() interface{} {
+func (pq *MinHeapTimeToPendingTransmissionInternal) Pop() interface{} {
 	old := *pq
 	n := len(old)
 	item := old[n-1]

@@ -12,6 +12,10 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
+func (repgen *reportGenerationState) followerReportContext() ReportContext {
+	return ReportContext{repgen.config.ConfigDigest, repgen.e, repgen.followerState.r}
+}
+
 
 
 
@@ -85,10 +89,13 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	
 	
 	
-	repgen.followerState.sentEcho = false
+	
+	
+	
+	repgen.followerState.sentEcho = nil
 	repgen.followerState.sentReport = false
 	repgen.followerState.completedRound = false
-	repgen.followerState.finalEcho = make([]*MessageFinalEcho, repgen.config.N())
+	repgen.followerState.receivedEcho = make([]bool, repgen.config.N())
 
 	value := repgen.observeValue()
 	if value.IsMissingValue() {
@@ -97,38 +104,32 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 		return
 	}
 
-	m := MessageObserve{
-		Epoch: repgen.e,
-		Round: repgen.followerState.r,
-		Obs: Observation{
-			Ctx:      repgen.NewReportingContext(),
-			Value:    value,
-			OracleID: repgen.id,
-		},
-	}
-	wireMsg := m.Obs.wireMessage()
-	var err error
-	m.Obs.Sig, err = repgen.privateKeys.SignOffChain(wireMsg)
+	so, err := MakeSignedObservation(value, repgen.followerReportContext(), repgen.privateKeys.SignOffChain)
 	if err != nil {
-		repgen.logger.Error("messageReportReq: could not sign observation: %s", types.LogFields{
+		repgen.logger.Error("messageObserveReq: could not make SignedObservation observation", types.LogFields{
 			"error": err,
 			"round": repgen.followerState.r,
 		})
 		return
 	}
-	key := signature.OffchainPublicKey(repgen.privateKeys.PublicKeyOffChain())
-	if !key.Verify(wireMsg, m.Obs.Sig) {
-		repgen.logger.Error("sign produced invalid signature:", types.LogFields{
+
+	if err := so.Verify(repgen.followerReportContext(), repgen.privateKeys.PublicKeyOffChain()); err != nil {
+		repgen.logger.Error("MakeSignedObservation produced invalid signature:", types.LogFields{
 			"error": err,
 			"round": repgen.followerState.r,
 		})
 		return
 	}
+
 	repgen.logger.Debug("sent observation to leader", types.LogFields{
 		"epoch": repgen.e, "round": repgen.followerState.r, "leader": repgen.l,
-		"observation": m.Obs.Value,
+		"observation": value,
 	})
-	repgen.netSender.SendTo(m, repgen.l)
+	repgen.netSender.SendTo(MessageObserve{
+		repgen.e,
+		repgen.followerState.r,
+		so,
+	}, repgen.l)
 }
 
 
@@ -156,11 +157,13 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 		return
 	}
 	if repgen.followerState.sentReport {
-		repgen.logger.Warn("messageReportReq after report sent", nil)
+		repgen.logger.Warn("messageReportReq after report sent", types.LogFields{
+			"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
 	}
 	if repgen.followerState.completedRound {
-		repgen.logger.Warn("messageReportReq after round completed", nil)
+		repgen.logger.Warn("messageReportReq after round completed", types.LogFields{
+			"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
 	}
 	err := repgen.verifyReportReq(msg)
@@ -172,31 +175,32 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 		return
 	}
 
-	if repgen.shouldReport(msg.Observations) {
-		attributedValues := make([]OracleValue, len(msg.Observations))
-		for i, obs := range msg.Observations {
-			attributedValues[i] = OracleValue{
-				
-				ID:    obs.OracleID,
-				Value: obs.Value,
+	if repgen.shouldReport(msg.AttributedSignedObservations) {
+		attributedValues := make([]AttributedObservation, len(msg.AttributedSignedObservations))
+		for i, aso := range msg.AttributedSignedObservations {
+			
+			attributedValues[i] = AttributedObservation{
+				aso.SignedObservation.Observation,
+				aso.Observer,
 			}
 		}
 
-		report := ContractReport{
-			Ctx:    repgen.NewReportingContext(),
-			Values: attributedValues,
-		}
-		if err := report.Sign(repgen.privateKeys.SignOnChain); err != nil {
+		report, err := MakeAttestedReportOne(
+			attributedValues,
+			repgen.followerReportContext(),
+			repgen.privateKeys.SignOnChain,
+		)
+		if err != nil {
 			
 			
-			repgen.logger.Error("messageReportReq: failed to sign report",
-				types.LogFields{"error": err, "id": repgen.id, "report": report,
-					"pubkey": repgen.privateKeys.PublicKeyAddressOnChain()})
+			repgen.logger.Error("messageReportReq: failed to sign report", types.LogFields{
+				"error": err, "id": repgen.id, "report": report,
+				"pubkey": repgen.privateKeys.PublicKeyAddressOnChain()})
 			return
 		}
 
 		{
-			err := report.verify(repgen.privateKeys.PublicKeyAddressOnChain())
+			err := report.Verify(repgen.followerReportContext(), repgen.privateKeys.PublicKeyAddressOnChain())
 			if err != nil {
 				repgen.logger.Error("could not verify my own signature", types.LogFields{
 					"error": err, "id": repgen.id, "report": report, 
@@ -208,9 +212,9 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 		repgen.followerState.sentReport = true
 		repgen.netSender.SendTo(
 			MessageReport{
-				Epoch:          repgen.e,
-				Round:          repgen.followerState.r,
-				ContractReport: report,
+				repgen.e,
+				repgen.followerState.r,
+				report,
 			},
 			repgen.l,
 		)
@@ -241,14 +245,14 @@ func (repgen *reportGenerationState) messageFinal(
 			"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
 	}
-	if repgen.followerState.sentEcho {
+	if repgen.followerState.sentEcho != nil {
 		repgen.logger.Debug("MessageFinal after already sent MessageFinalEcho", nil)
 		return
 	}
 	if !repgen.verifyAttestedReport(msg.Report, sender) {
 		return
 	}
-	repgen.followerState.sentEcho = true
+	repgen.followerState.sentEcho = &msg.Report
 	repgen.netSender.Broadcast(MessageFinalEcho{MessageFinal: msg})
 }
 
@@ -271,31 +275,41 @@ func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 			"round": repgen.followerState.r, "msgRound": msg.Round, "sender": sender})
 		return
 	}
+	if repgen.followerState.receivedEcho[sender] {
+		repgen.logger.Warn("extra MessageFinalEcho received", types.LogFields{
+			"sender": sender})
+		return
+	}
 	if repgen.followerState.completedRound {
 		repgen.logger.Debug("received final echo after round completion", nil)
 		return
 	}
-	if !repgen.verifyAttestedReport(msg.Report, sender) {
+	if !repgen.verifyAttestedReport(msg.Report, sender) { 
+		
 		return
 	}
-	repgen.followerState.finalEcho[sender] = &msg
+	repgen.followerState.receivedEcho[sender] = true 
 
-	if !repgen.followerState.sentEcho {
-		repgen.followerState.sentEcho = true
-		repgen.netSender.Broadcast(msg)
+	if repgen.followerState.sentEcho == nil { 
+		repgen.followerState.sentEcho = &msg.Report 
+		repgen.netSender.Broadcast(msg)             
 	}
 
 	
 	{
 		count := 0 
-		for _, msgFe := range repgen.followerState.finalEcho {
-			if msgFe != nil && msgFe.Report.Equal(msg.Report) {
+		for _, receivedEcho := range repgen.followerState.receivedEcho {
+			if receivedEcho {
 				count++
 			}
 		}
 		if repgen.config.F < count {
 			select {
-			case repgen.chReportGenerationToTransmission <- EventTransmit{msg.Report}:
+			case repgen.chReportGenerationToTransmission <- EventTransmit{
+				repgen.e,
+				repgen.followerState.r,
+				*repgen.followerState.sentEcho,
+			}:
 			case <-repgen.ctx.Done():
 			}
 			repgen.completeRound()
@@ -341,7 +355,7 @@ func (repgen *reportGenerationState) observeValue() observation.Observation {
 	return value
 }
 
-func (repgen *reportGenerationState) shouldReport(observations []Observation) bool {
+func (repgen *reportGenerationState) shouldReport(observations []AttributedSignedObservation) bool {
 	ctx, cancel := context.WithTimeout(repgen.ctx, repgen.localConfig.BlockchainTimeout)
 	defer cancel()
 	contractConfigDigest, contractEpoch, contractRound, rawAnswer, timestamp,
@@ -365,7 +379,7 @@ func (repgen *reportGenerationState) shouldReport(observations []Observation) bo
 	}
 
 	initialRound := contractConfigDigest == repgen.config.ConfigDigest && contractEpoch == 0 && contractRound == 0
-	deviation := observations[len(observations)/2].Value.Deviates(answer, repgen.config.AlphaPPB)
+	deviation := observations[len(observations)/2].SignedObservation.Observation.Deviates(answer, repgen.config.AlphaPPB)
 	deltaCTimeout := timestamp.Add(repgen.config.DeltaC).Before(time.Now())
 	result := initialRound || deviation || deltaCTimeout
 
@@ -401,9 +415,9 @@ func (repgen *reportGenerationState) completeRound() {
 
 func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error {
 	
-	if !sort.SliceIsSorted(msg.Observations,
+	if !sort.SliceIsSorted(msg.AttributedSignedObservations,
 		func(i, j int) bool {
-			return msg.Observations[i].Value.Less(msg.Observations[j].Value)
+			return msg.AttributedSignedObservations[i].SignedObservation.Observation.Less(msg.AttributedSignedObservations[j].SignedObservation.Observation)
 		}) {
 		return errors.Errorf("messages not sorted by value")
 	}
@@ -411,22 +425,21 @@ func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error
 	
 	{
 		counted := map[types.OracleID]bool{}
-		for _, obs := range msg.Observations {
+		for _, obs := range msg.AttributedSignedObservations {
 			
 			numOracles := len(repgen.config.OracleIdentities)
-			if int(obs.OracleID) < 0 || numOracles <= int(obs.OracleID) {
+			if int(obs.Observer) < 0 || numOracles <= int(obs.Observer) {
 				return errors.Errorf("given oracle ID of %v is out of bounds (only "+
-					"have %v public keys)", obs.OracleID, numOracles)
+					"have %v public keys)", obs.Observer, numOracles)
 			}
-			if counted[obs.OracleID] {
-				return errors.Errorf("duplicate observation by oracle id %v", obs.OracleID)
+			if counted[obs.Observer] {
+				return errors.Errorf("duplicate observation by oracle id %v", obs.Observer)
 			} else {
-				counted[obs.OracleID] = true
+				counted[obs.Observer] = true
 			}
-			observerOffchainIdentity := repgen.config.OracleIdentities[obs.OracleID].OffchainPublicKey
-			verificationKey := signature.OffchainPublicKey(observerOffchainIdentity)
-			if !verificationKey.Verify(obs.wireMessage(), obs.Sig) {
-				return errors.Errorf("invalid signature on %+v", obs)
+			observerOffchainPublicKey := repgen.config.OracleIdentities[obs.Observer].OffchainPublicKey
+			if err := obs.SignedObservation.Verify(repgen.followerReportContext(), observerOffchainPublicKey); err != nil {
+				return errors.Errorf("invalid signed observation: %s", err)
 			}
 		}
 		bound := 2 * repgen.config.F
@@ -441,20 +454,12 @@ func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error
 
 
 func (repgen *reportGenerationState) verifyAttestedReport(
-	report ContractReportWithSignatures, sender types.OracleID,
+	report AttestedReportMany, sender types.OracleID,
 ) bool {
 	if len(report.Signatures) <= repgen.config.F {
 		repgen.logger.Warn("verifyAttestedReport: dropping final report because "+
 			"it has too few signatures", types.LogFields{"sender": sender,
 			"numSignatures": len(report.Signatures), "F": repgen.config.F})
-		return false
-	}
-
-	if err := repgen.verifyReportingContext(report.Ctx); err != nil {
-		repgen.logger.Warn("invalid ReportingContext on MessageFinal", types.LogFields{
-			"error":  err,
-			"report": report,
-		})
 		return false
 	}
 
@@ -464,19 +469,11 @@ func (repgen *reportGenerationState) verifyAttestedReport(
 			types.OracleID(oid)
 	}
 
-	err := report.VerifySignatures(keys)
+	err := report.VerifySignatures(repgen.followerReportContext(), keys)
 	if err != nil {
 		repgen.logger.Error("could not validate signatures on final report",
 			types.LogFields{"error": err, "report": report, "sender": sender})
 		return false
 	}
 	return true
-}
-
-func (repgen *reportGenerationState) verifyReportingContext(reportCtx signature.ReportingContext) error {
-	localCtx := repgen.NewReportingContext()
-	if !localCtx.Equal(reportCtx) {
-		return errors.New("contexts not equal")
-	}
-	return nil
 }

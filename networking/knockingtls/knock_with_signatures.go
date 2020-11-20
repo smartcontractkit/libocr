@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -20,6 +21,11 @@ import (
 
 const ID = "cl_knockingtls/1.0.0"
 const domainSeparator = "knockknock" + ID
+const readTimeout = 1 * time.Minute
+const version = byte(0x01)
+
+
+const knockSize = 1 + ed25519.PublicKeySize + ed25519.SignatureSize
 
 type KnockingTLSTransport struct {
 	tls            *p2ptls.Transport 
@@ -28,12 +34,10 @@ type KnockingTLSTransport struct {
 	privateKey     *p2pcrypto.Ed25519PrivateKey
 	myId           peer.ID
 	logger         types.Logger
+	readTimeout    time.Duration
 }
 
-var (
-	errInvalidConnection = errors.New("invalid connection")
-	errInvalidSignature  = errors.New("invalid signature in knock")
-)
+var errInvalidSignature = errors.New("invalid signature in knock")
 
 func buildKnockMessage(p peer.ID) ([]byte, error) {
 	
@@ -56,9 +60,6 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		}
 	}()
 
-	
-	
-	const knockSize = ed25519.PublicKeySize + ed25519.SignatureSize
 	knock := make([]byte, knockSize)
 
 	logger := loghelper.MakeLoggerWithContext(c.logger, types.LogFields{
@@ -66,17 +67,29 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		"localAddr":  insecure.LocalAddr(),
 	})
 
+	
+	err := insecure.SetReadDeadline(time.Now().Add(c.readTimeout))
+	if err != nil {
+		return nil, err
+	}
 	n, err := insecure.Read(knock)
 	if err != nil {
-		return nil, fmt.Errorf("can't read sig: %w", err)
+		return nil, fmt.Errorf("can't read knock: %w", err)
 	}
 
 	if n < knockSize {
 		
 		
 		
-		return nil, fmt.Errorf("can't read sig: %w", err)
+		return nil, fmt.Errorf("didn't get a full knock: got %d bytes", n)
 	}
+
+	if knock[0] != version {
+		return nil, errors.New("invalid version")
+	}
+
+	
+	knock = knock[1:]
 
 	pk, err := p2pcrypto.UnmarshalEd25519PublicKey(knock[:ed25519.PublicKeySize])
 	if err != nil {
@@ -127,8 +140,13 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	}
 
 	
-	shouldClose = false
+	err = insecure.SetReadDeadline(time.Time{})
+	if err != nil {
+		return nil, err
+	}
 
+	
+	shouldClose = false
 	return c.tls.SecureInbound(ctx, insecure)
 }
 
@@ -156,13 +174,15 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 	}
 
 	
-	knock := append(pk, sig...)
+	knock := []byte{version}
+	knock = append(knock, pk...)
+	knock = append(knock, sig...)
 
 	n, err := insecure.Write(knock)
 	if err != nil {
 		return nil, err
 	}
-	if n != len(pk)+len(sig) {
+	if n != knockSize {
 		return nil, errors.New("can't send all tag")
 	}
 
@@ -211,6 +231,7 @@ func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, allowlist 
 		logger: loghelper.MakeLoggerWithContext(logger, types.LogFields{
 			"id": "KnockingTLS",
 		}),
+		readTimeout: readTimeout,
 	}, nil
 }
 

@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
@@ -160,7 +161,9 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		"oid":          oid,
 	})
 
-	binNetEndpoint, err := mo.netEndpointFactory.MakeEndpoint(mo.config.ConfigDigest, peerIDs, mo.bootstrappers, mo.config.F)
+	binNetEndpoint, err := mo.netEndpointFactory.MakeEndpoint(mo.config.ConfigDigest, peerIDs,
+		mo.bootstrappers, mo.config.F, computeTokenBucketRefillRate(mo.config.PublicConfig),
+		computeTokenBucketSize())
 	if err != nil {
 		mo.logger.Error("ManagedOracle: error during MakeEndpoint", types.LogFields{
 			"error":         err,
@@ -210,4 +213,49 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 			"error":        err,
 		})
 	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+func computeTokenBucketRefillRate(cfg config.PublicConfig) float64 {
+	return (1.0*float64(time.Second)/float64(cfg.DeltaResend) +
+		1.0*float64(time.Second)/float64(cfg.DeltaProgress) +
+		1.0*float64(time.Second)/float64(cfg.DeltaRound) +
+		3.0*float64(time.Second)/float64(cfg.DeltaRound) +
+		2.0*float64(time.Second)/float64(cfg.DeltaRound)) * 2.0
+}
+
+func computeTokenBucketSize() int {
+	return (2 + 6) * 2
 }

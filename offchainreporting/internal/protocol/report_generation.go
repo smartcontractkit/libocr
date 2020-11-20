@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting/internal/signature"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -80,10 +79,10 @@ type leaderState struct {
 	r uint8
 
 	
-	observe []*MessageObserve
+	observe []*SignedObservation
 
 	
-	report []*MessageReport
+	report []*AttestedReportOne
 
 	
 	
@@ -103,12 +102,11 @@ type followerState struct {
 
 	
 	
-	
-	finalEcho []*MessageFinalEcho
+	receivedEcho []bool
 
 	
 	
-	sentEcho bool
+	sentEcho *AttestedReportMany
 
 	
 	
@@ -119,20 +117,16 @@ type followerState struct {
 	completedRound bool
 }
 
-func (repgen *reportGenerationState) NewReportingContext() signature.ReportingContext {
-	return signature.NewReportingContext(repgen.config.ConfigDigest, repgen.e, repgen.followerState.r)
-}
-
 
 func (repgen *reportGenerationState) run() {
 	repgen.logger.Info("Running ReportGeneration", nil)
 
 	
 	repgen.leaderState.r = 0
-	repgen.leaderState.report = make([]*MessageReport, repgen.config.N())
+	repgen.leaderState.report = make([]*AttestedReportOne, repgen.config.N())
 	repgen.followerState.r = 0
-	repgen.followerState.finalEcho = make([]*MessageFinalEcho, repgen.config.N())
-	repgen.followerState.sentEcho = false
+	repgen.followerState.receivedEcho = make([]bool, repgen.config.N())
+	repgen.followerState.sentEcho = nil
 	repgen.followerState.completedRound = false
 
 	

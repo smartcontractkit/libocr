@@ -23,10 +23,18 @@ func (c ConfigDigest) Hex() string {
 	return fmt.Sprintf("%x", c[:])
 }
 
-func BytesToConfigDigest(b []byte) (g ConfigDigest) {
+func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 	configDigest := ConfigDigest{}
-	copy(configDigest[:], b)
-	return configDigest
+
+	if len(b) != len(configDigest) {
+		return ConfigDigest{}, fmt.Errorf("Cannot convert bytes to ConfigDigest. bytes have wrong length %v", len(b))
+	}
+
+	if n := copy(configDigest[:], b); n != len(configDigest) {
+		panic("copy returned wrong length")
+	}
+
+	return configDigest, nil
 }
 
 
@@ -64,7 +72,9 @@ type Bootstrapper interface {
 
 
 type BinaryNetworkEndpointFactory interface {
-	MakeEndpoint(cd ConfigDigest, peerIDs []string, bootstrappers []string, failureThreshold int) (BinaryNetworkEndpoint, error)
+	MakeEndpoint(cd ConfigDigest, peerIDs []string, bootstrappers []string,
+		failureThreshold int, tokenBucketRefillRate float64, tokenBucketSize int,
+	) (BinaryNetworkEndpoint, error)
 	PeerID() string
 }
 

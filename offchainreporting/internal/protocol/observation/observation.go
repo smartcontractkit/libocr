@@ -172,7 +172,7 @@ func observationToUInt64s(o Observation) (w1, w2, w3 uint64) {
 	return uint64s[0], uint64s[1], uint64s[2]
 }
 
-func GenObservationValue() gopter.Gen {
+func GenObservation() gopter.Gen {
 	return gopter.DeriveGen(uInt64sToObservation, observationToUInt64s,
 		gen.UInt64(), gen.UInt64(), gen.UInt64())
 }

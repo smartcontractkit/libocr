@@ -126,7 +126,7 @@ func (router DHTRouter) Start() {
 
 		if router.config.extendedDHTLogging {
 			
-			router.printRoutingTableAndAclTable(10 * time.Minute)
+			router.printPeriodicReport(10 * time.Minute)
 		}
 	})
 }
@@ -278,28 +278,37 @@ func (router DHTRouter) startAnnounceInBackground() {
 }
 
 
-func (router DHTRouter) printRoutingTableAndAclTable(interval time.Duration) {
+func (router DHTRouter) printPeriodicReport(interval time.Duration) {
 	if !router.config.extendedDHTLogging {
 		return
 	}
 
-	router.processes.RepeatWithCancel("periodical report", interval, router.ctx, func() {
-		myKadId := kbucket.ConvertPeerID(router.dht.PeerID())
+	router.processes.RepeatWithCancel("periodic report", interval, router.ctx, func() {
 		rt := router.dht.RoutingTable()
 
 		rtString := []string{fmt.Sprintf("RT has %d entries,", len(rt.ListPeers()))}
 		for _, p := range rt.ListPeers() {
-			rtString = append(rtString, fmt.Sprintf("peerId=%s, kadId=%s,allowed=%t, cpl=%d,",
+			rtString = append(rtString, fmt.Sprintf("peerId=%s, kadId=%s, allowed=%t",
 				p.Pretty(),
 				hex.EncodeToString(kbucket.ConvertPeerID(p)),
-				router.aclHost.GetACL().IsAllowed(p, router.config.ProtocolID()),
-				kbucket.CommonPrefixLen(kbucket.ConvertPeerID(p), myKadId)))
+				router.aclHost.GetACL().IsAllowed(p, router.config.ProtocolID())))
+		}
+
+		pstore := router.aclHost.Peerstore()
+		peerAddrs := make(map[string][]string)
+		for _, myPeer := range pstore.Peers() {
+			var addrs []string
+			for _, addr := range pstore.Addrs(myPeer) {
+				addrs = append(addrs, addr.String())
+			}
+			peerAddrs[myPeer.Pretty()] = addrs
 		}
 
 		router.logger().Debug("DHT periodical report", types.LogFields{
 			"protocolID": router.config.ProtocolID(),
 			"acl":        router.aclHost.GetACL(),
 			"rt":         rtString,
+			"peerstore":  peerAddrs,
 		})
 	})
 }

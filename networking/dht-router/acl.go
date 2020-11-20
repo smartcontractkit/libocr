@@ -103,12 +103,15 @@ func (acl permitList) IsACLEnforced(protocol protocol.ID) bool {
 
 func (acl permitList) String() string {
 	s := ""
+	list := make(map[string][]string)
 	for protocolId, aclMap := range acl.allowed {
-		s += fmt.Sprintf("Protocol %s permits following nodes:\n", protocolId)
-		for i, peerId := range aclMap {
-			s += fmt.Sprintf("[%2d]\t%s\n", i, peerId.Pretty())
+		var permittedIds []string
+		s += fmt.Sprintf("Protocol %s permits following nodes: ", protocolId)
+		for _, peerId := range aclMap {
+			permittedIds = append(permittedIds, peerId.Pretty())
 		}
+		list[string(protocolId)] = permittedIds
 	}
 
-	return s
+	return fmt.Sprint(list)
 }

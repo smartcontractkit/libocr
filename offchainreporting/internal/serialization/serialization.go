@@ -3,7 +3,6 @@ package serialization
 import (
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
-	"github.com/smartcontractkit/libocr/offchainreporting/internal/signature"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 
 	"github.com/pkg/errors"
@@ -45,9 +44,9 @@ func toProtoMessage(m protocol.Message) (proto.Message, error) {
 		msgWrapper.Msg = &MessageWrapper_MessageObserveReq{pm}
 	case protocol.MessageObserve:
 		pm := &MessageObserve{
-			Round: uint64(v.Round),
-			Epoch: uint64(v.Epoch),
-			Obs:   observationToProtoMessage(v.Obs),
+			Round:             uint64(v.Round),
+			Epoch:             uint64(v.Epoch),
+			SignedObservation: signedObservationToProtoMessage(v.SignedObservation),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageObserve{pm}
 	case protocol.MessageReportReq:
@@ -55,15 +54,16 @@ func toProtoMessage(m protocol.Message) (proto.Message, error) {
 			Round: uint64(v.Round),
 			Epoch: uint64(v.Epoch),
 		}
-		for _, o := range v.Observations {
-			pm.Observations = append(pm.Observations, observationToProtoMessage(o))
+		for _, o := range v.AttributedSignedObservations {
+			pm.AttributedSignedObservations = append(pm.AttributedSignedObservations,
+				attributedSignedObservationToProtoMessage(o))
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageReportReq{pm}
 	case protocol.MessageReport:
 		pm := &MessageReport{
-			Epoch:          uint64(v.Epoch),
-			Round:          uint64(v.Round),
-			ContractReport: contractReportToProtoMessage(v.ContractReport),
+			Epoch:  uint64(v.Epoch),
+			Round:  uint64(v.Round),
+			Report: attestedReportOneToProtoMessage(v.Report),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageReport{pm}
 	case protocol.MessageFinal:
@@ -79,28 +79,25 @@ func toProtoMessage(m protocol.Message) (proto.Message, error) {
 	return &msgWrapper, nil
 }
 
-func typesObservationToProtoMessage(o observation.Observation) *ObservationValue {
-	return &ObservationValue{Value: o.Marshal()}
+func observationToProtoMessage(o observation.Observation) *Observation {
+	return &Observation{Value: o.Marshal()}
 }
 
-func observationToProtoMessage(o protocol.Observation) *Observation {
-	sig := o.Sig
+func signedObservationToProtoMessage(o protocol.SignedObservation) *SignedObservation {
+	sig := o.Signature
 	if sig == nil {
 		sig = []byte{}
 	}
-	return &Observation{
-		Ctx:       reportingContextToProtoMessage(o.Ctx),
-		OracleID:  uint32(o.OracleID),
-		Value:     typesObservationToProtoMessage(o.Value),
-		Signature: sig,
+	return &SignedObservation{
+		Observation: observationToProtoMessage(o.Observation),
+		Signature:   sig,
 	}
 }
 
-func reportingContextToProtoMessage(r signature.ReportingContext) *ReportingContext {
-	return &ReportingContext{
-		ConfigDigest: r.ConfigDigest[:],
-		Epoch:        uint64(r.Epoch),
-		Round:        uint64(r.Round),
+func attributedSignedObservationToProtoMessage(aso protocol.AttributedSignedObservation) *AttributedSignedObservation {
+	return &AttributedSignedObservation{
+		SignedObservation: signedObservationToProtoMessage(aso.SignedObservation),
+		Observer:          uint32(aso.Observer),
 	}
 }
 
@@ -148,14 +145,14 @@ func (m *MessageObserve) fromProtoMessage() (protocol.MessageObserve, error) {
 	if m == nil {
 		return protocol.MessageObserve{}, errors.New("Unable to extract a MessageObserve value")
 	}
-	obs, err := m.Obs.fromProtoMessage()
+	so, err := m.SignedObservation.fromProtoMessage()
 	if err != nil {
 		return protocol.MessageObserve{}, nil
 	}
 	return protocol.MessageObserve{
-		Epoch: uint32(m.Epoch),
-		Round: uint8(m.Round),
-		Obs:   obs,
+		Epoch:             uint32(m.Epoch),
+		Round:             uint8(m.Round),
+		SignedObservation: so,
 	}, nil
 }
 
@@ -163,20 +160,20 @@ func (m *MessageReportReq) fromProtoMessage() (protocol.MessageReportReq, error)
 	if m == nil {
 		return protocol.MessageReportReq{}, errors.New("Unable to extract a MessageReportReq value")
 	}
-	observations, err := Observations(m.Observations).fromProtoMessage()
+	asos, err := AttributedSignedObservations(m.AttributedSignedObservations).fromProtoMessage()
 	if err != nil {
 		return protocol.MessageReportReq{}, err
 	}
 	return protocol.MessageReportReq{
-		Round:        uint8(m.Round),
-		Epoch:        uint32(m.Epoch),
-		Observations: observations,
+		Round:                        uint8(m.Round),
+		Epoch:                        uint32(m.Epoch),
+		AttributedSignedObservations: asos,
 	}, nil
 }
 
-func (o *ObservationValue) fromProtoMessage() (observation.Observation, error) {
+func (o *Observation) fromProtoMessage() (observation.Observation, error) {
 	if o == nil {
-		return observation.Observation{}, errors.New("Unable to extract a ObservationValue value")
+		return observation.Observation{}, errors.New("Unable to extract a Observation value")
 	}
 	obs, err := observation.UnmarshalObservation(o.Value)
 	if err != nil {
@@ -186,86 +183,62 @@ func (o *ObservationValue) fromProtoMessage() (observation.Observation, error) {
 	return obs, nil
 }
 
-func (m *ContractReport) fromProtoMessage() (protocol.ContractReport, error) {
+func (m *AttestedReportOne) fromProtoMessage() (protocol.AttestedReportOne, error) {
 	if m == nil {
-		return protocol.ContractReport{}, errors.New("Unable to extract a ContractReport value")
+		return protocol.AttestedReportOne{}, errors.New("Unable to extract a AttestedReportOne value")
 	}
 	if m == nil {
-		return protocol.ContractReport{}, nil
+		return protocol.AttestedReportOne{}, nil
 	}
-	values := make([]protocol.OracleValue, len(m.Values))
-	for i, v := range m.Values {
-		val, err := v.Value.fromProtoMessage()
+	aos := make([]protocol.AttributedObservation, len(m.AttributedObservations))
+	for i, ao := range m.AttributedObservations {
+		o, err := ao.Observation.fromProtoMessage()
 		if err != nil {
-			return protocol.ContractReport{}, err
+			return protocol.AttestedReportOne{}, err
 		}
-		values[i] = protocol.OracleValue{
-			ID:    types.OracleID(v.OracleID),
-			Value: val,
-		}
+		aos[i] = protocol.AttributedObservation{o, types.OracleID(ao.Observer)}
 	}
-	sig := m.Sig
+	sig := m.Signature
 	if sig == nil {
 		sig = []byte{}
 	}
-	ctx, err := m.Ctx.fromProtoMessage()
-	if err != nil {
-		return protocol.ContractReport{}, err
-	}
-	return protocol.ContractReport{
-		Ctx:    ctx,
-		Values: values,
-		Sig:    sig,
-	}, nil
-}
 
-func (r *ReportingContext) fromProtoMessage() (signature.ReportingContext, error) {
-	if r == nil {
-		return signature.ReportingContext{}, errors.New("Unable to extract a ReportingContext value")
-	}
-	return signature.ReportingContext{
-		ConfigDigest: types.BytesToConfigDigest(r.ConfigDigest),
-		Epoch:        uint32(r.Epoch),
-		Round:        uint8(r.Round),
-	}, nil
+	return protocol.AttestedReportOne{aos, sig}, nil
 }
 
 func (m *MessageReport) fromProtoMessage() (protocol.MessageReport, error) {
 	if m == nil {
 		return protocol.MessageReport{}, errors.New("Unable to extract a MessageReport value")
 	}
-	contractReport, err := m.ContractReport.fromProtoMessage()
+	report, err := m.Report.fromProtoMessage()
 	if err != nil {
 		return protocol.MessageReport{}, err
 	}
 
-	return protocol.MessageReport{
-		Epoch:          uint32(m.Epoch),
-		Round:          uint8(m.Round),
-		ContractReport: contractReport,
-	}, nil
+	return protocol.MessageReport{uint32(m.Epoch), uint8(m.Round), report}, nil
 }
 
-func (m *ContractReportWithSignatures) fromProtoMessage() (protocol.ContractReportWithSignatures, error) {
+func (m *AttestedReportMany) fromProtoMessage() (protocol.AttestedReportMany, error) {
 	if m == nil {
-		return protocol.ContractReportWithSignatures{}, errors.New("Unable to extract a ContractReportWithSignatures value")
+		return protocol.AttestedReportMany{}, errors.New("Unable to extract a AttestedReportMany value")
 	}
 	signatures := make([][]byte, len(m.Signatures))
-	for i, s := range m.Signatures {
-		sig := s.Signature
+	for i, sig := range m.Signatures {
 		if sig == nil {
 			sig = []byte{}
 		}
 		signatures[i] = sig
 	}
-	contractReport, err := m.ContractReport.fromProtoMessage()
-	if err != nil {
-		return protocol.ContractReportWithSignatures{}, err
+	aos := protocol.AttributedObservations{}
+	for _, v := range m.AttributedObservations {
+		obs, err := v.Observation.fromProtoMessage()
+		if err != nil {
+			return protocol.AttestedReportMany{}, err
+		}
+		aos = append(aos, protocol.AttributedObservation{obs, types.OracleID(v.Observer)})
 	}
-	return protocol.ContractReportWithSignatures{
-		ContractReport: contractReport,
-		Signatures:     signatures,
-	}, nil
+
+	return protocol.AttestedReportMany{aos, signatures}, nil
 }
 
 func (m *MessageFinal) fromProtoMessage() (protocol.MessageFinal, error) {
@@ -276,11 +249,7 @@ func (m *MessageFinal) fromProtoMessage() (protocol.MessageFinal, error) {
 	if err != nil {
 		return protocol.MessageFinal{}, nil
 	}
-	return protocol.MessageFinal{
-		Epoch:  uint32(m.Epoch),
-		Round:  uint8(m.Round),
-		Report: report,
-	}, nil
+	return protocol.MessageFinal{uint32(m.Epoch), uint8(m.Round), report}, nil
 }
 
 func (m *MessageFinalEcho) fromProtoMessage() (protocol.MessageFinalEcho, error) {
@@ -295,13 +264,15 @@ func (m *MessageFinalEcho) fromProtoMessage() (protocol.MessageFinalEcho, error)
 }
 
 
-type Observations []*Observation
+type AttributedSignedObservations []*AttributedSignedObservation
 
-func (ms Observations) fromProtoMessage() ([]protocol.Observation, error) {
+func (ms AttributedSignedObservations) fromProtoMessage() ([]protocol.AttributedSignedObservation, error) {
 	if ms == nil {
-		return []protocol.Observation{}, errors.New("Unable to extract an array of Observations")
+		
+		
+		return []protocol.AttributedSignedObservation{}, nil
 	}
-	observations := make([]protocol.Observation, len(ms))
+	observations := make([]protocol.AttributedSignedObservation, len(ms))
 	for i, o := range ms {
 		obs, err := o.fromProtoMessage()
 		if err != nil {
@@ -312,63 +283,97 @@ func (ms Observations) fromProtoMessage() ([]protocol.Observation, error) {
 	return observations, nil
 }
 
-func (m *Observation) fromProtoMessage() (protocol.Observation, error) {
+func (m *AttributedSignedObservation) fromProtoMessage() (protocol.AttributedSignedObservation, error) {
 	if m == nil {
-		return protocol.Observation{}, errors.New("Unable to extract an Observation value")
+		return protocol.AttributedSignedObservation{}, errors.New("Unable to extract an AttributedSignedObservation value")
+	}
+
+	signedObservation, err := m.SignedObservation.fromProtoMessage()
+	if err != nil {
+		return protocol.AttributedSignedObservation{}, err
+	}
+	return protocol.AttributedSignedObservation{
+		signedObservation,
+		types.OracleID(m.Observer),
+	}, nil
+}
+
+
+type SignedObservations []*SignedObservation
+
+func (ms SignedObservations) fromProtoMessage() ([]protocol.SignedObservation, error) {
+	if ms == nil {
+		
+		
+		return []protocol.SignedObservation{}, nil
+	}
+	observations := make([]protocol.SignedObservation, len(ms))
+	for i, o := range ms {
+		obs, err := o.fromProtoMessage()
+		if err != nil {
+			return nil, err
+		}
+		observations[i] = obs
+	}
+	return observations, nil
+}
+
+func (m *SignedObservation) fromProtoMessage() (protocol.SignedObservation, error) {
+	if m == nil {
+		return protocol.SignedObservation{}, errors.New("Unable to extract an SignedObservation value")
 	}
 	sig := m.Signature
 	if sig == nil {
 		sig = []byte{}
 	}
-	v, err := m.Value.fromProtoMessage()
+	obs, err := m.Observation.fromProtoMessage()
 	if err != nil {
-		return protocol.Observation{}, err
+		return protocol.SignedObservation{}, err
 	}
-	ctx, err := m.Ctx.fromProtoMessage()
-	if err != nil {
-		return protocol.Observation{}, err
-	}
-	return protocol.Observation{
-		Ctx:      ctx,
-		Value:    v,
-		Sig:      sig,
-		OracleID: types.OracleID(m.OracleID),
-	}, nil
+	return protocol.SignedObservation{obs, sig}, nil
 }
 
-func contractReportToProtoMessage(v protocol.ContractReport) *ContractReport {
-	sig := v.Sig
+func attestedReportOneToProtoMessage(v protocol.AttestedReportOne) *AttestedReportOne {
+	sig := v.Signature
 	if sig == nil {
 		sig = []byte{}
 	}
-	pm := &ContractReport{
-		Ctx:    reportingContextToProtoMessage(v.Ctx),
-		Sig:    sig,
-		Values: make([]*OracleValue, len(v.Values)),
+	pm := &AttestedReportOne{
+		AttributedObservations: make([]*AttributedObservation, len(v.AttributedObservations)),
+		Signature:              sig,
 	}
-	for i, val := range v.Values {
-		pm.Values[i] = &OracleValue{
-			OracleID: uint32(val.ID),
-			Value:    &ObservationValue{Value: val.Value.Marshal()},
+	for i, val := range v.AttributedObservations {
+		pm.AttributedObservations[i] = &AttributedObservation{
+			Observation: &Observation{Value: val.Observation.Marshal()},
+			Observer:    uint32(val.Observer),
 		}
 	}
 	return pm
+}
+
+func attributedObservationsToProtoMessage(aos protocol.AttributedObservations) []*AttributedObservation {
+	result := []*AttributedObservation{}
+	for _, ao := range aos {
+		result = append(result, &AttributedObservation{
+			Observation: &Observation{Value: ao.Observation.Marshal()},
+			Observer:    uint32(ao.Observer),
+		})
+	}
+
+	return result
 }
 
 func finalToProtoMessage(v protocol.MessageFinal) *MessageFinal {
 	pm := &MessageFinal{
 		Epoch: uint64(v.Epoch),
 		Round: uint64(v.Round),
-		Report: &ContractReportWithSignatures{
-			ContractReport: contractReportToProtoMessage(v.Report.ContractReport),
-			Signatures:     make([]*Signature, len(v.Report.Signatures)),
+		Report: &AttestedReportMany{
+			AttributedObservations: attributedObservationsToProtoMessage(v.Report.AttributedObservations),
+			Signatures:             make([][]byte, len(v.Report.Signatures)),
 		},
 	}
 	for i, sig := range v.Report.Signatures {
-		if sig == nil {
-			sig = []byte{}
-		}
-		pm.Report.Signatures[i] = &Signature{Signature: sig}
+		pm.Report.Signatures[i] = sig
 	}
 	return pm
 }

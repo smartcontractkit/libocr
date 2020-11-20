@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"bufio"
 	"encoding/binary"
 	"io"
 
@@ -32,6 +33,7 @@ func readOneFromWire(r io.Reader) (payload []byte, err error) {
 
 	msgLength := binary.BigEndian.Uint32(lenBuf)
 	if msgLength > MaxMsgLength {
+		
 		return nil, errors.Errorf("message length of %v exceeds max allowed message length of %v", msgLength, MaxMsgLength)
 	}
 
@@ -41,4 +43,22 @@ func readOneFromWire(r io.Reader) (payload []byte, err error) {
 		return nil, errors.Wrap(err, "error reading blob from wire")
 	}
 	return payload, nil
+}
+
+
+
+
+
+
+func isNextMessageAllowed(r *bufio.Reader, l limiter) (bool, error) {
+	lenBuf, err := r.Peek(4)
+	if err != nil {
+		return false, errors.Wrap(err, "error reading the next message's length")
+	}
+	if l.Allow() {
+		return true, nil
+	}
+	msgLength := binary.BigEndian.Uint32(lenBuf)
+	_, err = r.Discard(4 + int(msgLength))
+	return false, err
 }

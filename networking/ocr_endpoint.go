@@ -94,6 +94,9 @@ type ocrEndpoint struct {
 	recv chan types.BinaryMessageWithSender
 
 	logger types.Logger
+
+	
+	recvRateLimiters map[types.OracleID]limiter
 }
 
 const (
@@ -118,6 +121,8 @@ func newOCREndpoint(
 	config EndpointConfig,
 	
 	failureThreshold int,
+	tokenBucketRefillRate float64,
+	tokenBucketSize int,
 ) (*ocrEndpoint, error) {
 	peerMapping := make(map[types.OracleID]p2ppeer.ID)
 	for i, peerID := range peerIDs {
@@ -132,11 +137,13 @@ func newOCREndpoint(
 	chRecvs := make(map[types.OracleID]chan []byte)
 	chSends := make(map[types.OracleID]chan []byte)
 	muSends := make(map[types.OracleID]*sync.Mutex)
+	recvRateLimiters := make(map[types.OracleID]limiter)
 	for oid := range peerMapping {
 		if oid != ownOracleID {
 			chRecvs[oid] = make(chan []byte, config.IncomingMessageBufferSize)
 			chSends[oid] = make(chan []byte, config.OutgoingMessageBufferSize)
 			muSends[oid] = new(sync.Mutex)
+			recvRateLimiters[oid] = newLimiter(tokenBucketRefillRate, tokenBucketSize)
 		}
 	}
 
@@ -188,6 +195,7 @@ func newOCREndpoint(
 		cancel,
 		make(chan types.BinaryMessageWithSender),
 		logger,
+		recvRateLimiters,
 	}, nil
 }
 
@@ -288,7 +296,6 @@ func (o *ocrEndpoint) runRecv(oid types.OracleID) {
 				Msg:    payload,
 				Sender: oid,
 			}
-
 			select {
 			case o.recv <- msg:
 				continue
@@ -515,7 +522,41 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 		return
 	}
 	r := bufio.NewReader(s)
+	l := o.recvRateLimiters[sender]
+	var countDropped uint64
 	for {
+		
+		isAllowed, err := isNextMessageAllowed(r, l)
+		if err != nil {
+			o.logger.Debug("Unable to peek at the next message from peer", types.LogFields{
+				"err":             err,
+				"remotePeerID":    remotePeerID,
+				"remoteOracleID":  sender,
+				"remoteMultiaddr": s.Conn().RemoteMultiaddr(),
+			})
+			return
+		}
+		if !isAllowed {
+			countDropped += 1
+			if isPowerOfTwo(countDropped) {
+				o.logger.Info("Messages were dropped by the rate limiter", types.LogFields{
+					"remotePeerID":         remotePeerID,
+					"remoteOracleID":       sender,
+					"remoteMultiaddr":      s.Conn().RemoteMultiaddr(),
+					"messagesDroppedSoFar": countDropped,
+				})
+			}
+			continue
+		}
+		if countDropped != 0 {
+			o.logger.Info("Rate limiter is allowing messages to pass through again. Resetting dropped counter to zero.", types.LogFields{
+				"remotePeerID":         remotePeerID,
+				"remoteOracleID":       sender,
+				"remoteMultiaddr":      s.Conn().RemoteMultiaddr(),
+				"messagesDroppedSoFar": countDropped,
+			})
+			countDropped = 0
+		}
 		payload, err := readOneFromWire(r)
 		if err != nil {
 			o.logger.Debug("Lost connection to peer", types.LogFields{
@@ -654,4 +695,8 @@ func (o *ocrEndpoint) allowlist() (allowlist []p2ppeer.ID) {
 
 func (o *ocrEndpoint) getConfigDigest() types.ConfigDigest {
 	return o.configDigest
+}
+
+func isPowerOfTwo(num uint64) bool {
+	return num != 0 && (num&(num-1)) == 0
 }

@@ -137,9 +137,9 @@ func (msg MessageObserveReq) processReportGeneration(repgen *reportGenerationSta
 
 
 type MessageObserve struct {
-	Epoch uint32
-	Round uint8
-	Obs   Observation
+	Epoch             uint32
+	Round             uint8
+	SignedObservation SignedObservation
 }
 
 var _ MessageToReportGeneration = (*MessageObserve)(nil)
@@ -155,16 +155,16 @@ func (msg MessageObserve) processReportGeneration(repgen *reportGenerationState,
 func (msg MessageObserve) Equal(msg2 MessageObserve) bool {
 	return msg.Epoch == msg2.Epoch &&
 		msg.Round == msg2.Round &&
-		msg.Obs.Equal(msg2.Obs)
+		msg.SignedObservation.Equal(msg2.SignedObservation)
 }
 
 
 
 
 type MessageReportReq struct {
-	Epoch        uint32
-	Round        uint8
-	Observations []Observation
+	Epoch                        uint32
+	Round                        uint8
+	AttributedSignedObservations []AttributedSignedObservation
 }
 
 func (msg MessageReportReq) process(o *oracleState, sender types.OracleID) {
@@ -182,9 +182,9 @@ var _ MessageToReportGeneration = (*MessageReportReq)(nil)
 
 
 type MessageReport struct {
-	Epoch          uint32
-	Round          uint8
-	ContractReport ContractReport
+	Epoch  uint32
+	Round  uint8
+	Report AttestedReportOne
 }
 
 var _ MessageToReportGeneration = (*MessageReport)(nil)
@@ -198,7 +198,7 @@ func (msg MessageReport) processReportGeneration(repgen *reportGenerationState, 
 }
 
 func (msg MessageReport) Equal(m2 MessageReport) bool {
-	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.ContractReport.Equal(m2.ContractReport)
+	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.Report.Equal(m2.Report)
 }
 
 
@@ -208,7 +208,7 @@ func (msg MessageReport) Equal(m2 MessageReport) bool {
 type MessageFinal struct {
 	Epoch  uint32
 	Round  uint8
-	Report ContractReportWithSignatures
+	Report AttestedReportMany
 }
 
 var _ MessageToReportGeneration = (*MessageFinal)(nil)
@@ -247,7 +247,11 @@ func (msg MessageFinalEcho) Equal(m2 MessageFinalEcho) bool {
 
 
 
-type EventTransmit struct{ ContractReportWithSignatures }
+type EventTransmit struct {
+	Epoch  uint32
+	Round  uint8
+	Report AttestedReportMany
+}
 
 var _ EventToTransmission = (*EventTransmit)(nil) 
 

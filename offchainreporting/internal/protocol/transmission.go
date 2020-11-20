@@ -63,8 +63,8 @@ type transmissionState struct {
 
 	latestEpochRound EpochRound
 	latestMedian     observation.Observation
-	latestReport     ContractReportWithSignatures
-	times            MinHeapTimeToContractReport
+	latestReport     AttestedReportMany
+	times            MinHeapTimeToPendingTransmission
 	tTransmit        <-chan time.Time
 }
 
@@ -106,7 +106,7 @@ func (t *transmissionState) restoreFromDatabase() {
 	
 	for key, trans := range pending {
 		if now.Before(trans.Time) {
-			t.times.Push(MinHeapTimeToContractReportItem{
+			t.times.Push(MinHeapTimeToPendingTransmissionItem{
 				key,
 				trans,
 			})
@@ -123,7 +123,7 @@ func (t *transmissionState) restoreFromDatabase() {
 		}
 	}
 	if latestExpiredTransmission != nil {
-		t.times.Push(MinHeapTimeToContractReportItem{
+		t.times.Push(MinHeapTimeToPendingTransmissionItem{
 			latestExpiredTransmissionKey,
 			*latestExpiredTransmission,
 		})
@@ -157,7 +157,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 			return
 		}
 
-		if !t.shouldTransmit(ev.ContractReportWithSignatures, contractEpochRound) {
+		if !t.shouldTransmit(ev, contractEpochRound) {
 			t.logger.Info("eventTransmit(ev): discarding ev because shouldTransmit returned false", types.LogFields{
 				"ev":                   ev,
 				"contractConfigDigest": contractConfigDigest,
@@ -168,19 +168,23 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 	}
 
 	var err error
-	t.latestEpochRound = EpochRound{ev.Ctx.Epoch, ev.Ctx.Round}
-	t.latestMedian, err = ev.Values.Median()
+	t.latestEpochRound = EpochRound{ev.Epoch, ev.Round}
+	t.latestMedian, err = ev.Report.AttributedObservations.Median()
 	if err != nil {
 		t.logger.Error("could not compute median", types.LogFields{"error": err})
 	}
 
 	now := time.Now()
-	delayMaybe := t.transmitDelay(ev.Ctx.Epoch, ev.Ctx.Round)
+	delayMaybe := t.transmitDelay(ev.Epoch, ev.Round)
 	if delayMaybe == nil {
 		return
 	}
 	delay := *delayMaybe
-	serializedReport, rs, ss, vs, err := ev.ContractReportWithSignatures.TransmissionArgs()
+	serializedReport, rs, ss, vs, err := ev.Report.TransmissionArgs(ReportContext{
+		t.config.ConfigDigest,
+		ev.Epoch,
+		ev.Round,
+	})
 	if err != nil {
 		t.logger.Error("Failed to serialize contract report", types.LogFields{"error": err})
 		return
@@ -188,10 +192,10 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 
 	key := types.PendingTransmissionKey{
 		ConfigDigest: t.config.ConfigDigest,
-		Epoch:        ev.Ctx.Epoch,
-		Round:        ev.Ctx.Round,
+		Epoch:        ev.Epoch,
+		Round:        ev.Round,
 	}
-	median, err := ev.ContractReportWithSignatures.Values.Median()
+	median, err := ev.Report.AttributedObservations.Median()
 	if err != nil {
 		t.logger.Error("could not take median of observations",
 			types.LogFields{"error": err})
@@ -217,10 +221,10 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 			"timeout": t.localConfig.DatabaseTimeout,
 		})
 	}
-	t.times.Push(MinHeapTimeToContractReportItem{key, transmission})
+	t.times.Push(MinHeapTimeToPendingTransmissionItem{key, transmission})
 
 	next := t.times.Peek()
-	if (EpochRound{ev.Ctx.Epoch, ev.Ctx.Round} == EpochRound{next.Epoch, next.Round}) {
+	if (EpochRound{ev.Epoch, ev.Round}) == (EpochRound{next.Epoch, next.Round}) {
 		t.tTransmit = time.After(delay)
 	}
 }
@@ -317,33 +321,33 @@ func (t *transmissionState) eventTTransmitTimeout() {
 	})
 }
 
-func (t *transmissionState) shouldTransmit(o ContractReportWithSignatures, contractEpochRound EpochRound) bool {
-	oEpochRound := EpochRound{o.Ctx.Epoch, o.Ctx.Round}
-	if !contractEpochRound.Less(oEpochRound) {
+func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound EpochRound) bool {
+	reportEpochRound := EpochRound{ev.Epoch, ev.Round}
+	if !contractEpochRound.Less(reportEpochRound) {
 		t.logger.Debug("shouldTransmit() = false, report is stale", types.LogFields{
 			"contractEpochRound": contractEpochRound,
-			"epochRound":         oEpochRound,
+			"epochRound":         reportEpochRound,
 		})
 		return false
 	}
 	if t.latestEpochRound == (EpochRound{}) {
 		t.logger.Debug("shouldTransmit() = true, latestEpochRound is empty", types.LogFields{
 			"contractEpochRound": contractEpochRound,
-			"epochRound":         oEpochRound,
+			"epochRound":         reportEpochRound,
 			"latestEpochRound":   t.latestEpochRound,
 		})
 		return true
 	}
-	if oEpochRound.Less(t.latestEpochRound) || oEpochRound == t.latestEpochRound {
+	if reportEpochRound.Less(t.latestEpochRound) || reportEpochRound == t.latestEpochRound {
 		t.logger.Debug("shouldTransmit() = false, report is older than latest report", types.LogFields{
 			"contractEpochRound": contractEpochRound,
-			"epochRound":         oEpochRound,
+			"epochRound":         reportEpochRound,
 			"latestEpochRound":   t.latestEpochRound,
 		})
 		return false
 	}
 
-	oMedian, err := o.Values.Median()
+	reportMedian, err := ev.Report.AttributedObservations.Median()
 	if err != nil {
 		t.logger.Error("could not compute median", types.LogFields{
 			"error": err,
@@ -351,13 +355,13 @@ func (t *transmissionState) shouldTransmit(o ContractReportWithSignatures, contr
 		return false
 	}
 
-	deviates := t.latestMedian.Deviates(oMedian, t.config.AlphaPPB)
+	deviates := t.latestMedian.Deviates(reportMedian, t.config.AlphaPPB)
 	nothingPending := t.latestEpochRound.Less(contractEpochRound) || t.latestEpochRound == contractEpochRound
 	result := deviates || nothingPending
 
 	t.logger.Debug("shouldTransmit() = result", types.LogFields{
 		"contractEpochRound": contractEpochRound,
-		"epochRound":         oEpochRound,
+		"epochRound":         reportEpochRound,
 		"latestEpochRound":   t.latestEpochRound,
 		"deviates":           deviates,
 		"result":             result,
