@@ -8,49 +8,39 @@ const ValidatorNamespace = "peerinfo"
 
 func (v AnnouncementValidator) Validate(key string, value []byte) error {
 	
-	pid, err := dhtKeyToPeerId(key)
+	peerId, err := dhtKeyToPeerId(key)
 	if err != nil {
 		return err
 	}
 
-	var ann Announcement
-	err = ann.UnmarshalJSON(value)
+	ann, err := deserializeSignedAnnouncement(value)
 	if err != nil {
 		return err
 	}
 
 	
-	if !pid.MatchesPublicKey(ann.Pk) {
+	if !peerId.MatchesPublicKey(ann.PublicKey) {
 		return InvalidDhtKey
 	}
 
 	
-	ok, err := ann.SelfVerify()
-	if err != nil {
-		return err
-	} else if !ok {
-		return InvalidSignature
-	} else {
-		return nil
-	}
+	return ann.verify()
 }
 
 
-func (v AnnouncementValidator) Select(key string, values [][]byte) (int, error) {
-	strs := make([]string, len(values))
-	latestTime := int64(0)
+func (v AnnouncementValidator) Select(_ string, values [][]byte) (int, error) {
+	counter := announcementCounter{}
 	latestRecord := 0
 	for i := 0; i < len(values); i++ {
-		ann := Announcement{}
-		if err := ann.UnmarshalJSON(values[i]); err != nil {
+		ann, err := deserializeSignedAnnouncement(values[i])
+		if err != nil {
 			return 0, err
 		}
 
-		if ann.timestamp > latestTime {
+		if ann.Counter.Gt(counter) {
 			latestRecord = i
-			latestTime = ann.timestamp
+			counter = ann.Counter
 		}
-		strs[i] = string(values[i])
 	}
 	return latestRecord, nil
 }

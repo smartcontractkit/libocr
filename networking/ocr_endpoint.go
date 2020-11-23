@@ -258,6 +258,7 @@ func (o *ocrEndpoint) setupDHT() (err error) {
 		o.config.BootstrapCheckInterval,
 		o.failureThreshold,
 		false,
+		o.peer.dhtAnnouncementCounterUserPrefix,
 	)
 
 	acl := dhtrouter.NewPermitListACL(o.logger)

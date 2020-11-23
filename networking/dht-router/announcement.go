@@ -1,138 +1,224 @@
+
+
 package dhtrouter
 
 import (
-	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/binary"
+	"errors"
 	"fmt"
-	"strconv"
-
-	ic "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/golang/protobuf/proto"
+	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/smartcontractkit/libocr/networking/dht-router/serialization"
 )
 
-type Announcement struct {
-	Addrs     []ma.Multiaddr 
-	timestamp int64          
-	Pk        ic.PubKey      
-	Sig       []byte         
+
+type announcementCounter struct {
+	userPrefix uint32 
+	value      uint64 
 }
 
-func (ann Announcement) MarshalJSON() ([]byte, error) {
-	out := make(map[string]interface{})
-	var addrs []string
-	for _, a := range ann.Addrs {
-		addrs = append(addrs, a.String())
+func (n announcementCounter) Gt(other announcementCounter) bool {
+	if n.userPrefix > other.userPrefix {
+		return true
 	}
-	out["addrs"] = addrs
-	out["timestamp"] = ann.timestamp
-
-	pkBytes, err := ic.MarshalPublicKey(ann.Pk)
-	if err != nil {
-		return nil, err
-	}
-
-	out["pk"] = pkBytes
-	out["sig"] = ann.Sig
-	return json.Marshal(out)
+	return n.userPrefix == other.userPrefix && n.value > other.value
 }
 
-func (ann *Announcement) UnmarshalJSON(b []byte) error {
-	var data map[string]interface{}
-
-	d := json.NewDecoder(bytes.NewBuffer(b))
-	d.UseNumber()
-	if err := d.Decode(&data); err != nil {
-		return err
-	}
-
-	addrs := data["addrs"].([]interface{})
-	for _, a := range addrs {
-		ann.Addrs = append(ann.Addrs, ma.StringCast(a.(string)))
-	}
-
-	timestamp := data["timestamp"].(json.Number)
-	i64, err := strconv.ParseInt(string(timestamp), 10, 64)
-	if err != nil {
-		return err
-	}
-	ann.timestamp = i64
-
-	pkBytes, err := base64.StdEncoding.DecodeString(data["pk"].(string))
-	if err != nil {
-		return err
-	}
-
-	pk, err := ic.UnmarshalPublicKey(pkBytes)
-	if err != nil {
-		return err
-	}
-	ann.Pk = pk
-
-	sigBytes, err := base64.StdEncoding.DecodeString(data["sig"].(string))
-	if err != nil {
-		return err
-	}
-	ann.Sig = sigBytes
-
-	return nil
+type announcement struct {
+	Addrs   []ma.Multiaddr      
+	Counter announcementCounter 
 }
 
-func (ann Announcement) serializeForSign() ([]byte, error) {
-	b1, err := json.Marshal(ann.Addrs)
-	if err != nil {
-		return nil, err
+type signedAnnouncement struct {
+	announcement
+	PublicKey p2pcrypto.PubKey 
+	Sig       []byte           
+}
+
+const (
+	
+	maxAddrInAnnouncements = 10
+	
+	announcementDomainSeparator = "announcement OCR v1.0.0"
+)
+
+func serdeError(field string) error {
+	return fmt.Errorf("invalid pm: %s", field)
+}
+
+
+func (ann signedAnnouncement) serialize() ([]byte, error) {
+	
+	if ann.Addrs == nil || ann.PublicKey == nil || ann.Sig == nil || len(ann.Addrs) > maxAddrInAnnouncements {
+		return nil, errors.New("invalid announcement")
 	}
 
-	b2, err := json.Marshal(ann.timestamp)
+	
+	err := ann.verify()
 	if err != nil {
 		return nil, err
 	}
 
 	
-	return append(b1, b2...), nil
+	var addrs [][]byte
+	for _, a := range ann.Addrs {
+		addrBytes, err := a.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		addrs = append(addrs, addrBytes)
+	}
+
+	pkBytes, err := p2pcrypto.MarshalPublicKey(ann.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	pm := serialization.SignedAnnouncement{
+		Addrs:      addrs,
+		UserPrefix: ann.Counter.userPrefix,
+		Counter:    ann.Counter.value,
+		PublicKey:  pkBytes,
+		Sig:        ann.Sig,
+	}
+
+	return proto.Marshal(&pm)
 }
 
-func (ann *Announcement) SelfSign(sk ic.PrivKey) error {
-	b, err := ann.serializeForSign()
+func deserializeSignedAnnouncement(binary []byte) (signedAnnouncement, error) {
+	pm := serialization.SignedAnnouncement{}
+	err := proto.Unmarshal(binary, &pm)
 	if err != nil {
-		return err
+		return signedAnnouncement{}, err
 	}
 
-	sig, err := sk.Sign(b)
-	if err != nil {
-		return err
+	
+	if len(pm.Addrs) == 0 {
+		return signedAnnouncement{}, serdeError("addrs is empty array")
 	}
 
-	ann.Sig = append([]byte{}, sig...)
-	return nil
+	if len(pm.Addrs) > maxAddrInAnnouncements {
+		return signedAnnouncement{}, serdeError("more addr than maxAddrInAnnouncements")
+	}
+
+	var addrs []ma.Multiaddr
+	for _, addr := range pm.Addrs {
+		mAddr, err := ma.NewMultiaddrBytes(addr)
+		if err != nil {
+			return signedAnnouncement{}, err
+		}
+		addrs = append(addrs, mAddr)
+	}
+
+	publicKey, err := p2pcrypto.UnmarshalPublicKey(pm.PublicKey)
+	if err != nil {
+		return signedAnnouncement{}, err
+	}
+
+	return signedAnnouncement{
+		announcement{
+			addrs,
+			announcementCounter{
+				pm.UserPrefix,
+				pm.Counter,
+			},
+		},
+		publicKey,
+		pm.Sig,
+	}, nil
 }
 
-
-
-func (ann Announcement) SelfVerify() (verified bool, err error) {
-	verified = false
-
-	b, err := ann.serializeForSign()
-	if err != nil {
-		return verified, err
-	}
-
-	verified, err = ann.Pk.Verify(b, ann.Sig)
-	if err != nil {
-		return verified, err
-	}
-
-	return verified, nil
-}
-
-func (ann Announcement) String() string {
+func (ann signedAnnouncement) String() string {
 	pkStr := "can't stringify PK"
-	if b, err := ann.Pk.Bytes(); err == nil {
+	if b, err := ann.PublicKey.Bytes(); err == nil {
 		pkStr = base64.StdEncoding.EncodeToString(b)
 	}
 	return fmt.Sprintf("addrs=%s, pk=%s, sig=%s",
 		ann.Addrs,
 		pkStr,
 		base64.StdEncoding.EncodeToString(ann.Sig))
+}
+
+
+func (ann announcement) digest() ([]byte, error) {
+	
+	if ann.Addrs == nil || len(ann.Addrs) > maxAddrInAnnouncements {
+		return nil, errors.New("invalid announcement")
+	}
+
+	hasher := sha256.New()
+	hasher.Write([]byte(announcementDomainSeparator))
+
+	
+	err := binary.Write(hasher, binary.LittleEndian, uint32(len(ann.Addrs)))
+	if err != nil {
+		return nil, err
+	}
+	
+	for _, a := range ann.Addrs {
+		addr, err := a.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		err = binary.Write(hasher, binary.LittleEndian, uint32(len(addr)))
+		if err != nil {
+			return nil, err
+		}
+		hasher.Write(addr)
+	}
+
+	
+	err = binary.Write(hasher, binary.LittleEndian, ann.Counter.userPrefix)
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(hasher, binary.LittleEndian, ann.Counter.value)
+	if err != nil {
+		return nil, err
+	}
+
+	return hasher.Sum(nil), nil
+}
+
+func (ann *announcement) sign(sk p2pcrypto.PrivKey) (signedAnnouncement, error) {
+	digest, err := ann.digest()
+	if err != nil {
+		return signedAnnouncement{}, err
+	}
+
+	sig, err := sk.Sign(digest)
+	if err != nil {
+		return signedAnnouncement{}, err
+	}
+
+	return signedAnnouncement{
+		*ann,
+		sk.GetPublic(),
+		sig,
+	}, nil
+}
+
+func (ann signedAnnouncement) verify() error {
+	if ann.Sig == nil {
+		return errors.New("nil sig")
+	}
+
+	msg, err := ann.digest()
+	if err != nil {
+		return err
+	}
+
+	verified, err := ann.PublicKey.Verify(msg, ann.Sig)
+	if err != nil {
+		return err
+	}
+
+	if !verified {
+		return errors.New("invalid signature")
+	}
+
+	return nil
 }

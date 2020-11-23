@@ -72,8 +72,8 @@ func newDHT(ctx context.Context, config DHTNodeConfig, aclHost ACLHost) (*dht.Ip
 
 	kadDHT, err := dht.New(ctx, aclHost,
 		dht.BucketSize(BucketSize), 
-		dht.NamespacedValidator(ValidatorNamespace, AnnouncementValidator{}),
-		dht.ProtocolPrefix(config.prefix), 
+		dht.NamespacedValidator(ValidatorNamespace, AnnouncementValidator{}), 
+		dht.ProtocolPrefix(config.prefix),                                    
 		dht.ProtocolExtension(config.extension),
 		dht.BootstrapPeers(config.bootstrapNodes...),
 		dht.Mode(dht.ModeServer), 

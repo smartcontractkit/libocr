@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"strings"
 	"time"
 
@@ -15,16 +16,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	p2pprotocol "github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	ma "github.com/multiformats/go-multiaddr"
-
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 )
 
-var InvalidSignature = errors.New("invalid signature")
-var CannotGetPrivateKey = errors.New("cannot get peer private key")
 var InvalidDhtKey = errors.New("invalid dht key")
-var InvalidDhtValue = errors.New("invalid dht msg")
 
 
 type PeerDiscoveryRouter interface {
@@ -53,13 +49,12 @@ func NewDHTRouter(ctx context.Context, config DHTNodeConfig, aclHost ACLHost) (P
 	newCtx, cancel := context.WithCancel(ctx)
 
 	router := DHTRouter{
-		aclHost: aclHost,
-		dht:     kadDht,
-		config:  config,
-
-		processes: &subprocesses.Subprocesses{},
-		ctx:       newCtx,
-		ctxCancel: cancel,
+		aclHost,
+		kadDht,
+		config,
+		&subprocesses.Subprocesses{},
+		newCtx,
+		cancel,
 	}
 
 	return router, nil
@@ -139,25 +134,6 @@ func (router DHTRouter) logger() types.Logger {
 	return router.config.logger
 }
 
-
-func (router DHTRouter) buildSignedAnnouncement() (ann Announcement, err error) {
-	addresses := router.aclHost.Addrs()
-	
-	sk := router.aclHost.Peerstore().PrivKey(router.aclHost.ID())
-
-	ann.Addrs = append([]ma.Multiaddr{}, addresses...)
-	ann.Pk = sk.GetPublic()
-	ann.timestamp = time.Now().Unix()
-
-	
-	err = ann.SelfSign(sk)
-	if err != nil {
-		return ann, err
-	}
-
-	return ann, nil
-}
-
 func peerIdToDhtKey(id peer.ID) string {
 	return fmt.Sprintf("/%s/%s", ValidatorNamespace, id.String())
 }
@@ -199,52 +175,98 @@ func (router DHTRouter) FindPeer(ctx context.Context, peerId peer.ID) (addr peer
 	}
 
 	
-	var ann Announcement
-	err = ann.UnmarshalJSON(marshaled)
+	ann, err := deserializeSignedAnnouncement(marshaled)
 	if err != nil {
 		return addr, err
 	}
 
 	
-	ok, err := ann.SelfVerify()
-	if err != nil {
-		return addr, err
-	} else if !ok {
-		return addr, InvalidSignature
-	}
-
 	addr.ID = peerId
 	addr.Addrs = ann.Addrs
 
 	router.logger().Debug("DHT: Found peer", types.LogFields{
-		"peerID":        peerId,
-		"key":           key,
-		"foundPeerAddr": addr,
-		"addrVersion":   ann.timestamp,
+		"peerID":              peerId,
+		"key":                 key,
+		"foundPeerAddr":       addr,
+		"announcementCounter": ann.Counter,
 	})
 	return addr, nil
 }
 
+const counterKeyName = "counter"
+
 func (router DHTRouter) publishHostAddr(ctx context.Context) error {
-	ann, err := router.buildSignedAnnouncement()
+	var addrs = router.aclHost.Addrs()
+
+	
+	if len(router.aclHost.Addrs()) > maxAddrInAnnouncements {
+		router.logger().Warn("trying to publish many addresses. capped.", types.LogFields{
+			"nAddrs":            len(router.aclHost.Addrs()),
+			"addrsNotAnnounced": addrs[:maxAddrInAnnouncements],
+		})
+
+		addrs = addrs[:maxAddrInAnnouncements]
+	}
+
+	
+	counter, err := router.aclHost.Peerstore().Get(router.aclHost.ID(), counterKeyName)
+	
+	if errors.Is(err, peerstore.ErrNotFound) {
+		
+		counter = uint64(0)
+	} else if err != nil {
+		return err
+	}
+
+	c, ok := counter.(uint64)
+	if !ok {
+		return errors.New("cannot convert counter to uint64")
+	}
+
+	
+	newCounter := c + 1
+	if newCounter < c {
+		return errors.New("DHT Announcement counter overflowed")
+	}
+
+	
+	err = router.aclHost.Peerstore().Put(router.aclHost.ID(), counterKeyName, newCounter)
 	if err != nil {
 		return err
 	}
 
-	marshaled, err := ann.MarshalJSON()
+	
+	sk := router.aclHost.Peerstore().PrivKey(router.aclHost.ID())
+
+	ann := announcement{
+		addrs,
+		announcementCounter{
+			router.config.announcementUserPrefix,
+			newCounter,
+		},
+	}
+
+	signedAnn, err := ann.sign(sk)
+	if err != nil {
+		return err
+	}
+
+	marshaled, err := signedAnn.serialize()
 	if err != nil {
 		return err
 	}
 
 	key := peerIdToDhtKey(router.aclHost.ID())
 	router.logger().Debug("DHT: Put value", types.LogFields{
-		"key":   key,
-		"value": string(marshaled),
+		"key":         key,
+		"addrs":       ann.Addrs,
+		"counter":     ann.Counter,
+		"value (hex)": hex.EncodeToString(marshaled),
 	})
 
 	err = router.dht.PutValue(ctx, key, marshaled)
 	if err != nil {
-		return errors.Wrap(err, "could publish address")
+		return errors.Wrap(err, "could not publish address")
 	} else {
 		return nil
 	}

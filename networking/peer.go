@@ -40,6 +40,9 @@ type PeerConfig struct {
 	Logger         types.Logger
 	Peerstore      p2ppeerstore.Peerstore
 	EndpointConfig EndpointConfig
+	
+	
+	DHTAnnouncementCounterUserPrefix uint32
 }
 
 
@@ -51,6 +54,8 @@ type concretePeer struct {
 	endpointConfig EndpointConfig
 	registrants    map[types.ConfigDigest]struct{}
 	registrantsMu  *sync.Mutex
+
+	dhtAnnouncementCounterUserPrefix uint32
 }
 
 
@@ -131,13 +136,14 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 	logger.Info("Peer: libp2p host booted", nil)
 
 	return &concretePeer{
-		Host:           basicHost,
-		gater:          gater,
-		tls:            tls,
-		logger:         logger,
-		endpointConfig: c.EndpointConfig,
-		registrants:    make(map[types.ConfigDigest]struct{}),
-		registrantsMu:  &sync.Mutex{},
+		Host:                             basicHost,
+		gater:                            gater,
+		tls:                              tls,
+		logger:                           logger,
+		endpointConfig:                   c.EndpointConfig,
+		registrants:                      make(map[types.ConfigDigest]struct{}),
+		registrantsMu:                    &sync.Mutex{},
+		dhtAnnouncementCounterUserPrefix: c.DHTAnnouncementCounterUserPrefix,
 	}, nil
 }
 
@@ -213,7 +219,7 @@ func (p *concretePeer) MakeBootstrapper(configDigest types.ConfigDigest, pids []
 		return nil, errors.Wrap(err, "could not decode bootstrappers")
 	}
 
-	return newBootstrapper(p.logger, configDigest, p, peerIDs, bnAddrs, F, p.endpointConfig.BootstrapCheckInterval)
+	return newBootstrapper(p.logger, configDigest, p, peerIDs, bnAddrs, F)
 }
 
 func (p *concretePeer) register(r registrant) error {
