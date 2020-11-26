@@ -108,11 +108,7 @@ func (mo *managedOracleState) run() {
 			mo.configChanged(change)
 		case <-mo.ctx.Done():
 			mo.logger.Info("ManagedOracle: winding down", nil)
-			if mo.oracleCancel != nil {
-				mo.logger.Debug("cancelling oracle", nil)
-				mo.oracleCancel()
-				mo.oracleSubprocesses.Wait()
-			}
+			mo.closeOracle()
 			mo.otherSubprocesses.Wait()
 			mo.logger.Info("ManagedOracle: exiting", nil)
 			return 
@@ -120,8 +116,7 @@ func (mo *managedOracleState) run() {
 	}
 }
 
-func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig) {
-	
+func (mo *managedOracleState) closeOracle() {
 	if mo.oracleCancel != nil {
 		mo.oracleCancel()
 		mo.oracleSubprocesses.Wait()
@@ -132,7 +127,14 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 			})
 			
 		}
+		mo.oracleCancel = nil
+		mo.netEndpoint = nil
 	}
+}
+
+func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig) {
+	
+	mo.closeOracle()
 
 	
 	var err error

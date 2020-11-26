@@ -4,6 +4,7 @@ package managed
 
 import (
 	"context"
+
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -87,6 +88,7 @@ func (mb *managedBootstrapNodeState) run() {
 			mb.configChanged(cc)
 		case <-mb.ctx.Done():
 			mb.logger.Debug("ManagedBootstrapper: winding down ", nil)
+			mb.closeBootstrapper()
 			subprocesses.Wait()
 			mb.logger.Debug("ManagedBootstrapper: exiting", nil)
 			return
@@ -94,7 +96,7 @@ func (mb *managedBootstrapNodeState) run() {
 	}
 }
 
-func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
+func (mb *managedBootstrapNodeState) closeBootstrapper() {
 	if mb.bootstrapper != nil {
 		err := mb.bootstrapper.Close()
 		
@@ -103,7 +105,13 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 				"error": err,
 			})
 		}
+		mb.bootstrapper = nil
 	}
+}
+
+func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
+	
+	mb.closeBootstrapper()
 
 	var err error
 	mb.config, err = config.PublicConfigFromContractConfig(cc)

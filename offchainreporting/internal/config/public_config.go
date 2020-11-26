@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -9,9 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
-
-
-
 
 
 
@@ -77,7 +75,7 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		})
 	}
 
-	return PublicConfig{
+	cfg := PublicConfig{
 		oc.DeltaProgress,
 		oc.DeltaResend,
 		oc.DeltaRound,
@@ -90,7 +88,13 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		identities,
 		int(change.Threshold),
 		change.ConfigDigest,
-	}, oc.SharedSecretEncryptions, nil
+	}
+
+	if err := checkPublicConfigParameters(cfg); err != nil {
+		return PublicConfig{}, SharedSecretEncryptions{}, err
+	}
+
+	return cfg, oc.SharedSecretEncryptions, nil
 }
 
 func checkIdentityListsHaveTheSameLength(
@@ -112,5 +116,75 @@ func checkIdentityListsHaveTheSameLength(
 			return errors.Errorf(errorMsg, identityList.name, identityList.length)
 		}
 	}
+	return nil
+}
+
+
+
+
+
+
+func checkPublicConfigParameters(cfg PublicConfig) error {
+	
+	
+	
+	
+
+	if !(0 <= cfg.DeltaC) {
+		return fmt.Errorf("DeltaC (%v) must be non-negative",
+			cfg.DeltaC)
+	}
+
+	if !(1*time.Second < cfg.DeltaStage) {
+		return fmt.Errorf("DeltaStage (%v) must be greater than 1s",
+			cfg.DeltaStage)
+	}
+
+	if !(500*time.Millisecond < cfg.DeltaRound) {
+		return fmt.Errorf("DeltaRound (%v) must be greater than 500ms",
+			cfg.DeltaRound)
+	}
+
+	if !(500*time.Millisecond < cfg.DeltaProgress) {
+		return fmt.Errorf("DeltaProgress (%v) must be greater than 500ms",
+			cfg.DeltaProgress)
+	}
+
+	if !(500*time.Millisecond < cfg.DeltaResend) {
+		return fmt.Errorf("DeltaResend (%v) must be greater than 500ms",
+			cfg.DeltaResend)
+	}
+
+	if !(0 <= cfg.F && cfg.F*3 < cfg.N()) {
+		return fmt.Errorf("F (%v) must be non-negative and less than N/3 (N = %v)",
+			cfg.F, cfg.N())
+	}
+
+	if !(cfg.N() <= types.MaxOracles) {
+		return fmt.Errorf("N (%v) must be less than or equal MaxOracles (%v)",
+			cfg.N(), types.MaxOracles)
+	}
+
+	if !(0 <= cfg.DeltaGrace) {
+		return fmt.Errorf("DeltaGrace (%v) must be non-negative",
+			cfg.DeltaGrace)
+	}
+
+	if !(cfg.DeltaGrace < cfg.DeltaRound) {
+		return fmt.Errorf("DeltaGrace (%v) must be less than DeltaRound (%v)",
+			cfg.DeltaGrace, cfg.DeltaRound)
+	}
+
+	if !(cfg.DeltaRound < cfg.DeltaProgress) {
+		return fmt.Errorf("DeltaRound (%v) must be less than DeltaProgress (%v)",
+			cfg.DeltaRound, cfg.DeltaProgress)
+	}
+
+	
+	
+	if !(0 < cfg.RMax && cfg.RMax < 255) {
+		return fmt.Errorf("RMax (%v) must be greater than zero and less than 255", cfg.RMax)
+	}
+
 	return nil
 }
