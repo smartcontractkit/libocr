@@ -151,7 +151,7 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 	childCtx, childCancel := context.WithTimeout(mb.ctx, mb.localConfig.DatabaseTimeout)
 	defer childCancel()
 	if err := mb.database.WriteConfig(childCtx, cc); err != nil {
-		mb.logger.Error("Error writing new config to database", types.LogFields{
+		mb.logger.Error("ManagedBootstrapNode: error writing new config to database", types.LogFields{
 			"config": cc,
 			"error":  err,
 		})

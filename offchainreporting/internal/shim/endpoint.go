@@ -84,6 +84,7 @@ func (n *SerializingEndpoint) Start() error {
 					n.logger.Error("SerializingEndpoint: Failed to deserialize", types.LogFields{
 						"message": msg,
 					})
+					break
 				}
 				select {
 				case n.chOut <- protocol.MessageWithSender{deserialized, msg.Sender}:

@@ -301,14 +301,14 @@ func (pace *pacemakerState) persist() {
 	)
 
 	if !ok {
-		pace.logger.Error("Timeout while persisting state to database: %v", types.LogFields{
+		pace.logger.Error("Pacemaker: timeout while persisting state to database", types.LogFields{
 			"timeout": pace.localConfig.DatabaseTimeout,
 		})
 		return
 	}
 
 	if err != nil {
-		pace.logger.Error("Unexpected error while persisting state to database: %v", types.LogFields{
+		pace.logger.Error("Pacemaker: unexpected error while persisting state to database", types.LogFields{
 			"error": err,
 		})
 	}

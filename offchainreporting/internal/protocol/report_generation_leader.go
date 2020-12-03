@@ -48,11 +48,14 @@ func (repgen *reportGenerationState) eventTRoundTimeout() {
 func (repgen *reportGenerationState) startRound() {
 	rPlusOne := repgen.leaderState.r + 1
 	if rPlusOne <= repgen.leaderState.r {
-		repgen.logger.Error("ReportGeneration: round overflows, cannot start new round", nil)
+		repgen.logger.Error("ReportGeneration: round overflows, cannot start new round", types.LogFields{
+			"round": repgen.leaderState.r,
+		})
 		return
 	}
 	repgen.leaderState.r = rPlusOne
 	repgen.leaderState.observe = make([]*SignedObservation, repgen.config.N())
+	repgen.leaderState.report = make([]*AttestedReportOne, repgen.config.N())
 	repgen.leaderState.phase = phaseObserve
 	repgen.netSender.Broadcast(MessageObserveReq{Epoch: repgen.e, Round: repgen.leaderState.r})
 	repgen.leaderState.tRound = time.After(repgen.config.DeltaRound)
@@ -66,7 +69,6 @@ func (repgen *reportGenerationState) startRound() {
 func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender types.OracleID) {
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug("Got MessageObserve for wrong epoch", types.LogFields{
-			"epoch":    repgen.e,
 			"round":    repgen.leaderState.r,
 			"sender":   sender,
 			"msgEpoch": msg.Epoch,
@@ -77,6 +79,7 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 
 	if repgen.l != repgen.id {
 		repgen.logger.Warn("Non-leader received MessageObserve", types.LogFields{
+			"round":  repgen.leaderState.r,
 			"sender": sender,
 			"msg":    msg,
 		})
@@ -85,7 +88,6 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 
 	if msg.Round != repgen.leaderState.r {
 		repgen.logger.Debug("Got MessageObserve for wrong round", types.LogFields{
-			"epoch":    repgen.e,
 			"round":    repgen.leaderState.r,
 			"sender":   sender,
 			"msgEpoch": msg.Epoch,
@@ -95,7 +97,9 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 	}
 
 	if repgen.leaderState.phase != phaseObserve && repgen.leaderState.phase != phaseGrace {
-		repgen.logger.Debug("received MessageObserve after grace phase", nil)
+		repgen.logger.Debug("received MessageObserve after grace phase", types.LogFields{
+			"round": repgen.leaderState.r,
+		})
 		return
 	}
 
@@ -103,7 +107,9 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 		
 		
 		repgen.logger.Debug("already sent an observation", types.LogFields{
-			"sender": sender})
+			"round":  repgen.leaderState.r,
+			"sender": sender,
+		})
 		return
 	}
 
@@ -136,12 +142,15 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 			}
 		}
 		repgen.logger.Debug("One more observation", types.LogFields{
+			"round":                    repgen.leaderState.r,
 			"observationCount":         observationCount,
 			"requiredObservationCount": (2 * repgen.config.F) + 1,
 		})
 		if observationCount > 2*repgen.config.F {
 			
-			repgen.logger.Debug("starting observation grace period", nil)
+			repgen.logger.Debug("starting observation grace period", types.LogFields{
+				"round": repgen.leaderState.r,
+			})
 			repgen.leaderState.tGrace = time.After(repgen.config.DeltaGrace)
 			repgen.leaderState.phase = phaseGrace
 		}
@@ -156,6 +165,7 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 func (repgen *reportGenerationState) eventTGraceTimeout() {
 	if repgen.leaderState.phase != phaseGrace {
 		repgen.logger.Error("leader's phase conflicts tGrace timeout", types.LogFields{
+			"round": repgen.leaderState.r,
 			"phase": englishPhase[repgen.leaderState.phase],
 		})
 		return
@@ -184,12 +194,12 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 	dropPrefix := "messageReport: dropping MessageReport due to "
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug(dropPrefix+"wrong epoch",
-			types.LogFields{"epoch": repgen.e, "msgEpoch": msg.Epoch})
+			types.LogFields{"round": repgen.leaderState.r, "msgEpoch": msg.Epoch})
 		return
 	}
 	if repgen.l != repgen.id {
 		repgen.logger.Warn(dropPrefix+"not being leader of the current epoch",
-			types.LogFields{"leader": repgen.l})
+			types.LogFields{"round": repgen.leaderState.r})
 		return
 	}
 	if msg.Round != repgen.leaderState.r {
@@ -199,12 +209,12 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 	}
 	if repgen.leaderState.phase != phaseReport {
 		repgen.logger.Debug(dropPrefix+"not being in report phase",
-			types.LogFields{"currentPhase": englishPhase[repgen.leaderState.phase]})
+			types.LogFields{"round": repgen.leaderState.r, "currentPhase": englishPhase[repgen.leaderState.phase]})
 		return
 	}
 	if repgen.leaderState.report[sender] != nil {
 		repgen.logger.Warn(dropPrefix+"having already received sender's report",
-			types.LogFields{"sender": sender, "msg": msg})
+			types.LogFields{"round": repgen.leaderState.r, "sender": sender, "msg": msg})
 		return
 	}
 
@@ -212,6 +222,7 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 	err := msg.Report.Verify(repgen.leaderReportContext(), a)
 	if err != nil {
 		repgen.logger.Error("could not validate signature", types.LogFields{
+			"round": repgen.leaderState.r,
 			"error": err,
 			"msg":   msg,
 		})
@@ -231,6 +242,7 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 				sigs = append(sigs, report.Signature)
 			} else {
 				repgen.logger.Warn("received disparate reports messages", types.LogFields{
+					"round":          repgen.leaderState.r,
 					"previousReport": report,
 					"msgReport":      msg,
 				})

@@ -119,7 +119,8 @@ func (t *transmissionState) restoreFromDatabase() {
 	for key, trans := range pending {
 		if trans.Time.Before(now) && (EpochRound{latestExpiredTransmissionKey.Epoch, latestExpiredTransmissionKey.Round}).Less(EpochRound{key.Epoch, key.Round}) {
 			latestExpiredTransmissionKey = key
-			latestExpiredTransmission = &trans
+			transCopy := trans 
+			latestExpiredTransmission = &transCopy
 		}
 	}
 	if latestExpiredTransmission != nil {

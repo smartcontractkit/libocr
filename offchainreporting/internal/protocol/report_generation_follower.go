@@ -32,14 +32,14 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug(dropPrefix+"wrong epoch",
-			types.LogFields{"epoch": repgen.e, "msgEpoch": msg.Epoch},
+			types.LogFields{"round": repgen.followerState.r, "msgEpoch": msg.Epoch},
 		)
 		return
 	}
 	if sender != repgen.l {
 		
 		repgen.logger.Warn(dropPrefix+"non-leader",
-			types.LogFields{"sender": sender, "leader": repgen.l})
+			types.LogFields{"round": repgen.followerState.r, "sender": sender})
 		return
 	}
 	if msg.Round <= repgen.followerState.r {
@@ -57,7 +57,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 		
 		
 		repgen.logger.Warn(dropPrefix+"out of bounds round",
-			types.LogFields{"rMax": repgen.config.RMax, "msgRound": msg.Round})
+			types.LogFields{"round": repgen.followerState.r, "rMax": repgen.config.RMax, "msgRound": msg.Round})
 		return
 	}
 
@@ -71,6 +71,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 			"messageReportReq: leader sent MessageObserveReq past its expiration "+
 				"round. Time to change leader",
 			types.LogFields{
+				"round":        repgen.followerState.r,
 				"messageRound": msg.Round,
 				"roundMax":     repgen.config.RMax,
 			})
@@ -107,22 +108,22 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	so, err := MakeSignedObservation(value, repgen.followerReportContext(), repgen.privateKeys.SignOffChain)
 	if err != nil {
 		repgen.logger.Error("messageObserveReq: could not make SignedObservation observation", types.LogFields{
-			"error": err,
 			"round": repgen.followerState.r,
+			"error": err,
 		})
 		return
 	}
 
 	if err := so.Verify(repgen.followerReportContext(), repgen.privateKeys.PublicKeyOffChain()); err != nil {
 		repgen.logger.Error("MakeSignedObservation produced invalid signature:", types.LogFields{
-			"error": err,
 			"round": repgen.followerState.r,
+			"error": err,
 		})
 		return
 	}
 
 	repgen.logger.Debug("sent observation to leader", types.LogFields{
-		"epoch": repgen.e, "round": repgen.followerState.r, "leader": repgen.l,
+		"round":       repgen.followerState.r,
 		"observation": value,
 	})
 	repgen.netSender.SendTo(MessageObserve{
@@ -140,13 +141,14 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 	
 	if repgen.e != msg.Epoch {
 		repgen.logger.Debug("messageReportReq from wrong epoch", types.LogFields{
-			"epoch": repgen.e, "msgEpoch": msg.Epoch})
+			"round":    repgen.followerState.r,
+			"msgEpoch": msg.Epoch})
 		return
 	}
 	if sender != repgen.l {
 		
 		repgen.logger.Warn("messageReportReq from non-leader", types.LogFields{
-			"sender": sender, "leader": repgen.l})
+			"round": repgen.followerState.r, "sender": sender})
 		return
 	}
 	if repgen.followerState.r != msg.Round {
@@ -169,6 +171,7 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 	err := repgen.verifyReportReq(msg)
 	if err != nil {
 		repgen.logger.Error("messageReportReq: could not validate report sent by leader", types.LogFields{
+			"round": repgen.followerState.r,
 			"error": err,
 			"msg":   msg,
 		})
@@ -194,8 +197,12 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			
 			
 			repgen.logger.Error("messageReportReq: failed to sign report", types.LogFields{
-				"error": err, "id": repgen.id, "report": report,
-				"pubkey": repgen.privateKeys.PublicKeyAddressOnChain()})
+				"round":  repgen.followerState.r,
+				"error":  err,
+				"id":     repgen.id,
+				"report": report,
+				"pubkey": repgen.privateKeys.PublicKeyAddressOnChain(),
+			})
 			return
 		}
 
@@ -203,7 +210,10 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			err := report.Verify(repgen.followerReportContext(), repgen.privateKeys.PublicKeyAddressOnChain())
 			if err != nil {
 				repgen.logger.Error("could not verify my own signature", types.LogFields{
-					"error": err, "id": repgen.id, "report": report, 
+					"round":  repgen.followerState.r,
+					"error":  err,
+					"id":     repgen.id,
+					"report": report, 
 					"pubkey": repgen.privateKeys.PublicKeyAddressOnChain()})
 				return
 			}
@@ -231,7 +241,7 @@ func (repgen *reportGenerationState) messageFinal(
 ) {
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug("wrong epoch from MessageFinal", types.LogFields{
-			"epoch": repgen.e, "msgEpoch": msg.Epoch, "sender": sender})
+			"round": repgen.followerState.r, "msgEpoch": msg.Epoch, "sender": sender})
 		return
 	}
 	if msg.Round != repgen.followerState.r {
@@ -241,7 +251,7 @@ func (repgen *reportGenerationState) messageFinal(
 	}
 	if sender != repgen.l {
 		repgen.logger.Warn("MessageFinal from non-leader", types.LogFields{
-			"epoch": repgen.e, "msgEpoch": msg.Epoch, "sender": sender,
+			"msgEpoch": msg.Epoch, "sender": sender,
 			"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
 	}
@@ -267,7 +277,7 @@ func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 ) {
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug("wrong epoch from MessageFinalEcho", types.LogFields{
-			"epoch": repgen.e, "msgEpoch": msg.Epoch, "sender": sender})
+			"round": repgen.followerState.r, "msgEpoch": msg.Epoch, "sender": sender})
 		return
 	}
 	if msg.Round != repgen.followerState.r {
@@ -277,7 +287,7 @@ func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 	}
 	if repgen.followerState.receivedEcho[sender] {
 		repgen.logger.Warn("extra MessageFinalEcho received", types.LogFields{
-			"sender": sender})
+			"round": repgen.followerState.r, "sender": sender})
 		return
 	}
 	if repgen.followerState.completedRound {
@@ -342,13 +352,17 @@ func (repgen *reportGenerationState) observeValue() observation.Observation {
 
 	if !ok {
 		repgen.logger.Error("DataSource timed out", types.LogFields{
+			"round":   repgen.followerState.r,
 			"timeout": repgen.localConfig.DataSourceTimeout,
 		})
 		return observation.Observation{}
 	}
 
 	if err != nil {
-		repgen.logger.Error("DataSource errored", types.LogFields{"error": err})
+		repgen.logger.Error("DataSource errored", types.LogFields{
+			"round": repgen.followerState.r,
+			"error": err,
+		})
 		return observation.Observation{}
 	}
 
@@ -362,6 +376,7 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 		err := repgen.contractTransmitter.LatestTransmissionDetails(ctx)
 	if err != nil {
 		repgen.logger.Error("shouldReport: Error during LatestTransmissionDetails", types.LogFields{
+			"round": repgen.followerState.r,
 			"error": err,
 		})
 		
@@ -373,6 +388,7 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 	answer, err := observation.MakeObservation(rawAnswer)
 	if err != nil {
 		repgen.logger.Error("shouldReport: Error during observation.NewObservation", types.LogFields{
+			"round": repgen.followerState.r,
 			"error": err,
 		})
 		return false
@@ -384,11 +400,11 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 	result := initialRound || deviation || deltaCTimeout
 
 	repgen.logger.Info("shouldReport: returning result", types.LogFields{
+		"round":         repgen.followerState.r,
 		"result":        result,
 		"initialRound":  initialRound,
 		"deviation":     deviation,
 		"deltaCTimeout": deltaCTimeout,
-		"round":         repgen.followerState.r,
 	})
 
 	return result
@@ -472,7 +488,12 @@ func (repgen *reportGenerationState) verifyAttestedReport(
 	err := report.VerifySignatures(repgen.followerReportContext(), keys)
 	if err != nil {
 		repgen.logger.Error("could not validate signatures on final report",
-			types.LogFields{"error": err, "report": report, "sender": sender})
+			types.LogFields{
+				"round":  repgen.followerState.r,
+				"error":  err,
+				"report": report,
+				"sender": sender,
+			})
 		return false
 	}
 	return true
