@@ -86,10 +86,11 @@ func decodeContractSetConfigEncodedComponents(
 			"attempt to deserialize a too-long config (%d bytes)", len(b),
 		)
 	}
-	var setConfig setConfigSerializationTypes
-	if err := encoding.Unpack(&setConfig, b); err != nil {
+	var vals []interface{}
+	if vals, err = encoding.Unpack(b); err != nil {
 		return o, errors.Wrapf(err, "could not deserialize setConfig binary blob")
 	}
+	setConfig := abi.ConvertType(vals[0], &setConfigSerializationTypes{}).(*setConfigSerializationTypes)
 	return setConfig.golangRepresentation(), nil
 }
 

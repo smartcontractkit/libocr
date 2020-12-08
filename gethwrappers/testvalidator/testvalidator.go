@@ -137,7 +137,7 @@ func bindAggregatorValidatorInterface(address common.Address, caller bind.Contra
 
 
 
-func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _AggregatorValidatorInterface.Contract.AggregatorValidatorInterfaceCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -156,7 +156,7 @@ func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceRaw) Transact(o
 
 
 
-func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _AggregatorValidatorInterface.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -196,7 +196,7 @@ func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceTransactorSessi
 const TestValidatorABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]"
 
 
-var TestValidatorBin = "0x6080604052348015600f57600080fd5b5060ad8061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063beed9b5114602d575b600080fd5b605960048036036080811015604157600080fd5b5080359060208101359060408101359060600135606d565b604080519115158252519081900360200190f35b600194935050505056fea2646970667358220000000000000000000000000000000000000000000000000000000000000000000064736f6c63430000000033"
+var TestValidatorBin = "0x6080604052348015600f57600080fd5b5060848061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063beed9b5114602d575b600080fd5b605960048036036080811015604157600080fd5b5080359060208101359060408101359060600135606d565b604080519115158252519081900360200190f35b600194935050505056fea164736f6c6343000701000a"
 
 
 func DeployTestValidator(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *TestValidator, error) {
@@ -320,7 +320,7 @@ func bindTestValidator(address common.Address, caller bind.ContractCaller, trans
 
 
 
-func (_TestValidator *TestValidatorRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_TestValidator *TestValidatorRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _TestValidator.Contract.TestValidatorCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -339,7 +339,7 @@ func (_TestValidator *TestValidatorRaw) Transact(opts *bind.TransactOpts, method
 
 
 
-func (_TestValidator *TestValidatorCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_TestValidator *TestValidatorCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _TestValidator.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -358,12 +358,17 @@ func (_TestValidator *TestValidatorTransactorRaw) Transact(opts *bind.TransactOp
 
 
 func (_TestValidator *TestValidatorCaller) Validate(opts *bind.CallOpts, arg0 *big.Int, arg1 *big.Int, arg2 *big.Int, arg3 *big.Int) (bool, error) {
-	var (
-		ret0 = new(bool)
-	)
-	out := ret0
-	err := _TestValidator.contract.Call(opts, out, "validate", arg0, arg1, arg2, arg3)
-	return *ret0, err
+	var out []interface{}
+	err := _TestValidator.contract.Call(opts, &out, "validate", arg0, arg1, arg2, arg3)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
 }
 
 
