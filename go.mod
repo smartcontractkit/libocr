@@ -11,6 +11,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.0
 	github.com/ipfs/go-log v1.0.4
+	github.com/kisielk/errcheck v1.4.0 // indirect
 	github.com/leanovate/gopter v0.2.8
 	github.com/libp2p/go-libp2p v0.10.2
 	github.com/libp2p/go-libp2p-core v0.6.1
@@ -33,7 +34,7 @@ require (
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	golang.org/x/tools v0.0.0-20201203230154-39497347062d // indirect
+	golang.org/x/tools v0.0.0-20201211185031-d93e913c1a58 // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/guregu/null.v2 v2.1.2 // indirect
 )

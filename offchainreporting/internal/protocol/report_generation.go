@@ -30,6 +30,7 @@ func RunReportGeneration(
 	logger types.Logger,
 	netSender NetworkSender,
 	privateKeys types.PrivateKeys,
+	telemetrySender TelemetrySender,
 ) {
 	repgen := reportGenerationState{
 		ctx:          ctx,
@@ -48,6 +49,7 @@ func RunReportGeneration(
 		logger:                           loghelper.MakeLoggerWithContext(logger, types.LogFields{"epoch": e, "leader": l}),
 		netSender:                        netSender,
 		privateKeys:                      privateKeys,
+		telemetrySender:                  telemetrySender,
 	}
 	repgen.run()
 }
@@ -69,6 +71,7 @@ type reportGenerationState struct {
 	logger                           types.Logger
 	netSender                        NetworkSender
 	privateKeys                      types.PrivateKeys
+	telemetrySender                  TelemetrySender
 
 	leaderState   leaderState
 	followerState followerState

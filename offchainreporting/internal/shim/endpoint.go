@@ -7,11 +7,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization"
+	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 type SerializingEndpoint struct {
+	chTelemetry  chan<- *protobuf.TelemetryWrapper
+	configDigest types.ConfigDigest
 	endpoint     types.BinaryNetworkEndpoint
 	logger       types.Logger
 	mutex        sync.Mutex
@@ -26,10 +29,14 @@ type SerializingEndpoint struct {
 var _ protocol.NetworkEndpoint = (*SerializingEndpoint)(nil)
 
 func NewSerializingEndpoint(
+	chTelemetry chan<- *protobuf.TelemetryWrapper,
+	configDigest types.ConfigDigest,
 	endpoint types.BinaryNetworkEndpoint,
 	logger types.Logger,
 ) *SerializingEndpoint {
 	return &SerializingEndpoint{
+		chTelemetry,
+		configDigest,
 		endpoint,
 		logger,
 		sync.Mutex{},
@@ -42,15 +49,22 @@ func NewSerializingEndpoint(
 	}
 }
 
-func (n *SerializingEndpoint) serialize(msg protocol.Message) []byte {
-	sMsg, err := serialization.Serialize(msg)
+func (n *SerializingEndpoint) sendTelemetry(t *protobuf.TelemetryWrapper) {
+	select {
+	case n.chTelemetry <- t:
+	default:
+	}
+}
+
+func (n *SerializingEndpoint) serialize(msg protocol.Message) ([]byte, *protobuf.MessageWrapper) {
+	sMsg, pbm, err := serialization.Serialize(msg)
 	if err != nil {
 		n.logger.Error("SerializingEndpoint: Failed to serialize", types.LogFields{
 			"message": msg,
 		})
-		return nil
+		return nil, nil
 	}
-	return sMsg
+	return sMsg, pbm
 }
 
 
@@ -71,7 +85,7 @@ func (n *SerializingEndpoint) Start() error {
 		chRaw := n.endpoint.Receive()
 		for {
 			select {
-			case msg, ok := <-chRaw:
+			case raw, ok := <-chRaw:
 				if !ok {
 					n.mutex.Lock()
 					defer n.mutex.Unlock()
@@ -79,15 +93,34 @@ func (n *SerializingEndpoint) Start() error {
 					close(n.chOut)
 					return
 				}
-				deserialized, err := serialization.Deserialize(msg.Msg)
+
+				m, pbm, err := serialization.Deserialize(raw.Msg)
 				if err != nil {
 					n.logger.Error("SerializingEndpoint: Failed to deserialize", types.LogFields{
-						"message": msg,
+						"message": raw,
+					})
+					n.sendTelemetry(&protobuf.TelemetryWrapper{
+						Wrapped: &protobuf.TelemetryWrapper_AssertionViolation{&protobuf.TelemetryAssertionViolation{
+							Violation: &protobuf.TelemetryAssertionViolation_InvalidSerialization{&protobuf.TelemetryAssertionViolationInvalidSerialization{
+								ConfigDigest:  n.configDigest[:],
+								SerializedMsg: raw.Msg,
+								Sender:        uint32(raw.Sender),
+							}},
+						}},
 					})
 					break
 				}
+
+				n.sendTelemetry(&protobuf.TelemetryWrapper{
+					Wrapped: &protobuf.TelemetryWrapper_MessageReceived{&protobuf.TelemetryMessageReceived{
+						ConfigDigest: n.configDigest[:],
+						Msg:          pbm,
+						Sender:       uint32(raw.Sender),
+					}},
+				})
+
 				select {
-				case n.chOut <- protocol.MessageWithSender{deserialized, msg.Sender}:
+				case n.chOut <- protocol.MessageWithSender{m, raw.Sender}:
 				case <-n.chCancel:
 					return
 				}
@@ -122,16 +155,31 @@ func (n *SerializingEndpoint) Close() error {
 }
 
 func (n *SerializingEndpoint) SendTo(msg protocol.Message, to types.OracleID) {
-	sMsg := n.serialize(msg)
+	sMsg, pbm := n.serialize(msg)
 	if sMsg != nil {
 		n.endpoint.SendTo(sMsg, to)
+		n.sendTelemetry(&protobuf.TelemetryWrapper{
+			Wrapped: &protobuf.TelemetryWrapper_MessageSent{&protobuf.TelemetryMessageSent{
+				ConfigDigest:  n.configDigest[:],
+				Msg:           pbm,
+				SerializedMsg: sMsg,
+				Receiver:      uint32(to),
+			}},
+		})
 	}
 }
 
 func (n *SerializingEndpoint) Broadcast(msg protocol.Message) {
-	sMsg := n.serialize(msg)
+	sMsg, pbm := n.serialize(msg)
 	if sMsg != nil {
 		n.endpoint.Broadcast(sMsg)
+		n.sendTelemetry(&protobuf.TelemetryWrapper{
+			Wrapped: &protobuf.TelemetryWrapper_MessageBroadcast{&protobuf.TelemetryMessageBroadcast{
+				ConfigDigest:  n.configDigest[:],
+				Msg:           pbm,
+				SerializedMsg: sMsg,
+			}},
+		})
 	}
 }
 

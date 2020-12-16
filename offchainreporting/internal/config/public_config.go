@@ -186,5 +186,17 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 		return fmt.Errorf("RMax (%v) must be greater than zero and less than 255", cfg.RMax)
 	}
 
+	
+	
+	if !(len(cfg.S) < 1000) {
+		return fmt.Errorf("len(S) (%v) must be less than 1000", len(cfg.S))
+	}
+
+	for i, s := range cfg.S {
+		if !(0 <= s && s <= types.MaxOracles) {
+			return fmt.Errorf("S[%v] (%v) must be between 0 and types.MaxOracles (%v)", i, s, types.MaxOracles)
+		}
+	}
+
 	return nil
 }

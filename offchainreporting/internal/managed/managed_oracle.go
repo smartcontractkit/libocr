@@ -7,6 +7,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
+	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/shim"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
@@ -62,6 +63,7 @@ type managedOracleState struct {
 	netEndpointFactory  types.BinaryNetworkEndpointFactory
 	privateKeys         types.PrivateKeys
 
+	chTelemetry        chan<- *protobuf.TelemetryWrapper
 	netEndpoint        *shim.SerializingEndpoint
 	oracleCancel       context.CancelFunc
 	oracleSubprocesses subprocesses.Subprocesses
@@ -88,6 +90,12 @@ func (mo *managedOracleState) run() {
 			mo.configChanged(*cc)
 		}
 	}
+
+	chTelemetry := make(chan *protobuf.TelemetryWrapper, 100)
+	mo.chTelemetry = chTelemetry
+	mo.otherSubprocesses.Go(func() {
+		forwardTelemetry(mo.ctx, mo.logger, mo.monitoringEndpoint, chTelemetry)
+	})
 
 	chNewConfig := make(chan types.ContractConfig, 5)
 	mo.otherSubprocesses.Go(func() {
@@ -176,7 +184,12 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		return
 	}
 
-	netEndpoint := shim.NewSerializingEndpoint(binNetEndpoint, childLogger)
+	netEndpoint := shim.NewSerializingEndpoint(
+		mo.chTelemetry,
+		mo.config.ConfigDigest,
+		binNetEndpoint,
+		childLogger,
+	)
 
 	if err := netEndpoint.Start(); err != nil {
 		mo.logger.Error("ManagedOracle: error during netEndpoint.Start()", types.LogFields{
@@ -201,8 +214,8 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 			mo.privateKeys,
 			mo.localConfig,
 			childLogger,
-			mo.monitoringEndpoint,
 			mo.netEndpoint,
+			shim.MakeTelemetrySender(mo.chTelemetry),
 		)
 	})
 

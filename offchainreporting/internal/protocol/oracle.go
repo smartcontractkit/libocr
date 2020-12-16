@@ -24,8 +24,8 @@ func RunOracle(
 	keys types.PrivateKeys,
 	localConfig types.LocalConfig,
 	logger types.Logger,
-	monitoringEndpoint types.MonitoringEndpoint,
 	netEndpoint NetworkEndpoint,
+	telemetrySender TelemetrySender,
 ) {
 	o := oracleState{
 		ctx: ctx,
@@ -37,9 +37,9 @@ func RunOracle(
 		id:                  id,
 		localConfig:         localConfig,
 		logger:              logger,
-		monitoringEndpoint:  monitoringEndpoint,
 		netEndpoint:         netEndpoint,
 		PrivateKeys:         keys,
+		telemetrySender:     telemetrySender,
 	}
 	o.run()
 }
@@ -55,9 +55,9 @@ type oracleState struct {
 	id                  types.OracleID
 	localConfig         types.LocalConfig
 	logger              types.Logger
-	monitoringEndpoint  types.MonitoringEndpoint
 	netEndpoint         NetworkEndpoint
 	PrivateKeys         types.PrivateKeys
+	telemetrySender     TelemetrySender
 
 	chNetToPacemaker        chan<- MessageToPacemakerWithSender
 	chNetToReportGeneration chan<- MessageToReportGenerationWithSender
@@ -125,9 +125,9 @@ func (o *oracleState) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
-			o.monitoringEndpoint,
 			o.netEndpoint,
 			o.PrivateKeys,
+			o.telemetrySender,
 		)
 	})
 	o.subprocesses.Go(func() {

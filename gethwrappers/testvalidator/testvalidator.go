@@ -196,7 +196,7 @@ func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceTransactorSessi
 const TestValidatorABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]"
 
 
-var TestValidatorBin = "0x6080604052348015600f57600080fd5b5060848061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063beed9b5114602d575b600080fd5b605960048036036080811015604157600080fd5b5080359060208101359060408101359060600135606d565b604080519115158252519081900360200190f35b600194935050505056fea164736f6c6343000701000a"
+var TestValidatorBin = "0x6080604052348015600f57600080fd5b5060848061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063beed9b5114602d575b600080fd5b605960048036036080811015604157600080fd5b5080359060208101359060408101359060600135606d565b604080519115158252519081900360200190f35b600194935050505056fea164736f6c6343000705000a"
 
 
 func DeployTestValidator(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *TestValidator, error) {
