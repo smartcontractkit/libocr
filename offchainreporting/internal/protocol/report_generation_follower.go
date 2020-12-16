@@ -98,6 +98,13 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	repgen.followerState.completedRound = false
 	repgen.followerState.receivedEcho = make([]bool, repgen.config.N())
 
+	repgen.telemetrySender.RoundStarted(
+		repgen.config.ConfigDigest,
+		repgen.e,
+		repgen.followerState.r,
+		repgen.l,
+	)
+
 	value := repgen.observeValue()
 	if value.IsMissingValue() {
 		

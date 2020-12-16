@@ -42,11 +42,13 @@ func (s *Subprocesses) BlockForAtMost(ctx context.Context, d time.Duration, f fu
 		f(childCtx)
 		close(done)
 	})
+	t := time.NewTimer(d)
+	defer t.Stop()
 
 	select {
 	case <-done:
 		return true
-	case <-childCtx.Done():
+	case <-t.C:
 		return false
 	}
 }

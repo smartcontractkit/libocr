@@ -104,8 +104,6 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 	}
 
 	if repgen.leaderState.observe[sender] != nil {
-		
-		
 		repgen.logger.Debug("already sent an observation", types.LogFields{
 			"round":  repgen.leaderState.r,
 			"sender": sender,

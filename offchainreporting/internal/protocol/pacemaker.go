@@ -30,13 +30,14 @@ func RunPacemaker(
 	id types.OracleID,
 	localConfig types.LocalConfig,
 	logger types.Logger,
-	monitoringEndpoint types.MonitoringEndpoint,
 	netSender NetworkSender,
 	privateKeys types.PrivateKeys,
+	telemetrySender TelemetrySender,
 ) {
 	pace := pacemakerState{
-		ctx:                              ctx,
-		subprocesses:                     subprocesses,
+		ctx:          ctx,
+		subprocesses: subprocesses,
+
 		chNetToPacemaker:                 chNetToPacemaker,
 		chNetToReportGeneration:          chNetToReportGeneration,
 		chReportGenerationToTransmission: chReportGenerationToTransmission,
@@ -47,9 +48,9 @@ func RunPacemaker(
 		id:                               id,
 		localConfig:                      localConfig,
 		logger:                           logger,
-		monitoringEndpoint:               monitoringEndpoint,
 		netSender:                        netSender,
 		privateKeys:                      privateKeys,
+		telemetrySender:                  telemetrySender,
 
 		newepoch: make([]uint32, config.N()),
 	}
@@ -74,6 +75,7 @@ type pacemakerState struct {
 	monitoringEndpoint               types.MonitoringEndpoint
 	netSender                        NetworkSender
 	privateKeys                      types.PrivateKeys
+	telemetrySender                  TelemetrySender
 
 	cancelReportGeneration context.CancelFunc
 
@@ -402,9 +404,7 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.Or
 			}
 			pace.persist()
 
-			if pace.monitoringEndpoint != nil {
-				pace.monitoringEndpoint.SendLog([]byte(fmt.Sprintf("Epoch: %v", pace.e)))
-			}
+			
 
 			
 			pace.spawnReportGeneration()
@@ -442,6 +442,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 			pace.logger,
 			pace.netSender,
 			pace.privateKeys,
+			pace.telemetrySender,
 		)
 	})
 	pace.cancelReportGeneration = cancelReportGeneration
