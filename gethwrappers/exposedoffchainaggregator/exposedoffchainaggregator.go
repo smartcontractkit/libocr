@@ -652,6 +652,7 @@ func (_AggregatorInterface *AggregatorInterfaceFilterer) ParseAnswerUpdated(log 
 	if err := _AggregatorInterface.contract.UnpackLog(event, "AnswerUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -805,6 +806,7 @@ func (_AggregatorInterface *AggregatorInterfaceFilterer) ParseNewRound(log types
 	if err := _AggregatorInterface.contract.UnpackLog(event, "NewRound", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1066,6 +1068,9 @@ func (_AggregatorV2V3Interface *AggregatorV2V3InterfaceCaller) GetRoundData(opts
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -1216,6 +1221,9 @@ func (_AggregatorV2V3Interface *AggregatorV2V3InterfaceCaller) LatestRoundData(o
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -1465,6 +1473,7 @@ func (_AggregatorV2V3Interface *AggregatorV2V3InterfaceFilterer) ParseAnswerUpda
 	if err := _AggregatorV2V3Interface.contract.UnpackLog(event, "AnswerUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1618,6 +1627,7 @@ func (_AggregatorV2V3Interface *AggregatorV2V3InterfaceFilterer) ParseNewRound(l
 	if err := _AggregatorV2V3Interface.contract.UnpackLog(event, "NewRound", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1848,6 +1858,9 @@ func (_AggregatorV3Interface *AggregatorV3InterfaceCaller) GetRoundData(opts *bi
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -1905,6 +1918,9 @@ func (_AggregatorV3Interface *AggregatorV3InterfaceCaller) LatestRoundData(opts 
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -2476,6 +2492,9 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorCaller) GetBilling(op
 		LinkGweiPerObservation  uint32
 		LinkGweiPerTransmission uint32
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.MaximumGasPrice = out[0].(uint32)
 	outstruct.ReasonableGasPrice = out[1].(uint32)
@@ -2533,6 +2552,9 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorCaller) GetRoundData(
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -2648,6 +2670,9 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorCaller) LatestConfigD
 		BlockNumber  uint32
 		ConfigDigest [16]byte
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.ConfigCount = out[0].(uint32)
 	outstruct.BlockNumber = out[1].(uint32)
@@ -2730,6 +2755,9 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorCaller) LatestRoundDa
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -2818,6 +2846,9 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorCaller) LatestTransmi
 		LatestAnswer    *big.Int
 		LatestTimestamp uint64
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.ConfigDigest = out[0].([16]byte)
 	outstruct.Epoch = out[1].(uint32)
@@ -3536,6 +3567,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseAnswer
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "AnswerUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -3670,6 +3702,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseBillin
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "BillingAccessControllerSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -3807,6 +3840,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseBillin
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "BillingSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -3946,6 +3980,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseConfig
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "ConfigSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -4099,6 +4134,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseNewRou
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "NewRound", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -4247,6 +4283,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseNewTra
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "NewTransmission", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -4382,6 +4419,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseOracle
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "OraclePaid", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -4534,6 +4572,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseOwners
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -4686,6 +4725,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseOwners
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -4847,6 +4887,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParsePayees
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "PayeeshipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -5008,6 +5049,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParsePayees
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "PayeeshipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -5160,6 +5202,7 @@ func (_ExposedOffchainAggregator *ExposedOffchainAggregatorFilterer) ParseValida
 	if err := _ExposedOffchainAggregator.contract.UnpackLog(event, "ValidatorUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -5926,6 +5969,9 @@ func (_OffchainAggregator *OffchainAggregatorCaller) GetBilling(opts *bind.CallO
 		LinkGweiPerObservation  uint32
 		LinkGweiPerTransmission uint32
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.MaximumGasPrice = out[0].(uint32)
 	outstruct.ReasonableGasPrice = out[1].(uint32)
@@ -5983,6 +6029,9 @@ func (_OffchainAggregator *OffchainAggregatorCaller) GetRoundData(opts *bind.Cal
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -6098,6 +6147,9 @@ func (_OffchainAggregator *OffchainAggregatorCaller) LatestConfigDetails(opts *b
 		BlockNumber  uint32
 		ConfigDigest [16]byte
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.ConfigCount = out[0].(uint32)
 	outstruct.BlockNumber = out[1].(uint32)
@@ -6180,6 +6232,9 @@ func (_OffchainAggregator *OffchainAggregatorCaller) LatestRoundData(opts *bind.
 		UpdatedAt       *big.Int
 		AnsweredInRound *big.Int
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.RoundId = out[0].(*big.Int)
 	outstruct.Answer = out[1].(*big.Int)
@@ -6268,6 +6323,9 @@ func (_OffchainAggregator *OffchainAggregatorCaller) LatestTransmissionDetails(o
 		LatestAnswer    *big.Int
 		LatestTimestamp uint64
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.ConfigDigest = out[0].([16]byte)
 	outstruct.Epoch = out[1].(uint32)
@@ -6986,6 +7044,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseAnswerUpdated(log ty
 	if err := _OffchainAggregator.contract.UnpackLog(event, "AnswerUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7120,6 +7179,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseBillingAccessControl
 	if err := _OffchainAggregator.contract.UnpackLog(event, "BillingAccessControllerSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7257,6 +7317,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseBillingSet(log types
 	if err := _OffchainAggregator.contract.UnpackLog(event, "BillingSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7396,6 +7457,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseConfigSet(log types.
 	if err := _OffchainAggregator.contract.UnpackLog(event, "ConfigSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7549,6 +7611,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseNewRound(log types.L
 	if err := _OffchainAggregator.contract.UnpackLog(event, "NewRound", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7697,6 +7760,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseNewTransmission(log 
 	if err := _OffchainAggregator.contract.UnpackLog(event, "NewTransmission", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7832,6 +7896,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseOraclePaid(log types
 	if err := _OffchainAggregator.contract.UnpackLog(event, "OraclePaid", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -7984,6 +8049,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseOwnershipTransferReq
 	if err := _OffchainAggregator.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -8136,6 +8202,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseOwnershipTransferred
 	if err := _OffchainAggregator.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -8297,6 +8364,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParsePayeeshipTransferReq
 	if err := _OffchainAggregator.contract.UnpackLog(event, "PayeeshipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -8458,6 +8526,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParsePayeeshipTransferred
 	if err := _OffchainAggregator.contract.UnpackLog(event, "PayeeshipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -8610,6 +8679,7 @@ func (_OffchainAggregator *OffchainAggregatorFilterer) ParseValidatorUpdated(log
 	if err := _OffchainAggregator.contract.UnpackLog(event, "ValidatorUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -8826,6 +8896,9 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingCaller) GetBilling(op
 		LinkGweiPerObservation  uint32
 		LinkGweiPerTransmission uint32
 	})
+	if err != nil {
+		return *outstruct, err
+	}
 
 	outstruct.MaximumGasPrice = out[0].(uint32)
 	outstruct.ReasonableGasPrice = out[1].(uint32)
@@ -9307,6 +9380,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParseBillin
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "BillingAccessControllerSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -9444,6 +9518,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParseBillin
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "BillingSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -9579,6 +9654,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParseOracle
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "OraclePaid", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -9731,6 +9807,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParseOwners
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -9883,6 +9960,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParseOwners
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -10044,6 +10122,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParsePayees
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "PayeeshipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -10205,6 +10284,7 @@ func (_OffchainAggregatorBilling *OffchainAggregatorBillingFilterer) ParsePayees
 	if err := _OffchainAggregatorBilling.contract.UnpackLog(event, "PayeeshipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -10592,6 +10672,7 @@ func (_Owned *OwnedFilterer) ParseOwnershipTransferRequested(log types.Log) (*Ow
 	if err := _Owned.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -10744,6 +10825,7 @@ func (_Owned *OwnedFilterer) ParseOwnershipTransferred(log types.Log) (*OwnedOwn
 	if err := _Owned.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -11258,6 +11340,7 @@ func (_SimpleReadAccessController *SimpleReadAccessControllerFilterer) ParseAdde
 	if err := _SimpleReadAccessController.contract.UnpackLog(event, "AddedAccess", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -11390,6 +11473,7 @@ func (_SimpleReadAccessController *SimpleReadAccessControllerFilterer) ParseChec
 	if err := _SimpleReadAccessController.contract.UnpackLog(event, "CheckAccessDisabled", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -11522,6 +11606,7 @@ func (_SimpleReadAccessController *SimpleReadAccessControllerFilterer) ParseChec
 	if err := _SimpleReadAccessController.contract.UnpackLog(event, "CheckAccessEnabled", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -11674,6 +11759,7 @@ func (_SimpleReadAccessController *SimpleReadAccessControllerFilterer) ParseOwne
 	if err := _SimpleReadAccessController.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -11826,6 +11912,7 @@ func (_SimpleReadAccessController *SimpleReadAccessControllerFilterer) ParseOwne
 	if err := _SimpleReadAccessController.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -11959,6 +12046,7 @@ func (_SimpleReadAccessController *SimpleReadAccessControllerFilterer) ParseRemo
 	if err := _SimpleReadAccessController.contract.UnpackLog(event, "RemovedAccess", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -12473,6 +12561,7 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseAd
 	if err := _SimpleWriteAccessController.contract.UnpackLog(event, "AddedAccess", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -12605,6 +12694,7 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseCh
 	if err := _SimpleWriteAccessController.contract.UnpackLog(event, "CheckAccessDisabled", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -12737,6 +12827,7 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseCh
 	if err := _SimpleWriteAccessController.contract.UnpackLog(event, "CheckAccessEnabled", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -12889,6 +12980,7 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseOw
 	if err := _SimpleWriteAccessController.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -13041,6 +13133,7 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseOw
 	if err := _SimpleWriteAccessController.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -13174,5 +13267,6 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseRe
 	if err := _SimpleWriteAccessController.contract.UnpackLog(event, "RemovedAccess", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
