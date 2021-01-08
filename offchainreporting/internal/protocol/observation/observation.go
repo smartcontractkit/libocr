@@ -23,11 +23,14 @@ type Observations []Observation
 var i = big.NewInt
 
 
-var MaxObservation = i(0).Sub(i(0).Lsh(i(1), 191), i(1))      
-var MinObservation = i(0).Sub(i(0).Neg(MaxObservation), i(1)) 
+const byteWidth = 24
+const bitWidth = byteWidth * 8
+
+var MaxObservation = i(0).Sub(i(0).Lsh(i(1), bitWidth-1), i(1)) 
+var MinObservation = i(0).Sub(i(0).Neg(MaxObservation), i(1))   
 
 func tooLarge(o *big.Int) error {
-	return errors.Errorf("value won't fit in int192: 0x%x", o)
+	return errors.Errorf("value won't fit in int%v: 0x%x", bitWidth, o)
 }
 
 
@@ -81,46 +84,41 @@ func (o Observation) Marshal() []byte {
 	if o.v.Cmp(MaxObservation) > 0 || o.v.Cmp(MinObservation) < 0 {
 		panic(tooLarge(o.v))
 	}
-	negative := o.v.Cmp(i(0)) < 0
-	val := (&big.Int{}).Set(o.v)
+	negative := o.v.Sign() < 0
+	val := (&big.Int{})
 	if negative {
-		val.Add(val, big.NewInt(1))
+		
+		val.SetInt64(1)
+		val.Lsh(val, bitWidth)
+		val.Add(val, o.v)
+	} else {
+		val.Set(o.v)
 	}
 	b := val.Bytes() 
-	if len(b) > 24 {
-		panic("b must fit in 24 bytes, given it's an int192")
+	if len(b) > byteWidth {
+		panic(fmt.Sprintf("b must fit in %v bytes", byteWidth))
 	}
-	b = bytes.Join([][]byte{bytes.Repeat([]byte{0}, 24-len(b)), b}, []byte{})
-	if len(b) != 24 {
+	b = bytes.Join([][]byte{bytes.Repeat([]byte{0}, byteWidth-len(b)), b}, []byte{})
+	if len(b) != byteWidth {
 		panic("wrong length; there must be an error in the padding of b")
-	}
-	if negative {
-		twosComplement(b)
-		b[0] = b[0] | topBit 
 	}
 	return b
 }
 
 func UnmarshalObservation(s []byte) (Observation, error) {
-	if len(s) != 24 {
+	if len(s) != byteWidth {
 		return Observation{}, errors.Errorf("wrong length for serialized "+
 			"Observation: length %d 0x%x", len(s), s)
 	}
-	negative := s[0]&topBit != 0
+	val := (&big.Int{}).SetBytes(s)
+	negative := val.Cmp(MaxObservation) > 0
 	if negative {
-		t := make([]byte, len(s))
-		copy(t, s)
-		twosComplement(t)
-		s = t
+		maxUint := (&big.Int{}).SetInt64(1)
+		maxUint.Lsh(maxUint, bitWidth)
+		val.Sub(maxUint, val)
+		val.Neg(val)
 	}
-	if s[0]&topBit != 0 {
-		panic("two's complement did not cancel top bit")
-	}
-	rv := (&big.Int{}).SetBytes(s)
-	if negative {
-		rv.Neg(rv).Sub(rv, big.NewInt(1))
-	}
-	return MakeObservation(rv)
+	return MakeObservation(val)
 }
 
 func (o Observation) String() string {
@@ -141,16 +139,8 @@ func (o Observation) MarshalText() (text []byte, err error) {
 	return o.v.MarshalText()
 }
 
-var topBit, allBits uint8 = 1 << 7, (1 << 8) - 1
-
-func twosComplement(b []byte) {
-	for bi, c := range b {
-		b[bi] = allBits ^ c 
-	}
-}
-
 func uInt64sToObservation(w1, w2, w3 uint64) Observation {
-	var b [24]byte
+	var b [byteWidth]byte
 	for i, w := range []uint64{w1, w2, w3} {
 		start := i * 8
 		binary.BigEndian.PutUint64(b[start:start+8], w)
@@ -166,7 +156,7 @@ func uInt64sToObservation(w1, w2, w3 uint64) Observation {
 func observationToUInt64s(o Observation) (w1, w2, w3 uint64) {
 	b := o.Marshal()
 	var uint64s [3]uint64
-	for i := 0; i < 24; i += 8 {
+	for i := 0; i < byteWidth; i += 8 {
 		uint64s[i/8] = binary.BigEndian.Uint64(b[i : i+8])
 	}
 	return uint64s[0], uint64s[1], uint64s[2]
