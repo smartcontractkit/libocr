@@ -156,7 +156,7 @@ func messageObserveFromProtoMessage(m *protobuf.MessageObserve) (protocol.Messag
 	}
 	so, err := signedObservationFromProtoMessage(m.SignedObservation)
 	if err != nil {
-		return protocol.MessageObserve{}, nil
+		return protocol.MessageObserve{}, err
 	}
 	return protocol.MessageObserve{
 		Epoch:             uint32(m.Epoch),
@@ -281,7 +281,7 @@ func messageFinalFromProtoMessage(m *protobuf.MessageFinal) (protocol.MessageFin
 	}
 	report, err := attestedReportManyFromProtoMessage(m.Report)
 	if err != nil {
-		return protocol.MessageFinal{}, nil
+		return protocol.MessageFinal{}, err
 	}
 	return protocol.MessageFinal{uint32(m.Epoch), uint8(m.Round), report}, nil
 }
