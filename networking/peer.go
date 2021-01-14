@@ -2,12 +2,13 @@ package networking
 
 import (
 	"context"
+	"net"
+	"sync"
+
 	"github.com/libp2p/go-libp2p-core/transport"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
-	"net"
-	"sync"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
@@ -17,6 +18,7 @@ import (
 	p2phost "github.com/libp2p/go-libp2p-core/host"
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
 	p2ppeerstore "github.com/libp2p/go-libp2p-core/peerstore"
+	mplex "github.com/libp2p/go-libp2p-mplex"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 )
@@ -126,6 +128,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		libp2p.Peerstore(c.Peerstore),
 		libp2p.AddrsFactory(addrsFactory),
 		libp2p.Transport(transportCon),
+		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
 	}
 
 	basicHost, err := libp2p.New(context.Background(), opts...)
