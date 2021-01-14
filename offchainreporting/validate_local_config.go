@@ -22,6 +22,10 @@ func boundTimeDuration(
 }
 
 func SanityCheckLocalConfig(c types.LocalConfig) (err error) {
+	if c.DevelopmentMode == types.EnableDangerousDevelopmentMode {
+		return nil
+	}
+
 	err = multierr.Append(err,
 		boundTimeDuration(
 			c.BlockchainTimeout,

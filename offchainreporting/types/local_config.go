@@ -2,6 +2,8 @@ package types
 
 import "time"
 
+const EnableDangerousDevelopmentMode = "enable dangerous development mode"
+
 
 
 type LocalConfig struct {
@@ -48,4 +50,8 @@ type LocalConfig struct {
 	
 	
 	DataSourceTimeout time.Duration
+
+	
+	
+	DevelopmentMode string
 }
