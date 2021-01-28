@@ -24,13 +24,13 @@ const domainSeparator = "knockknock" + ID
 const readTimeout = 1 * time.Minute
 const version = byte(0x01)
 
-
+// knock = version (1 byte) || pk (ed25519.PublicKeySize) || sig (ed25519.SignatureSize)
 const knockSize = 1 + ed25519.PublicKeySize + ed25519.SignatureSize
 
 type KnockingTLSTransport struct {
-	tls            *p2ptls.Transport 
-	allowlistMutex sync.RWMutex      
-	allowlist      []peer.ID         
+	tls            *p2ptls.Transport // underlining TLS transport
+	allowlistMutex sync.RWMutex      // allowlist may be accessed concurrently by libp2p (via SecureInbound) and OCR (via {Get|Update}Allowlist)
+	allowlist      []peer.ID         // peer ids that are permitted
 	privateKey     *p2pcrypto.Ed25519PrivateKey
 	myId           peer.ID
 	logger         types.Logger
@@ -40,7 +40,7 @@ type KnockingTLSTransport struct {
 var errInvalidSignature = errors.New("invalid signature in knock")
 
 func buildKnockMessage(p peer.ID) ([]byte, error) {
-	
+	// defensive programming
 	if len(p.Pretty()) > 128 {
 		return nil, errors.New("too big id. looks suspicious")
 	}
@@ -52,7 +52,7 @@ func buildKnockMessage(p peer.ID) ([]byte, error) {
 }
 
 func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.Conn) (sec.SecureConn, error) {
-	
+	// always close conn unless the flag is set to false
 	shouldClose := true
 	defer func() {
 		if shouldClose {
@@ -67,7 +67,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		"localAddr":  insecure.LocalAddr(),
 	})
 
-	
+	// set the read timeout so we don't block forever
 	err := insecure.SetReadDeadline(time.Now().Add(c.readTimeout))
 	if err != nil {
 		return nil, err
@@ -78,9 +78,9 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	}
 
 	if n < knockSize {
-		
-		
-		
+		// We abort if the first read doesn't return knockSize bytes (which should be really rare).
+		// Without this, an attacker can observe that we keep waiting until she sends the knockSize th byte, which
+		// allows the attacker to fingerprint the server.
 		return nil, fmt.Errorf("didn't get a full knock: got %d bytes", n)
 	}
 
@@ -88,7 +88,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		return nil, errors.New("invalid version")
 	}
 
-	
+	// starting the 2nd byte is the actual knock
 	knock = knock[1:]
 
 	pk, err := p2pcrypto.UnmarshalEd25519PublicKey(knock[:ed25519.PublicKeySize])
@@ -102,7 +102,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	}
 
 	inAllowList := false
-	
+	// wrap use of the mutex in a func so we can use defer to unlock
 	func() {
 		c.allowlistMutex.RLock()
 		defer c.allowlistMutex.RUnlock()
@@ -139,19 +139,19 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		return nil, errInvalidSignature
 	}
 
-	
+	// reset the timeout
 	err = insecure.SetReadDeadline(time.Time{})
 	if err != nil {
 		return nil, err
 	}
 
-	
+	// set flag to false so defer does not reset connection
 	shouldClose = false
 	return c.tls.SecureInbound(ctx, insecure)
 }
 
 func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
-	
+	// always close conn unless the flag is set to false
 	shouldClose := true
 	defer func() {
 		if shouldClose {
@@ -173,7 +173,7 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 		return nil, errors.New("can't sign")
 	}
 
-	
+	// knock = version || pk || sig
 	knock := []byte{version}
 	knock = append(knock, pk...)
 	knock = append(knock, sig...)
@@ -186,7 +186,7 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 		return nil, errors.New("can't send all tag")
 	}
 
-	
+	// set the flag to false so defer doesn't close the conn
 	shouldClose = false
 	return c.tls.SecureOutbound(ctx, insecure, p)
 }
@@ -202,7 +202,7 @@ func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
 	c.allowlist = allowlist
 }
 
-
+// NewKnockingTLS creates a TLS transport. Allowlist is a list of peer IDs that this transport should accept handshake from.
 func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
 	ed25515Key, ok := myPrivKey.(*p2pcrypto.Ed25519PrivateKey)
 	if !ok {

@@ -16,12 +16,11 @@ import (
 
 var reportTypes = getReportTypes()
 
-
+// AttributedObservation succinctly atrributes a value reported to an oracle
 type AttributedObservation struct {
 	Observation observation.Observation
 	Observer    types.OracleID
 }
-
 
 func (o AttributedObservation) Equal(o2 AttributedObservation) bool {
 	return (o.Observer == o2.Observer) && o.Observation.Equal(o2.Observation)
@@ -49,8 +48,8 @@ func (aos AttributedObservations) Equal(aos2 AttributedObservations) bool {
 	return true
 }
 
-
-
+// observers returns a bytes32 where the ith byte is the OracleID of the
+// ith OracleValue in ev.Values.
 func (aos AttributedObservations) observers() (rv common.Hash, err error) {
 	if len(aos) > 32 {
 		return rv, errors.Errorf("too many values! can only handle 32, got %d",
@@ -74,9 +73,9 @@ func (aos AttributedObservations) onChainObservations() (rv []*big.Int) {
 	return rv
 }
 
-
-
-
+// OnChainReport returns the serialized report which is transmitted to the
+// onchain contract, and signed by participating oracles using their onchain
+// identities
 func (aos AttributedObservations) OnChainReport(repctx ReportContext) ([]byte, error) {
 	observers, err := aos.observers()
 	if err != nil {
@@ -85,8 +84,8 @@ func (aos AttributedObservations) OnChainReport(repctx ReportContext) ([]byte, e
 	return reportTypes.Pack(repctx.DomainSeparationTag(), observers, aos.onChainObservations())
 }
 
-
-
+// AttestedReportOne is the collated report oracles sign off on, after they've
+// verified the individual signatures in a report-req sent by the current leader
 type AttestedReportOne struct {
 	AttributedObservations AttributedObservations
 	Signature              []byte
@@ -114,8 +113,8 @@ func (rep AttestedReportOne) Equal(rep2 AttestedReportOne) bool {
 		bytes.Equal(rep.Signature, rep2.Signature)
 }
 
-
-
+// Verify is used by the leader to check the signature a process attaches to its
+// report message (the c.Sig value.)
 func (c *AttestedReportOne) Verify(repctx ReportContext, a types.OnChainSigningAddress) (err error) {
 	report, err := c.AttributedObservations.OnChainReport(repctx)
 	if err != nil {
@@ -127,9 +126,9 @@ func (c *AttestedReportOne) Verify(repctx ReportContext, a types.OnChainSigningA
 	return err
 }
 
-
-
-
+// AttestedReportMany consists of attributed observations with
+// aggregated signatures from the oracles which have sent this report to the
+// current epoch leader.
 type AttestedReportMany struct {
 	AttributedObservations AttributedObservations
 	Signatures             [][]byte
@@ -168,9 +167,9 @@ func (rep *AttestedReportMany) TransmissionArgs(repctx ReportContext) (report []
 	return report, rs, ss, vs, nil
 }
 
-
-
-
+// VerifySignatures checks that all the signatures (c.Signatures) come from the
+// addresses in the map "as", and returns a list of which oracles they came
+// from.
 func (rep *AttestedReportMany) VerifySignatures(
 	repctx ReportContext,
 	as signature.EthAddresses,

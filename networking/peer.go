@@ -32,7 +32,7 @@ const (
 	dhtPrefix = "/cl_peer_discovery_dht"
 )
 
-
+// PeerConfig configures the peer
 type PeerConfig struct {
 	PrivKey        p2pcrypto.PrivKey
 	ListenIP       net.IP
@@ -42,12 +42,12 @@ type PeerConfig struct {
 	Logger         types.Logger
 	Peerstore      p2ppeerstore.Peerstore
 	EndpointConfig EndpointConfig
-	
-	
+	// This should be 0 most of times, but when needed (eg when counter is somehow rolled back)
+	// users can bump this value to manually bump the counter.
 	DHTAnnouncementCounterUserPrefix uint32
 }
 
-
+// concretePeer represents a libp2p peer with one peer ID listening on one port
 type concretePeer struct {
 	p2phost.Host
 	tls            *knockingtls.KnockingTLSTransport
@@ -60,14 +60,14 @@ type concretePeer struct {
 	dhtAnnouncementCounterUserPrefix uint32
 }
 
-
-
+// registrant is an endpoint pinned to a particular config digest that is attached to this peer
+// There may only be one registrant per config digest
 type registrant interface {
 	allower
 	getConfigDigest() types.ConfigDigest
 }
 
-
+// NewPeer creates a new peer
 func NewPeer(c PeerConfig) (*concretePeer, error) {
 	if c.ListenPort == 0 {
 		return nil, errors.New("NewPeer requires a non-zero listen port")
@@ -107,7 +107,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not make addrs factory")
 	}
 
-	
+	// build a custom upgrader that overrides the default secure transport with knocking TLS
 	transportCon := func(upgrader *tptu.Upgrader) transport.Transport {
 		betterUpgrader := tptu.Upgrader{
 			upgrader.PSK,
@@ -150,15 +150,15 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 	}, nil
 }
 
-
+// MakeEndpoint returns a new ocrEndpoint
 func (p *concretePeer) MakeEndpoint(
 	configDigest types.ConfigDigest,
 	pids []string,
 	bootstrappers []string,
 	failureThreshold int,
-	
+	// number of messages allowed to be consumed by the peer per second.
 	tokenBucketRefillRate float64,
-	
+	// number of allowed requests in a burst.
 	tokenBucketSize int,
 ) (types.BinaryNetworkEndpoint, error) {
 	if failureThreshold <= 0 {

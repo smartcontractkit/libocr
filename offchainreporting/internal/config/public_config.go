@@ -11,8 +11,8 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
-
-
+// PublicConfig is the configuration disseminated through the smart contract
+// It's public, because anybody can read it from the blockchain
 type PublicConfig struct {
 	DeltaProgress    time.Duration
 	DeltaResend      time.Duration
@@ -36,7 +36,7 @@ type OracleIdentity struct {
 	TransmitAddress       common.Address
 }
 
-
+// N is the number of oracles participating in the protocol
 func (c *PublicConfig) N() int {
 	return len(c.OracleIdentities)
 }
@@ -59,8 +59,8 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		return PublicConfig{}, SharedSecretEncryptions{}, err
 	}
 
-	
-	
+	// must check that all lists have the same length, or bad input could crash
+	// the following for loop.
 	if err := checkIdentityListsHaveTheSameLength(change, oc); err != nil {
 		return PublicConfig{}, SharedSecretEncryptions{}, err
 	}
@@ -107,9 +107,9 @@ func checkIdentityListsHaveTheSameLength(
 		length int
 		name   string
 	}{
-		{len(oc.PeerIDs) , "peer ID"},
-		{len(oc.OffchainPublicKeys) , "offchain public keys"},
-		{len(change.Transmitters) , "transmitter address"},
+		{len(oc.PeerIDs) /*                       */, "peer ID"},
+		{len(oc.OffchainPublicKeys) /*            */, "offchain public keys"},
+		{len(change.Transmitters) /*              */, "transmitter address"},
 		{len(oc.SharedSecretEncryptions.Encryptions), "shared-secret encryptions"},
 	} {
 		if identityList.length != expectedLength {
@@ -119,16 +119,16 @@ func checkIdentityListsHaveTheSameLength(
 	return nil
 }
 
-
-
-
-
+// Sanity check on parameters:
+// (1) violations of fundamental constraints like 3*f<n;
+// (2) configurations that would trivially exhaust all of a node's resources;
+// (3) (some) simple mistakes
 
 func checkPublicConfigParameters(cfg PublicConfig) error {
-	
-	
-	
-	
+	/////////////////////////////////////////////////////////////////
+	// Be sure to think about changes to other tooling that need to
+	// be made when you change these values!
+	/////////////////////////////////////////////////////////////////
 
 	if !(0 <= cfg.DeltaC) {
 		return fmt.Errorf("DeltaC (%v) must be non-negative",
@@ -180,14 +180,14 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 			cfg.DeltaRound, cfg.DeltaProgress)
 	}
 
-	
-	
+	// *less* than 255 is intentional!
+	// In report_generation_leader.go, we add 1 to a round number that can equal RMax.
 	if !(0 < cfg.RMax && cfg.RMax < 255) {
 		return fmt.Errorf("RMax (%v) must be greater than zero and less than 255", cfg.RMax)
 	}
 
-	
-	
+	// This prevents possible overflows adding up the elements of S. We should never
+	// hit this.
 	if !(len(cfg.S) < 1000) {
 		return fmt.Errorf("len(S) (%v) must be less than 1000", len(cfg.S))
 	}

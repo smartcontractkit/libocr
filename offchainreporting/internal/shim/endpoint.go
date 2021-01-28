@@ -1,4 +1,4 @@
-
+// Package shim contains implementations of internal types in terms of the external types
 package shim
 
 import (
@@ -67,7 +67,7 @@ func (n *SerializingEndpoint) serialize(msg protocol.Message) ([]byte, *protobuf
 	return sMsg, pbm
 }
 
-
+// Start starts the SerializingEndpoint. It will also start the underlying endpoint.
 func (n *SerializingEndpoint) Start() error {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
@@ -133,7 +133,7 @@ func (n *SerializingEndpoint) Start() error {
 	return nil
 }
 
-
+// Close closes the SerializingEndpoint. It will also close the underlying endpoint.
 func (n *SerializingEndpoint) Close() error {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()

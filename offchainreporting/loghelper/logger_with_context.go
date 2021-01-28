@@ -1,4 +1,4 @@
-
+// package loghelper provides little helpers to make logging more convenient
 package loghelper
 
 import "github.com/smartcontractkit/libocr/offchainreporting/types"

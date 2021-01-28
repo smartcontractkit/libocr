@@ -1,4 +1,4 @@
-
+//go:generate protoc -I. --go_out=./serialization  ./serialization/cl_dht_addr_announcement.proto
 
 package dhtrouter
 
@@ -8,16 +8,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/proto"
+
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/smartcontractkit/libocr/networking/dht-router/serialization"
+	"google.golang.org/protobuf/proto"
 )
 
-
+// monotonic counter
 type announcementCounter struct {
-	userPrefix uint32 
-	value      uint64 
+	userPrefix uint32 // should be 0 most of the time, but when needed user can bump the counter manually. See announcementCounter.Gt().
+	value      uint64 // counter value persisted in a db
 }
 
 func (n announcementCounter) Gt(other announcementCounter) bool {
@@ -28,20 +29,20 @@ func (n announcementCounter) Gt(other announcementCounter) bool {
 }
 
 type announcement struct {
-	Addrs   []ma.Multiaddr      
-	Counter announcementCounter 
+	Addrs   []ma.Multiaddr      // addresses of a peer
+	Counter announcementCounter // counter
 }
 
 type signedAnnouncement struct {
 	announcement
-	PublicKey p2pcrypto.PubKey 
-	Sig       []byte           
+	PublicKey p2pcrypto.PubKey // PublicKey used to verify Sig
+	Sig       []byte           // sig over announcement
 }
 
 const (
-	
+	// The maximum number of addr an announcement may broadcast
 	maxAddrInAnnouncements = 10
-	
+	// domain separator for signatures
 	announcementDomainSeparator = "announcement OCR v1.0.0"
 )
 
@@ -49,20 +50,20 @@ func serdeError(field string) error {
 	return fmt.Errorf("invalid pm: %s", field)
 }
 
-
+// Validate and serialize an announcement. Return error on invalid announcements.
 func (ann signedAnnouncement) serialize() ([]byte, error) {
-	
+	// Require all fields to be non-nil and addrs shorter than maxAddrInAnnouncements
 	if ann.Addrs == nil || ann.PublicKey == nil || ann.Sig == nil || len(ann.Addrs) > maxAddrInAnnouncements {
 		return nil, errors.New("invalid announcement")
 	}
 
-	
+	// verify the signature
 	err := ann.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	
+	// addr
 	var addrs [][]byte
 	for _, a := range ann.Addrs {
 		addrBytes, err := a.MarshalBinary()
@@ -95,7 +96,7 @@ func deserializeSignedAnnouncement(binary []byte) (signedAnnouncement, error) {
 		return signedAnnouncement{}, err
 	}
 
-	
+	// addr
 	if len(pm.Addrs) == 0 {
 		return signedAnnouncement{}, serdeError("addrs is empty array")
 	}
@@ -142,9 +143,9 @@ func (ann signedAnnouncement) String() string {
 		base64.StdEncoding.EncodeToString(ann.Sig))
 }
 
-
+// digest returns a deterministic digest used for signing
 func (ann announcement) digest() ([]byte, error) {
-	
+	// serialize only addrs and the counter
 	if ann.Addrs == nil || len(ann.Addrs) > maxAddrInAnnouncements {
 		return nil, errors.New("invalid announcement")
 	}
@@ -152,12 +153,12 @@ func (ann announcement) digest() ([]byte, error) {
 	hasher := sha256.New()
 	hasher.Write([]byte(announcementDomainSeparator))
 
-	
+	// encode addr length
 	err := binary.Write(hasher, binary.LittleEndian, uint32(len(ann.Addrs)))
 	if err != nil {
 		return nil, err
 	}
-	
+	// encode addr
 	for _, a := range ann.Addrs {
 		addr, err := a.MarshalBinary()
 		if err != nil {
@@ -170,7 +171,7 @@ func (ann announcement) digest() ([]byte, error) {
 		hasher.Write(addr)
 	}
 
-	
+	// counter
 	err = binary.Write(hasher, binary.LittleEndian, ann.Counter.userPrefix)
 	if err != nil {
 		return nil, err

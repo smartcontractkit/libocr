@@ -6,7 +6,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
-
+// Type safe wrapper around MinHeapTimeToContractReportInternal
 type MinHeapTimeToPendingTransmission struct {
 	internal MinHeapTimeToPendingTransmissionInternal
 }
@@ -32,7 +32,7 @@ type MinHeapTimeToPendingTransmissionItem struct {
 	types.PendingTransmission
 }
 
-
+// Implements heap.Interface and uses interface{} all over the place.
 type MinHeapTimeToPendingTransmissionInternal []MinHeapTimeToPendingTransmissionItem
 
 func (pq MinHeapTimeToPendingTransmissionInternal) Len() int { return len(pq) }

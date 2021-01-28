@@ -11,33 +11,34 @@ import (
 	"golang.org/x/crypto/curve25519"
 )
 
-const SharedSecretSize = 16 
+const SharedSecretSize = 16 // A 128-bit symmetric key
 type encryptedSharedSecret [SharedSecretSize]byte
 
-
-
-
-
-
+// SharedSecretEncryptions is the encryptions of SharedConfig.SharedSecret,
+// using each oracle's SharedSecretEncryptionPublicKey.
+//
+// We use a custom encryption scheme to be more space-efficient (compared to
+// standard AEAD schemes, nacl crypto_box, etc...), which saves gas in
+// transmission to the OffchainAggregator.
 type SharedSecretEncryptions struct {
-	
+	// (secret key chosen by dealer) * g, X25519 point
 	DiffieHellmanPoint [curve25519.PointSize]byte
 
-	
-	
-	
-	
-	
-	
+	// keccak256 of plaintext sharedSecret.
+	//
+	// Since SharedSecretEncryptions are shared through a smart contract, each
+	// oracle will see the same SharedSecretHash. After decryption, oracles can
+	// check their sharedSecret against SharedSecretHash to prevent the dealer
+	// from equivocating
 	SharedSecretHash common.Hash
 
-	
-	
-	
-	
-	
-	
-	
+	// Encryptions of the shared secret with one entry for each oracle. The
+	// i-th oracle can recover the key as follows:
+	//
+	// 1. key := Keccak256(DH(DiffieHellmanPoint, process' secret key))[:16]
+	// 2. sharedSecret := AES128DecryptBlock(key, Encryptions[i])
+	//
+	// See Decrypt for details.
 	Encryptions []encryptedSharedSecret
 }
 
@@ -54,20 +55,20 @@ func (e SharedSecretEncryptions) Equal(e2 SharedSecretEncryptions) bool {
 		e.SharedSecretHash == e2.SharedSecretHash
 }
 
-
+// Decrypt one block with AES-128
 func aesDecryptBlock(key, ciphertext []byte) [16]byte {
 	if len(key) != 16 {
-		
+		// assertion
 		panic("key has wrong length")
 	}
 	if len(ciphertext) != 16 {
-		
+		// assertion
 		panic("ciphertext has wrong length")
 	}
 
 	cipher, err := aes.NewCipher(key)
 	if err != nil {
-		
+		// assertion
 		panic(fmt.Sprintf("Unexpected error during aes.NewCipher: %v", err))
 	}
 
@@ -76,7 +77,7 @@ func aesDecryptBlock(key, ciphertext []byte) [16]byte {
 	return plaintext
 }
 
-
+// Decrypt returns the sharedSecret
 func (e SharedSecretEncryptions) Decrypt(oid types.OracleID, k types.PrivateKeys) (*[SharedSecretSize]byte, error) {
 	if oid < 0 || len(e.Encryptions) <= int(oid) {
 		return nil, errors.New("oid out of range of SharedSecretEncryptions.Encryptions")

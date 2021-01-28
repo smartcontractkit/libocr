@@ -16,20 +16,20 @@ func (repgen *reportGenerationState) followerReportContext() ReportContext {
 	return ReportContext{repgen.config.ConfigDigest, repgen.e, repgen.followerState.r}
 }
 
+///////////////////////////////////////////////////////////
+// Report Generation Follower (Algorithm 2)
+///////////////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
+// messageObserveReq is called when the oracle receives an observe-req message
+// from the current leadrepgen. It responds with a message to the leader
+// containing a fresh observation, as long as the message comes from the
+// designated leader, pertains to the current valid round/epoch. It sets up the
+// follower state used to track which the protocol is at in view of this
+// follower.
 func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, sender types.OracleID) {
 	dropPrefix := "messageObserveReq: dropping MessageObserveReq from "
-	
-	
+	// Each of these guards get their own if statement, to ease test-coverage
+	// verification
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug(dropPrefix+"wrong epoch",
 			types.LogFields{"round": repgen.followerState.r, "msgEpoch": msg.Epoch},
@@ -37,33 +37,33 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 		return
 	}
 	if sender != repgen.l {
-		
+		// warn because someone *from this epoch* is trying to usurp the lead
 		repgen.logger.Warn(dropPrefix+"non-leader",
 			types.LogFields{"round": repgen.followerState.r, "sender": sender})
 		return
 	}
 	if msg.Round <= repgen.followerState.r {
-		
+		// this can happen due to network delays, so it's only a debug output
 		repgen.logger.Debug(dropPrefix+"earlier round",
 			types.LogFields{"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
 	}
 	if int64(repgen.config.RMax)+1 < int64(msg.Round) {
-		
-		
-		
-		
-		
-		
-		
+		// This check prevents the leader from triggering the changeleader behavior
+		// an arbitrary number of times (with round=RMax+2, RMax+3, ...) until
+		// consensus on the next epoch has developed. Since advancing to the next
+		// epoch involves broadcast network messages from all participants, a
+		// malicious leader could otherwise potentially trigger a network flood.
+		//
+		// Warn because the leader should never send a round value this high
 		repgen.logger.Warn(dropPrefix+"out of bounds round",
 			types.LogFields{"round": repgen.followerState.r, "rMax": repgen.config.RMax, "msgRound": msg.Round})
 		return
 	}
 
-	
-	
-	
+	// msg.Round>0, because msg.Round>repgen.followerState.r, and the initial
+	// value of repgen.followerState.r is zero. msg.Round<=repgen.config.RMax
+	// thus ensures that at most rMax rounds are possible for the current leader.
 	repgen.followerState.r = msg.Round
 
 	if repgen.followerState.r > repgen.config.RMax {
@@ -80,19 +80,15 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 		case <-repgen.ctx.Done():
 		}
 
-		
-		
-		
-		
 		return
 	}
-	
-	
-	
-	
-	
-	
-	
+	// A malicious leader could reset these values by sending an observeReq later
+	// in the protocol, but they would only harm themselves, because that would
+	// advance the follower's view of the current epoch's round, which only
+	// reduces the number of rounds the current leader has left to report in
+	// without influencing the transmitted report in any way. (A valid observeReq
+	// after the report has been passed to the transmission machinery is expected,
+	// and has no impact on the transmission process.)
 	repgen.followerState.sentEcho = nil
 	repgen.followerState.sentReport = false
 	repgen.followerState.completedRound = false
@@ -107,8 +103,8 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 
 	value := repgen.observeValue()
 	if value.IsMissingValue() {
-		
-		
+		// Failed to get data from API, nothing to be done...
+		// No need to log because observeValue already does
 		return
 	}
 
@@ -140,12 +136,12 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	}, repgen.l)
 }
 
-
-
-
+// messageReportReq is called when an oracle receives a report-req message from
+// the current leader. If the contained report validates, the oracle signs it
+// and sends it back to the leader.
 func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, sender types.OracleID) {
-	
-	
+	// Each of these guards get their own if statement, to ease test-coverage
+	// verification
 	if repgen.e != msg.Epoch {
 		repgen.logger.Debug("messageReportReq from wrong epoch", types.LogFields{
 			"round":    repgen.followerState.r,
@@ -153,14 +149,14 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 		return
 	}
 	if sender != repgen.l {
-		
+		// warn because someone *from this epoch* is trying to usurp the lead
 		repgen.logger.Warn("messageReportReq from non-leader", types.LogFields{
 			"round": repgen.followerState.r, "sender": sender})
 		return
 	}
 	if repgen.followerState.r != msg.Round {
-		
-		
+		// too low a round can happen due to network delays, too high if the local
+		// oracle loses network connectivity. So this is only debug-level
 		repgen.logger.Debug("messageReportReq from wrong round", types.LogFields{
 			"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
@@ -188,7 +184,7 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 	if repgen.shouldReport(msg.AttributedSignedObservations) {
 		attributedValues := make([]AttributedObservation, len(msg.AttributedSignedObservations))
 		for i, aso := range msg.AttributedSignedObservations {
-			
+			// Observation/Observer attribution is verified by checking signature in verifyReportReq
 			attributedValues[i] = AttributedObservation{
 				aso.SignedObservation.Observation,
 				aso.Observer,
@@ -201,8 +197,8 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			repgen.privateKeys.SignOnChain,
 		)
 		if err != nil {
-			
-			
+			// Can't really do much here except logging as much detail as possible to
+			// aid reproduction, and praying it won't happen again
 			repgen.logger.Error("messageReportReq: failed to sign report", types.LogFields{
 				"round":  repgen.followerState.r,
 				"error":  err,
@@ -220,7 +216,7 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 					"round":  repgen.followerState.r,
 					"error":  err,
 					"id":     repgen.id,
-					"report": report, 
+					"report": report, // includes sig
 					"pubkey": repgen.privateKeys.PublicKeyAddressOnChain()})
 				return
 			}
@@ -240,9 +236,9 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 	}
 }
 
-
-
-
+// messageFinal is called when a "final" message is received for the local
+// oracle process. If the report in the msg is valid, the oracle broadcasts it
+// in a "final-echo" message.
 func (repgen *reportGenerationState) messageFinal(
 	msg MessageFinal, sender types.OracleID,
 ) {
@@ -273,12 +269,12 @@ func (repgen *reportGenerationState) messageFinal(
 	repgen.netSender.Broadcast(MessageFinalEcho{MessageFinal: msg})
 }
 
-
-
-
-
-
-
+// messageFinalEcho is called when the local oracle process receives a
+// "final-echo" message. If the report it contains is valid and the round is not
+// yet complete, it keeps track of how many such echos have been received, and
+// invokes the "transmit" event when enough echos have been seen to ensure that
+// at least one (other?) honest node is broadcasting this report. This completes
+// the round, from the local oracle's perspective.
 func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 	sender types.OracleID,
 ) {
@@ -301,20 +297,20 @@ func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 		repgen.logger.Debug("received final echo after round completion", nil)
 		return
 	}
-	if !repgen.verifyAttestedReport(msg.Report, sender) { 
-		
+	if !repgen.verifyAttestedReport(msg.Report, sender) { // if verify-attested-report(O) then
+		// log messages are in verifyAttestedReport
 		return
 	}
-	repgen.followerState.receivedEcho[sender] = true 
+	repgen.followerState.receivedEcho[sender] = true // receivedecho[j] ← true
 
-	if repgen.followerState.sentEcho == nil { 
-		repgen.followerState.sentEcho = &msg.Report 
-		repgen.netSender.Broadcast(msg)             
+	if repgen.followerState.sentEcho == nil { // if sentecho = ⊥ then
+		repgen.followerState.sentEcho = &msg.Report // sentecho ← O
+		repgen.netSender.Broadcast(msg)             // send [ FINALECHO , r, O] to all p_j ∈ P
 	}
 
-	
+	// upon {p j ∈ P | receivedecho[j] = true} > f ∧ ¬completedround do
 	{
-		count := 0 
+		count := 0 // FUTUREWORK: Make this constant-time with a stateful counter
 		for _, receivedEcho := range repgen.followerState.receivedEcho {
 			if receivedEcho {
 				count++
@@ -335,15 +331,15 @@ func (repgen *reportGenerationState) messageFinalEcho(msg MessageFinalEcho,
 
 }
 
-
-
+// observeValue is called when the oracle needs to gather a fresh observation to
+// send back to the current leader.
 func (repgen *reportGenerationState) observeValue() observation.Observation {
 	var value observation.Observation
 	var err error
-	
-	
-	
-	
+	// We don't trust datasource.Observe(ctx) to actually exit after the context deadline.
+	// We want to make sure we don't wait too long in order to not drop out of the
+	// protocol. Even if an instance cannot make observations, it can still be useful,
+	// e.g. by signing reports.
 	ok := repgen.subprocesses.BlockForAtMost(
 		repgen.ctx,
 		repgen.localConfig.DataSourceTimeout,
@@ -386,9 +382,9 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 			"round": repgen.followerState.r,
 			"error": err,
 		})
-		
-		
-		
+		// Err on the side of creating too many reports. For instance, the Ethereum node
+		// might be down, but that need not prevent us from still contributing to the
+		// protocol.
 		return true
 	}
 
@@ -417,10 +413,10 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 	return result
 }
 
-
-
-
-
+// completeRound is called by the local report-generation process when the
+// current round has been completed by either concluding that the report sent by
+// the current leader should not be transmitted to the on-chain smart contract,
+// or by initiating the transmission protocol with this report.
 func (repgen *reportGenerationState) completeRound() {
 	repgen.logger.Debug("ReportGeneration: completed round", types.LogFields{
 		"round": repgen.followerState.r,
@@ -433,11 +429,11 @@ func (repgen *reportGenerationState) completeRound() {
 	}
 }
 
-
-
-
+// verifyReportReq errors unless the reports observations are sorted, its
+// signatures are all correct given the current round/epoch/config, and from
+// distinct oracles, and there are more than 2f observations.
 func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error {
-	
+	// check sortedness
 	if !sort.SliceIsSorted(msg.AttributedSignedObservations,
 		func(i, j int) bool {
 			return msg.AttributedSignedObservations[i].SignedObservation.Observation.Less(msg.AttributedSignedObservations[j].SignedObservation.Observation)
@@ -445,11 +441,11 @@ func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error
 		return errors.Errorf("messages not sorted by value")
 	}
 
-	
+	// check signatures and signature distinctness
 	{
 		counted := map[types.OracleID]bool{}
 		for _, obs := range msg.AttributedSignedObservations {
-			
+			// NOTE: OracleID is untrusted, therefore we _must_ bounds check it first
 			numOracles := len(repgen.config.OracleIdentities)
 			if int(obs.Observer) < 0 || numOracles <= int(obs.Observer) {
 				return errors.Errorf("given oracle ID of %v is out of bounds (only "+
@@ -474,8 +470,8 @@ func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error
 	return nil
 }
 
-
-
+// verifyAttestedReport returns true iff the signatures on msg are valid
+// signatures by oracle participants
 func (repgen *reportGenerationState) verifyAttestedReport(
 	report AttestedReportMany, sender types.OracleID,
 ) bool {

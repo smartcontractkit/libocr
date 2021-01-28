@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-
+// Serialize encodes a protocol.Message into a binary payload
 func Serialize(m protocol.Message) (b []byte, pbm *protobuf.MessageWrapper, err error) {
 	pbm, err = toProtoMessage(m)
 	if err != nil {
@@ -23,7 +23,7 @@ func Serialize(m protocol.Message) (b []byte, pbm *protobuf.MessageWrapper, err 
 	return b, pbm, nil
 }
 
-
+// Deserialize decodes a binary payload into a protocol.Message
 func Deserialize(b []byte) (protocol.Message, *protobuf.MessageWrapper, error) {
 	pbm := &protobuf.MessageWrapper{}
 	err := proto.Unmarshal(b, pbm)
@@ -194,8 +194,8 @@ func observationFromProtoMessage(o *protobuf.Observation) (observation.Observati
 
 func attributedObservationsFromProtoMessage(pbaos []*protobuf.AttributedObservation) ([]protocol.AttributedObservation, error) {
 	if pbaos == nil {
-		
-		
+		// note: we return an empty list instead of an error, because protobuf
+		// represents empty list and nil as the same thing
 		return []protocol.AttributedObservation{}, nil
 	}
 	aos := make([]protocol.AttributedObservation, 0, len(pbaos))
@@ -299,8 +299,8 @@ func messageFinalEchoFromProtoMessage(m *protobuf.MessageFinalEcho) (protocol.Me
 
 func attributedSignedObservationsFromProtoMessage(pbasos []*protobuf.AttributedSignedObservation) ([]protocol.AttributedSignedObservation, error) {
 	if pbasos == nil {
-		
-		
+		// note: we return an empty list instead of an error, because protobuf
+		// represents empy list and nil as the same thing
 		return []protocol.AttributedSignedObservation{}, nil
 	}
 	asos := make([]protocol.AttributedSignedObservation, 0, len(pbasos))
@@ -331,8 +331,8 @@ func attributedSignedObservationFromProtoMessage(m *protobuf.AttributedSignedObs
 
 func signedObservationsFromProtoMessage(pbsos []*protobuf.SignedObservation) ([]protocol.SignedObservation, error) {
 	if pbsos == nil {
-		
-		
+		// note: we return an empty list instead of an error, because protobuf
+		// represents empty list and nil as the same thing
 		return []protocol.SignedObservation{}, nil
 	}
 	sos := make([]protocol.SignedObservation, 0, len(pbsos))

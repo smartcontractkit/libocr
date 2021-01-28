@@ -116,7 +116,7 @@ func (b *bootstrapper) setupDHT() (err error) {
 		return errors.Wrap(err, "could not initialize DHTRouter")
 	}
 
-	
+	// Async
 	b.routing.Start()
 
 	return nil
@@ -140,13 +140,13 @@ func (b *bootstrapper) Close() error {
 	return errors.Wrap(b.peer.deregister(b), "could not unregister bootstrapper")
 }
 
-
+// Conform to allower interface
 func (b *bootstrapper) isAllowed(id p2ppeer.ID) bool {
 	_, ok := b.peerAllowlist[id]
 	return ok
 }
 
-
+// Conform to allower interface
 func (b *bootstrapper) allowlist() (allowlist []p2ppeer.ID) {
 	for k := range b.peerAllowlist {
 		allowlist = append(allowlist, k)

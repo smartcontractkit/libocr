@@ -1,7 +1,5 @@
 package managed
 
-
-
 import (
 	"context"
 
@@ -33,9 +31,9 @@ func RunManagedBootstrapNode(
 	mb.run()
 }
 
-
-
-
+// ManagedOracle wraps protocol.Oracle. It handles configuration
+// updates and translating from types.BinaryNetworkEndpoint to
+// protocol.NetworkEndpoint
 type managedBootstrapNodeState struct {
 	ctx context.Context
 
@@ -53,8 +51,8 @@ type managedBootstrapNodeState struct {
 func (mb *managedBootstrapNodeState) run() {
 	var subprocesses subprocesses.Subprocesses
 
-	
-	
+	// Restore config from database, so that we can run even if the ethereum node
+	// isn't working.
 	{
 		var cc *types.ContractConfig
 		ok := subprocesses.BlockForAtMost(
@@ -99,7 +97,7 @@ func (mb *managedBootstrapNodeState) run() {
 func (mb *managedBootstrapNodeState) closeBootstrapper() {
 	if mb.bootstrapper != nil {
 		err := mb.bootstrapper.Close()
-		
+		// there's not much we can do apart from logging the error and praying
 		if err != nil {
 			mb.logger.Error("ManagedBootstrapNode: error while closing bootstrapper", types.LogFields{
 				"error": err,
@@ -110,7 +108,7 @@ func (mb *managedBootstrapNodeState) closeBootstrapper() {
 }
 
 func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
-	
+	// Cease any operation from earlier configs
 	mb.closeBootstrapper()
 
 	var err error
@@ -155,6 +153,6 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 			"config": cc,
 			"error":  err,
 		})
-		
+		// We can keep running even without storing the config in the database
 	}
 }
