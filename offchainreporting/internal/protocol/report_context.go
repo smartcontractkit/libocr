@@ -6,13 +6,13 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
-
-
-
-
-
-
-
+// DomainSeparationTag consists of:
+// 11-byte zero padding
+// 16-byte configDigest
+// 4-byte epoch
+// 1-byte round
+// It uniquely identifies a message to a particular group-epoch-round tuple.
+// It is used in signature verification
 type DomainSeparationTag [32]byte
 
 type ReportContext struct {

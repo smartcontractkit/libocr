@@ -1,11 +1,11 @@
 package config
 
-
-
-
-
-
-
+// setConfigEncodedComponentsABI specifies the serialization schema for the
+// encoded config, in a form which can be parsed by abigen. The "name" of each
+// component must match the name of the corresponding field in
+// setConfigSerializationTypes, and the "name" of each component in
+// "sharedSecretEncryptions" must match the name of the corresponding field in
+// sseSerializationTypes.
 const setConfigEncodedComponentsABI = `[
   {
     "name": "setConfigEncodedComponents",

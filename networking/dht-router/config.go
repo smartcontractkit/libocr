@@ -16,7 +16,7 @@ type DHTNodeConfig struct {
 	bootstrapNodes []peer.AddrInfo
 	logger         types.Logger
 
-	
+	// node will check connections to all bootstrap nodes at this interval
 	bootstrapCheckInterval time.Duration
 	failureThreshold       int
 	extendedDHTLogging     bool
@@ -50,8 +50,7 @@ func BuildConfig(bootstrapNodes []peer.AddrInfo, prefix protocol.ID, configDiges
 }
 
 func (config DHTNodeConfig) ProtocolID() protocol.ID {
-	
-	
+
 	return protocol.ID(fmt.Sprintf("%s%s/kad/1.0.0", config.prefix, config.extension))
 }
 

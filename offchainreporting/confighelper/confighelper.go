@@ -1,5 +1,5 @@
-
-
+// Package confighelper provides helpers for converting between the gethwrappers/OffchainAggregator.SetConfig
+// event and types.ContractConfig
 package confighelper
 
 import (
@@ -54,13 +54,13 @@ func configDigest(
 		config,
 	)
 	if err != nil {
-		
+		// assertion
 		panic(err)
 	}
 	rawHash := crypto.Keccak256(msg)
 	configDigest := types.ConfigDigest{}
 	if n := copy(configDigest[:], rawHash); n != len(configDigest) {
-		
+		// assertion
 		panic("copy too little data")
 	}
 	return configDigest

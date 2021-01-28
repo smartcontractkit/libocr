@@ -11,7 +11,7 @@ import (
 const collectInterval = 10 * time.Minute
 const olderThan = 24 * time.Hour
 
-
+// collectGarbage periodically collects garbage left by old transmission protocol instances
 func collectGarbage(
 	ctx context.Context,
 	database types.Database,
@@ -28,7 +28,7 @@ func collectGarbage(
 			logger.Info("collectGarbage: starting collection of old transmissions", types.LogFields{
 				"olderThan": olderThan,
 			})
-			
+			// To make sure the context is not leaked we are wrapping the database query.
 			func() {
 				childCtx, childCancel := context.WithTimeout(ctx, localConfig.DatabaseTimeout)
 				defer childCancel()

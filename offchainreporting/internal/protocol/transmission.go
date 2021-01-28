@@ -15,13 +15,13 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-
-
-
-
-
-
-
+// TransmissionProtocol tracks the local oracle process's role in the transmission of a
+// report to the on-chain oracle contract.
+//
+// Note: The transmission protocol doesn't clean up pending transmissions
+// when it is terminated. This is by design, but means that old pending
+// transmissions may accumulate in the database. They should be garbage
+// collected once in a while.
 func RunTransmission(
 	ctx context.Context,
 	subprocesses *subprocesses.Subprocesses,
@@ -63,12 +63,11 @@ type transmissionState struct {
 
 	latestEpochRound EpochRound
 	latestMedian     observation.Observation
-	latestReport     AttestedReportMany
 	times            MinHeapTimeToPendingTransmission
 	tTransmit        <-chan time.Time
 }
 
-
+// run runs the event loop for the local transmission protocol
 func (t *transmissionState) run() {
 	t.restoreFromDatabase()
 
@@ -82,7 +81,7 @@ func (t *transmissionState) run() {
 		case <-chDone:
 		}
 
-		
+		// ensure prompt exit
 		select {
 		case <-chDone:
 			t.logger.Info("Transmission: exiting", nil)
@@ -103,7 +102,7 @@ func (t *transmissionState) restoreFromDatabase() {
 
 	now := time.Now()
 
-	
+	// insert non-expired transmissions into queue
 	for key, trans := range pending {
 		if now.Before(trans.Time) {
 			t.times.Push(MinHeapTimeToPendingTransmissionItem{
@@ -113,13 +112,13 @@ func (t *transmissionState) restoreFromDatabase() {
 		}
 	}
 
-	
+	// find logically latest expired transmission and insert into queue
 	latestExpiredTransmissionKey := types.PendingTransmissionKey{}
 	latestExpiredTransmission := (*types.PendingTransmission)(nil)
 	for key, trans := range pending {
 		if trans.Time.Before(now) && (EpochRound{latestExpiredTransmissionKey.Epoch, latestExpiredTransmissionKey.Round}).Less(EpochRound{key.Epoch, key.Round}) {
 			latestExpiredTransmissionKey = key
-			transCopy := trans 
+			transCopy := trans // prevent aliasing of loop var
 			latestExpiredTransmission = &transCopy
 		}
 	}
@@ -130,13 +129,13 @@ func (t *transmissionState) restoreFromDatabase() {
 		})
 	}
 
-	
+	// if queue isn't empty, set tTransmit to expire at next transmission time
 	if t.times.Len() != 0 {
 		t.tTransmit = time.After(now.Sub(t.times.Peek().Time))
 	}
 }
 
-
+// eventTransmit is called when the local process sends a transmit event
 func (t *transmissionState) eventTransmit(ev EventTransmit) {
 	t.logger.Debug("Received transmit event", types.LogFields{
 		"event": ev,
@@ -232,9 +231,10 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 
 func (t *transmissionState) eventTTransmitTimeout() {
 	defer func() {
-		if t.times.Len() != 0 {
+		if t.times.Len() != 0 { // If there's other transmissions due later...
+			// ...reset timer to expire when the next one is due
 			item := t.times.Peek()
-			t.tTransmit = time.After(time.Until(item.Time)) 
+			t.tTransmit = time.After(time.Until(item.Time))
 		}
 	}()
 
@@ -261,7 +261,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 		t.logger.Error("Database.DeletePendingTransmission timed out", types.LogFields{
 			"timeout": t.localConfig.DatabaseTimeout,
 		})
-		
+		// carry on
 	}
 
 	contractConfigDigest, contractEpochRound, err := t.contractState()
@@ -400,8 +400,8 @@ func (t *transmissionState) contractState() (
 }
 
 func (t *transmissionState) transmitDelay(epoch uint32, round uint8) *time.Duration {
-	
-	
+	// No need for HMAC. Since we use Keccak256, prepending
+	// with key gives us a PRF already.
 	hash := sha3.NewLegacyKeccak256()
 	transmissionOrderKey := t.config.TransmissionOrderKey()
 	hash.Write(transmissionOrderKey[:])

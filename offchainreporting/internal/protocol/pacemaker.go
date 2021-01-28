@@ -14,8 +14,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-
-
+// Pacemaker keeps track of the state and message handling for an oracle
+// participating in the off-chain reporting protocol
 func RunPacemaker(
 	ctx context.Context,
 	subprocesses *subprocesses.Subprocesses,
@@ -72,76 +72,65 @@ type pacemakerState struct {
 	id                               types.OracleID
 	localConfig                      types.LocalConfig
 	logger                           types.Logger
-	monitoringEndpoint               types.MonitoringEndpoint
 	netSender                        NetworkSender
 	privateKeys                      types.PrivateKeys
 	telemetrySender                  TelemetrySender
 
 	cancelReportGeneration context.CancelFunc
 
-	
-	
+	// ne is the highest epoch number this oracle has broadcast in a newepoch
+	// message, during the current epoch
 	ne uint32
 
-	
+	// e is the number of the current epoch
 	e uint32
 
-	
+	// l is the index of the leader for the current epoch
 	l types.OracleID
 
-	
-	
+	// newepoch[j] is the highest epoch number oracle j has sent in a newepoch
+	// message, during the current epoch.
 	newepoch []uint32
 
-	
-	
-	
+	// tResend is a timeout used by the leader-election protocol to
+	// periodically resend the latest Newepoch message in order to
+	// guard against unreliable network conditions
 	tResend <-chan time.Time
 
-	
-	
+	// tProgress is a timeout used by the leader-election protocol to track
+	// whether the current leader is making adequate progress.
 	tProgress <-chan time.Time
 }
 
 func (pace *pacemakerState) run() {
 	pace.logger.Info("Running Pacemaker", nil)
 
-	
-	
-	
-	
+	// Initialization:
+	// rounds start with 1, so let's make epochs also start with 1
+	// this also gives us cleaner behavior for the initial epoch, which is otherwise
+	// immediately terminated and superseded due to restoreNeFromTransmitter below
 	pace.e = 1
 	pace.l = leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
 
-	
-	
+	// Attempt to restore state from database. This is implicit in the
+	// design document.
 	pace.restoreStateFromDatabase()
 
-	
-	
-	
-	
-	
-	
-	
 	pace.restoreNeFromTransmitter()
 
 	pace.spawnReportGeneration()
 
 	pace.tProgress = time.After(pace.config.DeltaProgress)
 
-	
-	
-	
 	pace.sendNewepoch(pace.ne)
 
-	
+	// Initialization complete
 
-	
-	
+	// Take a reference to the ctx.Done channel once, here, to avoid taking the
+	// context lock below.
 	chDone := pace.ctx.Done()
 
-	
+	// Event Loop
 	for {
 		select {
 		case msg := <-pace.chNetToPacemaker:
@@ -155,7 +144,7 @@ func (pace *pacemakerState) run() {
 		case <-chDone:
 		}
 
-		
+		// ensure prompt exit
 		select {
 		case <-chDone:
 			pace.logger.Info("Pacemaker: exiting", nil)
@@ -256,8 +245,8 @@ func (pace *pacemakerState) restoreNeFromTransmitter() {
 		return
 	}
 
-	
-	
+	// epoch + 1 can overflow and the condition will be false -- that's fine
+	// since we cannot proceed beyond epoch anyways at that point
 	if pace.ne < epoch+1 {
 		pace.logger.Info("Pacemaker: Restored ne from contract", types.LogFields{
 			"previousNe": pace.ne,
@@ -280,7 +269,7 @@ func (pace *pacemakerState) sanityCheckState(state *types.PersistentState) error
 }
 
 func (pace *pacemakerState) persist() {
-	
+	// copy data to be safe against outside mutations
 	highestReceivedEpoch := make([]uint32, pace.config.N())
 	copy(highestReceivedEpoch, pace.newepoch)
 
@@ -293,7 +282,7 @@ func (pace *pacemakerState) persist() {
 	var err error
 	ok := pace.subprocesses.BlockForAtMost(pace.ctx, pace.localConfig.DatabaseTimeout,
 		func(ctx context.Context) {
-			
+
 			err = pace.database.WriteState(
 				ctx,
 				pace.config.ConfigDigest,
@@ -316,9 +305,9 @@ func (pace *pacemakerState) persist() {
 	}
 }
 
-
-
-
+// eventProgress is called when a "progress" event is emitted by the reporting
+// prototol. It resets the timer which will trigger the oracle to broadcast a
+// "newepoch" message, if it runs out.
 func (pace *pacemakerState) eventProgress() {
 	pace.tProgress = time.After(pace.config.DeltaProgress)
 }
@@ -356,7 +345,7 @@ func (pace *pacemakerState) eventChangeLeader() {
 }
 
 func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.OracleID) {
-	
+
 	if int(sender) < 0 || int(sender) >= len(pace.newepoch) {
 		pace.logger.Error("Pacemaker: dropping NewEpoch message from invalid sender", types.LogFields{
 			"sender": sender,
@@ -369,47 +358,45 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.Or
 		pace.newepoch[sender] = msg.Epoch
 		pace.persist()
 	} else {
-		
+		// neither of the following two "upon" handlers can be triggered
 		return
 	}
 
-	
+	// upon |{p_j ∈ P | newepoch[j] > ne}| > f do
 	{
 		candidateEpochs := sortedGreaterThan(pace.newepoch, pace.ne)
 		if len(candidateEpochs) > pace.config.F {
-			
+			// ē ← max {e' | {p_j ∈ P | newepoch[j] ≥ e' } > f}
 			newEpoch := candidateEpochs[len(candidateEpochs)-(pace.config.F+1)]
 			pace.sendNewepoch(newEpoch)
 		}
 	}
 
-	
+	// upon |{p_j ∈ P | newepoch[j] > e}| > 2f do
 	{
 		candidateEpochs := sortedGreaterThan(pace.newepoch, pace.e)
 		if len(candidateEpochs) > 2*pace.config.F {
-			
-			
-			
-			
-			
+			// ē ← max {e' | {p_j ∈ P | newepoch[j] ≥ e' } > 2f}
+			//
+			// since candidateEpochs contains, in increasing order, the epochs from
+			// the received newepoch messages, this value of newEpoch was sent by at
+			// least 2F+1 processes
 			newEpoch := candidateEpochs[len(candidateEpochs)-(2*pace.config.F+1)]
 			pace.logger.Debug("Moving to epoch, based on candidateEpochs", types.LogFields{
 				"newEpoch":        newEpoch,
 				"candidateEpochs": candidateEpochs,
 			})
 			l := leader(newEpoch, pace.config.N(), pace.config.LeaderSelectionKey())
-			pace.e, pace.l = newEpoch, l 
-			if pace.ne < pace.e {        
+			pace.e, pace.l = newEpoch, l // (e, l) ← (ē, leader(ē))
+			if pace.ne < pace.e {        // ne ← max{ne, e}
 				pace.ne = pace.e
 			}
 			pace.persist()
 
-			
-
-			
+			// abort instance [...], initialize instance (e,l) of report generation
 			pace.spawnReportGeneration()
 
-			pace.tProgress = time.After(pace.config.DeltaProgress) 
+			pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 		}
 	}
 }
@@ -449,7 +436,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 
 }
 
-
+// sortedGreaterThan returns the *sorted* elements of xs which are greater than y
 func sortedGreaterThan(xs []uint32, y uint32) (rv []uint32) {
 	for _, x := range xs {
 		if x > y {
@@ -461,8 +448,8 @@ func sortedGreaterThan(xs []uint32, y uint32) (rv []uint32) {
 }
 
 func leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
-	
-	
+	// No need for HMAC. Since we use Keccak256, prepending
+	// with key gives us a PRF already.
 	h := sha3.NewLegacyKeccak256()
 	h.Write(key[:])
 	b := make([]byte, 8)
@@ -471,8 +458,8 @@ func leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
 
 	result := big.NewInt(0)
 	r := big.NewInt(0).SetBytes(h.Sum(nil))
-	
-	
+	// This is biased, but we don't care because the prob of us hitting the bias are
+	// less than 2**5/2**256 = 2**-251.
 	result.Mod(r, big.NewInt(int64(n)))
 	return types.OracleID(result.Int64())
 }

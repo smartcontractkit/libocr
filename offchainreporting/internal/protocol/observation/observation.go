@@ -1,6 +1,6 @@
-
-
-
+// Package observation contains the data structures and logic for handling
+// observations provided by the client DataSource. Its role is to encapsulate
+// the Observation type so that it can be changed relatively easily.
 package observation
 
 import (
@@ -22,23 +22,23 @@ type Observations []Observation
 
 var i = big.NewInt
 
-
+// Bounds on an ethereum int192
 const byteWidth = 24
 const bitWidth = byteWidth * 8
 
-var MaxObservation = i(0).Sub(i(0).Lsh(i(1), bitWidth-1), i(1)) 
-var MinObservation = i(0).Sub(i(0).Neg(MaxObservation), i(1))   
+var MaxObservation = i(0).Sub(i(0).Lsh(i(1), bitWidth-1), i(1)) // 2**191 - 1
+var MinObservation = i(0).Sub(i(0).Neg(MaxObservation), i(1))   // -2**191
 
 func tooLarge(o *big.Int) error {
 	return errors.Errorf("value won't fit in int%v: 0x%x", bitWidth, o)
 }
 
-
+// MakeObservation returns v as an ethereum int192, if it fits, errors otherwise.
 func MakeObservation(w types.Observation) (Observation, error) {
 	v := (*big.Int)(w)
-	
-	
-	
+	// nil can sometimes occur here because it's the zero value for a pointer in a
+	// struct, and w comes from a zero struct with a *big.Int field. We always
+	// want the corresponding value for the "zero observation" to be zero.
 	if v == nil {
 		v = big.NewInt(0)
 	}
@@ -59,11 +59,11 @@ func (o Observation) GoEthereumValue() *big.Int { return o.v }
 func (o Observation) Deviates(old Observation, thresholdPPB uint64) bool {
 	if old.v.Cmp(i(0)) == 0 {
 		if o.v.Cmp(i(0)) == 0 {
-			return false 
+			return false // Both values are zero; no deviation
 		}
-		return true 
+		return true // Any deviation from 0 is significant
 	}
-	
+	// ||o.v - old.v|| / ||old.v||, approximated by a float
 	change := &big.Rat{}
 	change.SetFrac(i(0).Sub(o.v, old.v), old.v)
 	change.Abs(change)
@@ -75,11 +75,11 @@ func (o Observation) Deviates(old Observation, thresholdPPB uint64) bool {
 	return change.Cmp(threshold) > 0
 }
 
-
-
-
-
-
+// Bytes returns the twos-complement representation of o
+//
+// This panics on OOB values, because MakeObservation and UnmarshalObservation
+// are the only external ways to create an Observation, and that already checks
+// the bounds
 func (o Observation) Marshal() []byte {
 	if o.v.Cmp(MaxObservation) > 0 || o.v.Cmp(MinObservation) < 0 {
 		panic(tooLarge(o.v))
@@ -87,14 +87,14 @@ func (o Observation) Marshal() []byte {
 	negative := o.v.Sign() < 0
 	val := (&big.Int{})
 	if negative {
-		
+		// compute two's complement as 2**192 - abs(o.v) = 2**192 + o.v
 		val.SetInt64(1)
 		val.Lsh(val, bitWidth)
 		val.Add(val, o.v)
 	} else {
 		val.Set(o.v)
 	}
-	b := val.Bytes() 
+	b := val.Bytes() // big-endian representation of abs(val)
 	if len(b) > byteWidth {
 		panic(fmt.Sprintf("b must fit in %v bytes", byteWidth))
 	}
@@ -167,8 +167,8 @@ func GenObservation() gopter.Gen {
 		gen.UInt64(), gen.UInt64(), gen.UInt64())
 }
 
-
-
+// XXXTestingOnlyNewObservation returns a new observation with no bounds
+// checking on v.
 func XXXTestingOnlyNewObservation(v *big.Int) Observation {
 	return Observation{v: v}
 }

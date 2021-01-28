@@ -14,8 +14,8 @@ import (
 
 const EncodedConfigVersion = 1
 
-
-
+// setConfigEncodedComponents contains the contents of the oracle Config objects
+// which need to be serialized
 type setConfigEncodedComponents struct {
 	DeltaProgress           time.Duration
 	DeltaResend             time.Duration
@@ -31,9 +31,9 @@ type setConfigEncodedComponents struct {
 	SharedSecretEncryptions SharedSecretEncryptions
 }
 
-
-
-
+// setConfigSerializationTypes gives the types used to represent a
+// setConfigEncodedComponents to abiencode. The field names must match those of
+// setConfigEncodedComponents.
 type setConfigSerializationTypes struct {
 	DeltaProgress           int64
 	DeltaResend             int64
@@ -44,29 +44,29 @@ type setConfigSerializationTypes struct {
 	DeltaStage              int64
 	RMax                    uint8
 	S                       []uint8
-	OffchainPublicKeys      []common.Hash 
-	PeerIDs                 string        
+	OffchainPublicKeys      []common.Hash // Each key is a bytes32
+	PeerIDs                 string        // comma-separated
 	SharedSecretEncryptions sseSerializationTypes
 }
 
-
-
-
+// sseSerializationTypes gives the types used to represent an
+// SharedSecretEncryptions to abiencode. The field names must match those of
+// SharedSecretEncryptions.
 type sseSerializationTypes struct {
 	DiffieHellmanPoint common.Hash
 	SharedSecretHash   common.Hash
 	Encryptions        [][SharedSecretSize]byte
 }
 
-
-
+// encoding is the ABI schema used to encode a setConfigEncodedComponents, taken
+// from setConfigEncodedComponentsABI in ./abiencode.go (in this package directory.)
 var encoding = getEncoding()
 
-
-
+// Serialized configs must be no larger than this (arbitrary bound, to prevent
+// resource exhaustion attacks)
 var configSizeBound = 20 * 1000
 
-
+// Encode returns a binary serialization of o
 func (o setConfigEncodedComponents) encode() []byte {
 	rv, err := encoding.Pack(o.serializationRepresentation())
 	if err != nil {
@@ -176,9 +176,9 @@ func (er sseSerializationTypes) golangRepresentation() SharedSecretEncryptions {
 }
 
 func getEncoding() abi.Arguments {
-	
-	
-	
+	// Trick used in abi's TestPack, to parse a list of arguments: make a JSON
+	// representation of a method which has the target list as the inputs, then
+	// pull the parsed argument list out of that method.
 	aBI, err := abi.JSON(strings.NewReader(fmt.Sprintf(
 		`[{ "name" : "method", "type": "function", "inputs": %s}]`,
 		setConfigEncodedComponentsABI)))
@@ -216,7 +216,7 @@ func checkTupEntriesMatchStruct(t abi.Type, i interface{}) {
 	checkFieldNamesAgainstStruct(fields, i)
 }
 
-func init() { 
+func init() { // check that abiencode fields match those of config structs
 	checkTupEntriesMatchStruct(encoding[0].Type, setConfigEncodedComponents{})
 	components := encoding[0].Type.TupleElems
 	essName := encoding[0].Type.TupleRawNames[len(components)-1]
@@ -242,7 +242,7 @@ func checkFieldNamesMatch(s, t interface{}) {
 	}
 }
 
-func init() { 
+func init() { // Check that serialization fields match those of target structs
 	checkFieldNamesMatch(setConfigEncodedComponents{}, setConfigSerializationTypes{})
 	checkFieldNamesMatch(SharedSecretEncryptions{}, sseSerializationTypes{})
 }

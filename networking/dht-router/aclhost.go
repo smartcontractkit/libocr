@@ -15,10 +15,10 @@ import (
 )
 
 type ACL interface {
-	
+	// if an ID in the white list of a protocol
 	IsAllowed(id peer.ID, protocol protocol.ID) bool
 
-	
+	// if ACL is enforced for a protocol
 	IsACLEnforced(protocol protocol.ID) bool
 
 	String() string
@@ -66,7 +66,7 @@ func (aclHost BasicACLHost) Network() p2pnetwork.Network {
 }
 
 func (aclHost BasicACLHost) Mux() protocol.Switch {
-	
+	// code should never reach here
 	panic("direct access to Mux is not allowed")
 }
 
@@ -97,7 +97,7 @@ func (aclHost BasicACLHost) SetStreamHandler(protocol protocol.ID, handler p2pne
 					"err":             err.Error(),
 				})
 			}
-			
+
 			return
 		}
 		handler(stream)
@@ -120,7 +120,7 @@ func (aclHost BasicACLHost) SetStreamHandler(protocol protocol.ID, handler p2pne
 }
 
 func (aclHost BasicACLHost) SetStreamHandlerMatch(id protocol.ID, f func(string) bool, handler p2pnetwork.StreamHandler) {
-	
+	// code should never reach here
 	panic("SetStreamHandlerMatch not allowed")
 }
 

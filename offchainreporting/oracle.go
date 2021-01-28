@@ -1,6 +1,3 @@
-
-
-
 package offchainreporting
 
 import (
@@ -14,58 +11,59 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-
-
+// OracleArgs contains the configuration and services a caller must provide, in
+// order to run the offchainreporting protocol.
 type OracleArgs struct {
-	
-	
-	
+	// A factory for producing network endpoints. A network endpoints consists of
+	// networking methods a consumer must implement to allow a node to
+	// communicate with other participating nodes.
 	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
 
-	
+	// Bootstrappers is the list of bootstrap node addresses
 	Bootstrappers []string
 
-	
+	// Interfaces with the OffchainAggregator smart contract's transmission related logic
 	ContractTransmitter types.ContractTransmitter
 
+	// Tracks configuration changes
 	ContractConfigTracker types.ContractConfigTracker
 
-	
+	// Database provides persistent storage
 	Database types.Database
 
-	
+	// Used to make observations of value the nodes are to come to consensus on
 	Datasource types.DataSource
 
-	
-	
+	// LocalConfig contains oracle-specific configuration details which are not
+	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig
 	LocalConfig types.LocalConfig
 
-	
+	// Logger logs stuff
 	Logger types.Logger
 
-	
+	// Used to send logs to a monitor
 	MonitoringEndpoint types.MonitoringEndpoint
 
-	
-	
+	// PrivateKeys contains the secret keys needed for the OCR protocol, and methods
+	// which use those keys without exposing them to the rest of the application.
 	PrivateKeys types.PrivateKeys
 }
 
 type Oracle struct {
 	oracleArgs OracleArgs
 
-	
+	// Indicates whether the Oracle has been started, in a thread-safe way
 	started *semaphore.Weighted
 
-	
+	// subprocesses tracks completion of all go routines on Oracle.Close()
 	subprocesses subprocesses.Subprocesses
 
-	
+	// cancel sends a cancel message to all subprocesses, via a context.Context
 	cancel context.CancelFunc
 }
 
-
-
+// NewOracle returns a newly initialized Oracle using the provided services
+// and configuration.
 func NewOracle(args OracleArgs) (*Oracle, error) {
 	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
 		return nil, errors.Wrapf(err, "bad local config while creating new oracle")
@@ -76,7 +74,7 @@ func NewOracle(args OracleArgs) (*Oracle, error) {
 	}, nil
 }
 
-
+// Start spins up a Oracle. Panics if called more than once.
 func (o *Oracle) Start() error {
 	o.failIfAlreadyStarted()
 
@@ -102,13 +100,13 @@ func (o *Oracle) Start() error {
 	return nil
 }
 
-
+// Close shuts down an oracle. Can safely be called multiple times.
 func (o *Oracle) Close() error {
 	if o.cancel != nil {
 		o.cancel()
 	}
-	
-	
+	// Wait for all subprocesses to shut down, before shutting down other resources.
+	// (Wouldn't want anything to panic from attempting to use a closed resource.)
 	o.subprocesses.Wait()
 	return nil
 }

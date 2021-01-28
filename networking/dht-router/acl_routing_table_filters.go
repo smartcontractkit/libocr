@@ -8,7 +8,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
-
+// ACLQueryFilter is a filter applied when considering peers to dial when querying
 func ACLQueryFilter(acl ACL, protocol protocol.ID, logger types.Logger) dht.QueryFilterFunc {
 	if acl.IsACLEnforced(protocol) {
 		return func(dht *dht.IpfsDHT, ai peer.AddrInfo) bool {
@@ -29,12 +29,12 @@ func ACLQueryFilter(acl ACL, protocol protocol.ID, logger types.Logger) dht.Quer
 		"protocolID": protocol,
 	})
 	return func(dht *dht.IpfsDHT, ai peer.AddrInfo) bool {
-		return true
+		return false
 	}
 }
 
-
-
+// ACLRoutingTableFilter is a filter applied when considering connections to keep in
+// the local route table.
 func ACLRoutingTableFilter(acl ACL, protocol protocol.ID, logger types.Logger) dht.RouteTableFilterFunc {
 	if acl.IsACLEnforced(protocol) {
 		return func(dht *dht.IpfsDHT, conns []network.Conn) bool {
@@ -53,13 +53,12 @@ func ACLRoutingTableFilter(acl ACL, protocol protocol.ID, logger types.Logger) d
 			return true
 		}
 	}
-	
+	// if ACL is not enforced for this protocol, always deny.
 	logger.Warn("RoutingTableFilter: ACL disabled for this protocol", types.LogFields{
 		"id":         "DHT_ACL",
 		"protocolID": protocol,
 	})
 	return func(dht *dht.IpfsDHT, conns []network.Conn) bool {
-		return true
+		return false
 	}
-
 }

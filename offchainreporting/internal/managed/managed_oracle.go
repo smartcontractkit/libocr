@@ -45,9 +45,9 @@ func RunManagedOracle(
 	mo.run()
 }
 
-
-
-
+// ManagedOracle wraps protocol.Oracle. It handles configuration
+// updates and translating from types.BinaryNetworkEndpoint to
+// protocol.NetworkEndpoint
 type managedOracleState struct {
 	ctx context.Context
 
@@ -71,8 +71,8 @@ type managedOracleState struct {
 }
 
 func (mo *managedOracleState) run() {
-	
-	
+	// Restore config from database, so that we can run even if the ethereum node
+	// isn't working.
 	{
 		var cc *types.ContractConfig
 		ok := mo.otherSubprocesses.BlockForAtMost(
@@ -119,7 +119,7 @@ func (mo *managedOracleState) run() {
 			mo.closeOracle()
 			mo.otherSubprocesses.Wait()
 			mo.logger.Info("ManagedOracle: exiting", nil)
-			return 
+			return // Exit ManagedOracle event loop altogether
 		}
 	}
 }
@@ -133,7 +133,7 @@ func (mo *managedOracleState) closeOracle() {
 			mo.logger.Error("ManagedOracle: error while closing BinaryNetworkEndpoint", types.LogFields{
 				"error": err,
 			})
-			
+			// nothing to be done about it, let's try to carry on.
 		}
 		mo.oracleCancel = nil
 		mo.netEndpoint = nil
@@ -141,10 +141,10 @@ func (mo *managedOracleState) closeOracle() {
 }
 
 func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig) {
-	
+	// Cease any operation from earlier configs
 	mo.closeOracle()
 
-	
+	// Decode contractConfig
 	var err error
 	var oid types.OracleID
 	mo.config, oid, err = config.SharedConfigFromContractConfig(
@@ -160,7 +160,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		return
 	}
 
-	
+	// Run with new config
 	peerIDs := []string{}
 	for _, identity := range mo.config.OracleIdentities {
 		peerIDs = append(peerIDs, identity.PeerID)
@@ -229,39 +229,6 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		})
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 func computeTokenBucketRefillRate(cfg config.PublicConfig) float64 {
 	return (1.0*float64(time.Second)/float64(cfg.DeltaResend) +

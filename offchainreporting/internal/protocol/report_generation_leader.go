@@ -7,9 +7,9 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
-
-
-
+///////////////////////////////////////////////////////////
+// Report Generation Leader (Algorithm 3)
+///////////////////////////////////////////////////////////
 
 type phase int
 
@@ -31,20 +31,20 @@ func (repgen *reportGenerationState) leaderReportContext() ReportContext {
 	return ReportContext{repgen.config.ConfigDigest, repgen.e, repgen.leaderState.r}
 }
 
-
-
-
+///////////////////////////////////////////////////////////
+// Report Generation Leader (Algorithm 4)
+///////////////////////////////////////////////////////////
 
 func (repgen *reportGenerationState) eventTRoundTimeout() {
 	repgen.startRound()
 }
 
-
-
-
-
-
-
+// startRound is called upon initialization of the leaders' report-generation
+// protocol instance, or when the round timer expires, indicating that it
+// should start a new round.
+//
+// It broadcasts an observe-req message to all participants, and restarts the
+// round timer.
 func (repgen *reportGenerationState) startRound() {
 	rPlusOne := repgen.leaderState.r + 1
 	if rPlusOne <= repgen.leaderState.r {
@@ -61,11 +61,11 @@ func (repgen *reportGenerationState) startRound() {
 	repgen.leaderState.tRound = time.After(repgen.config.DeltaRound)
 }
 
-
-
-
-
-
+// messageObserve is called when the current leader has received an "observe"
+// message. If the leader has enough observations to construct a report, given
+// this message, it kicks off the T_observe grace period, to allow slower
+// oracles time to submit their observations. It only responds to these messages
+// when in the observe or grace phases
 func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender types.OracleID) {
 	if msg.Epoch != repgen.e {
 		repgen.logger.Debug("Got MessageObserve for wrong epoch", types.LogFields{
@@ -130,10 +130,10 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 
 	repgen.leaderState.observe[sender] = &msg.SignedObservation
 
-	
+	//upon (|{p_j ∈ P| observe[j] != ⊥}| > 2f) ∧ (phase = OBSERVE)
 	switch repgen.leaderState.phase {
 	case phaseObserve:
-		observationCount := 0 
+		observationCount := 0 // FUTUREWORK: Make this count constant-time with state counter
 		for _, so := range repgen.leaderState.observe {
 			if so != nil {
 				observationCount++
@@ -145,7 +145,7 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 			"requiredObservationCount": (2 * repgen.config.F) + 1,
 		})
 		if observationCount > 2*repgen.config.F {
-			
+			// Start grace period, to allow slower oracles to contribute observations
 			repgen.logger.Debug("starting observation grace period", types.LogFields{
 				"round": repgen.leaderState.r,
 			})
@@ -157,9 +157,9 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender t
 	}
 }
 
-
-
-
+// eventTGraceTimeout is called by the leader when the grace period
+// is over. It collates the signed observations it has received so far, and
+// sends out a request for participants' signatures on the final report.
 func (repgen *reportGenerationState) eventTGraceTimeout() {
 	if repgen.leaderState.phase != phaseGrace {
 		repgen.logger.Error("leader's phase conflicts tGrace timeout", types.LogFields{
@@ -229,8 +229,8 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender typ
 
 	repgen.leaderState.report[sender] = &msg.Report
 
-	
-	{ 
+	// upon exists R s.t. |{p_j ∈ P | report[j]=(R,·)}| > f ∧ phase = REPORT
+	{ // FUTUREWORK: make it non-quadratic time
 		sigs := [][]byte{}
 		for _, report := range repgen.leaderState.report {
 			if report == nil {

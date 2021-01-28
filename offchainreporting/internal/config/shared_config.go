@@ -10,9 +10,9 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-
-
-
+// SharedConfig is the configuration shared by all oracles running an instance
+// of the protocol. It's disseminated through the smart contract,
+// but parts of it are encrypted so that only oracles can access them.
 type SharedConfig struct {
 	PublicConfig
 	SharedSecret *[SharedSecretSize]byte
@@ -23,7 +23,7 @@ func (c *SharedConfig) LeaderSelectionKey() [16]byte {
 	h := sha3.NewLegacyKeccak256()
 	h.Write(c.SharedSecret[:])
 	h.Write([]byte("chainlink offchain reporting v1 leader selection key"))
-	
+
 	copy(result[:], h.Sum(nil))
 	return result
 }
@@ -33,7 +33,7 @@ func (c *SharedConfig) TransmissionOrderKey() [16]byte {
 	h := sha3.NewLegacyKeccak256()
 	h.Write(c.SharedSecret[:])
 	h.Write([]byte("chainlink offchain reporting v1 transmission order key"))
-	
+
 	copy(result[:], h.Sum(nil))
 	return result
 }

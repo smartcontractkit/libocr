@@ -3,7 +3,6 @@ package signature
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -12,22 +11,14 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
-
+// Curve is the elliptic Curve on which on-chain messages are to be signed
 var Curve = secp256k1.S256()
 
-
-
+// OnChainPublicKey is the public key used to cryptographically identify an
+// oracle to the on-chain smart contract.
 type OnChainPublicKey ecdsa.PublicKey
 
-var zero = big.NewInt(0)
-
-func (k OnChainPublicKey) fieldEqual(a, b *big.Int) bool {
-	difference := big.NewInt(0).Sub(a, b)
-	modulus := ecdsa.PublicKey(k).Params().P
-	return big.NewInt(1).Mod(difference, modulus).Cmp(zero) == 0
-}
-
-
+// Equal returns true iff k and k2 represent the same public key
 func (k OnChainPublicKey) Equal(k2 OnChainPublicKey) bool {
 	return bytes.Equal(
 		common.Address(k.Address()).Bytes(),
@@ -35,12 +26,10 @@ func (k OnChainPublicKey) Equal(k2 OnChainPublicKey) bool {
 	)
 }
 
-var halfGroupOrder = big.NewInt(1).Rsh(Curve.Params().N, 1)
-
 type EthAddresses = map[types.OnChainSigningAddress]types.OracleID
 
-
-
+// VerifyOnChain returns an error unless signature is a valid signature by one
+// of the signers, in which case it returns the ID of the signer
 func VerifyOnChain(msg []byte, signature []byte, signers EthAddresses,
 ) (types.OracleID, error) {
 	author, err := crypto.SigToPub(onChainHash(msg), signature)
@@ -56,11 +45,11 @@ func VerifyOnChain(msg []byte, signature []byte, signers EthAddresses,
 	}
 }
 
-
-
+// OnchainPrivateKey is the secret key oracles use to sign messages destined for
+// verification by the on-chain smart contract.
 type OnchainPrivateKey ecdsa.PrivateKey
 
-
+// Sign signs message with k
 func (k *OnchainPrivateKey) Sign(msg []byte) (signature []byte, err error) {
 	sig, err := crypto.Sign(onChainHash(msg), (*ecdsa.PrivateKey)(k))
 	return sig, err

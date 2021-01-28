@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"strings"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/peerstore"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/pkg/errors"
@@ -22,7 +23,7 @@ import (
 
 var InvalidDhtKey = errors.New("invalid dht key")
 
-
+// PeerDiscoveryRouter is a router (rhost.Routing) with resource management capabilities via Start() and Close()
 type PeerDiscoveryRouter interface {
 	rhost.Routing
 	Start()
@@ -60,19 +61,19 @@ func NewDHTRouter(ctx context.Context, config DHTNodeConfig, aclHost ACLHost) (P
 	return router, nil
 }
 
-
-
-
-
-
-
-
-
-
-
+// Start ought to be called before the router is used
+//
+// Start optimistically tries to connect to bootstrappers and populate the
+// initial table, but if that fails it puts the connect into
+// a background thread and exits
+//
+// Start runs asynchronously in the background and can be cancelled early at
+// any time by calling Close() (which does run synchronously and waits for
+// Start to exit)
+//
 
 func (router DHTRouter) Start() {
-	
+	// Connect to all the bootstrap nodes
 	router.processes.Go(func() {
 		router.logger().Debug("DHT initial bootstrap starting", nil)
 
@@ -82,7 +83,7 @@ func (router DHTRouter) Start() {
 				"err": err.Error(),
 			})
 		} else {
-			
+			// Make a best effort to populate initial routing table
 			err = <-router.dht.ForceRefresh()
 			if err != nil {
 				router.logger().Warn("Initial DHT table refresh failed", types.LogFields{
@@ -95,11 +96,11 @@ func (router DHTRouter) Start() {
 			"bnodes": router.config.bootstrapNodes,
 		})
 
-		
+		// start a thread to re-connect to all bootstrap nodes every router.config.bootstrapCheckInterval
 		router.processes.RepeatWithCancel("bootstrap", router.config.bootstrapCheckInterval, router.ctx, func() {
 			toConnect := false
 			for _, p := range router.config.bootstrapNodes {
-				
+				// reconnect if any connection is lost.
 				if router.aclHost.Network().Connectedness(p.ID) != network.Connected {
 					toConnect = true
 					break
@@ -120,7 +121,7 @@ func (router DHTRouter) Start() {
 		router.startAnnounceInBackground()
 
 		if router.config.extendedDHTLogging {
-			
+			// default RT refresh time in libp2p is 10 minutes
 			router.printPeriodicReport(10 * time.Minute)
 		}
 	})
@@ -139,7 +140,7 @@ func peerIdToDhtKey(id peer.ID) string {
 }
 
 func dhtKeyToPeerId(s string) (id peer.ID, err error) {
-	
+	// of format /ns/key
 	ss := strings.Split(s, "/")
 
 	if len(ss) != 3 {
@@ -174,13 +175,13 @@ func (router DHTRouter) FindPeer(ctx context.Context, peerId peer.ID) (addr peer
 		return addr, err
 	}
 
-	
+	// unmarshal
 	ann, err := deserializeSignedAnnouncement(marshaled)
 	if err != nil {
 		return addr, err
 	}
 
-	
+	// at this point ann has been verified by AnnouncementValidator (called in GetValue)
 	addr.ID = peerId
 	addr.Addrs = ann.Addrs
 
@@ -198,7 +199,7 @@ const counterKeyName = "counter"
 func (router DHTRouter) publishHostAddr(ctx context.Context) error {
 	var addrs = router.aclHost.Addrs()
 
-	
+	// cap at maxAddrInAnnouncements addresses
 	if len(router.aclHost.Addrs()) > maxAddrInAnnouncements {
 		router.logger().Warn("trying to publish many addresses. capped.", types.LogFields{
 			"nAddrs":            len(router.aclHost.Addrs()),
@@ -208,11 +209,11 @@ func (router DHTRouter) publishHostAddr(ctx context.Context) error {
 		addrs = addrs[:maxAddrInAnnouncements]
 	}
 
-	
+	// try to retrieve last counter
 	counter, err := router.aclHost.Peerstore().Get(router.aclHost.ID(), counterKeyName)
-	
+	// IMPORTANT: 🚨🚨🚨 make sure our own peer store returns peerstore.ErrNotFound too! 🚨🚨🚨
 	if errors.Is(err, peerstore.ErrNotFound) {
-		
+		// if the db is empty, counter starts with zero
 		counter = uint64(0)
 	} else if err != nil {
 		return err
@@ -223,19 +224,19 @@ func (router DHTRouter) publishHostAddr(ctx context.Context) error {
 		return errors.New("cannot convert counter to uint64")
 	}
 
-	
+	// advance the counter but dont persist it yet
 	newCounter := c + 1
 	if newCounter < c {
 		return errors.New("DHT Announcement counter overflowed")
 	}
 
-	
+	// persist the new counter before making an announcement
 	err = router.aclHost.Peerstore().Put(router.aclHost.ID(), counterKeyName, newCounter)
 	if err != nil {
 		return err
 	}
 
-	
+	// retrieve the private keys
 	sk := router.aclHost.Peerstore().PrivKey(router.aclHost.ID())
 
 	ann := announcement{
@@ -299,7 +300,7 @@ func (router DHTRouter) startAnnounceInBackground() {
 	})
 }
 
-
+// This is used by bootstrap nodes to periodically report their states. (Otherwise their logging is pretty sparse.)
 func (router DHTRouter) printPeriodicReport(interval time.Duration) {
 	if !router.config.extendedDHTLogging {
 		return

@@ -1,5 +1,5 @@
-
-
+// Package permutation generates cryptographically secure
+// pseudorandom permutations
 package permutation
 
 import (
@@ -9,8 +9,8 @@ import (
 	"math/rand"
 )
 
-
-
+// Permutation generates a cryptographically secure, keyed
+// permutation on [0, ..., n-1]
 func Permutation(n int, key [16]byte) []int {
 	var result []int
 	for i := 0; i < n; i++ {
@@ -29,10 +29,10 @@ type cryptoRandSource struct {
 }
 
 func newCryptoRandSource(key [16]byte) *cryptoRandSource {
-	var iv [16]byte 
+	var iv [16]byte // zero IV is fine here
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
-		
+		// assertion
 		panic(err)
 	}
 	return &cryptoRandSource{cipher.NewCTR(block, iv[:])}

@@ -12,22 +12,22 @@ import (
 type PermitListACL interface {
 	ACL
 
-	
-	
+	// Activate ACL for a protocol with the provided allowlist.
+	// No-op if ACL is already activated for that protocol
 	Activate(protocol protocol.ID, permitted ...peer.ID)
 
-	
+	// Deactivate ACL for a protocol. No-op if not already activated
 	Deactivate(protocol protocol.ID)
 
-	
+	// add ids to the allowlist for protocol. Error if not already activated
 	Permit(protocol protocol.ID, ids ...peer.ID) error
 
-	
+	// remove id from the allowlist. Error if not already activated.
 	Reject(protocol protocol.ID, id peer.ID) error
 }
 
 type permitList struct {
-	allowed map[protocol.ID][]peer.ID 
+	allowed map[protocol.ID][]peer.ID // access control list. For protocols NOT in the table, the default decision is Permit.
 
 	logger types.Logger
 }
@@ -56,7 +56,7 @@ func (acl permitList) Activate(protocol protocol.ID, permitted ...peer.ID) {
 }
 
 func (acl permitList) Deactivate(protocol protocol.ID) {
-	
+	// delete is a no-op for non-existent
 	delete(acl.allowed, protocol)
 }
 
@@ -75,13 +75,13 @@ func (acl permitList) Reject(protocol protocol.ID, id peer.ID) error {
 }
 
 func (acl permitList) IsAllowed(id peer.ID, protocol protocol.ID) bool {
-	
+	// Found in the enforced map = ACL is enforced for this protocol
 	allowed, enforced := acl.allowed[protocol]
 	if !enforced {
 		return true
 	}
 
-	
+	// only Permit if id is in the white list
 	for _, p := range allowed {
 		if p == id {
 			return true
@@ -97,7 +97,7 @@ func (acl permitList) IsAllowed(id peer.ID, protocol protocol.ID) bool {
 
 func (acl permitList) IsACLEnforced(protocol protocol.ID) bool {
 	_, found := acl.allowed[protocol]
-	
+	// Not found in the enforced map = ACL not enforced for this protocol
 	return found
 }
 

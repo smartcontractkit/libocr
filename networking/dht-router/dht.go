@@ -13,11 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// This code is borrowed from the go-ipfs bootstrap process
 
-
-
-
-
+// Returns error only if all connections failed
 func tryConnectToBootstrappers(ctx context.Context, ph host.Host, peers []peer.AddrInfo) error {
 	if len(peers) == 0 {
 		return nil
@@ -31,10 +29,10 @@ func tryConnectToBootstrappers(ctx context.Context, ph host.Host, peers []peer.A
 			continue
 		}
 
-		
-		
-		
-		
+		// performed asynchronously because when performed synchronously, if
+		// one `Connect` call hangs, subsequent calls are more likely to
+		// fail/abort due to an expiring context.
+		// Also, performed asynchronously for dial speed.
 
 		wg.Add(1)
 		go func(p peer.AddrInfo) {
@@ -46,8 +44,8 @@ func tryConnectToBootstrappers(ctx context.Context, ph host.Host, peers []peer.A
 	}
 	wg.Wait()
 
-	
-	
+	// our failure condition is when no connection attempt succeeded.
+	// So drain the errs channel, counting the results.
 	close(errs)
 	count := 0
 	var err error
@@ -63,31 +61,30 @@ func tryConnectToBootstrappers(ctx context.Context, ph host.Host, peers []peer.A
 }
 
 func newDHT(ctx context.Context, config DHTNodeConfig, aclHost ACLHost) (*dht.IpfsDHT, error) {
-	
+	// create a kadDHT
 	protocolID := config.ProtocolID()
 
-	
-	
-	const BucketSize = 64
+	// we set the bucket size large enough so that all peers are in the same bucket.
+	const BucketSize = 2 * types.MaxOracles
 
 	kadDHT, err := dht.New(ctx, aclHost,
-		dht.BucketSize(BucketSize), 
-		dht.NamespacedValidator(ValidatorNamespace, AnnouncementValidator{}), 
-		dht.ProtocolPrefix(config.prefix),                                    
+		dht.BucketSize(BucketSize), // K in the Kademlia paper
+		dht.NamespacedValidator(ValidatorNamespace, AnnouncementValidator{}), // THIS IS CRITICAL. WE MUST USE AnnouncementValidator.
+		dht.ProtocolPrefix(config.prefix),                                    // stands for off-chain reporting
 		dht.ProtocolExtension(config.extension),
 		dht.BootstrapPeers(config.bootstrapNodes...),
-		dht.Mode(dht.ModeServer), 
+		dht.Mode(dht.ModeServer), // this must be set in order for DHT to work in internal networks
 		dht.DisableProviders(),
 		dht.QueryFilter(ACLQueryFilter(aclHost.GetACL(), protocolID, config.logger)),
 		dht.RoutingTableFilter(ACLRoutingTableFilter(aclHost.GetACL(), protocolID, config.logger)),
-		dht.Concurrency(2*config.failureThreshold+1), 
-		dht.Resiliency(config.failureThreshold+1),    
+		dht.Concurrency(2*config.failureThreshold+1), // query 2f+1, so that at least f+1 will eventually respond
+		dht.Resiliency(config.failureThreshold+1),    // wait for f+1 response so that at least one of them is from an honest player
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create new DHT")
 	}
 
-	
+	// this simply starts the routing table manager thread
 	err = kadDHT.Bootstrap(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "error bootstrapping dht")

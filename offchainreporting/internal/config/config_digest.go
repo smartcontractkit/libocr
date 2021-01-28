@@ -17,7 +17,7 @@ func makeConfigDigestArgs() abi.Arguments {
 	abi, err := abi.JSON(strings.NewReader(
 		exposedoffchainaggregator.ExposedOffchainAggregatorABI))
 	if err != nil {
-		
+		// assertion
 		panic(fmt.Sprintf("could not parse aggregator ABI: %s", err.Error()))
 	}
 	return abi.Methods["exposedConfigDigestFromConfigData"].Inputs
@@ -44,13 +44,13 @@ func ConfigDigest(
 		config,
 	)
 	if err != nil {
-		
+		// assertion
 		panic(err)
 	}
 	rawHash := crypto.Keccak256(msg)
 	configDigest := types.ConfigDigest{}
 	if n := copy(configDigest[:], rawHash); n != len(configDigest) {
-		
+		// assertion
 		panic("copy too little data")
 	}
 	return configDigest

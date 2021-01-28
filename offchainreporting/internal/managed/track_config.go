@@ -11,19 +11,19 @@ import (
 
 type trackConfigState struct {
 	ctx context.Context
-	
+	// in
 	configTracker types.ContractConfigTracker
 	localConfig   types.LocalConfig
 	logger        types.Logger
-	
+	// out
 	chChanges chan<- types.ContractConfig
-	
+	// local
 	subprocesses subprocesses.Subprocesses
 	configDigest types.ConfigDigest
 }
 
 func (state *trackConfigState) run() {
-	
+	// Check immediately after startup
 	tCheckLatestConfigDetails := time.After(0)
 	tResubscribe := time.After(0)
 
@@ -34,7 +34,7 @@ func (state *trackConfigState) run() {
 		select {
 		case _, ok := <-chSubscription:
 			if ok {
-				
+				// Check immediately for new config
 				tCheckLatestConfigDetails = time.After(0 * time.Second)
 				state.logger.Info("TrackConfig: subscription fired", nil)
 			} else {
@@ -47,7 +47,7 @@ func (state *trackConfigState) run() {
 			change, awaitingConfirmation := state.checkLatestConfigDetails()
 			state.logger.Debug("TrackConfig: checking latestConfigDetails", nil)
 
-			
+			// poll more rapidly if we're awaiting confirmation
 			if awaitingConfirmation {
 				wait := 15 * time.Second
 				if state.localConfig.ContractConfigTrackerPollInterval < wait {
@@ -88,7 +88,7 @@ func (state *trackConfigState) run() {
 		case <-state.ctx.Done():
 		}
 
-		
+		// ensure prompt exit
 		select {
 		case <-state.ctx.Done():
 			state.logger.Debug("TrackConfig: winding down", nil)
@@ -165,13 +165,13 @@ func TrackConfig(
 ) {
 	state := trackConfigState{
 		ctx,
-		
+		// in
 		configTracker,
 		localConfig,
 		logger,
-		
+		//out
 		chChanges,
-		
+		// local
 		subprocesses.Subprocesses{},
 		types.ConfigDigest{},
 	}
