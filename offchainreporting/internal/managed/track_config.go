@@ -158,6 +158,7 @@ func TrackConfig(
 	ctx context.Context,
 
 	configTracker types.ContractConfigTracker,
+	initialConfigDigest types.ConfigDigest,
 	localConfig types.LocalConfig,
 	logger types.Logger,
 
@@ -173,7 +174,7 @@ func TrackConfig(
 		chChanges,
 		// local
 		subprocesses.Subprocesses{},
-		types.ConfigDigest{},
+		initialConfigDigest,
 	}
 	state.run()
 }

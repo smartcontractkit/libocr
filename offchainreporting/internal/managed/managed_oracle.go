@@ -14,6 +14,9 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
+// RunManagedOracle runs a "managed" version of protocol.RunOracle. It handles
+// configuration updates and translating from types.BinaryNetworkEndpoint to
+// protocol.NetworkEndpoint.
 func RunManagedOracle(
 	ctx context.Context,
 
@@ -45,9 +48,6 @@ func RunManagedOracle(
 	mo.run()
 }
 
-// ManagedOracle wraps protocol.Oracle. It handles configuration
-// updates and translating from types.BinaryNetworkEndpoint to
-// protocol.NetworkEndpoint
 type managedOracleState struct {
 	ctx context.Context
 
@@ -99,7 +99,7 @@ func (mo *managedOracleState) run() {
 
 	chNewConfig := make(chan types.ContractConfig, 5)
 	mo.otherSubprocesses.Go(func() {
-		TrackConfig(mo.ctx, mo.configTracker, mo.localConfig, mo.logger, chNewConfig)
+		TrackConfig(mo.ctx, mo.configTracker, mo.config.ConfigDigest, mo.localConfig, mo.logger, chNewConfig)
 	})
 
 	mo.otherSubprocesses.Go(func() {

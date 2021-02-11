@@ -9,10 +9,15 @@ import (
 	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/persist"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"golang.org/x/crypto/sha3"
 )
+
+// The capacity of the channel we use for persisting states. If more than this
+// many state updates are pending, we will begin to drop updates.
+const chPersistCapacity = 256
 
 // Pacemaker keeps track of the state and message handling for an oracle
 // participating in the off-chain reporting protocol
@@ -78,6 +83,8 @@ type pacemakerState struct {
 
 	cancelReportGeneration context.CancelFunc
 
+	chPersist chan<- types.PersistentState
+
 	// ne is the highest epoch number this oracle has broadcast in a newepoch
 	// message, during the current epoch
 	ne uint32
@@ -105,7 +112,23 @@ type pacemakerState struct {
 func (pace *pacemakerState) run() {
 	pace.logger.Info("Running Pacemaker", nil)
 
-	// Initialization:
+	// Initialization
+
+	{
+		chPersist := make(chan types.PersistentState, chPersistCapacity)
+		pace.chPersist = chPersist
+		pace.subprocesses.Go(func() {
+			persist.Persist(
+				pace.ctx,
+				chPersist,
+				pace.config.ConfigDigest,
+				pace.database,
+				pace.localConfig.DatabaseTimeout,
+				pace.logger,
+			)
+		})
+	}
+
 	// rounds start with 1, so let's make epochs also start with 1
 	// this also gives us cleaner behavior for the initial epoch, which is otherwise
 	// immediately terminated and superseded due to restoreNeFromTransmitter below
@@ -269,38 +292,19 @@ func (pace *pacemakerState) sanityCheckState(state *types.PersistentState) error
 }
 
 func (pace *pacemakerState) persist() {
-	// copy data to be safe against outside mutations
-	highestReceivedEpoch := make([]uint32, pace.config.N())
-	copy(highestReceivedEpoch, pace.newepoch)
-
+	// send copy to be safe against mutations
 	state := types.PersistentState{
 		pace.e,
 		pace.ne,
-		highestReceivedEpoch,
+		append([]uint32{}, pace.newepoch...),
 	}
 
-	var err error
-	ok := pace.subprocesses.BlockForAtMost(pace.ctx, pace.localConfig.DatabaseTimeout,
-		func(ctx context.Context) {
-
-			err = pace.database.WriteState(
-				ctx,
-				pace.config.ConfigDigest,
-				state,
-			)
-		},
-	)
-
-	if !ok {
-		pace.logger.Error("Pacemaker: timeout while persisting state to database", types.LogFields{
-			"timeout": pace.localConfig.DatabaseTimeout,
-		})
-		return
-	}
-
-	if err != nil {
-		pace.logger.Error("Pacemaker: unexpected error while persisting state to database", types.LogFields{
-			"error": err,
+	select {
+	case pace.chPersist <- state:
+	default:
+		pace.logger.Warn("Pacemaker: chPersist is backed up, discarding state", types.LogFields{
+			"state":    state,
+			"capacity": chPersistCapacity,
 		})
 	}
 }
