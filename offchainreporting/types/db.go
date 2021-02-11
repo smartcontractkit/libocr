@@ -44,6 +44,24 @@ type PersistentState struct {
 	HighestReceivedEpoch []uint32 // length: at most MaxOracles
 }
 
+func (ps PersistentState) Equal(ps2 PersistentState) bool {
+	if ps.Epoch != ps2.Epoch {
+		return false
+	}
+	if ps.HighestSentEpoch != ps2.HighestSentEpoch {
+		return false
+	}
+	if len(ps.HighestReceivedEpoch) != len(ps2.HighestReceivedEpoch) {
+		return false
+	}
+	for i := 0; i < len(ps.HighestReceivedEpoch); i++ {
+		if ps.HighestReceivedEpoch[i] != ps2.HighestReceivedEpoch[i] {
+			return false
+		}
+	}
+	return true
+}
+
 //
 // database/sql/driver interface functions for ConfigDigest
 //

@@ -8,6 +8,8 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
+// RunManagedBootstrapNode runs a "managed" bootstrap node. It handles
+// configuration updates on the contract.
 func RunManagedBootstrapNode(
 	ctx context.Context,
 
@@ -31,9 +33,6 @@ func RunManagedBootstrapNode(
 	mb.run()
 }
 
-// ManagedOracle wraps protocol.Oracle. It handles configuration
-// updates and translating from types.BinaryNetworkEndpoint to
-// protocol.NetworkEndpoint
 type managedBootstrapNodeState struct {
 	ctx context.Context
 
@@ -63,7 +62,7 @@ func (mb *managedBootstrapNodeState) run() {
 			},
 		)
 		if !ok {
-			mb.logger.Error("ManagedBootstrapper: database timed out while attempting to restore configuration", types.LogFields{
+			mb.logger.Error("ManagedBootstrapNode: database timed out while attempting to restore configuration", types.LogFields{
 				"timeout": mb.localConfig.DatabaseTimeout,
 			})
 		} else if cc != nil {
@@ -73,22 +72,22 @@ func (mb *managedBootstrapNodeState) run() {
 
 	chNewConfig := make(chan types.ContractConfig, 5)
 	subprocesses.Go(func() {
-		TrackConfig(mb.ctx, mb.configTracker, mb.localConfig, mb.logger, chNewConfig)
+		TrackConfig(mb.ctx, mb.configTracker, mb.config.ConfigDigest, mb.localConfig, mb.logger, chNewConfig)
 	})
 
 	for {
 		select {
 		case cc := <-chNewConfig:
-			mb.logger.Info("ManagedBootstrapper: Switching between configs", types.LogFields{
+			mb.logger.Info("ManagedBootstrapNode: Switching between configs", types.LogFields{
 				"oldConfigDigest": mb.config.ConfigDigest.Hex(),
 				"newConfigDigest": cc.ConfigDigest.Hex(),
 			})
 			mb.configChanged(cc)
 		case <-mb.ctx.Done():
-			mb.logger.Debug("ManagedBootstrapper: winding down ", nil)
+			mb.logger.Debug("ManagedBootstrapNode: winding down ", nil)
 			mb.closeBootstrapper()
 			subprocesses.Wait()
-			mb.logger.Debug("ManagedBootstrapper: exiting", nil)
+			mb.logger.Debug("ManagedBootstrapNode: exiting", nil)
 			return
 		}
 	}
