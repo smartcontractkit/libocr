@@ -10,6 +10,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/signature"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 func (repgen *reportGenerationState) followerReportContext() ReportContext {
@@ -21,7 +22,7 @@ func (repgen *reportGenerationState) followerReportContext() ReportContext {
 ///////////////////////////////////////////////////////////
 
 // messageObserveReq is called when the oracle receives an observe-req message
-// from the current leadrepgen. It responds with a message to the leader
+// from the current leader. It responds with a message to the leader
 // containing a fresh observation, as long as the message comes from the
 // designated leader, pertains to the current valid round/epoch. It sets up the
 // follower state used to track which the protocol is at in view of this
@@ -190,7 +191,6 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 				aso.Observer,
 			}
 		}
-
 		report, err := MakeAttestedReportOne(
 			attributedValues,
 			repgen.followerReportContext(),
@@ -373,14 +373,43 @@ func (repgen *reportGenerationState) observeValue() observation.Observation {
 }
 
 func (repgen *reportGenerationState) shouldReport(observations []AttributedSignedObservation) bool {
-	ctx, cancel := context.WithTimeout(repgen.ctx, repgen.localConfig.BlockchainTimeout)
-	defer cancel()
-	contractConfigDigest, contractEpoch, contractRound, rawAnswer, timestamp,
-		err := repgen.contractTransmitter.LatestTransmissionDetails(ctx)
-	if err != nil {
-		repgen.logger.Error("shouldReport: Error during LatestTransmissionDetails", types.LogFields{
+	var resultTransmissionDetails struct {
+		configDigest    types.ConfigDigest
+		epoch           uint32
+		round           uint8
+		latestAnswer    types.Observation
+		latestTimestamp time.Time
+		err             error
+	}
+	var resultRoundRequested struct {
+		configDigest types.ConfigDigest
+		epoch        uint32
+		round        uint8
+		err          error
+	}
+	ok := repgen.subprocesses.BlockForAtMost(repgen.ctx, repgen.localConfig.BlockchainTimeout, func(ctx context.Context) {
+		// We call LatestTransmissionDetails and LatestRoundRequested in parallel
+		var subs subprocesses.Subprocesses
+		subs.Go(func() {
+			resultTransmissionDetails.configDigest,
+				resultTransmissionDetails.epoch,
+				resultTransmissionDetails.round,
+				resultTransmissionDetails.latestAnswer,
+				resultTransmissionDetails.latestTimestamp,
+				resultTransmissionDetails.err = repgen.contractTransmitter.LatestTransmissionDetails(ctx)
+		})
+		subs.Go(func() {
+			resultRoundRequested.configDigest, resultRoundRequested.epoch, resultRoundRequested.round, resultRoundRequested.err =
+				repgen.contractTransmitter.LatestRoundRequested(
+					ctx,
+					repgen.config.DeltaC,
+				)
+		})
+		subs.Wait()
+	})
+	if !ok {
+		repgen.logger.Error("shouldReport: blockchain interaction timed out, returning true", types.LogFields{
 			"round": repgen.followerState.r,
-			"error": err,
 		})
 		// Err on the side of creating too many reports. For instance, the Ethereum node
 		// might be down, but that need not prevent us from still contributing to the
@@ -388,7 +417,28 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 		return true
 	}
 
-	answer, err := observation.MakeObservation(rawAnswer)
+	if resultTransmissionDetails.err != nil {
+		repgen.logger.Error("shouldReport: Error during LatestTransmissionDetails", types.LogFields{
+			"round": repgen.followerState.r,
+			"error": resultTransmissionDetails.err,
+		})
+		// Err on the side of creating too many reports. For instance, the Ethereum node
+		// might be down, but that need not prevent us from still contributing to the
+		// protocol.
+		return true
+	}
+	if resultRoundRequested.err != nil {
+		repgen.logger.Error("shouldReport: Error during LatestRoundRequested", types.LogFields{
+			"round": repgen.followerState.r,
+			"error": resultRoundRequested.err,
+		})
+		// Err on the side of creating too many reports. For instance, the Ethereum node
+		// might be down, but that need not prevent us from still contributing to the
+		// protocol.
+		return true
+	}
+
+	answer, err := observation.MakeObservation(resultTransmissionDetails.latestAnswer)
 	if err != nil {
 		repgen.logger.Error("shouldReport: Error during observation.NewObservation", types.LogFields{
 			"round": repgen.followerState.r,
@@ -397,20 +447,53 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 		return false
 	}
 
-	initialRound := contractConfigDigest == repgen.config.ConfigDigest && contractEpoch == 0 && contractRound == 0
-	deviation := observations[len(observations)/2].SignedObservation.Observation.Deviates(answer, repgen.config.AlphaPPB)
-	deltaCTimeout := timestamp.Add(repgen.config.DeltaC).Before(time.Now())
-	result := initialRound || deviation || deltaCTimeout
+	initialRound := // Is this the first round for this configuration?
+		resultTransmissionDetails.configDigest == repgen.config.ConfigDigest &&
+			resultTransmissionDetails.epoch == 0 &&
+			resultTransmissionDetails.round == 0
+	deviation := // Has the result changed enough to merit a new report?
+		observations[len(observations)/2].SignedObservation.Observation.
+			Deviates(answer, repgen.config.AlphaPPB)
+	deltaCTimeout := // Has enough time passed since the last report, to merit a new one?
+		resultTransmissionDetails.latestTimestamp.Add(repgen.config.DeltaC).
+			Before(time.Now())
+	unfulfilledRequest := // Has a new report been requested explicitly?
+		resultRoundRequested.configDigest == repgen.config.ConfigDigest &&
+			!(EpochRound{resultRoundRequested.epoch, resultRoundRequested.round}).
+				Less(EpochRound{resultTransmissionDetails.epoch, resultTransmissionDetails.round})
 
-	repgen.logger.Info("shouldReport: returning result", types.LogFields{
-		"round":         repgen.followerState.r,
-		"result":        result,
-		"initialRound":  initialRound,
-		"deviation":     deviation,
-		"deltaCTimeout": deltaCTimeout,
-	})
+	logFields := types.LogFields{
+		"round":              repgen.followerState.r,
+		"result":             true,
+		"initialRound":       initialRound,
+		"deviation":          deviation,
+		"deltaCTimeout":      deltaCTimeout,
+		"unfulfilledRequest": unfulfilledRequest,
+	}
 
-	return result
+	success := func(msg string) bool {
+		repgen.logger.Info("shouldReport: yes, because "+msg, logFields)
+		return true
+	}
+
+	// The following is more succinctly expressed as a disjunction, but breaking
+	// the branches up into their own conditions makes it easier to check that
+	// each branch is tested, and also allows for more expressive log messages
+	if initialRound {
+		return success("it's the first round of the first epoch")
+	}
+	if deviation {
+		return success("new median deviates sufficiently from current onchain value")
+	}
+	if deltaCTimeout {
+		return success("heartbeat timeout since last onchain report")
+	}
+	if unfulfilledRequest {
+		return success("a new round has been explicitly requested")
+	}
+	logFields["result"] = false
+	repgen.logger.Info("shouldReport: no", logFields)
+	return false
 }
 
 // completeRound is called by the local report-generation process when the
