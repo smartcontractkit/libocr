@@ -47,10 +47,15 @@ type LocalConfig struct {
 	// blocking forever on an observation would break the oracle.)
 	DatabaseTimeout time.Duration
 
-	// Timeout for making observations.
+	// Timeout for making observations using the DataSource.Observe method.
 	// (This is necessary because an oracle's operations are serialized, so
 	// blocking forever on an observation would break the oracle.)
 	DataSourceTimeout time.Duration
+
+	// After DataSourceTimeout expires, we additionally wait for this grace
+	// period for DataSource.Observe to return a result, before forcibly moving
+	// on.
+	DataSourceGracePeriod time.Duration
 
 	// DANGER, this turns off all kinds of sanity checks. May be useful for testing.
 	// Set this to EnableDangerousDevelopmentMode to turn on dev mode.

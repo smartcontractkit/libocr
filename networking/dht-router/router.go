@@ -287,7 +287,7 @@ func (router DHTRouter) startAnnounceInBackground() {
 			case <-ticker.C:
 				err := router.publishHostAddr(router.ctx)
 				if err != nil {
-					router.logger().Error("DHT: Error publishing address", types.LogFields{
+					router.logger().Warn("DHT: Error publishing address", types.LogFields{
 						"err":     err.Error(),
 						"retryIn": retryInterval,
 					})

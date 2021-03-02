@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -16,7 +17,7 @@ func collectGarbage(
 	ctx context.Context,
 	database types.Database,
 	localConfig types.LocalConfig,
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 ) {
 	for {
 		wait := collectInterval + time.Duration(rand.Float64()*5.0*60.0)*time.Second

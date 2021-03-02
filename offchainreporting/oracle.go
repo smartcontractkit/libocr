@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 
@@ -78,6 +79,8 @@ func NewOracle(args OracleArgs) (*Oracle, error) {
 func (o *Oracle) Start() error {
 	o.failIfAlreadyStarted()
 
+	logger := loghelper.MakeRootLoggerWithContext(o.oracleArgs.Logger)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	o.cancel = cancel
 	o.subprocesses.Go(func() {
@@ -91,7 +94,7 @@ func (o *Oracle) Start() error {
 			o.oracleArgs.Database,
 			o.oracleArgs.Datasource,
 			o.oracleArgs.LocalConfig,
-			o.oracleArgs.Logger,
+			logger,
 			o.oracleArgs.MonitoringEndpoint,
 			o.oracleArgs.BinaryNetworkEndpointFactory,
 			o.oracleArgs.PrivateKeys,

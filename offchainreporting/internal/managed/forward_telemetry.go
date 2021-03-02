@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"google.golang.org/protobuf/proto"
 )
@@ -13,7 +14,7 @@ import (
 func forwardTelemetry(
 	ctx context.Context,
 
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 	monitoringEndpoint types.MonitoringEndpoint,
 
 	chTelemetry <-chan *protobuf.TelemetryWrapper,

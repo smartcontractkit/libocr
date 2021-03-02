@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -14,7 +15,7 @@ type trackConfigState struct {
 	// in
 	configTracker types.ContractConfigTracker
 	localConfig   types.LocalConfig
-	logger        types.Logger
+	logger        loghelper.LoggerWithContext
 	// out
 	chChanges chan<- types.ContractConfig
 	// local
@@ -77,10 +78,14 @@ func (state *trackConfigState) run() {
 			subscription, err = state.configTracker.SubscribeToNewConfigs(subscribeCtx)
 			subscribeCancel()
 			if err != nil {
-				state.logger.Error("TrackConfig: failed to SubscribeToNewConfigs. Retrying later", types.LogFields{
-					"error":                                  err,
-					"ContractConfigTrackerSubscribeInterval": state.localConfig.ContractConfigTrackerSubscribeInterval,
-				})
+				state.logger.ErrorIfNotCanceled(
+					"TrackConfig: failed to SubscribeToNewConfigs. Retrying later",
+					subscribeCtx,
+					types.LogFields{
+						"error":                                  err,
+						"ContractConfigTrackerSubscribeInterval": state.localConfig.ContractConfigTrackerSubscribeInterval,
+					},
+				)
 				tResubscribe = time.After(state.localConfig.ContractConfigTrackerSubscribeInterval)
 			} else {
 				chSubscription = subscription.Configs()
@@ -110,7 +115,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer bhCancel()
 	blockheight, err := state.configTracker.LatestBlockHeight(bhCtx)
 	if err != nil {
-		state.logger.Error("TrackConfig: error during LatestBlockHeight()", types.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestBlockHeight()", bhCtx, types.LogFields{
 			"error": err,
 		})
 		return nil, false
@@ -120,7 +125,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer detailsCancel()
 	changedInBlock, latestConfigDigest, err := state.configTracker.LatestConfigDetails(detailsCtx)
 	if err != nil {
-		state.logger.Error("TrackConfig: error during LatestConfigDetails()", types.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", detailsCtx, types.LogFields{
 			"error": err,
 		})
 		return nil, false
@@ -141,7 +146,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer configCancel()
 	contractConfig, err := state.configTracker.ConfigFromLogs(configCtx, changedInBlock)
 	if err != nil {
-		state.logger.Error("TrackConfig: error during LatestConfigDetails()", types.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", configCtx, types.LogFields{
 			"error": err,
 		})
 		return nil, true
@@ -160,7 +165,7 @@ func TrackConfig(
 	configTracker types.ContractConfigTracker,
 	initialConfigDigest types.ConfigDigest,
 	localConfig types.LocalConfig,
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 
 	chChanges chan<- types.ContractConfig,
 ) {

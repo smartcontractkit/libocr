@@ -11,6 +11,67 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
+// OracleIdentity is identical to the internal type in package config.
+// We intentionally make a copy to make potential future internal modifications easier.
+type OracleIdentity struct {
+	OnChainSigningAddress types.OnChainSigningAddress
+	TransmitAddress       common.Address
+	OffchainPublicKey     types.OffchainPublicKey
+	PeerID                string
+}
+
+// PublicConfig is identical to the internal type in package config.
+// We intentionally make a copy to make potential future internal modifications easier.
+type PublicConfig struct {
+	DeltaProgress    time.Duration
+	DeltaResend      time.Duration
+	DeltaRound       time.Duration
+	DeltaGrace       time.Duration
+	DeltaC           time.Duration
+	AlphaPPB         uint64
+	DeltaStage       time.Duration
+	RMax             uint8
+	S                []int
+	OracleIdentities []OracleIdentity
+
+	F            int
+	ConfigDigest types.ConfigDigest
+}
+
+func (pc PublicConfig) N() int {
+	return len(pc.OracleIdentities)
+}
+
+func PublicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, error) {
+	internalPublicConfig, err := config.PublicConfigFromContractConfig(change)
+	if err != nil {
+		return PublicConfig{}, err
+	}
+	identities := []OracleIdentity{}
+	for _, internalIdentity := range internalPublicConfig.OracleIdentities {
+		identities = append(identities, OracleIdentity{
+			internalIdentity.OnChainSigningAddress,
+			internalIdentity.TransmitAddress,
+			internalIdentity.OffchainPublicKey,
+			internalIdentity.PeerID,
+		})
+	}
+	return PublicConfig{
+		internalPublicConfig.DeltaProgress,
+		internalPublicConfig.DeltaResend,
+		internalPublicConfig.DeltaRound,
+		internalPublicConfig.DeltaGrace,
+		internalPublicConfig.DeltaC,
+		internalPublicConfig.AlphaPPB,
+		internalPublicConfig.DeltaStage,
+		internalPublicConfig.RMax,
+		internalPublicConfig.S,
+		identities,
+		internalPublicConfig.F,
+		internalPublicConfig.ConfigDigest,
+	}, nil
+}
+
 func ContractConfigFromConfigSetEvent(changed offchainaggregator.OffchainAggregatorConfigSet) types.ContractConfig {
 	return types.ContractConfig{
 		config.ConfigDigest(
@@ -30,16 +91,13 @@ func ContractConfigFromConfigSetEvent(changed offchainaggregator.OffchainAggrega
 	}
 }
 
-type OracleIdentity struct {
-	OnChainSigningAddress           types.OnChainSigningAddress
-	TransmitAddress                 common.Address
-	OffchainPublicKey               types.OffchainPublicKey
-	PeerID                          string
+type OracleIdentityExtra struct {
+	OracleIdentity
 	SharedSecretEncryptionPublicKey types.SharedSecretEncryptionPublicKey
 }
 
 func ContractSetConfigArgsForIntegrationTest(
-	oracles []OracleIdentity,
+	oracles []OracleIdentityExtra,
 	f int,
 	alphaPPB uint64,
 ) (

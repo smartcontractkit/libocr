@@ -53,6 +53,41 @@ func (s *Subprocesses) BlockForAtMost(ctx context.Context, d time.Duration, f fu
 	}
 }
 
+// BlockForAtMostMany invokes all fs in parallel and blocks for at most duration
+// d before returning, regardless of whether all fs finished or not, or the
+// passed in ctx is cancelled. If all fs finished, returns true, [true, ...,
+// true]. Otherwise, returns false, and a boolean slice indicating which fs
+// timed out.
+func (s *Subprocesses) BlockForAtMostMany(ctx context.Context, d time.Duration, fs ...func(context.Context)) (ok bool, oks []bool) {
+	done := make(chan int, len(fs))
+	childCtx, childCancel := context.WithTimeout(ctx, d)
+	defer childCancel()
+	for i, f := range fs {
+		iCopy, fCopy := i, f
+		s.Go(func() {
+			fCopy(childCtx)
+			done <- iCopy
+		})
+	}
+	t := time.NewTimer(d)
+	defer t.Stop()
+
+	oks = make([]bool, len(fs))
+	doneCount := 0
+	for {
+		select {
+		case i := <-done:
+			oks[i] = true
+			doneCount++
+			if doneCount == len(fs) {
+				return true, oks
+			}
+		case <-t.C:
+			return false, oks
+		}
+	}
+}
+
 // RepeatWithCancel repeats f with the specified interval. Cancel if ctx.Done is signaled
 func (s *Subprocesses) RepeatWithCancel(name string, interval time.Duration, ctx context.Context, f func()) {
 	s.Go(func() {

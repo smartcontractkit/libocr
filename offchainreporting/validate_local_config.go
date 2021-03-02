@@ -62,6 +62,19 @@ func SanityCheckLocalConfig(c types.LocalConfig) (err error) {
 			"data source timeout",
 			1*time.Second, 20*time.Second,
 		))
+	err = multierr.Append(err,
+		boundTimeDuration(
+			c.DataSourceGracePeriod,
+			"data source grace period",
+			10*time.Millisecond, 2*time.Second,
+		))
+
+	if c.DataSourceTimeout < c.DataSourceGracePeriod {
+		err = multierr.Append(err, errors.Errorf(
+			"data source timeout %v must be greater than data source grace period %v",
+			c.DataSourceTimeout,
+			c.DataSourceTimeout))
+	}
 
 	const minContractConfigConfirmations = 1
 	const maxContractConfigConfirmations = 10

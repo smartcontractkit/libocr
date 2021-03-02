@@ -33,7 +33,7 @@ type KnockingTLSTransport struct {
 	allowlist      []peer.ID         // peer ids that are permitted
 	privateKey     *p2pcrypto.Ed25519PrivateKey
 	myId           peer.ID
-	logger         types.Logger
+	logger         loghelper.LoggerWithContext
 	readTimeout    time.Duration
 }
 
@@ -62,7 +62,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 
 	knock := make([]byte, knockSize)
 
-	logger := loghelper.MakeLoggerWithContext(c.logger, types.LogFields{
+	logger := c.logger.MakeChild(types.LogFields{
 		"remoteAddr": insecure.RemoteAddr(),
 		"localAddr":  insecure.LocalAddr(),
 	})
@@ -203,7 +203,7 @@ func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
 }
 
 // NewKnockingTLS creates a TLS transport. Allowlist is a list of peer IDs that this transport should accept handshake from.
-func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
+func NewKnockingTLS(logger loghelper.LoggerWithContext, myPrivKey p2pcrypto.PrivKey, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
 	ed25515Key, ok := myPrivKey.(*p2pcrypto.Ed25519PrivateKey)
 	if !ok {
 		return nil, errors.New("only support ed25519 key")
@@ -228,7 +228,7 @@ func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, allowlist 
 		allowlist:      allowlist,
 		privateKey:     ed25515Key,
 		myId:           id,
-		logger: loghelper.MakeLoggerWithContext(logger, types.LogFields{
+		logger: logger.MakeChild(types.LogFields{
 			"id": "KnockingTLS",
 		}),
 		readTimeout: readTimeout,

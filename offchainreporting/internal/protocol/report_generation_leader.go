@@ -46,6 +46,14 @@ func (repgen *reportGenerationState) eventTRoundTimeout() {
 // It broadcasts an observe-req message to all participants, and restarts the
 // round timer.
 func (repgen *reportGenerationState) startRound() {
+	if repgen.leaderState.r > repgen.config.RMax {
+		repgen.logger.Warn("ReportGeneration: new round number would be larger than RMax + 1. Looks like your connection to more than f other nodes is not working.", types.LogFields{
+			"round": repgen.leaderState.r,
+			"f":     repgen.config.F,
+			"RMax":  repgen.config.RMax,
+		})
+		return
+	}
 	rPlusOne := repgen.leaderState.r + 1
 	if rPlusOne <= repgen.leaderState.r {
 		repgen.logger.Error("ReportGeneration: round overflows, cannot start new round", types.LogFields{

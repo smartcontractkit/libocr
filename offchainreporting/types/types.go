@@ -55,7 +55,8 @@ type BinaryNetworkEndpoint interface {
 	Receive() <-chan BinaryMessageWithSender
 	// Start starts the endpoint
 	Start() error
-	// Close stops the endpoint
+	// Close stops the endpoint. Calling this multiple times may return an
+	// error, but must not panic.
 	Close() error
 }
 
@@ -65,6 +66,8 @@ type BinaryNetworkEndpoint interface {
 // All its functions should be thread-safe.
 type Bootstrapper interface {
 	Start() error
+	// Close closes the bootstrapper. Calling this multiple times may return an
+	// error, but must not panic.
 	Close() error
 }
 
@@ -98,8 +101,22 @@ type Observation *big.Int
 
 // DataSource implementations must be thread-safe. Observe may be called by many different threads concurrently.
 type DataSource interface {
-	// Observe queries the data source. Returns a value or an error.
-	// Must not block indefinitely.
+	// Observe queries the data source. Returns a value or an error. Once the
+	// context is expires, Observe may still do cheap computations and return a
+	// result, but should return as quickly as possible.
+	//
+	// More details: In the current implementation, the context passed to
+	// Observe will time out after LocalConfig.DataSourceTimeout. However,
+	// Observe should *not* make any assumptions about context timeout behavior.
+	// Once the context times out, Observe should prioritize returning as
+	// quickly as possible, but may still perform fast computations to return a
+	// result rather than errror. For example, if Observe medianizes a number
+	// of data sources, some of which already returned a result to Observe prior
+	// to the context's expiry, Observe might still compute their median, and
+	// return it instead of an error.
+	//
+	// Important: Observe should not perform any potentially time-consuming
+	// actions like database access, once the context passed has expired.
 	Observe(context.Context) (Observation, error)
 }
 
@@ -133,6 +150,27 @@ type ContractTransmitter interface {
 		err error,
 	)
 
+	// LatestRoundRequested returns the configDigest, epoch, and round from the latest
+	// RoundRequested event emitted by the contract. LatestRoundRequested may or may not
+	// return a result if the latest such event was emitted in a block b such that
+	// b.timestamp < tip.timestamp - lookback.
+	//
+	// If no event is found, LatestRoundRequested should return zero values, not an error.
+	// An error should only be returned if an actual error occurred during execution,
+	// e.g. because there was an error querying the blockchain or the database.
+	//
+	// As an optimization, this function may also return zero values, if no
+	// RoundRequested event has been emitted after the latest NewTransmission event.
+	LatestRoundRequested(
+		ctx context.Context,
+		lookback time.Duration,
+	) (
+		configDigest ConfigDigest,
+		epoch uint32,
+		round uint8,
+		err error,
+	)
+
 	FromAddress() common.Address
 }
 
@@ -151,6 +189,7 @@ type ContractConfigTracker interface {
 type ContractConfigSubscription interface {
 	// May be closed by sender at any time
 	Configs() <-chan ContractConfig
+	// Calling this multiple times may return an error, but must not panic.
 	Close()
 }
 

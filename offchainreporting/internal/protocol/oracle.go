@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -23,7 +24,7 @@ func RunOracle(
 	id types.OracleID,
 	keys types.PrivateKeys,
 	localConfig types.LocalConfig,
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 	netEndpoint NetworkEndpoint,
 	telemetrySender TelemetrySender,
 ) {
@@ -53,7 +54,7 @@ type oracleState struct {
 	datasource          types.DataSource
 	id                  types.OracleID
 	localConfig         types.LocalConfig
-	logger              types.Logger
+	logger              loghelper.LoggerWithContext
 	netEndpoint         NetworkEndpoint
 	PrivateKeys         types.PrivateKeys
 	telemetrySender     TelemetrySender

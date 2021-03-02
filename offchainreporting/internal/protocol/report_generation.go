@@ -25,7 +25,7 @@ func RunReportGeneration(
 	id types.OracleID,
 	l types.OracleID,
 	localConfig types.LocalConfig,
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 	netSender NetworkSender,
 	privateKeys types.PrivateKeys,
 	telemetrySender TelemetrySender,
@@ -44,7 +44,7 @@ func RunReportGeneration(
 		id:                               id,
 		l:                                l,
 		localConfig:                      localConfig,
-		logger:                           loghelper.MakeLoggerWithContext(logger, types.LogFields{"epoch": e, "leader": l}),
+		logger:                           logger.MakeChild(types.LogFields{"epoch": e, "leader": l}),
 		netSender:                        netSender,
 		privateKeys:                      privateKeys,
 		telemetrySender:                  telemetrySender,
@@ -66,7 +66,7 @@ type reportGenerationState struct {
 	id                               types.OracleID
 	l                                types.OracleID // Current leader number
 	localConfig                      types.LocalConfig
-	logger                           types.Logger
+	logger                           loghelper.LoggerWithContext
 	netSender                        NetworkSender
 	privateKeys                      types.PrivateKeys
 	telemetrySender                  TelemetrySender

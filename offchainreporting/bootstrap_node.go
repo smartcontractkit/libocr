@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"golang.org/x/sync/semaphore"
@@ -55,6 +56,7 @@ func (b *BootstrapNode) Start() error {
 	b.cancel = cancel
 	b.subprocesses.Go(func() {
 		defer cancel()
+		logger := loghelper.MakeRootLoggerWithContext(b.bootstrapArgs.Logger)
 		managed.RunManagedBootstrapNode(
 			ctx,
 
@@ -63,7 +65,7 @@ func (b *BootstrapNode) Start() error {
 			b.bootstrapArgs.ContractConfigTracker,
 			b.bootstrapArgs.Database,
 			b.bootstrapArgs.LocalConfig,
-			b.bootstrapArgs.Logger,
+			logger,
 		)
 	})
 	return nil

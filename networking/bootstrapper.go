@@ -2,12 +2,13 @@ package networking
 
 import (
 	"context"
+	"sync"
+
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 	dhtrouter "github.com/smartcontractkit/libocr/networking/dht-router"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
-	"sync"
 )
 
 var (
@@ -19,7 +20,7 @@ type bootstrapper struct {
 	peerAllowlist    map[p2ppeer.ID]struct{}
 	bootstrappers    []p2ppeer.AddrInfo
 	routing          dhtrouter.PeerDiscoveryRouter
-	logger           types.Logger
+	logger           loghelper.LoggerWithContext
 	configDigest     types.ConfigDigest
 	ctx              context.Context
 	ctxCancel        context.CancelFunc
@@ -36,7 +37,7 @@ const (
 	bootstrapperClosed
 )
 
-func newBootstrapper(logger types.Logger, configDigest types.ConfigDigest,
+func newBootstrapper(logger loghelper.LoggerWithContext, configDigest types.ConfigDigest,
 	peer *concretePeer, peerIDs []p2ppeer.ID, bootstrappers []p2ppeer.AddrInfo, F int) (*bootstrapper, error) {
 	allowlist := make(map[p2ppeer.ID]struct{})
 	for _, pid := range peerIDs {
@@ -48,7 +49,7 @@ func newBootstrapper(logger types.Logger, configDigest types.ConfigDigest,
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	logger = loghelper.MakeLoggerWithContext(logger, types.LogFields{
+	logger = logger.MakeChild(types.LogFields{
 		"id":           "OCREndpoint",
 		"configDigest": configDigest.Hex(),
 	})

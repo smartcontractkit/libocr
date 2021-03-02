@@ -52,7 +52,7 @@ type concretePeer struct {
 	p2phost.Host
 	tls            *knockingtls.KnockingTLSTransport
 	gater          *connectionGater
-	logger         types.Logger
+	logger         loghelper.LoggerWithContext
 	endpointConfig EndpointConfig
 	registrants    map[types.ConfigDigest]struct{}
 	registrantsMu  *sync.Mutex
@@ -83,7 +83,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not make listen multiaddr")
 	}
 
-	logger := loghelper.MakeLoggerWithContext(c.Logger, types.LogFields{
+	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(types.LogFields{
 		"id":         "Peer",
 		"peerID":     peerID.Pretty(),
 		"listenPort": c.ListenPort,
