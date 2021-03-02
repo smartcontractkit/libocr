@@ -10,6 +10,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/persist"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"golang.org/x/crypto/sha3"
@@ -34,7 +35,7 @@ func RunPacemaker(
 	datasource types.DataSource,
 	id types.OracleID,
 	localConfig types.LocalConfig,
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 	netSender NetworkSender,
 	privateKeys types.PrivateKeys,
 	telemetrySender TelemetrySender,
@@ -76,7 +77,7 @@ type pacemakerState struct {
 	datasource                       types.DataSource
 	id                               types.OracleID
 	localConfig                      types.LocalConfig
-	logger                           types.Logger
+	logger                           loghelper.LoggerWithContext
 	netSender                        NetworkSender
 	privateKeys                      types.PrivateKeys
 	telemetrySender                  TelemetrySender
@@ -196,7 +197,7 @@ func (pace *pacemakerState) restoreStateFromDatabase() {
 	}
 
 	if err != nil {
-		pace.logger.Error("Pacemaker: Unexpected error while restoring state from database", types.LogFields{
+		pace.logger.ErrorIfNotCanceled("Pacemaker: error while restoring state from database", pace.ctx, types.LogFields{
 			"error": err,
 		})
 		return

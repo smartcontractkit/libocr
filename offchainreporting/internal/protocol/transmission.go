@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/permutation"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -31,7 +32,7 @@ func RunTransmission(
 	database types.Database,
 	id types.OracleID,
 	localConfig types.LocalConfig,
-	logger types.Logger,
+	logger loghelper.LoggerWithContext,
 	transmitter types.ContractTransmitter,
 ) {
 	t := transmissionState{
@@ -58,7 +59,7 @@ type transmissionState struct {
 	database                         types.Database
 	id                               types.OracleID
 	localConfig                      types.LocalConfig
-	logger                           types.Logger
+	logger                           loghelper.LoggerWithContext
 	transmitter                      types.ContractTransmitter
 
 	latestEpochRound EpochRound
@@ -96,7 +97,7 @@ func (t *transmissionState) restoreFromDatabase() {
 	defer childCancel()
 	pending, err := t.database.PendingTransmissionsWithConfigDigest(childCtx, t.config.ConfigDigest)
 	if err != nil {
-		t.logger.Error("Error fetching pending transmissions from database", types.LogFields{"error": err})
+		t.logger.ErrorIfNotCanceled("Transmission: error fetching pending transmissions from database", childCtx, types.LogFields{"error": err})
 		return
 	}
 
