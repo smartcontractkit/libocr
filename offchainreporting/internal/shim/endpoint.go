@@ -53,6 +53,7 @@ func (n *SerializingEndpoint) sendTelemetry(t *protobuf.TelemetryWrapper) {
 	select {
 	case n.chTelemetry <- t:
 	default:
+		n.logger.Warn("TELEMETRY MESSAGE DROPPED", types.LogFields{"t": t})
 	}
 }
 
