@@ -19,7 +19,6 @@ func (ts TelemetrySender) send(t *protobuf.TelemetryWrapper) {
 	select {
 	case ts.chTelemetry <- t:
 	default:
-		n.logger.Warn("TELEMETRY MESSAGE DROPPED", types.LogFields{"t": t})		
 	}
 }
 
