@@ -37,7 +37,15 @@ func forwardTelemetry(
 				break
 			}
 			if monitoringEndpoint != nil {
+				logger.Debug("forwardTelemetry: Calling SendLog", types.LogFields{
+					"t": t,
+					"bin": bin,
+				}
 				monitoringEndpoint.SendLog(bin)
+				logger.Debug("forwardTelemetry: Done calling SendLog", types.LogFields{
+					"t": t,
+					"bin": bin,
+				}					     
 			}
 		case <-ctx.Done():
 			logger.Info("forwardTelemetry: exiting", nil)
