@@ -71,6 +71,18 @@ type managedOracleState struct {
 }
 
 func (mo *managedOracleState) run() {
+	{
+		chTelemetry := make(chan *protobuf.TelemetryWrapper, 100)
+		mo.chTelemetry = chTelemetry
+		mo.otherSubprocesses.Go(func() {
+			forwardTelemetry(mo.ctx, mo.logger, mo.monitoringEndpoint, chTelemetry)
+		})
+	}
+
+	mo.otherSubprocesses.Go(func() {
+		collectGarbage(mo.ctx, mo.database, mo.localConfig, mo.logger)
+	})
+
 	// Restore config from database, so that we can run even if the ethereum node
 	// isn't working.
 	{
@@ -91,19 +103,10 @@ func (mo *managedOracleState) run() {
 		}
 	}
 
-	chTelemetry := make(chan *protobuf.TelemetryWrapper, 100)
-	mo.chTelemetry = chTelemetry
-	mo.otherSubprocesses.Go(func() {
-		forwardTelemetry(mo.ctx, mo.logger, mo.monitoringEndpoint, chTelemetry)
-	})
-
+	// Only start tracking config after we attempted to load config from db
 	chNewConfig := make(chan types.ContractConfig, 5)
 	mo.otherSubprocesses.Go(func() {
 		TrackConfig(mo.ctx, mo.configTracker, mo.config.ConfigDigest, mo.localConfig, mo.logger, chNewConfig)
-	})
-
-	mo.otherSubprocesses.Go(func() {
-		collectGarbage(mo.ctx, mo.database, mo.localConfig, mo.logger)
 	})
 
 	for {
