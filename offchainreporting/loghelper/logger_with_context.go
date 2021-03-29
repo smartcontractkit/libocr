@@ -24,30 +24,30 @@ func MakeRootLoggerWithContext(logger types.Logger) LoggerWithContext {
 }
 
 func (l loggerWithContextImpl) Trace(msg string, fields types.LogFields) {
-	l.logger.Trace(msg, merge(l.context, fields))
+	l.logger.Trace(msg, Merge(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Debug(msg string, fields types.LogFields) {
-	l.logger.Debug(msg, merge(l.context, fields))
+	l.logger.Debug(msg, Merge(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Info(msg string, fields types.LogFields) {
-	l.logger.Info(msg, merge(l.context, fields))
+	l.logger.Info(msg, Merge(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Warn(msg string, fields types.LogFields) {
-	l.logger.Warn(msg, merge(l.context, fields))
+	l.logger.Warn(msg, Merge(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Error(msg string, fields types.LogFields) {
-	l.logger.Error(msg, merge(l.context, fields))
+	l.logger.Error(msg, Merge(l.context, fields))
 }
 
 func (l loggerWithContextImpl) ErrorIfNotCanceled(msg string, ctx context.Context, fields types.LogFields) {
 	if ctx.Err() != context.Canceled {
-		l.logger.Error(msg, merge(l.context, fields))
+		l.logger.Error(msg, Merge(l.context, fields))
 	} else {
-		l.logger.Debug("logging as debug due to context cancelation: "+msg, merge(l.context, fields))
+		l.logger.Debug("logging as debug due to context cancelation: "+msg, Merge(l.context, fields))
 	}
 }
 
@@ -56,15 +56,15 @@ func (l loggerWithContextImpl) ErrorIfNotCanceled(msg string, ctx context.Contex
 func (l loggerWithContextImpl) MakeChild(extra types.LogFields) LoggerWithContext {
 	return loggerWithContextImpl{
 		l.logger,
-		merge(l.context, extra),
+		Merge(l.context, extra),
 	}
 }
 
 // Helpers
 
-// merge will create a new LogFields and add all the properties from extras on it.
+// Merge will create a new LogFields and add all the properties from extras on it.
 // Key conflicts are resolved by prefixing the pkey for the new value with underscores until there's no overwrite.
-func merge(extras ...types.LogFields) types.LogFields {
+func Merge(extras ...types.LogFields) types.LogFields {
 	base := types.LogFields{}
 	for _, extra := range extras {
 		for k, v := range extra {

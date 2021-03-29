@@ -40,7 +40,27 @@ func RunPacemaker(
 	privateKeys types.PrivateKeys,
 	telemetrySender TelemetrySender,
 ) {
-	pace := pacemakerState{
+	pace := makePacemakerState(
+		ctx, subprocesses, chNetToPacemaker, chNetToReportGeneration,
+		chReportGenerationToTransmission, config, contractTransmitter, database,
+		datasource, id, localConfig, logger, netSender, privateKeys,
+		telemetrySender,
+	)
+	pace.run()
+}
+
+func makePacemakerState(ctx context.Context,
+	subprocesses *subprocesses.Subprocesses,
+	chNetToPacemaker <-chan MessageToPacemakerWithSender,
+	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
+	chReportGenerationToTransmission chan<- EventToTransmission,
+	config config.SharedConfig, contractTransmitter types.ContractTransmitter,
+	database types.Database, datasource types.DataSource, id types.OracleID,
+	localConfig types.LocalConfig, logger loghelper.LoggerWithContext,
+	netSender NetworkSender, privateKeys types.PrivateKeys,
+	telemetrySender TelemetrySender,
+) pacemakerState {
+	return pacemakerState{
 		ctx:          ctx,
 		subprocesses: subprocesses,
 
@@ -60,7 +80,6 @@ func RunPacemaker(
 
 		newepoch: make([]uint32, config.N()),
 	}
-	pace.run()
 }
 
 type pacemakerState struct {
@@ -81,6 +100,10 @@ type pacemakerState struct {
 	netSender                        NetworkSender
 	privateKeys                      types.PrivateKeys
 	telemetrySender                  TelemetrySender
+	// Test use only: send testBlocker an event to halt the pacemaker event loop,
+	// send testUnblocker an event to resume it.
+	testBlocker   chan eventTestBlock
+	testUnblocker chan eventTestUnblock
 
 	cancelReportGeneration context.CancelFunc
 
@@ -134,7 +157,7 @@ func (pace *pacemakerState) run() {
 	// this also gives us cleaner behavior for the initial epoch, which is otherwise
 	// immediately terminated and superseded due to restoreNeFromTransmitter below
 	pace.e = 1
-	pace.l = leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
+	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
 
 	// Attempt to restore state from database. This is implicit in the
 	// design document.
@@ -165,6 +188,8 @@ func (pace *pacemakerState) run() {
 			pace.eventTResendTimeout()
 		case <-pace.tProgress:
 			pace.eventTProgressTimeout()
+		case <-pace.testBlocker:
+			<-pace.testUnblocker
 		case <-chDone:
 		}
 
@@ -228,7 +253,7 @@ func (pace *pacemakerState) restoreStateFromDatabase() {
 	for i, e := range state.HighestReceivedEpoch {
 		pace.newepoch[i] = e
 	}
-	pace.l = leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
+	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
 	pace.logger.Info("Restored state from database", types.LogFields{
 		"epoch":  pace.e,
 		"leader": pace.l,
@@ -391,7 +416,7 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.Or
 				"newEpoch":        newEpoch,
 				"candidateEpochs": candidateEpochs,
 			})
-			l := leader(newEpoch, pace.config.N(), pace.config.LeaderSelectionKey())
+			l := Leader(newEpoch, pace.config.N(), pace.config.LeaderSelectionKey())
 			pace.e, pace.l = newEpoch, l // (e, l) ← (ē, leader(ē))
 			if pace.ne < pace.e {        // ne ← max{ne, e}
 				pace.ne = pace.e
@@ -415,30 +440,36 @@ func (pace *pacemakerState) spawnReportGeneration() {
 	pace.chReportGenerationToPacemaker = chReportGenerationToPacemaker
 
 	ctxReportGeneration, cancelReportGeneration := context.WithCancel(pace.ctx)
+
+	// Take a copy of the pacemaker, to avoid a race condition between the
+	// following go func and the agreement section of messageNewepoch, which
+	// assigns new values to some pace attributes. This race condition will never
+	// happen, given a reasonable value for DeltaProgress, but
+	// TestPacemakerNodesEventuallyReachEpochConsensus has an unreasonable value.
+	p := *pace
 	pace.subprocesses.Go(func() {
 		defer cancelReportGeneration()
 		RunReportGeneration(
 			ctxReportGeneration,
-			pace.subprocesses,
+			p.subprocesses,
 
-			pace.chNetToReportGeneration,
+			p.chNetToReportGeneration,
 			chReportGenerationToPacemaker,
-			pace.chReportGenerationToTransmission,
-			pace.config,
-			pace.contractTransmitter,
-			pace.datasource,
-			pace.e,
-			pace.id,
-			pace.l,
-			pace.localConfig,
-			pace.logger,
-			pace.netSender,
-			pace.privateKeys,
-			pace.telemetrySender,
+			p.chReportGenerationToTransmission,
+			p.config,
+			p.contractTransmitter,
+			p.datasource,
+			p.e,
+			p.id,
+			p.l,
+			p.localConfig,
+			p.logger,
+			p.netSender,
+			p.privateKeys,
+			p.telemetrySender,
 		)
 	})
 	pace.cancelReportGeneration = cancelReportGeneration
-
 }
 
 // sortedGreaterThan returns the *sorted* elements of xs which are greater than y
@@ -452,7 +483,8 @@ func sortedGreaterThan(xs []uint32, y uint32) (rv []uint32) {
 	return rv
 }
 
-func leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
+// Leader will produce an oracle id for the given epoch.
+func Leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
 	// No need for HMAC. Since we use Keccak256, prepending
 	// with key gives us a PRF already.
 	h := sha3.NewLegacyKeccak256()
@@ -468,3 +500,6 @@ func leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
 	result.Mod(r, big.NewInt(int64(n)))
 	return types.OracleID(result.Int64())
 }
+
+type eventTestBlock struct{}
+type eventTestUnblock struct{}

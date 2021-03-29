@@ -10,7 +10,7 @@ import (
 func loadConfigFromDatabase(ctx context.Context, database types.Database, logger loghelper.LoggerWithContext) *types.ContractConfig {
 	cc, err := database.ReadConfig(ctx)
 	if err != nil {
-		logger.Error("loadConfigFromDatabase: Error during Database.ReadConfig", types.LogFields{
+		logger.ErrorIfNotCanceled("loadConfigFromDatabase: Error during Database.ReadConfig", ctx, types.LogFields{
 			"error": err,
 		})
 		return nil
