@@ -8,6 +8,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
+	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -24,6 +25,7 @@ type SerializingEndpoint struct {
 	closedChOut  bool
 	chCancel     chan struct{}
 	chOut        chan protocol.MessageWithSender
+	taper        loghelper.LogarithmicTaper
 }
 
 var _ protocol.NetworkEndpoint = (*SerializingEndpoint)(nil)
@@ -46,13 +48,24 @@ func NewSerializingEndpoint(
 		false,
 		make(chan struct{}),
 		make(chan protocol.MessageWithSender),
+		loghelper.LogarithmicTaper{},
 	}
 }
 
 func (n *SerializingEndpoint) sendTelemetry(t *protobuf.TelemetryWrapper) {
 	select {
 	case n.chTelemetry <- t:
+		n.taper.Reset(func(oldCount uint64) {
+			n.logger.Info("SerializingEndpoint: stopped dropping telemetry", types.LogFields{
+				"droppedCount": oldCount,
+			})
+		})
 	default:
+		n.taper.Trigger(func(newCount uint64) {
+			n.logger.Warn("SerializingEndpoint: dropping telemetry", types.LogFields{
+				"droppedCount": newCount,
+			})
+		})
 	}
 }
 

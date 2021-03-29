@@ -61,11 +61,11 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 		return
 	}
 
-	// msg.Round>0, because msg.Round>repgen.followerState.r, and the initial
-	// value of repgen.followerState.r is zero. msg.Round<=repgen.config.RMax
-	// thus ensures that at most rMax rounds are possible for the current leader.
 	repgen.followerState.r = msg.Round
 
+	// msg.Round>0, because msg.Round>repgen.followerState.r, and the initial
+	// value of repgen.followerState.r is zero. msg.Round<=repgen.config.RMax
+	// thus ensures that at most RMax rounds are possible for the current leader.
 	if repgen.followerState.r > repgen.config.RMax {
 		repgen.logger.Debug(
 			"messageReportReq: leader sent MessageObserveReq past its expiration "+
@@ -82,6 +82,8 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 
 		return
 	}
+	// Re-initialize follower state, in preparation for the next round
+	//
 	// A malicious leader could reset these values by sending an observeReq later
 	// in the protocol, but they would only harm themselves, because that would
 	// advance the follower's view of the current epoch's round, which only
@@ -458,7 +460,7 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 
 	answer, err := observation.MakeObservation(resultTransmissionDetails.latestAnswer)
 	if err != nil {
-		repgen.logger.Error("shouldReport: Error during observation.NewObservation", types.LogFields{
+		repgen.logger.Error("shouldReport: Error during observation.MakeObservation", types.LogFields{
 			"round": repgen.followerState.r,
 			"error": err,
 		})
@@ -481,11 +483,13 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 				Less(EpochRound{resultTransmissionDetails.epoch, resultTransmissionDetails.round})
 
 	logger := repgen.logger.MakeChild(types.LogFields{
-		"round":              repgen.followerState.r,
-		"initialRound":       initialRound,
-		"deviation":          deviation,
-		"deltaCTimeout":      deltaCTimeout,
-		"unfulfilledRequest": unfulfilledRequest,
+		"round":                     repgen.followerState.r,
+		"initialRound":              initialRound,
+		"deviation":                 deviation,
+		"deltaC":                    repgen.config.DeltaC,
+		"deltaCTimeout":             deltaCTimeout,
+		"lastTransmissionTimestamp": resultTransmissionDetails.latestTimestamp,
+		"unfulfilledRequest":        unfulfilledRequest,
 	})
 
 	// The following is more succinctly expressed as a disjunction, but breaking
