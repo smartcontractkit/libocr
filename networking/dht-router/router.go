@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/multiformats/go-multiaddr"
 	"strings"
 	"time"
 
@@ -99,13 +101,20 @@ func (router DHTRouter) Start() {
 		// start a thread to re-connect to all bootstrap nodes every router.config.bootstrapCheckInterval
 		router.processes.RepeatWithCancel("bootstrap", router.config.bootstrapCheckInterval, router.ctx, func() {
 			toConnect := false
+			connectivity := make(map[peer.ID]bool)
+
 			for _, p := range router.config.bootstrapNodes {
+				connectivity[p.ID] = router.aclHost.Network().Connectedness(p.ID) == network.Connected
 				// reconnect if any connection is lost.
 				if router.aclHost.Network().Connectedness(p.ID) != network.Connected {
 					toConnect = true
-					break
 				}
 			}
+
+			router.logger().Debug("checking connectivity", types.LogFields{
+				"peers":        router.dht.Host().Network().Peers(),
+				"connectivity": connectivity,
+			})
 
 			if toConnect {
 				router.logger().Debug("connect to bootstrap nodes", types.LogFields{
@@ -122,7 +131,8 @@ func (router DHTRouter) Start() {
 
 		if router.config.extendedDHTLogging {
 			// default RT refresh time in libp2p is 10 minutes
-			router.printPeriodicReport(10 * time.Minute)
+			// XXX: Set to 2 minutes for temporary, debugging purposes.
+			router.printPeriodicReport(2 * time.Minute)
 		}
 	})
 }
@@ -327,11 +337,32 @@ func (router DHTRouter) printPeriodicReport(interval time.Duration) {
 			peerAddrs[myPeer.Pretty()] = addrs
 		}
 
+		var connections []struct {
+			peerID    peer.ID
+			maddr     multiaddr.Multiaddr
+			protocols []p2pprotocol.ID
+			stat      network.Stat
+		}
+		for _, c := range router.dht.Host().Network().Conns() {
+			var protocols []p2pprotocol.ID
+			for _, s := range c.GetStreams() {
+				protocols = append(protocols, s.Protocol())
+			}
+
+			connections = append(connections, struct {
+				peerID    peer.ID
+				maddr     core.Multiaddr
+				protocols []p2pprotocol.ID
+				stat      network.Stat
+			}{c.RemotePeer(), c.RemoteMultiaddr(), protocols, c.Stat()})
+		}
+
 		router.logger().Debug("DHT periodical report", types.LogFields{
-			"protocolID": router.config.ProtocolID(),
-			"acl":        router.aclHost.GetACL(),
-			"rt":         rtString,
-			"peerstore":  peerAddrs,
+			"protocolID":  router.config.ProtocolID(),
+			"acl":         router.aclHost.GetACL(),
+			"rt":          rtString,
+			"peerstore":   peerAddrs,
+			"connections": connections,
 		})
 	})
 }

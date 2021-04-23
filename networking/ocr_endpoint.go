@@ -257,7 +257,7 @@ func (o *ocrEndpoint) setupDHT() (err error) {
 		o.logger,
 		o.config.BootstrapCheckInterval,
 		o.failureThreshold,
-		false,
+		true, // XXX: set to true for debug. Should not do this in production.
 		o.peer.dhtAnnouncementCounterUserPrefix,
 	)
 
