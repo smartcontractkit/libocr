@@ -3,6 +3,7 @@ package dhtrouter
 import (
 	"context"
 	"fmt"
+	golog "github.com/ipfs/go-log"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/host"
@@ -82,6 +83,17 @@ func newDHT(ctx context.Context, config DHTNodeConfig, aclHost ACLHost) (*dht.Ip
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create new DHT")
+	}
+
+	// set libp2p logging level accordingly
+	if config.extendedDHTLogging {
+		// dht uses golog. here we set it up.
+		golog.SetAllLoggers(golog.LevelDebug)
+		_ = golog.SetLogLevel("dht-rt", "debug")
+		_ = golog.SetLogLevel("dht/RtRefreshManager", "info")
+		_ = golog.SetLogLevel("swarm2", "debug")
+		_ = golog.SetLogLevel("dht", "debug")
+		_ = golog.SetLogLevel("addrutil", "info")
 	}
 
 	// this simply starts the routing table manager thread

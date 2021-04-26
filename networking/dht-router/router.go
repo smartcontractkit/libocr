@@ -99,13 +99,25 @@ func (router DHTRouter) Start() {
 		// start a thread to re-connect to all bootstrap nodes every router.config.bootstrapCheckInterval
 		router.processes.RepeatWithCancel("bootstrap", router.config.bootstrapCheckInterval, router.ctx, func() {
 			toConnect := false
+			var connected []string
+			var disconnected []string
+
 			for _, p := range router.config.bootstrapNodes {
 				// reconnect if any connection is lost.
 				if router.aclHost.Network().Connectedness(p.ID) != network.Connected {
 					toConnect = true
-					break
+					disconnected = append(connected, p.ID.String())
+				} else {
+					connected = append(connected, p.ID.String())
 				}
 			}
+
+			router.logger().Debug("checking connectivity", types.LogFields{
+				"#peers":              len(router.dht.Host().Network().Peers()),
+				"#connectedBNodes":    len(connected),
+				"#disconnectedBNodes": len(disconnected),
+				"disconnectedBNodes":  disconnected,
+			})
 
 			if toConnect {
 				router.logger().Debug("connect to bootstrap nodes", types.LogFields{
@@ -122,7 +134,8 @@ func (router DHTRouter) Start() {
 
 		if router.config.extendedDHTLogging {
 			// default RT refresh time in libp2p is 10 minutes
-			router.printPeriodicReport(10 * time.Minute)
+			// XXX: Set to 2 minutes for temporary, debugging purposes.
+			router.printPeriodicReport(2 * time.Minute)
 		}
 	})
 }
@@ -327,11 +340,26 @@ func (router DHTRouter) printPeriodicReport(interval time.Duration) {
 			peerAddrs[myPeer.Pretty()] = addrs
 		}
 
+		cons := router.dht.Host().Network().Conns()
+		consString := []string{fmt.Sprintf("has %d conns", len(cons))}
+
+		for _, c := range router.dht.Host().Network().Conns() {
+			protocols := ""
+			for _, s := range c.GetStreams() {
+				protocols += string(s.Protocol())
+				protocols += ", "
+			}
+
+			consString = append(consString, fmt.Sprintf("[peerID=%s, protocols=[%s]]",
+				c.RemotePeer().String(),
+				protocols))
+		}
+
 		router.logger().Debug("DHT periodical report", types.LogFields{
-			"protocolID": router.config.ProtocolID(),
-			"acl":        router.aclHost.GetACL(),
-			"rt":         rtString,
-			"peerstore":  peerAddrs,
+			"acl":         router.aclHost.GetACL(),
+			"rt":          rtString,
+			"peerstore":   peerAddrs,
+			"connections": consString,
 		})
 	})
 }
