@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	"golang.org/x/time/rate"
 
 	p2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
@@ -17,6 +19,7 @@ import (
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/pkg/errors"
 	dhtrouter "github.com/smartcontractkit/libocr/networking/dht-router"
+	"github.com/smartcontractkit/libocr/networking/knockingtls"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
@@ -95,8 +98,12 @@ type ocrEndpoint struct {
 
 	logger loghelper.LoggerWithContext
 
-	// a map of rate limiters, one for each peer
-	recvRateLimiters map[types.OracleID]limiter
+	// a map of rate limiters for incoming messages. One limiter for each remote peer.
+	recvMessageRateLimiters map[types.OracleID]*rate.Limiter
+
+	// when this endpoint terminates, the all the peers' bandwidth rate limiters needs to
+	// be updated to lower the allowed limits.
+	lowerBandwidthLimits func()
 }
 
 const (
@@ -124,6 +131,10 @@ func newOCREndpoint(
 	tokenBucketRefillRate float64,
 	tokenBucketSize int,
 ) (*ocrEndpoint, error) {
+
+	lowerBandwidthLimits := increaseBandwidthLimits(peer.bandwidthLimiters, peerIDs,
+		bootstrappers, tokenBucketRefillRate, tokenBucketSize, logger)
+
 	peerMapping := make(map[types.OracleID]p2ppeer.ID)
 	for i, peerID := range peerIDs {
 		peerMapping[types.OracleID(i)] = peerID
@@ -137,13 +148,13 @@ func newOCREndpoint(
 	chRecvs := make(map[types.OracleID]chan []byte)
 	chSends := make(map[types.OracleID]chan []byte)
 	muSends := make(map[types.OracleID]*sync.Mutex)
-	recvRateLimiters := make(map[types.OracleID]limiter)
+	recvMessageRateLimiters := make(map[types.OracleID]*rate.Limiter)
 	for oid := range peerMapping {
 		if oid != ownOracleID {
 			chRecvs[oid] = make(chan []byte, config.IncomingMessageBufferSize)
 			chSends[oid] = make(chan []byte, config.OutgoingMessageBufferSize)
 			muSends[oid] = new(sync.Mutex)
-			recvRateLimiters[oid] = newLimiter(tokenBucketRefillRate, tokenBucketSize)
+			recvMessageRateLimiters[oid] = rate.NewLimiter(rate.Limit(tokenBucketRefillRate), tokenBucketSize)
 		}
 	}
 
@@ -195,8 +206,42 @@ func newOCREndpoint(
 		cancel,
 		make(chan types.BinaryMessageWithSender),
 		logger,
-		recvRateLimiters,
+		recvMessageRateLimiters,
+		lowerBandwidthLimits,
 	}, nil
+}
+
+func increaseBandwidthLimits(
+	bandwidthLimiters *knockingtls.Limiters, peerIDs []p2ppeer.ID, bootstrappers []p2ppeer.AddrInfo,
+	tokenBucketRefillRate float64, tokenBucketSize int, logger types.Logger,
+) func() {
+	// When a new endpoint is created, update the rate limiters for all the peers in the current feed.
+	refillRate := int64(math.Ceil(tokenBucketRefillRate * MaxMsgLength))
+	size := tokenBucketSize * MaxMsgLength
+
+	bootstrapperIDs := make([]p2ppeer.ID, len(bootstrappers))
+	for idx, addr := range bootstrappers {
+		bootstrapperIDs[idx] = addr.ID
+	}
+	bandwidthLimiters.IncreaseLimits(peerIDs, refillRate, size)
+	bandwidthLimiters.IncreaseLimits(bootstrapperIDs, refillRate, size)
+	logger.Info("bandwidthLimiters limits increased for peers", types.LogFields{
+		"remotePeerIDs":              peerIDs,
+		"bootstrapPeerIDs":           bootstrapperIDs,
+		"tokenBucketRefillRateDelta": refillRate,
+		"tokenBucketSizeDeltaDelta":  size,
+	})
+	return func() {
+		// When the endpoint is deleted, update the rate limiters for all the peers in the current feed.
+		bandwidthLimiters.IncreaseLimits(peerIDs, -refillRate, -size)
+		bandwidthLimiters.IncreaseLimits(bootstrapperIDs, -refillRate, -size)
+		logger.Info("bandwidthLimiters limits decreased for peers", types.LogFields{
+			"remotePeerIDs":              peerIDs,
+			"bootstrapPeerIDs":           bootstrapperIDs,
+			"tokenBucketRefillRateDelta": -refillRate,
+			"tokenBucketSizeDelta":       -size,
+		})
+	}
 }
 
 func reverseMapping(m map[types.OracleID]p2ppeer.ID) map[p2ppeer.ID]types.OracleID {
@@ -489,6 +534,9 @@ func (o *ocrEndpoint) Close() error {
 	o.logger.Debug("OCREndpoint: Closing o.recv", nil)
 	close(o.recv)
 
+	o.logger.Debug("OCREndpoint: lowering bandwidth limits when closing the endpoint", nil)
+	o.lowerBandwidthLimits()
+
 	o.logger.Info("OCREndpoint: Closed", nil)
 	return nil
 }
@@ -523,7 +571,7 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 		return
 	}
 	r := bufio.NewReader(s)
-	l := o.recvRateLimiters[sender]
+	l := o.recvMessageRateLimiters[sender]
 	var countDropped uint64
 	for {
 		// Apply the rate limiter.
@@ -637,8 +685,10 @@ func (o *ocrEndpoint) SendTo(payload []byte, to types.OracleID) {
 	default:
 		select {
 		case <-chSend:
+			peerID, _ := o.peerMapping[to]
 			o.logger.Warn("Send buffer full, dropping oldest message", types.LogFields{
 				"remoteOracleID": to,
+				"remotePeerID":   peerID,
 			})
 			chSend <- payload
 		default:

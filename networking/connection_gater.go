@@ -9,11 +9,20 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"golang.org/x/time/rate"
 )
 
-type
+// Rate limits for inbound connection establishment. The limits are per-peer.
+// Note that we only rateLimit inbound connections *after* authentication
+// has taken place. This is to prevent an attacker from spoofing their identity
+// and exhausting an honest node's rate limit.
+const (
+	maxConnectionsPerSecond = .5
+	maxConnectionsBurst     = 2
+)
+
 // allower controls which peers are allowed
-allower interface {
+type allower interface {
 	isAllowed(p2ppeer.ID) bool
 	allowlist() []p2ppeer.ID
 }
@@ -21,9 +30,10 @@ allower interface {
 // Allowers are OR'd together. As long as the remote peer is allowed by one of
 // the allowers, the connection will be allowed.
 type connectionGater struct {
-	allowers    map[allower]struct{}
-	allowersMtx sync.RWMutex
-	logger      loghelper.LoggerWithContext
+	connLimiters map[p2ppeer.ID]*rate.Limiter
+	allowers     map[allower]struct{}
+	mutex        sync.RWMutex
+	logger       loghelper.LoggerWithContext
 }
 
 func newConnectionGater(logger loghelper.LoggerWithContext) (*connectionGater, error) {
@@ -34,15 +44,16 @@ func newConnectionGater(logger loghelper.LoggerWithContext) (*connectionGater, e
 	})
 
 	return &connectionGater{
-		allowers:    allowers,
-		allowersMtx: sync.RWMutex{},
-		logger:      logger,
+		connLimiters: map[p2ppeer.ID]*rate.Limiter{},
+		allowers:     allowers,
+		mutex:        sync.RWMutex{},
+		logger:       logger,
 	}, nil
 }
 
 func (c *connectionGater) add(g allower) {
-	c.allowersMtx.Lock()
-	defer c.allowersMtx.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if _, exists := c.allowers[g]; exists {
 		panic("allower has already been added")
 	}
@@ -50,32 +61,46 @@ func (c *connectionGater) add(g allower) {
 }
 
 func (c *connectionGater) remove(g allower) {
-	c.allowersMtx.Lock()
-	defer c.allowersMtx.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if _, exists := c.allowers[g]; !exists {
 		panic("allower is not in list")
 	}
 	delete(c.allowers, g)
 }
 
-func (c *connectionGater) isAllowed(id p2ppeer.ID) bool {
-	c.allowersMtx.RLock()
-	defer c.allowersMtx.RUnlock()
+func (c *connectionGater) isAllowed(id p2ppeer.ID, checkRateLimit bool) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	oneAllowerPasses := false
 	for g := range c.allowers {
 		if g.isAllowed(id) {
-			return true
+			oneAllowerPasses = true
+			break
 		}
 	}
-	c.logger.Warn("ConnectionGater: denied access", types.LogFields{
-		"remotePeerID": id,
-	})
-	return false
+	if !oneAllowerPasses {
+		c.logger.Warn("ConnectionGater: denied access", types.LogFields{
+			"remotePeerID": id,
+		})
+		return false
+	}
+	if !checkRateLimit {
+		return true
+	}
+	// instantiate new limiter if needed
+	_, found := c.connLimiters[id]
+	if !found {
+		c.connLimiters[id] = rate.NewLimiter(maxConnectionsPerSecond, maxConnectionsBurst)
+	}
+	return c.connLimiters[id].Allow()
 }
 
 // Returns the full set of peers allowlisted by the current allowers
 func (c *connectionGater) allowlist() (allowlist []p2ppeer.ID) {
-	c.allowersMtx.RLock()
-	defer c.allowersMtx.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	set := make(map[p2ppeer.ID]struct{})
 
 	for a := range c.allowers {
@@ -110,8 +135,9 @@ func (c *connectionGater) InterceptAccept(p2pnetwork.ConnMultiaddrs) (allow bool
 // resolved the peer's addrs, and prior to dialling each.
 //
 // Implementation restricts incoming peer IDs to those present in our oracle mappings.
+// We don't apply bandwidth limiting at this point because we want the peer to authenticate first.
 func (c *connectionGater) InterceptAddrDial(id p2ppeer.ID, _ ma.Multiaddr) (allow bool) {
-	return c.isAllowed(id)
+	return c.isAllowed(id, false)
 }
 
 // InterceptPeerDial tests whether we're permitted to Dial the specified peer.
@@ -119,8 +145,9 @@ func (c *connectionGater) InterceptAddrDial(id p2ppeer.ID, _ ma.Multiaddr) (allo
 // This is called by the network.Network implementation when dialling a peer.
 //
 // Implementation prevents dialling to any peer not present in our oracle mappings.
+// We don't apply bandwidth limiting at this point because we want the peer to authenticate first.
 func (c *connectionGater) InterceptPeerDial(id p2ppeer.ID) (allow bool) {
-	return c.isAllowed(id)
+	return c.isAllowed(id, false)
 }
 
 // InterceptSecured tests whether a given connection, now authenticated,
@@ -134,8 +161,10 @@ func (c *connectionGater) InterceptPeerDial(id p2ppeer.ID) (allow bool) {
 // This applies to both incoming and outgoing connections. Note that this is the only
 // function that can prevent unknown incoming peers because any peer can lie about its
 // peer ID until after a secure connection has been established.
-func (c *connectionGater) InterceptSecured(_ p2pnetwork.Direction, id p2ppeer.ID, _ p2pnetwork.ConnMultiaddrs) (allow bool) {
-	return c.isAllowed(id)
+//
+// Bandwith rate limiting kicks in here for inbound traffic coming from any other peer.
+func (c *connectionGater) InterceptSecured(d p2pnetwork.Direction, id p2ppeer.ID, _ p2pnetwork.ConnMultiaddrs) (allow bool) {
+	return c.isAllowed(id, d == p2pnetwork.DirInbound)
 }
 
 // InterceptUpgraded tests whether a fully capable connection is allowed.

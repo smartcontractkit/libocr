@@ -28,6 +28,7 @@ func RunPacemaker(
 
 	chNetToPacemaker <-chan MessageToPacemakerWithSender,
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
+	chPacemakerToOracle chan<- uint32,
 	chReportGenerationToTransmission chan<- EventToTransmission,
 	config config.SharedConfig,
 	contractTransmitter types.ContractTransmitter,
@@ -41,7 +42,7 @@ func RunPacemaker(
 	telemetrySender TelemetrySender,
 ) {
 	pace := makePacemakerState(
-		ctx, subprocesses, chNetToPacemaker, chNetToReportGeneration,
+		ctx, subprocesses, chNetToPacemaker, chNetToReportGeneration, chPacemakerToOracle,
 		chReportGenerationToTransmission, config, contractTransmitter, database,
 		datasource, id, localConfig, logger, netSender, privateKeys,
 		telemetrySender,
@@ -53,6 +54,7 @@ func makePacemakerState(ctx context.Context,
 	subprocesses *subprocesses.Subprocesses,
 	chNetToPacemaker <-chan MessageToPacemakerWithSender,
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
+	chPacemakerToOracle chan<- uint32,
 	chReportGenerationToTransmission chan<- EventToTransmission,
 	config config.SharedConfig, contractTransmitter types.ContractTransmitter,
 	database types.Database, datasource types.DataSource, id types.OracleID,
@@ -66,6 +68,7 @@ func makePacemakerState(ctx context.Context,
 
 		chNetToPacemaker:                 chNetToPacemaker,
 		chNetToReportGeneration:          chNetToReportGeneration,
+		chPacemakerToOracle:              chPacemakerToOracle,
 		chReportGenerationToTransmission: chReportGenerationToTransmission,
 		config:                           config,
 		contractTransmitter:              contractTransmitter,
@@ -89,6 +92,7 @@ type pacemakerState struct {
 	chNetToPacemaker                 <-chan MessageToPacemakerWithSender
 	chNetToReportGeneration          <-chan MessageToReportGenerationWithSender
 	chReportGenerationToPacemaker    <-chan EventToPacemaker
+	chPacemakerToOracle              chan<- uint32
 	chReportGenerationToTransmission chan<- EventToTransmission
 	config                           config.SharedConfig
 	contractTransmitter              types.ContractTransmitter
@@ -105,7 +109,8 @@ type pacemakerState struct {
 	testBlocker   chan eventTestBlock
 	testUnblocker chan eventTestUnblock
 
-	cancelReportGeneration context.CancelFunc
+	reportGenerationSubprocess subprocesses.Subprocesses
+	cancelReportGeneration     context.CancelFunc
 
 	chPersist chan<- types.PersistentState
 
@@ -131,6 +136,8 @@ type pacemakerState struct {
 	// tProgress is a timeout used by the leader-election protocol to track
 	// whether the current leader is making adequate progress.
 	tProgress <-chan time.Time
+
+	notifyOracleOfNewEpoch bool
 }
 
 func (pace *pacemakerState) run() {
@@ -171,6 +178,8 @@ func (pace *pacemakerState) run() {
 
 	pace.sendNewepoch(pace.ne)
 
+	pace.notifyOracleOfNewEpoch = true
+
 	// Initialization complete
 
 	// Take a reference to the ctx.Done channel once, here, to avoid taking the
@@ -179,7 +188,16 @@ func (pace *pacemakerState) run() {
 
 	// Event Loop
 	for {
+		var nilOrChPacemakerToOracle chan<- uint32
+		if pace.notifyOracleOfNewEpoch {
+			nilOrChPacemakerToOracle = pace.chPacemakerToOracle
+		} else {
+			nilOrChPacemakerToOracle = nil
+		}
+
 		select {
+		case nilOrChPacemakerToOracle <- pace.e:
+			pace.notifyOracleOfNewEpoch = false
 		case msg := <-pace.chNetToPacemaker:
 			msg.msg.processPacemaker(pace, msg.sender)
 		case ev := <-pace.chReportGenerationToPacemaker:
@@ -426,6 +444,8 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.Or
 			// abort instance [...], initialize instance (e,l) of report generation
 			pace.spawnReportGeneration()
 
+			pace.notifyOracleOfNewEpoch = true
+
 			pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 		}
 	}
@@ -434,6 +454,7 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.Or
 func (pace *pacemakerState) spawnReportGeneration() {
 	if pace.cancelReportGeneration != nil {
 		pace.cancelReportGeneration()
+		pace.reportGenerationSubprocess.Wait()
 	}
 
 	chReportGenerationToPacemaker := make(chan EventToPacemaker)
@@ -447,7 +468,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 	// happen, given a reasonable value for DeltaProgress, but
 	// TestPacemakerNodesEventuallyReachEpochConsensus has an unreasonable value.
 	p := *pace
-	pace.subprocesses.Go(func() {
+	pace.reportGenerationSubprocess.Go(func() {
 		defer cancelReportGeneration()
 		RunReportGeneration(
 			ctxReportGeneration,

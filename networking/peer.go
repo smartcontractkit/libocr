@@ -58,7 +58,13 @@ type concretePeer struct {
 	registrantsMu  *sync.Mutex
 
 	dhtAnnouncementCounterUserPrefix uint32
+
+	// list of bandwidth limiters, one for each connection to a remote peer.
+	bandwidthLimiters *knockingtls.Limiters
 }
+
+var _ types.BinaryNetworkEndpointFactory = (*concretePeer)(nil)
+var _ types.BootstrapperFactory = (*concretePeer)(nil)
 
 // registrant is an endpoint pinned to a particular config digest that is attached to this peer
 // There may only be one registrant per config digest
@@ -96,8 +102,10 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not create gater")
 	}
 
+	bandwidthLimiters := knockingtls.NewLimiters(logger)
+
 	tlsID := knockingtls.ID
-	tls, err := knockingtls.NewKnockingTLS(logger, c.PrivKey)
+	tls, err := knockingtls.NewKnockingTLS(logger, c.PrivKey, bandwidthLimiters)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create knocking tls")
 	}
@@ -147,6 +155,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		registrants:                      make(map[types.ConfigDigest]struct{}),
 		registrantsMu:                    &sync.Mutex{},
 		dhtAnnouncementCounterUserPrefix: c.DHTAnnouncementCounterUserPrefix,
+		bandwidthLimiters:                bandwidthLimiters,
 	}, nil
 }
 
@@ -177,7 +186,9 @@ func (p *concretePeer) MakeEndpoint(
 	if err != nil {
 		return nil, errors.Wrap(err, "could not decode bootstrappers")
 	}
-	return newOCREndpoint(p.logger, configDigest, p, peerIDs, bnAddrs, p.endpointConfig, failureThreshold, tokenBucketRefillRate, tokenBucketSize)
+
+	return newOCREndpoint(p.logger, configDigest, p, peerIDs, bnAddrs, p.endpointConfig,
+		failureThreshold, tokenBucketRefillRate, tokenBucketSize)
 }
 
 func decodeBootstrappers(bootstrappers []string) (bnAddrs []p2ppeer.AddrInfo, err error) {
