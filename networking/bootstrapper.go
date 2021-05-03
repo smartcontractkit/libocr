@@ -16,17 +16,18 @@ var (
 )
 
 type bootstrapper struct {
-	peer             *concretePeer
-	peerAllowlist    map[p2ppeer.ID]struct{}
-	bootstrappers    []p2ppeer.AddrInfo
-	routing          dhtrouter.PeerDiscoveryRouter
-	logger           loghelper.LoggerWithContext
-	configDigest     types.ConfigDigest
-	ctx              context.Context
-	ctxCancel        context.CancelFunc
-	state            bootstrapperState
-	stateMu          *sync.Mutex
-	failureThreshold int
+	peer                 *concretePeer
+	peerAllowlist        map[p2ppeer.ID]struct{}
+	bootstrappers        []p2ppeer.AddrInfo
+	routing              dhtrouter.PeerDiscoveryRouter
+	logger               loghelper.LoggerWithContext
+	configDigest         types.ConfigDigest
+	ctx                  context.Context
+	ctxCancel            context.CancelFunc
+	state                bootstrapperState
+	stateMu              *sync.Mutex
+	failureThreshold     int
+	lowerBandwidthLimits func()
 }
 
 type bootstrapperState int
@@ -35,10 +36,19 @@ const (
 	bootstrapperUnstarted = iota
 	bootstrapperStarted
 	bootstrapperClosed
+	// Bandwidth rate limiter parameters for the bootstrap node.
+	// Bootstrap nodes are contacted to fetch the mapping between peer IDs and peer IPs.
+	// This bootstrapping is supposed to happen relatively rarely. Also, the full mapping is only a few KiB.
+	bootstrapNodeTokenBucketRefillRate = 20 * 1024 // 20 KiB/s
+	bootstrapNodeTokenBucketSize       = 50 * 1024 // 50 KiB/s
 )
 
 func newBootstrapper(logger loghelper.LoggerWithContext, configDigest types.ConfigDigest,
 	peer *concretePeer, peerIDs []p2ppeer.ID, bootstrappers []p2ppeer.AddrInfo, F int) (*bootstrapper, error) {
+
+	lowerBandwidthLimits := increaseBandwidthLimits(peer.bandwidthLimiters, peerIDs, bootstrappers,
+		bootstrapNodeTokenBucketRefillRate, bootstrapNodeTokenBucketSize, logger)
+
 	allowlist := make(map[p2ppeer.ID]struct{})
 	for _, pid := range peerIDs {
 		allowlist[pid] = struct{}{}
@@ -65,6 +75,7 @@ func newBootstrapper(logger loghelper.LoggerWithContext, configDigest types.Conf
 		bootstrapperUnstarted,
 		new(sync.Mutex),
 		F,
+		lowerBandwidthLimits,
 	}, nil
 }
 
@@ -131,6 +142,9 @@ func (b *bootstrapper) Close() error {
 	}
 	b.state = ocrEndpointClosed
 	b.stateMu.Unlock()
+
+	b.logger.Debug("Bootstrapper: lowering bandwidth limits when closing the bootstrap node", nil)
+	b.lowerBandwidthLimits()
 
 	if err := b.routing.Close(); err != nil {
 		return errors.Wrap(err, "could not close dht router")

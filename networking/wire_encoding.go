@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -50,7 +51,7 @@ func readOneFromWire(r io.Reader) (payload []byte, err error) {
 // at the first 4 bytes representing the new message's length.
 // If the rate limiter rejects the request, the rejected message is consumed from
 // the reader and discarded. This way the sync with the sender is not broken.
-func isNextMessageAllowed(r *bufio.Reader, l limiter) (bool, error) {
+func isNextMessageAllowed(r *bufio.Reader, l *rate.Limiter) (bool, error) {
 	lenBuf, err := r.Peek(4)
 	if err != nil {
 		return false, errors.Wrap(err, "error reading the next message's length")

@@ -28,14 +28,17 @@ const version = byte(0x01)
 const knockSize = 1 + ed25519.PublicKeySize + ed25519.SignatureSize
 
 type KnockingTLSTransport struct {
-	tls            *p2ptls.Transport // underlining TLS transport
-	allowlistMutex sync.RWMutex      // allowlist may be accessed concurrently by libp2p (via SecureInbound) and OCR (via {Get|Update}Allowlist)
-	allowlist      []peer.ID         // peer ids that are permitted
-	privateKey     *p2pcrypto.Ed25519PrivateKey
-	myId           peer.ID
-	logger         loghelper.LoggerWithContext
-	readTimeout    time.Duration
+	tls               *p2ptls.Transport // underlying TLS transport
+	allowlistMutex    sync.RWMutex      // allowlist may be accessed concurrently by libp2p (via SecureInbound) and OCR (via {Get|Update}Allowlist)
+	allowlist         []peer.ID         // peer ids that are permitted
+	privateKey        *p2pcrypto.Ed25519PrivateKey
+	myId              peer.ID
+	logger            loghelper.LoggerWithContext
+	readTimeout       time.Duration
+	bandwidthLimiters *Limiters
 }
+
+var _ sec.SecureTransport = (*KnockingTLSTransport)(nil)
 
 var errInvalidSignature = errors.New("invalid signature in knock")
 
@@ -87,7 +90,6 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	if knock[0] != version {
 		return nil, errors.New("invalid version")
 	}
-
 	// starting the 2nd byte is the actual knock
 	knock = knock[1:]
 
@@ -122,7 +124,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	}()
 
 	if !inAllowList {
-		return nil, errors.New(fmt.Sprintf("remote peer %s not in the list", peerId.Pretty()))
+		return nil, fmt.Errorf("remote peer %s not in the list", peerId.Pretty())
 	}
 
 	knockMsg, err := buildKnockMessage(c.myId)
@@ -145,9 +147,33 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		return nil, err
 	}
 
+	// Wrap insecure connection with a bandwidth rate limiter.
+	bandwidthLimiter, found := c.bandwidthLimiters.Find(peerId)
+	if !found {
+		c.logger.Error("Failed to find a rate limiter for inbound connection", types.LogFields{
+			"forPeerID":         peerId.Pretty(),
+			"availableLimiters": c.bandwidthLimiters.limiters,
+		})
+		return nil, fmt.Errorf("Failed to find a rate limiter for peerID=%s in SecureInbound", peerId.Pretty())
+	}
+
+	insecureButLimited := NewRateLimitedConn(insecure, bandwidthLimiter, c.logger.MakeChild(types.LogFields{
+		"remotePeerID": peerId.Pretty(),
+	}))
+
+	secure, err := c.tls.SecureInbound(ctx, insecureButLimited)
+	if err != nil {
+		return nil, err
+	}
+
+	// enable rate limiting for the inbound connection. We only do this after
+	// the TLS handshake completes to prevent a spoofing attacker from exhausting
+	// an honest node's rate limit.
+	insecureButLimited.EnableRateLimiting()
+
 	// set flag to false so defer does not reset connection
 	shouldClose = false
-	return c.tls.SecureInbound(ctx, insecure)
+	return secure, nil
 }
 
 func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.Conn, p peer.ID) (sec.SecureConn, error) {
@@ -186,9 +212,31 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 		return nil, errors.New("can't send all tag")
 	}
 
+	// Wrap insecure connection with a bandwidth rate limiter.
+	bandwidthLimiter, found := c.bandwidthLimiters.Find(p)
+	if !found {
+		c.logger.Error("Failed to find a rate limiter for outbound connection", types.LogFields{
+			"forPeerID":         p.Pretty(),
+			"availableLimiters": c.bandwidthLimiters.limiters,
+		})
+		return nil, fmt.Errorf("Failed to find a rate limiter for peerID=%s in SecureOutbound", p.Pretty())
+	}
+	insecureButLimited := NewRateLimitedConn(insecure, bandwidthLimiter, c.logger.MakeChild(types.LogFields{
+		"remotePeerID": p.Pretty(),
+	}))
+
+	secure, err := c.tls.SecureOutbound(ctx, insecureButLimited, p)
+	if err != nil {
+		return nil, err
+	}
+	// enable rate limiting for the inbound connection. We only do this after
+	// the TLS handshake completes to prevent a spoofing attacker from exhausting
+	// an honest node's rate limit.
+	insecureButLimited.EnableRateLimiting()
+
 	// set the flag to false so defer doesn't close the conn
 	shouldClose = false
-	return c.tls.SecureOutbound(ctx, insecure, p)
+	return secure, nil
 }
 
 func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
@@ -203,7 +251,7 @@ func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
 }
 
 // NewKnockingTLS creates a TLS transport. Allowlist is a list of peer IDs that this transport should accept handshake from.
-func NewKnockingTLS(logger loghelper.LoggerWithContext, myPrivKey p2pcrypto.PrivKey, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
+func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, bandwidthLimiters *Limiters, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
 	ed25515Key, ok := myPrivKey.(*p2pcrypto.Ed25519PrivateKey)
 	if !ok {
 		return nil, errors.New("only support ed25519 key")
@@ -228,11 +276,10 @@ func NewKnockingTLS(logger loghelper.LoggerWithContext, myPrivKey p2pcrypto.Priv
 		allowlist:      allowlist,
 		privateKey:     ed25515Key,
 		myId:           id,
-		logger: logger.MakeChild(types.LogFields{
+		logger: loghelper.MakeRootLoggerWithContext(logger).MakeChild(types.LogFields{
 			"id": "KnockingTLS",
 		}),
-		readTimeout: readTimeout,
+		readTimeout:       readTimeout,
+		bandwidthLimiters: bandwidthLimiters,
 	}, nil
 }
-
-var _ sec.SecureTransport = &KnockingTLSTransport{}
