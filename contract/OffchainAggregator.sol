@@ -7,6 +7,7 @@ import "./AggregatorValidatorInterface.sol";
 import "./LinkTokenInterface.sol";
 import "./Owned.sol";
 import "./OffchainAggregatorBilling.sol";
+import "./TypeAndVersionInterface.sol";
 
 /**
   * @notice Onchain verification of reports from the offchain reporting protocol
@@ -14,7 +15,7 @@ import "./OffchainAggregatorBilling.sol";
   * @dev For details on its operation, see the offchain reporting protocol design
   * @dev doc, which refers to this contract as simply the "contract".
 */
-contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3Interface {
+contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3Interface, TypeAndVersionInterface {
 
   uint256 constant private maxUint32 = (1 << 32) - 1;
 
@@ -64,7 +65,6 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
    * @param _linkGweiPerObservation reward to oracle for contributing an observation to a successfully transmitted report, in 1e-9LINK units
    * @param _linkGweiPerTransmission reward to transmitter of a successful report, in 1e-9LINK units
    * @param _link address of the LINK contract
-   * @param _validator address of validator contract (must satisfy AggregatorValidatorInterface)
    * @param _minAnswer lowest answer the median of a report is allowed to be
    * @param _maxAnswer highest answer the median of a report is allowed to be
    * @param _billingAccessController access controller for billing admin functions
@@ -79,7 +79,6 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     uint32 _linkGweiPerObservation,
     uint32 _linkGweiPerTransmission,
     address _link,
-    address _validator,
     int192 _minAnswer,
     int192 _maxAnswer,
     AccessControllerInterface _billingAccessController,
@@ -95,9 +94,22 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     decimals = _decimals;
     s_description = _description;
     setRequesterAccessController(_requesterAccessController);
-    setValidator(_validator);
+    setValidatorConfig(AggregatorValidatorInterface(0x0), 0);
     minAnswer = _minAnswer;
     maxAnswer = _maxAnswer;
+  }
+
+  /*
+   * Versioning
+   */
+  function typeAndVersion()
+    external
+    override
+    pure
+    virtual
+    returns (string memory)
+  {
+    return "OffchainAggregator 2.0.0";
   }
 
   /*
@@ -261,48 +273,60 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
    * On-chain validation logc
    */
 
-  // Maximum gas the validation logic can use
-  uint256 private constant VALIDATOR_GAS_LIMIT = 100000;
-
-  // Contract containing the validation logic
-  AggregatorValidatorInterface private s_validator;
+  // Configuration for validator
+  struct ValidatorConfig {
+    AggregatorValidatorInterface validator;
+    uint32 gasLimit;
+  }
+  ValidatorConfig private s_validatorConfig;
 
   /**
-   * @notice indicates that the address of the validator contract has been set
-   * @param previous setting of the address prior to this event
-   * @param current the new value for the address
+   * @notice indicates that the validator configuration has been set
+   * @param previousValidator previous validator contract
+   * @param previousGasLimit previous gas limit for validate calls
+   * @param currentValidator current validator contract
+   * @param currentGasLimit current gas limit for validate calls
    */
-  event ValidatorUpdated(
-    address indexed previous,
-    address indexed current
+  event ValidatorConfigSet(
+    AggregatorValidatorInterface indexed previousValidator,
+    uint32 previousGasLimit,
+    AggregatorValidatorInterface indexed currentValidator,
+    uint32 currentGasLimit
   );
 
   /**
-   * @notice address of the contract which does external data validation
-   * @return validator address
+   * @notice validator configuration
+   * @return validator validator contract
+   * @return gasLimit gas limit for validate calls
    */
-  function validator()
+  function validatorConfig()
     external
     view
-    returns (AggregatorValidatorInterface)
+    returns (AggregatorValidatorInterface validator, uint32 gasLimit)
   {
-    return s_validator;
+    ValidatorConfig memory vc = s_validatorConfig;
+    return (vc.validator, vc.gasLimit);
   }
 
   /**
-   * @notice sets the address which does external data validation
-   * @param _newValidator designates the address of the new validation contract
+   * @notice sets validator configuration
+   * @dev set _newValidator to 0x0 to disable validate calls
+   * @param _newValidator address of the new validator contract
+   * @param _newGasLimit new gas limit for validate calls
    */
-  function setValidator(address _newValidator)
+  function setValidatorConfig(AggregatorValidatorInterface _newValidator, uint32 _newGasLimit)
     public
     onlyOwner()
   {
-    address previous = address(s_validator);
+    ValidatorConfig memory previous = s_validatorConfig;
 
-    if (previous != _newValidator) {
-      s_validator = AggregatorValidatorInterface(_newValidator);
+    if (previous.validator != _newValidator || previous.gasLimit != _newGasLimit) {
+      s_validatorConfig = ValidatorConfig({
+        validator: _newValidator,
+        gasLimit: _newGasLimit
+      });
 
-      emit ValidatorUpdated(previous, _newValidator);
+      emit ValidatorConfigSet(previous.validator, previous.gasLimit, _newValidator, _newGasLimit);
     }
   }
 
@@ -312,14 +336,17 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
   )
     private
   {
-    AggregatorValidatorInterface av = s_validator; // cache storage reads
-    if (address(av) == address(0)) return;
+    ValidatorConfig memory vc = s_validatorConfig;
+
+    if (address(vc.validator) == address(0)) {
+      return;
+    }
 
     uint32 prevAggregatorRoundId = _aggregatorRoundId - 1;
     int256 prevAggregatorRoundAnswer = s_transmissions[prevAggregatorRoundId].answer;
     // We do not want the validator to ever prevent reporting, so we limit its
     // gas usage and catch any errors that may arise.
-    try av.validate{gas: VALIDATOR_GAS_LIMIT}(
+    try vc.validator.validate{gas: vc.gasLimit}(
       prevAggregatorRoundId,
       prevAggregatorRoundAnswer,
       _aggregatorRoundId,

@@ -16,7 +16,6 @@ contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAcc
     uint32 _linkGweiPerObservation,
     uint32 _linkGweiPerTransmission,
     address _link,
-    address _validator,
     int192 _minAnswer,
     int192 _maxAnswer,
     AccessControllerInterface _billingAccessController,
@@ -31,7 +30,6 @@ contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAcc
       _linkGweiPerObservation,
       _linkGweiPerTransmission,
       _link,
-      _validator,
       _minAnswer,
       _maxAnswer,
       _billingAccessController,
@@ -40,6 +38,21 @@ contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAcc
       description
     ) {
     }
+
+  /*
+   * Versioning
+   */
+
+  function typeAndVersion()
+    external
+    override
+    pure
+    virtual
+    returns (string memory)
+  {
+    return "AccessControlledOffchainAggregator 2.0.0";
+  }
+
 
   /*
    * v2 Aggregator interface

@@ -79,6 +79,8 @@ type MessageToReportGeneration interface {
 	// processReportGeneration is called to send this message to the local oracle
 	// reporting process.
 	processReportGeneration(repgen *reportGenerationState, sender types.OracleID)
+
+	epoch() uint32
 }
 
 // MessageToReportGenerationWithSender records a message destined for the oracle
@@ -116,14 +118,15 @@ type MessageObserveReq struct {
 var _ MessageToReportGeneration = (*MessageObserveReq)(nil)
 
 func (msg MessageObserveReq) process(o *oracleState, sender types.OracleID) {
-	if o.chNetToReportGeneration == nil {
-		panic("nil channel! o.chNetToReportGeneration")
-	}
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
+	o.reportGenerationMessage(msg, sender)
 }
 
 func (msg MessageObserveReq) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
 	repgen.messageObserveReq(msg, sender)
+}
+
+func (msg MessageObserveReq) epoch() uint32 {
+	return msg.Epoch
 }
 
 // MessageObserve corresponds to the "observe" message from alg. 2.
@@ -138,11 +141,15 @@ type MessageObserve struct {
 var _ MessageToReportGeneration = (*MessageObserve)(nil)
 
 func (msg MessageObserve) process(o *oracleState, sender types.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
+	o.reportGenerationMessage(msg, sender)
 }
 
 func (msg MessageObserve) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
 	repgen.messageObserve(msg, sender)
+}
+
+func (msg MessageObserve) epoch() uint32 {
+	return msg.Epoch
 }
 
 func (msg MessageObserve) Equal(msg2 MessageObserve) bool {
@@ -161,11 +168,15 @@ type MessageReportReq struct {
 }
 
 func (msg MessageReportReq) process(o *oracleState, sender types.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
+	o.reportGenerationMessage(msg, sender)
 }
 
 func (msg MessageReportReq) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
 	repgen.messageReportReq(msg, sender)
+}
+
+func (msg MessageReportReq) epoch() uint32 {
+	return msg.Epoch
 }
 
 var _ MessageToReportGeneration = (*MessageReportReq)(nil)
@@ -183,11 +194,15 @@ type MessageReport struct {
 var _ MessageToReportGeneration = (*MessageReport)(nil)
 
 func (msg MessageReport) process(o *oracleState, sender types.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
+	o.reportGenerationMessage(msg, sender)
 }
 
 func (msg MessageReport) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
 	repgen.messageReport(msg, sender)
+}
+
+func (msg MessageReport) epoch() uint32 {
+	return msg.Epoch
 }
 
 func (msg MessageReport) Equal(m2 MessageReport) bool {
@@ -207,11 +222,15 @@ type MessageFinal struct {
 var _ MessageToReportGeneration = (*MessageFinal)(nil)
 
 func (msg MessageFinal) process(o *oracleState, sender types.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
+	o.reportGenerationMessage(msg, sender)
 }
 
 func (msg MessageFinal) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
 	repgen.messageFinal(msg, sender)
+}
+
+func (msg MessageFinal) epoch() uint32 {
+	return msg.Epoch
 }
 
 func (msg MessageFinal) Equal(m2 MessageFinal) bool {
@@ -226,11 +245,15 @@ type MessageFinalEcho struct {
 }
 
 func (msg MessageFinalEcho) process(o *oracleState, sender types.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
+	o.reportGenerationMessage(msg, sender)
 }
 
 func (msg MessageFinalEcho) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
 	repgen.messageFinalEcho(msg, sender)
+}
+
+func (msg MessageFinalEcho) epoch() uint32 {
+	return msg.Epoch
 }
 
 func (msg MessageFinalEcho) Equal(m2 MessageFinalEcho) bool {

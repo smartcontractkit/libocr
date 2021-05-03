@@ -193,10 +193,10 @@ func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceTransactorSessi
 }
 
 // TestValidatorABI is the input ABI used to generate the binding from.
-const TestValidatorABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]"
+const TestValidatorABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"initialGas\",\"type\":\"uint256\"}],\"name\":\"Validated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"latestRoundId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"minGasUse\",\"type\":\"uint32\"}],\"name\":\"setMinGasUse\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // TestValidatorBin is the compiled bytecode used for deploying new contracts.
-var TestValidatorBin = "0x6080604052348015600f57600080fd5b5060848061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063beed9b5114602d575b600080fd5b605960048036036080811015604157600080fd5b5080359060208101359060408101359060600135606d565b604080519115158252519081900360200190f35b600194935050505056fea164736f6c6343000705000a"
+var TestValidatorBin = "0x608060405234801561001057600080fd5b50610178806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c806311a8f41314610046578063beed9b5114610060578063c4792df4146100a3575b600080fd5b61004e6100c8565b60408051918252519081900360200190f35b61008f6004803603608081101561007657600080fd5b50803590602081013590604081013590606001356100ce565b604080519115158252519081900360200190f35b6100c6600480360360208110156100b957600080fd5b503563ffffffff1661014f565b005b60015490565b6000805a6040805188815260208101889052808201879052606081018690526080810183905290519192507fdb623f4f39d41e75ae1cbe50460c3d1496b6cf9a0db391b7197f82cab2744d21919081900360a00190a1600184905560005463ffffffff165b805a8303101561014257610133565b5060019695505050505050565b6000805463ffffffff191663ffffffff9290921691909117905556fea164736f6c6343000706000a"
 
 // DeployTestValidator deploys a new Ethereum contract, binding an instance of TestValidator to it.
 func DeployTestValidator(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *TestValidator, error) {
@@ -354,33 +354,213 @@ func (_TestValidator *TestValidatorTransactorRaw) Transact(opts *bind.TransactOp
 	return _TestValidator.Contract.contract.Transact(opts, method, params...)
 }
 
-// Validate is a free data retrieval call binding the contract method 0xbeed9b51.
+// LatestRoundId is a free data retrieval call binding the contract method 0x11a8f413.
 //
-// Solidity: function validate(uint256 , int256 , uint256 , int256 ) pure returns(bool)
-func (_TestValidator *TestValidatorCaller) Validate(opts *bind.CallOpts, arg0 *big.Int, arg1 *big.Int, arg2 *big.Int, arg3 *big.Int) (bool, error) {
+// Solidity: function latestRoundId() view returns(uint256)
+func (_TestValidator *TestValidatorCaller) LatestRoundId(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
-	err := _TestValidator.contract.Call(opts, &out, "validate", arg0, arg1, arg2, arg3)
+	err := _TestValidator.contract.Call(opts, &out, "latestRoundId")
 
 	if err != nil {
-		return *new(bool), err
+		return *new(*big.Int), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
 
 	return out0, err
 
 }
 
-// Validate is a free data retrieval call binding the contract method 0xbeed9b51.
+// LatestRoundId is a free data retrieval call binding the contract method 0x11a8f413.
 //
-// Solidity: function validate(uint256 , int256 , uint256 , int256 ) pure returns(bool)
-func (_TestValidator *TestValidatorSession) Validate(arg0 *big.Int, arg1 *big.Int, arg2 *big.Int, arg3 *big.Int) (bool, error) {
-	return _TestValidator.Contract.Validate(&_TestValidator.CallOpts, arg0, arg1, arg2, arg3)
+// Solidity: function latestRoundId() view returns(uint256)
+func (_TestValidator *TestValidatorSession) LatestRoundId() (*big.Int, error) {
+	return _TestValidator.Contract.LatestRoundId(&_TestValidator.CallOpts)
 }
 
-// Validate is a free data retrieval call binding the contract method 0xbeed9b51.
+// LatestRoundId is a free data retrieval call binding the contract method 0x11a8f413.
 //
-// Solidity: function validate(uint256 , int256 , uint256 , int256 ) pure returns(bool)
-func (_TestValidator *TestValidatorCallerSession) Validate(arg0 *big.Int, arg1 *big.Int, arg2 *big.Int, arg3 *big.Int) (bool, error) {
-	return _TestValidator.Contract.Validate(&_TestValidator.CallOpts, arg0, arg1, arg2, arg3)
+// Solidity: function latestRoundId() view returns(uint256)
+func (_TestValidator *TestValidatorCallerSession) LatestRoundId() (*big.Int, error) {
+	return _TestValidator.Contract.LatestRoundId(&_TestValidator.CallOpts)
+}
+
+// SetMinGasUse is a paid mutator transaction binding the contract method 0xc4792df4.
+//
+// Solidity: function setMinGasUse(uint32 minGasUse) returns()
+func (_TestValidator *TestValidatorTransactor) SetMinGasUse(opts *bind.TransactOpts, minGasUse uint32) (*types.Transaction, error) {
+	return _TestValidator.contract.Transact(opts, "setMinGasUse", minGasUse)
+}
+
+// SetMinGasUse is a paid mutator transaction binding the contract method 0xc4792df4.
+//
+// Solidity: function setMinGasUse(uint32 minGasUse) returns()
+func (_TestValidator *TestValidatorSession) SetMinGasUse(minGasUse uint32) (*types.Transaction, error) {
+	return _TestValidator.Contract.SetMinGasUse(&_TestValidator.TransactOpts, minGasUse)
+}
+
+// SetMinGasUse is a paid mutator transaction binding the contract method 0xc4792df4.
+//
+// Solidity: function setMinGasUse(uint32 minGasUse) returns()
+func (_TestValidator *TestValidatorTransactorSession) SetMinGasUse(minGasUse uint32) (*types.Transaction, error) {
+	return _TestValidator.Contract.SetMinGasUse(&_TestValidator.TransactOpts, minGasUse)
+}
+
+// Validate is a paid mutator transaction binding the contract method 0xbeed9b51.
+//
+// Solidity: function validate(uint256 previousRoundId, int256 previousAnswer, uint256 currentRoundId, int256 currentAnswer) returns(bool)
+func (_TestValidator *TestValidatorTransactor) Validate(opts *bind.TransactOpts, previousRoundId *big.Int, previousAnswer *big.Int, currentRoundId *big.Int, currentAnswer *big.Int) (*types.Transaction, error) {
+	return _TestValidator.contract.Transact(opts, "validate", previousRoundId, previousAnswer, currentRoundId, currentAnswer)
+}
+
+// Validate is a paid mutator transaction binding the contract method 0xbeed9b51.
+//
+// Solidity: function validate(uint256 previousRoundId, int256 previousAnswer, uint256 currentRoundId, int256 currentAnswer) returns(bool)
+func (_TestValidator *TestValidatorSession) Validate(previousRoundId *big.Int, previousAnswer *big.Int, currentRoundId *big.Int, currentAnswer *big.Int) (*types.Transaction, error) {
+	return _TestValidator.Contract.Validate(&_TestValidator.TransactOpts, previousRoundId, previousAnswer, currentRoundId, currentAnswer)
+}
+
+// Validate is a paid mutator transaction binding the contract method 0xbeed9b51.
+//
+// Solidity: function validate(uint256 previousRoundId, int256 previousAnswer, uint256 currentRoundId, int256 currentAnswer) returns(bool)
+func (_TestValidator *TestValidatorTransactorSession) Validate(previousRoundId *big.Int, previousAnswer *big.Int, currentRoundId *big.Int, currentAnswer *big.Int) (*types.Transaction, error) {
+	return _TestValidator.Contract.Validate(&_TestValidator.TransactOpts, previousRoundId, previousAnswer, currentRoundId, currentAnswer)
+}
+
+// TestValidatorValidatedIterator is returned from FilterValidated and is used to iterate over the raw logs and unpacked data for Validated events raised by the TestValidator contract.
+type TestValidatorValidatedIterator struct {
+	Event *TestValidatorValidated // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *TestValidatorValidatedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(TestValidatorValidated)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(TestValidatorValidated)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *TestValidatorValidatedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *TestValidatorValidatedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// TestValidatorValidated represents a Validated event raised by the TestValidator contract.
+type TestValidatorValidated struct {
+	PreviousRoundId *big.Int
+	PreviousAnswer  *big.Int
+	CurrentRoundId  *big.Int
+	CurrentAnswer   *big.Int
+	InitialGas      *big.Int
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterValidated is a free log retrieval operation binding the contract event 0xdb623f4f39d41e75ae1cbe50460c3d1496b6cf9a0db391b7197f82cab2744d21.
+//
+// Solidity: event Validated(uint256 previousRoundId, int256 previousAnswer, uint256 currentRoundId, int256 currentAnswer, uint256 initialGas)
+func (_TestValidator *TestValidatorFilterer) FilterValidated(opts *bind.FilterOpts) (*TestValidatorValidatedIterator, error) {
+
+	logs, sub, err := _TestValidator.contract.FilterLogs(opts, "Validated")
+	if err != nil {
+		return nil, err
+	}
+	return &TestValidatorValidatedIterator{contract: _TestValidator.contract, event: "Validated", logs: logs, sub: sub}, nil
+}
+
+// WatchValidated is a free log subscription operation binding the contract event 0xdb623f4f39d41e75ae1cbe50460c3d1496b6cf9a0db391b7197f82cab2744d21.
+//
+// Solidity: event Validated(uint256 previousRoundId, int256 previousAnswer, uint256 currentRoundId, int256 currentAnswer, uint256 initialGas)
+func (_TestValidator *TestValidatorFilterer) WatchValidated(opts *bind.WatchOpts, sink chan<- *TestValidatorValidated) (event.Subscription, error) {
+
+	logs, sub, err := _TestValidator.contract.WatchLogs(opts, "Validated")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(TestValidatorValidated)
+				if err := _TestValidator.contract.UnpackLog(event, "Validated", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseValidated is a log parse operation binding the contract event 0xdb623f4f39d41e75ae1cbe50460c3d1496b6cf9a0db391b7197f82cab2744d21.
+//
+// Solidity: event Validated(uint256 previousRoundId, int256 previousAnswer, uint256 currentRoundId, int256 currentAnswer, uint256 initialGas)
+func (_TestValidator *TestValidatorFilterer) ParseValidated(log types.Log) (*TestValidatorValidated, error) {
+	event := new(TestValidatorValidated)
+	if err := _TestValidator.contract.UnpackLog(event, "Validated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
