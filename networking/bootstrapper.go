@@ -2,6 +2,7 @@ package networking
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
@@ -84,7 +85,7 @@ func (b *bootstrapper) Start() error {
 	defer b.stateMu.Unlock()
 
 	if b.state != bootstrapperUnstarted {
-		panic("bootstrapper has already been started")
+		panic(fmt.Sprintf("cannot start bootstrapper that is not unstarted, state was: %d", b.state))
 	}
 
 	b.state = bootstrapperStarted
@@ -137,10 +138,10 @@ func (b *bootstrapper) setupDHT() (err error) {
 func (b *bootstrapper) Close() error {
 	b.stateMu.Lock()
 	if b.state != bootstrapperStarted {
-		b.stateMu.Unlock()
-		panic("cannot close bootstrapper that is not started")
+		defer b.stateMu.Unlock()
+		panic(fmt.Sprintf("cannot close bootstrapper that is not started, state was: %d", b.state))
 	}
-	b.state = ocrEndpointClosed
+	b.state = bootstrapperClosed
 	b.stateMu.Unlock()
 
 	b.logger.Debug("Bootstrapper: lowering bandwidth limits when closing the bootstrap node", nil)
