@@ -264,7 +264,7 @@ func (o *ocrEndpoint) Start() (err error) {
 	defer o.stateMu.Unlock()
 
 	if o.state != ocrEndpointUnstarted {
-		panic("ocrEndpoint has already been started")
+		panic(fmt.Sprintf("cannot start ocrEndpoint that is not unstarted, state was: %d", o.state))
 	}
 	o.state = ocrEndpointStarted
 
@@ -504,8 +504,8 @@ func (o *ocrEndpoint) runSendToSelf() {
 func (o *ocrEndpoint) Close() error {
 	o.stateMu.Lock()
 	if o.state != ocrEndpointStarted {
-		o.stateMu.Unlock()
-		panic("cannot close ocrEndpoint that is not started")
+		defer o.stateMu.Unlock()
+		panic(fmt.Sprintf("cannot close ocrEndpoint that is not started, state was: %d", o.state))
 	}
 	o.state = ocrEndpointClosed
 	o.stateMu.Unlock()
@@ -649,12 +649,6 @@ func (o *ocrEndpoint) oracleID2PeerID(oracleID types.OracleID) (p2ppeer.ID, erro
 	return peerID, nil
 }
 
-func (o *ocrEndpoint) isStarted() bool {
-	o.stateMu.RLock()
-	defer o.stateMu.RUnlock()
-	return o.state == ocrEndpointStarted
-}
-
 // SendTo sends a message to the given oracle
 // It makes a best effort delivery. If stream is unavailable for any
 // reason, it will fill up to outgoingMessageBufferSize then drop messages
@@ -663,8 +657,11 @@ func (o *ocrEndpoint) isStarted() bool {
 // NOTE: If a stream connection is lost, the buffer will keep only the newest
 // messages and drop older ones until the stream opens again.
 func (o *ocrEndpoint) SendTo(payload []byte, to types.OracleID) {
-	if !o.isStarted() {
-		panic("send on non-running ocrEndpoint")
+	o.stateMu.RLock()
+	state := o.state
+	o.stateMu.RUnlock()
+	if state != ocrEndpointStarted {
+		panic(fmt.Sprintf("send on non-running ocrEndpoint, state was: %d", state))
 	}
 
 	if to == o.ownOracleID {

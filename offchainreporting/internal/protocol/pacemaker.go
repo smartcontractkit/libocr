@@ -214,6 +214,8 @@ func (pace *pacemakerState) run() {
 		// ensure prompt exit
 		select {
 		case <-chDone:
+			pace.logger.Info("Pacemaker: winding down", nil)
+			pace.reportGenerationSubprocess.Wait()
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:

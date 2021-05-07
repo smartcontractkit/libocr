@@ -74,7 +74,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 		// If the new parameters are negative, something went wrong, so log error and remove limiter.
 		newLimit := rcLimiter.refillRate + deltaTokenBucketRefillRate
 		newSize := rcLimiter.limiter.Burst() + deltaTokenBucketSize
-		if newLimit <= 0 || newSize <= 0 {
+		if newLimit < 0 || newSize < 0 {
 			ls.logger.Error("incorrect new bandwith limiter params", types.LogFields{
 				"peerID":         peerID.Pretty(),
 				"newLimit":       newLimit,
@@ -89,7 +89,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 			rcLimiter.refillRate = newLimit
 		}
 
-		// Invariant at this point: the limiter for peerID exists and has updated positive params.
+		// Invariant at this point: the limiter for peerID exists and has updated non-negative params.
 
 		// Update reference count for the current limiter. If it's zero, log and remove the limiter.
 		if positiveDeltas {
