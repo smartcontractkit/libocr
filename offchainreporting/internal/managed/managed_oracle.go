@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
@@ -30,6 +31,7 @@ func RunManagedOracle(
 	monitoringEndpoint types.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	privateKeys types.PrivateKeys,
+	contractAddress common.Address,
 ) {
 	mo := managedOracleState{
 		ctx: ctx,
@@ -44,6 +46,7 @@ func RunManagedOracle(
 		monitoringEndpoint:  monitoringEndpoint,
 		netEndpointFactory:  netEndpointFactory,
 		privateKeys:         privateKeys,
+		contractAddress:     contractAddress,
 	}
 	mo.run()
 }
@@ -62,6 +65,7 @@ type managedOracleState struct {
 	monitoringEndpoint  types.MonitoringEndpoint
 	netEndpointFactory  types.BinaryNetworkEndpointFactory
 	privateKeys         types.PrivateKeys
+	contractAddress     common.Address
 
 	chTelemetry        chan<- *protobuf.TelemetryWrapper
 	netEndpoint        *shim.SerializingEndpoint
@@ -75,7 +79,7 @@ func (mo *managedOracleState) run() {
 		chTelemetry := make(chan *protobuf.TelemetryWrapper, 100)
 		mo.chTelemetry = chTelemetry
 		mo.otherSubprocesses.Go(func() {
-			forwardTelemetry(mo.ctx, mo.logger, mo.monitoringEndpoint, chTelemetry)
+			forwardTelemetry(mo.ctx, mo.logger, mo.monitoringEndpoint, mo.contractAddress, chTelemetry)
 		})
 	}
 

@@ -124,7 +124,7 @@ type DataSource interface {
 //
 // All its functions should be thread-safe.
 type MonitoringEndpoint interface {
-	SendLog(log []byte)
+	SendLog(log []byte, contractAddress common.Address)
 }
 
 // ContractTransmitter sends new reports to the OffchainAggregator smart contract.

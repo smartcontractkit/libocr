@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
@@ -16,6 +17,7 @@ func forwardTelemetry(
 
 	logger loghelper.LoggerWithContext,
 	monitoringEndpoint types.MonitoringEndpoint,
+	contractAddress common.Address,
 
 	chTelemetry <-chan *protobuf.TelemetryWrapper,
 ) {
@@ -37,7 +39,7 @@ func forwardTelemetry(
 				break
 			}
 			if monitoringEndpoint != nil {
-				monitoringEndpoint.SendLog(bin)
+				monitoringEndpoint.SendLog(bin, contractAddress)
 			}
 		case <-ctx.Done():
 			logger.Info("forwardTelemetry: exiting", nil)

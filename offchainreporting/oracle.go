@@ -3,6 +3,7 @@ package offchainreporting
 import (
 	"context"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
@@ -44,6 +45,9 @@ type OracleArgs struct {
 
 	// Used to send logs to a monitor
 	MonitoringEndpoint types.MonitoringEndpoint
+
+	// The address of the contract
+	ContractAddress common.Address
 
 	// PrivateKeys contains the secret keys needed for the OCR protocol, and methods
 	// which use those keys without exposing them to the rest of the application.
@@ -98,6 +102,7 @@ func (o *Oracle) Start() error {
 			o.oracleArgs.MonitoringEndpoint,
 			o.oracleArgs.BinaryNetworkEndpointFactory,
 			o.oracleArgs.PrivateKeys,
+			o.oracleArgs.ContractAddress,
 		)
 	})
 	return nil
