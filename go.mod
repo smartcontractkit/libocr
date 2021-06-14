@@ -4,9 +4,11 @@ go 1.14
 
 require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/codegangsta/negroni v1.0.0 // indirect
+	github.com/consensys/gurvy v0.3.8 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
-	github.com/ethereum/go-ethereum v1.10.2
+	github.com/ethereum/go-ethereum v1.10.3
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/go-test/deep v1.0.7
 	github.com/golang/protobuf v1.4.3
@@ -41,11 +43,10 @@ require (
 	go.opencensus.io v0.22.5 // indirect
 	go.uber.org/goleak v1.1.10
 	go.uber.org/multierr v1.6.0
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/mod v0.4.0 // indirect
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20210611083646-a4fc73990273 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
-	golang.org/x/tools v0.0.0-20201211185031-d93e913c1a58 // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/guregu/null.v2 v2.1.2 // indirect
 )

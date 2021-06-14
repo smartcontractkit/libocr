@@ -112,7 +112,11 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 	mb.closeBootstrapper()
 
 	var err error
-	mb.config, err = config.PublicConfigFromContractConfig(cc)
+	// We're okay to skip chain-specific checks here. A bootstrap node does not
+	// use any chain-specific parameters, since it doesn't participate in the
+	// actual OCR protocol. It just hangs out on the P2P network and helps other
+	// nodes find each other.
+	mb.config, err = config.PublicConfigFromContractConfig(nil, true, cc)
 	if err != nil {
 		mb.logger.Error("ManagedBootstrapNode: error while decoding ContractConfig", types.LogFields{
 			"error": err,

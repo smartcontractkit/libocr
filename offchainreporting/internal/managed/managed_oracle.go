@@ -148,9 +148,12 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 	mo.closeOracle()
 
 	// Decode contractConfig
+	skipChainSpecificChecks := mo.localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 	var err error
 	var oid types.OracleID
 	mo.config, oid, err = config.SharedConfigFromContractConfig(
+		mo.contractTransmitter.ChainID(),
+		skipChainSpecificChecks,
 		contractConfig,
 		mo.privateKeys,
 		mo.netEndpointFactory.PeerID(),

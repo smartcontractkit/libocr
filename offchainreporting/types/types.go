@@ -172,6 +172,8 @@ type ContractTransmitter interface {
 	)
 
 	FromAddress() common.Address
+
+	ChainID() *big.Int
 }
 
 // ContractConfigTracker tracks OffchainAggregator.ConfigSet events emitted from blockchain.

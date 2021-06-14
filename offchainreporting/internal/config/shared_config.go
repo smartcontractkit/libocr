@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	cryptorand "crypto/rand"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -39,12 +40,14 @@ func (c *SharedConfig) TransmissionOrderKey() [16]byte {
 }
 
 func SharedConfigFromContractConfig(
+	chainID *big.Int,
+	skipChainSpecificChecks bool,
 	change types.ContractConfig,
 	privateKeys types.PrivateKeys,
 	peerID string,
 	transmitAddress common.Address,
 ) (SharedConfig, types.OracleID, error) {
-	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(change)
+	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(chainID, false, change)
 	if err != nil {
 		return SharedConfig{}, 0, err
 	}
