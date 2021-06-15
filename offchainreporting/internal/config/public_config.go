@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -48,12 +49,12 @@ func (c *PublicConfig) CheckParameterBounds() error {
 	return nil
 }
 
-func PublicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, error) {
-	pubcon, _, err := publicConfigFromContractConfig(change)
+func PublicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bool, change types.ContractConfig) (PublicConfig, error) {
+	pubcon, _, err := publicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
 	return pubcon, err
 }
 
-func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, SharedSecretEncryptions, error) {
+func publicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bool, change types.ContractConfig) (PublicConfig, SharedSecretEncryptions, error) {
 	oc, err := decodeContractSetConfigEncodedComponents(change.Encoded)
 	if err != nil {
 		return PublicConfig{}, SharedSecretEncryptions{}, err
@@ -94,6 +95,12 @@ func publicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, 
 		return PublicConfig{}, SharedSecretEncryptions{}, err
 	}
 
+	if !skipChainSpecificChecks {
+		if err := checkPublicConfigParametersForChain(chainID, cfg); err != nil {
+			return PublicConfig{}, SharedSecretEncryptions{}, err
+		}
+	}
+
 	return cfg, oc.SharedSecretEncryptions, nil
 }
 
@@ -127,32 +134,27 @@ func checkIdentityListsHaveTheSameLength(
 func checkPublicConfigParameters(cfg PublicConfig) error {
 	/////////////////////////////////////////////////////////////////
 	// Be sure to think about changes to other tooling that need to
-	// be made when you change these values!
+	// be made when you change this function!
 	/////////////////////////////////////////////////////////////////
 
 	if !(0 <= cfg.DeltaC) {
-		return fmt.Errorf("DeltaC (%v) must be non-negative",
-			cfg.DeltaC)
+		return fmt.Errorf("DeltaC (%v) must be non-negative", cfg.DeltaC)
 	}
 
-	if !(1*time.Second < cfg.DeltaStage) {
-		return fmt.Errorf("DeltaStage (%v) must be greater than 1s",
-			cfg.DeltaStage)
+	if !(0 <= cfg.DeltaStage) {
+		return fmt.Errorf("DeltaStage (%v) must be non-negative", cfg.DeltaStage)
 	}
 
-	if !(500*time.Millisecond < cfg.DeltaRound) {
-		return fmt.Errorf("DeltaRound (%v) must be greater than 500ms",
-			cfg.DeltaRound)
+	if !(0 <= cfg.DeltaRound) {
+		return fmt.Errorf("DeltaRound (%v) must be non-negative", cfg.DeltaRound)
 	}
 
-	if !(500*time.Millisecond < cfg.DeltaProgress) {
-		return fmt.Errorf("DeltaProgress (%v) must be greater than 500ms",
-			cfg.DeltaProgress)
+	if !(0 <= cfg.DeltaProgress) {
+		return fmt.Errorf("DeltaProgress (%v) must be non-negative", cfg.DeltaProgress)
 	}
 
-	if !(500*time.Millisecond < cfg.DeltaResend) {
-		return fmt.Errorf("DeltaResend (%v) must be greater than 500ms",
-			cfg.DeltaResend)
+	if !(0 <= cfg.DeltaResend) {
+		return fmt.Errorf("DeltaResend (%v) must be non-negative", cfg.DeltaResend)
 	}
 
 	if !(0 <= cfg.F && cfg.F*3 < cfg.N()) {
@@ -196,6 +198,141 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 		if !(0 <= s && s <= types.MaxOracles) {
 			return fmt.Errorf("S[%v] (%v) must be between 0 and types.MaxOracles (%v)", i, s, types.MaxOracles)
 		}
+	}
+
+	return nil
+}
+
+func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) error {
+	/////////////////////////////////////////////////////////////////
+	// Be sure to think about changes to other tooling that need to
+	// be made when you change this function!
+	/////////////////////////////////////////////////////////////////
+
+	type chainType int
+	const (
+		_ chainType = iota
+		chainTypeSlowUpdates
+		chainTypeModerateUpdates
+		chainTypeFastUpdates
+		chainTypePublicTestnet
+		chainTypePrivateTestnet
+	)
+
+	type chainInfo struct {
+		Name      string
+		ChainType chainType
+	}
+
+	type chainLimits struct {
+		MinDeltaC        time.Duration
+		MinDeltaStage    time.Duration
+		MinDeltaRound    time.Duration
+		MinDeltaProgress time.Duration
+		MinDeltaResend   time.Duration
+	}
+
+	if chainID == nil {
+		return fmt.Errorf("chainID is nil, cannot perform chain-specific checks")
+	}
+
+	info, ok := map[uint64]chainInfo{
+		1337:       {"SimulatedBackend", chainTypePrivateTestnet},
+		42161:      {"Arbitrum", chainTypeModerateUpdates},
+		421611:     {"Arbitrum Testnet Rinkeby", chainTypePublicTestnet},
+		43114:      {"Avalanche", chainTypeModerateUpdates},
+		43113:      {"Avalanche Testnet Fuji", chainTypePublicTestnet},
+		56:         {"BSC", chainTypeFastUpdates},
+		97:         {"BSC Testnet", chainTypePublicTestnet},
+		128:        {"HECO", chainTypeModerateUpdates},
+		256:        {"HECO Testnet", chainTypePublicTestnet},
+		1:          {"Ethereum", chainTypeSlowUpdates},
+		5:          {"Ethereum Testnet Goerli", chainTypePublicTestnet},
+		42:         {"Ethereum Testnet Kovan", chainTypePublicTestnet},
+		4:          {"Ethereum Testnet Rinkeby", chainTypePublicTestnet},
+		250:        {"Fantom", chainTypeModerateUpdates},
+		4002:       {"Fantom Testnet", chainTypePublicTestnet},
+		1666600000: {"Harmony Shard 0", chainTypeModerateUpdates},
+		1666600001: {"Harmony Shard 1", chainTypeModerateUpdates},
+		1666600002: {"Harmony Shard 2", chainTypeModerateUpdates},
+		1666600003: {"Harmony Shard 3", chainTypeModerateUpdates},
+		1666700000: {"Harmony Testnet Shard 0", chainTypePublicTestnet},
+		1666700001: {"Harmony Testnet Shard 1", chainTypePublicTestnet},
+		1666700002: {"Harmony Testnet Shard 2", chainTypePublicTestnet},
+		1666700003: {"Harmony Testnet Shard 3", chainTypePublicTestnet},
+		137:        {"Matic", chainTypeFastUpdates},
+		80001:      {"Matic Testnet", chainTypePublicTestnet},
+		10:         {"Optimism", chainTypeModerateUpdates},
+		69:         {"Optimism Testnet Kovan", chainTypePublicTestnet},
+		420:        {"Optimism Testnet Goerli", chainTypePublicTestnet},
+		30:         {"RSK", chainTypeModerateUpdates},
+		31:         {"RSK Testnet", chainTypePublicTestnet},
+		100:        {"xDai", chainTypeModerateUpdates},
+	}[chainID.Uint64()]
+	if !ok {
+		// "fail-closed" design. If we don't know the chain, we assume that
+		// we shouldn't be updating it quickly
+		info = chainInfo{"UNKNOWN", chainTypeSlowUpdates}
+	}
+
+	limits, ok := map[chainType]chainLimits{
+		chainTypeSlowUpdates: {
+			10 * time.Minute,
+			10 * time.Second,
+			20 * time.Second,
+			23 * time.Second,
+			10 * time.Second,
+		},
+		chainTypeModerateUpdates: {
+			1 * time.Minute,
+			5 * time.Second,
+			20 * time.Second,
+			23 * time.Second,
+			10 * time.Second,
+		},
+		chainTypeFastUpdates: {
+			10 * time.Second,
+			5 * time.Second,
+			5 * time.Second,
+			8 * time.Second,
+			5 * time.Second,
+		},
+		chainTypePublicTestnet: {
+			1 * time.Second,
+			5 * time.Second,
+			1 * time.Second,
+			2 * time.Second,
+			2 * time.Second,
+		},
+		chainTypePrivateTestnet: {}, // do whatever you want on private testnet
+	}[info.ChainType]
+	if !ok {
+		return fmt.Errorf("unknown chainType (%v) for chainID %v, cannot check config parameters", info.ChainType, chainID)
+	}
+
+	if !(limits.MinDeltaC <= cfg.DeltaC) {
+		return fmt.Errorf("DeltaC (%v) must be greater or equal %v on chain %v (chainID: %v)",
+			cfg.DeltaC, limits.MinDeltaC, info.Name, chainID)
+	}
+
+	if !(limits.MinDeltaStage <= cfg.DeltaStage) {
+		return fmt.Errorf("DeltaStage (%v) must be greater or equal %v on chain %v (chainID: %v)",
+			cfg.DeltaStage, limits.MinDeltaStage, info.Name, chainID)
+	}
+
+	if !(limits.MinDeltaRound <= cfg.DeltaRound) {
+		return fmt.Errorf("DeltaRound (%v) must be greater or equal %v on chain %v (chainID: %v)",
+			cfg.DeltaRound, limits.MinDeltaRound, info.Name, chainID)
+	}
+
+	if !(limits.MinDeltaProgress <= cfg.DeltaProgress) {
+		return fmt.Errorf("DeltaProgress (%v) must be greater or equal %v on chain %v (chainID: %v)",
+			cfg.DeltaProgress, limits.MinDeltaProgress, info.Name, chainID)
+	}
+
+	if !(limits.MinDeltaResend <= cfg.DeltaResend) {
+		return fmt.Errorf("DeltaResend (%v) must be greater or equal %v on chain %v (chainID: %v)",
+			cfg.DeltaResend, limits.MinDeltaResend, info.Name, chainID)
 	}
 
 	return nil

@@ -3,6 +3,9 @@
 package confighelper
 
 import (
+	"crypto/rand"
+	"io"
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -42,8 +45,8 @@ func (pc PublicConfig) N() int {
 	return len(pc.OracleIdentities)
 }
 
-func PublicConfigFromContractConfig(change types.ContractConfig) (PublicConfig, error) {
-	internalPublicConfig, err := config.PublicConfigFromContractConfig(change)
+func PublicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bool, change types.ContractConfig) (PublicConfig, error) {
+	internalPublicConfig, err := config.PublicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
 	if err != nil {
 		return PublicConfig{}, err
 	}
@@ -96,6 +99,7 @@ type OracleIdentityExtra struct {
 	SharedSecretEncryptionPublicKey types.SharedSecretEncryptionPublicKey
 }
 
+// ContractSetConfigArgsForIntegrationTest generates setConfig args for integration tests in core
 func ContractSetConfigArgsForIntegrationTest(
 	oracles []OracleIdentityExtra,
 	f int,
@@ -137,6 +141,65 @@ func ContractSetConfigArgsForIntegrationTest(
 			types.ConfigDigest{},
 		},
 		&[config.SharedSecretSize]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8},
+	}
+	return config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, sharedSecretEncryptionPublicKeys)
+}
+
+// ContractSetConfigArgs generates setConfig args from the relevant parameters.
+// Only use this for testing, *not* for production.
+func ContractSetConfigArgs(
+	deltaProgress time.Duration,
+	deltaResend time.Duration,
+	deltaRound time.Duration,
+	deltaGrace time.Duration,
+	deltaC time.Duration,
+	alphaPPB uint64,
+	deltaStage time.Duration,
+	rMax uint8,
+	s []int,
+	oracles []OracleIdentityExtra,
+	f int,
+) (
+	signers []common.Address,
+	transmitters []common.Address,
+	threshold uint8,
+	encodedConfigVersion uint64,
+	encodedConfig []byte,
+	err error,
+) {
+	identities := []config.OracleIdentity{}
+	sharedSecretEncryptionPublicKeys := []types.SharedSecretEncryptionPublicKey{}
+	for _, oracle := range oracles {
+		identities = append(identities, config.OracleIdentity{
+			oracle.PeerID,
+			oracle.OffchainPublicKey,
+			oracle.OnChainSigningAddress,
+			oracle.TransmitAddress,
+		})
+		sharedSecretEncryptionPublicKeys = append(sharedSecretEncryptionPublicKeys, oracle.SharedSecretEncryptionPublicKey)
+	}
+
+	sharedSecret := [config.SharedSecretSize]byte{}
+	if _, err := io.ReadFull(rand.Reader, sharedSecret[:]); err != nil {
+		return nil, nil, 0, 0, nil, err
+	}
+
+	sharedConfig := config.SharedConfig{
+		config.PublicConfig{
+			deltaProgress,
+			deltaResend,
+			deltaRound,
+			deltaGrace,
+			deltaC,
+			alphaPPB,
+			deltaStage,
+			rMax,
+			s,
+			identities,
+			f,
+			types.ConfigDigest{},
+		},
+		&sharedSecret,
 	}
 	return config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, sharedSecretEncryptionPublicKeys)
 }
