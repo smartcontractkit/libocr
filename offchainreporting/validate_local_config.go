@@ -77,8 +77,8 @@ func SanityCheckLocalConfig(c types.LocalConfig) (err error) {
 	}
 
 	const minContractConfigConfirmations = 1
-	const maxContractConfigConfirmations = 10
-	if !(1 <= c.ContractConfigConfirmations && c.ContractConfigConfirmations <= 9) {
+	const maxContractConfigConfirmations = 100
+	if !(minContractConfigConfirmations <= c.ContractConfigConfirmations && c.ContractConfigConfirmations <= maxContractConfigConfirmations) {
 		err = multierr.Append(err, errors.Errorf(
 			"contract config block-depth confirmation threshold must be between %v and %v, but is currently %v",
 			minContractConfigConfirmations,

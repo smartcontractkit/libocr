@@ -139,7 +139,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	if state.configDigest == latestConfigDigest {
 		return nil, false
 	}
-	if blockheight < changedInBlock+uint64(state.localConfig.ContractConfigConfirmations) {
+	if !state.localConfig.SkipContractConfigConfirmations && blockheight < changedInBlock+uint64(state.localConfig.ContractConfigConfirmations)-1 {
 		return nil, true
 	}
 	configCtx, configCancel := context.WithTimeout(state.ctx, state.localConfig.BlockchainTimeout)
