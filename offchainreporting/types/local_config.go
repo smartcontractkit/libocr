@@ -28,7 +28,26 @@ type LocalConfig struct {
 	// interval, unless an adversary is able to repeatedly re-org the transaction
 	// out during every poll interval, which would amount to the capability to
 	// censor any transaction.
+	//
+	// Note that 1 confirmation implies that the transaction/event has been mined in one block.
+	// 0 confirmations would imply that the event would be recognised before it has even been mined, which is not currently supported.
+	// e.g.
+	// Current block height: 42
+	// Changed in block height: 43
+	// Contract config confirmations: 1
+	// STILL PENDING
+	//
+	// Current block height: 43
+	// Changed in block height: 43
+	// Contract config confirmations: 1
+	// CONFIRMED
 	ContractConfigConfirmations uint16
+
+	// SkipContractConfigConfirmations allows to disable the confirmations check entirely
+	// This can be useful in some cases e.g. L2 which has instant finality and
+	// where local block numbers do not match the on-chain value returned from
+	// block.number
+	SkipContractConfigConfirmations bool
 
 	// Polling interval at which ContractConfigTracker is queried for
 	// updated on-chain configurations. Recommended values are between
