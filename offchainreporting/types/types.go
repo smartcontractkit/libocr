@@ -75,7 +75,8 @@ type Bootstrapper interface {
 //
 // All its functions should be thread-safe.
 type BinaryNetworkEndpointFactory interface {
-	MakeEndpoint(cd ConfigDigest, peerIDs []string, bootstrappers []string,
+	NewEndpoint(cd ConfigDigest, peerIDs []string,
+		v1bootstrappers []string, v2bootstrappers []BootstrapperLocator,
 		failureThreshold int, tokenBucketRefillRate float64, tokenBucketSize int,
 	) (BinaryNetworkEndpoint, error)
 	PeerID() string
@@ -85,7 +86,20 @@ type BinaryNetworkEndpointFactory interface {
 //
 // All its functions should be thread-safe.
 type BootstrapperFactory interface {
-	MakeBootstrapper(cd ConfigDigest, peerIDs []string, bootstrappers []string, failureThreshold int) (Bootstrapper, error)
+	NewBootstrapper(cd ConfigDigest, peerIDs []string,
+		v1bootstrappers []string, v2bootstrappers []BootstrapperLocator,
+		failureThreshold int,
+	) (Bootstrapper, error)
+}
+
+// BootstrapperLocator contains information for locating a bootstrapper on the network.
+type BootstrapperLocator struct {
+	// PeerID is the libp2p-style peer ID of the bootstrapper
+	PeerID string
+
+	// Addrs contains the addresses of the bootstrapper. An address must be of the form "<host>:<port>",
+	// such as "52.49.198.28:80" or "chain.link:443".
+	Addrs []string
 }
 
 // BinaryMessageWithSender contains the information from a Receive() channel

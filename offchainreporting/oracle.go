@@ -20,8 +20,11 @@ type OracleArgs struct {
 	// communicate with other participating nodes.
 	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
 
-	// Bootstrappers is the list of bootstrap node addresses
-	Bootstrappers []string
+	// V1Bootstrappers is the list of bootstrap node addresses and IDs for the v1 stack
+	V1Bootstrappers []string
+
+	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack
+	V2Bootstrappers []types.BootstrapperLocator
 
 	// Interfaces with the OffchainAggregator smart contract's transmission related logic
 	ContractTransmitter types.ContractTransmitter
@@ -88,7 +91,8 @@ func (o *Oracle) Start() error {
 		managed.RunManagedOracle(
 			ctx,
 
-			o.oracleArgs.Bootstrappers,
+			o.oracleArgs.V1Bootstrappers,
+			o.oracleArgs.V2Bootstrappers,
 			o.oracleArgs.ContractConfigTracker,
 			o.oracleArgs.ContractTransmitter,
 			o.oracleArgs.Database,

@@ -20,7 +20,8 @@ import (
 func RunManagedOracle(
 	ctx context.Context,
 
-	bootstrappers []string,
+	v1bootstrappers []string,
+	v2bootstrappers []types.BootstrapperLocator,
 	configTracker types.ContractConfigTracker,
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
@@ -34,7 +35,8 @@ func RunManagedOracle(
 	mo := managedOracleState{
 		ctx: ctx,
 
-		bootstrappers:       bootstrappers,
+		v1bootstrappers:     v1bootstrappers,
+		v2bootstrappers:     v2bootstrappers,
 		configTracker:       configTracker,
 		contractTransmitter: contractTransmitter,
 		database:            database,
@@ -51,7 +53,8 @@ func RunManagedOracle(
 type managedOracleState struct {
 	ctx context.Context
 
-	bootstrappers       []string
+	v1bootstrappers     []string
+	v2bootstrappers     []types.BootstrapperLocator
 	config              config.SharedConfig
 	configTracker       types.ContractConfigTracker
 	contractTransmitter types.ContractTransmitter
@@ -177,15 +180,15 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		"oid":          oid,
 	})
 
-	binNetEndpoint, err := mo.netEndpointFactory.MakeEndpoint(mo.config.ConfigDigest, peerIDs,
-		mo.bootstrappers, mo.config.F, computeTokenBucketRefillRate(mo.config.PublicConfig),
+	binNetEndpoint, err := mo.netEndpointFactory.NewEndpoint(mo.config.ConfigDigest, peerIDs,
+		mo.v1bootstrappers, mo.v2bootstrappers, mo.config.F, computeTokenBucketRefillRate(mo.config.PublicConfig),
 		computeTokenBucketSize())
 	if err != nil {
-		mo.logger.Error("ManagedOracle: error during MakeEndpoint", types.LogFields{
-			"error":         err,
-			"configDigest":  mo.config.ConfigDigest,
-			"peerIDs":       peerIDs,
-			"bootstrappers": mo.bootstrappers,
+		mo.logger.Error("ManagedOracle: error during NewEndpoint", types.LogFields{
+			"error":           err,
+			"configDigest":    mo.config.ConfigDigest,
+			"peerIDs":         peerIDs,
+			"v1bootstrappers": mo.v1bootstrappers,
 		})
 		return
 	}
