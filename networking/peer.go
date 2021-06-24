@@ -33,23 +33,6 @@ const (
 	dhtPrefix = "/cl_peer_discovery_dht"
 )
 
-type NetworkingStack uint8
-
-const (
-	_ NetworkingStack = iota
-	NetworkingStackV1
-	NetworkingStackV2
-	NetworkingStackPreferV2
-)
-
-func (n NetworkingStack) needsv2() bool {
-	return n == NetworkingStackV2 || n == NetworkingStackPreferV2
-}
-
-func (n NetworkingStack) needsv1() bool {
-	return n == NetworkingStackV1 || n == NetworkingStackPreferV2
-}
-
 type DiscovererDatabase interface {
 	// StoreAnnouncement has key-value-store semantics and stores a peerID (key) and an associated serialized
 	//announcement (value).

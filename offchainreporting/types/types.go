@@ -2,10 +2,12 @@
 package types
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -100,6 +102,34 @@ type BootstrapperLocator struct {
 	// Addrs contains the addresses of the bootstrapper. An address must be of the form "<host>:<port>",
 	// such as "52.49.198.28:80" or "chain.link:443".
 	Addrs []string
+}
+
+func (b *BootstrapperLocator) MarshalText() ([]byte, error) {
+	var bs bytes.Buffer
+	bs.Write([]byte(b.PeerID))
+	bs.WriteRune('@')
+	for i, addr := range b.Addrs {
+		if i != 0 {
+			bs.WriteRune('/')
+		}
+		bs.Write([]byte(addr))
+	}
+	return bs.Bytes(), nil
+}
+
+func (b *BootstrapperLocator) UnmarshalText(text []byte) error {
+	parts := strings.Split(string(text), "@")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid BootstrapperLocator")
+	}
+	peerid, addrsJoined := parts[0], parts[1]
+	b.PeerID = peerid
+	if len(addrsJoined) == 0 {
+		b.Addrs = []string{}
+	} else {
+		b.Addrs = strings.Split(addrsJoined, "/")
+	}
+	return nil
 }
 
 // BinaryMessageWithSender contains the information from a Receive() channel
