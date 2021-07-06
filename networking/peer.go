@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/transport"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
@@ -32,19 +33,52 @@ const (
 	dhtPrefix = "/cl_peer_discovery_dht"
 )
 
-// PeerConfig configures the peer
+type DiscovererDatabase interface {
+	// StoreAnnouncement has key-value-store semantics and stores a peerID (key) and an associated serialized
+	//announcement (value).
+	StoreAnnouncement(ctx context.Context, peerID string, ann []byte) error
+
+	// ReadAnnouncements returns one serialized announcement (if available) for each of the peerIDs in the form of a map
+	// keyed by each announcement's corresponding peer ID.
+	ReadAnnouncements(ctx context.Context, peerIDs []string) (map[string][]byte, error)
+}
+
+// PeerConfig configures the peer. A peer can operate with the v1 or v2 or both networking stacks, depending on
+// the NetworkingStack set. The options for each stack are clearly marked, those for v1 start with V1 and those for v2
+// start with V2. Only the options for the desired stack(s) need to be set.
 type PeerConfig struct {
-	PrivKey        p2pcrypto.PrivKey
-	ListenIP       net.IP
-	ListenPort     uint16
-	AnnounceIP     net.IP
-	AnnouncePort   uint16
-	Logger         types.Logger
-	Peerstore      p2ppeerstore.Peerstore
-	EndpointConfig EndpointConfig
+	// NetworkingStack declares which network stack will be used: v1, v2 or both (prefer v2).
+	NetworkingStack NetworkingStack
+	PrivKey         p2pcrypto.PrivKey
+	Logger          types.Logger
+
+	V1ListenIP     net.IP
+	V1ListenPort   uint16
+	V1AnnounceIP   net.IP
+	V1AnnouncePort uint16
+	V1Peerstore    p2ppeerstore.Peerstore
+
 	// This should be 0 most of times, but when needed (eg when counter is somehow rolled back)
 	// users can bump this value to manually bump the counter.
-	DHTAnnouncementCounterUserPrefix uint32
+	V1DHTAnnouncementCounterUserPrefix uint32
+
+	// V2ListenAddresses contains the addresses the peer will listen to on the network in <host>:<port> form as
+	// accepted by net.Listen, but host and port must be fully specified and cannot be empty.
+	V2ListenAddresses []string
+
+	// V2AnnounceAddresses contains the addresses the peer will advertise on the network in <host>:<port> form as
+	// accepted by net.Dial. The addresses should be reachable by peers of interest.
+	V2AnnounceAddresses []string
+
+	// Every V2DeltaReconcile a Reconcile message is sent to every peer.
+	V2DeltaReconcile time.Duration
+
+	// Dial attempts will be at least V2DeltaDial apart.
+	V2DeltaDial time.Duration
+
+	V2DiscovererDatabase DiscovererDatabase
+
+	EndpointConfig EndpointConfig
 }
 
 // concretePeer represents a libp2p peer with one peer ID listening on one port
@@ -75,7 +109,7 @@ type registrant interface {
 
 // NewPeer creates a new peer
 func NewPeer(c PeerConfig) (*concretePeer, error) {
-	if c.ListenPort == 0 {
+	if c.V1ListenPort == 0 {
 		return nil, errors.New("NewPeer requires a non-zero listen port")
 	}
 
@@ -84,7 +118,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "error extracting peer ID from private key")
 	}
 
-	listenAddr, err := makeMultiaddr(c.ListenIP, c.ListenPort)
+	listenAddr, err := makeMultiaddr(c.V1ListenIP, c.V1ListenPort)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not make listen multiaddr")
 	}
@@ -92,8 +126,8 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(types.LogFields{
 		"id":         "Peer",
 		"peerID":     peerID.Pretty(),
-		"listenPort": c.ListenPort,
-		"listenIP":   c.ListenIP.String(),
+		"listenPort": c.V1ListenPort,
+		"listenIP":   c.V1ListenIP.String(),
 		"listenAddr": listenAddr.String(),
 	})
 
@@ -110,7 +144,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not create knocking tls")
 	}
 
-	addrsFactory, err := makeAddrsFactory(c.AnnounceIP, c.AnnouncePort)
+	addrsFactory, err := makeAddrsFactory(c.V1AnnounceIP, c.V1AnnouncePort)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not make addrs factory")
 	}
@@ -133,7 +167,7 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		libp2p.DisableRelay(),
 		libp2p.Security(tlsID, tls),
 		libp2p.ConnectionGater(gater),
-		libp2p.Peerstore(c.Peerstore),
+		libp2p.Peerstore(c.V1Peerstore),
 		libp2p.AddrsFactory(addrsFactory),
 		libp2p.Transport(transportCon),
 		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
@@ -154,16 +188,17 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		endpointConfig:                   c.EndpointConfig,
 		registrants:                      make(map[types.ConfigDigest]struct{}),
 		registrantsMu:                    &sync.Mutex{},
-		dhtAnnouncementCounterUserPrefix: c.DHTAnnouncementCounterUserPrefix,
+		dhtAnnouncementCounterUserPrefix: c.V1DHTAnnouncementCounterUserPrefix,
 		bandwidthLimiters:                bandwidthLimiters,
 	}, nil
 }
 
-// MakeEndpoint returns a new ocrEndpoint
-func (p *concretePeer) MakeEndpoint(
+// NewEndpoint returns a new ocrEndpoint
+func (p *concretePeer) NewEndpoint(
 	configDigest types.ConfigDigest,
 	pids []string,
-	bootstrappers []string,
+	v1bootstrappers []string,
+	v2bootstrappers []types.BootstrapperLocator,
 	failureThreshold int,
 	// number of messages allowed to be consumed by the peer per second.
 	tokenBucketRefillRate float64,
@@ -174,7 +209,7 @@ func (p *concretePeer) MakeEndpoint(
 		return nil, errors.New("can't set F to 0 or smaller")
 	}
 
-	if len(bootstrappers) < 1 {
+	if len(v1bootstrappers) < 1 {
 		return nil, errors.New("requires at least one bootstrapper")
 	}
 	peerIDs, err := decodePeerIDs(pids)
@@ -182,7 +217,7 @@ func (p *concretePeer) MakeEndpoint(
 		return nil, errors.Wrap(err, "could not decode peer IDs")
 	}
 
-	bnAddrs, err := decodeBootstrappers(bootstrappers)
+	bnAddrs, err := decodeBootstrappers(v1bootstrappers)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not decode bootstrappers")
 	}
@@ -219,7 +254,13 @@ func decodePeerIDs(pids []string) ([]p2ppeer.ID, error) {
 	return peerIDs, nil
 }
 
-func (p *concretePeer) MakeBootstrapper(configDigest types.ConfigDigest, pids []string, bootstrappers []string, F int) (types.Bootstrapper, error) {
+func (p *concretePeer) NewBootstrapper(
+	configDigest types.ConfigDigest,
+	pids []string,
+	v1bootstrappers []string,
+	v2bootstrappers []types.BootstrapperLocator,
+	F int,
+) (types.Bootstrapper, error) {
 	if F <= 0 {
 		return nil, errors.New("can't set F to zero or smaller")
 	}
@@ -228,7 +269,7 @@ func (p *concretePeer) MakeBootstrapper(configDigest types.ConfigDigest, pids []
 		return nil, err
 	}
 
-	bnAddrs, err := decodeBootstrappers(bootstrappers)
+	bnAddrs, err := decodeBootstrappers(v1bootstrappers)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not decode bootstrappers")
 	}
