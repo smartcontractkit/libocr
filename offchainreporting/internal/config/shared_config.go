@@ -47,7 +47,7 @@ func SharedConfigFromContractConfig(
 	peerID string,
 	transmitAddress common.Address,
 ) (SharedConfig, types.OracleID, error) {
-	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(chainID, false, change)
+	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
 	if err != nil {
 		return SharedConfig{}, 0, err
 	}
