@@ -15,7 +15,7 @@ contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAcc
     uint32 _microLinkPerEth,
     uint32 _linkGweiPerObservation,
     uint32 _linkGweiPerTransmission,
-    address _link,
+    LinkTokenInterface _link,
     int192 _minAnswer,
     int192 _maxAnswer,
     AccessControllerInterface _billingAccessController,
@@ -50,7 +50,7 @@ contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAcc
     virtual
     returns (string memory)
   {
-    return "AccessControlledOffchainAggregator 2.0.0";
+    return "AccessControlledOffchainAggregator 3.0.0";
   }
 
 
