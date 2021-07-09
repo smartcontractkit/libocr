@@ -78,7 +78,7 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     uint32 _microLinkPerEth,
     uint32 _linkGweiPerObservation,
     uint32 _linkGweiPerTransmission,
-    address _link,
+    LinkTokenInterface _link,
     int192 _minAnswer,
     int192 _maxAnswer,
     AccessControllerInterface _billingAccessController,
@@ -109,7 +109,7 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     virtual
     returns (string memory)
   {
-    return "OffchainAggregator 2.0.0";
+    return "OffchainAggregator 3.0.0";
   }
 
   /*

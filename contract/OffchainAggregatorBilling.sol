@@ -65,10 +65,9 @@ contract OffchainAggregatorBilling is Owned {
   }
   Billing internal s_billing;
 
-  /**
-  * @return LINK token contract used for billing
-  */
-  LinkTokenInterface immutable public LINK;
+  // We assume that the token contract is correct. This contract is not written
+  // to handle misbehaving ERC20 tokens!
+  LinkTokenInterface internal s_linkToken;
 
   AccessControllerInterface internal s_billingAccessController;
 
@@ -151,14 +150,15 @@ contract OffchainAggregatorBilling is Owned {
     uint32 _microLinkPerEth,
     uint32 _linkGweiPerObservation,
     uint32 _linkGweiPerTransmission,
-    address _link,
+    LinkTokenInterface _link,
     AccessControllerInterface _billingAccessController
   )
   {
     setBillingInternal(_maximumGasPrice, _reasonableGasPrice, _microLinkPerEth,
       _linkGweiPerObservation, _linkGweiPerTransmission);
+    s_linkToken = _link;
+    emit LinkTokenSet(LinkTokenInterface(address(0)), _link);
     setBillingAccessControllerInternal(_billingAccessController);
-    LINK = LinkTokenInterface(_link);
     uint16[maxNumOracles] memory counts; // See s_oracleObservationsCounts docstring
     uint256[maxNumOracles] memory gas; // see s_gasReimbursementsLinkWei docstring
     for (uint8 i = 0; i < maxNumOracles; i++) {
@@ -167,7 +167,63 @@ contract OffchainAggregatorBilling is Owned {
     }
     s_oracleObservationsCounts = counts;
     s_gasReimbursementsLinkWei = gas;
+  }
 
+  /*
+   * @notice emitted when the LINK token contract is set
+   * @param _oldLinkToken the address of the old LINK token contract
+   * @param _newLinkToken the address of the new LINK token contract
+   */
+  event LinkTokenSet(
+    LinkTokenInterface indexed _oldLinkToken,
+    LinkTokenInterface indexed _newLinkToken
+  );
+
+  /*
+   * @notice sets the LINK token contract used for paying oracles
+   * @param _linkToken the address of the LINK token contract
+   * @param _recipient remaining funds from the previous token contract are transfered
+   * here
+   * @dev this function will return early (without an error) without changing any state
+   * if _linkToken equals getLinkToken().
+   * @dev this will trigger a payout so that a malicious owner cannot take from oracles
+   * what is already owed to them.
+   * @dev we assume that the token contract is correct. This contract is not written
+   * to handle misbehaving ERC20 tokens!
+   */
+  function setLinkToken(
+    LinkTokenInterface _linkToken,
+    address _recipient
+  ) external
+    onlyOwner()
+  {
+    LinkTokenInterface oldLinkToken = s_linkToken;
+    if (_linkToken == oldLinkToken) {
+      // No change, nothing to be done
+      return;
+    }
+    // call balanceOf as a sanity check on whether we're talking to a token
+    // contract
+    _linkToken.balanceOf(address(this));
+    // we break CEI here, but that's okay because we're dealing with a correct
+    // token contract (by assumption).
+    payOracles();
+    uint256 remainingBalance = oldLinkToken.balanceOf(address(this));
+    require(oldLinkToken.transfer(_recipient, remainingBalance), "transfer remaining funds failed");
+    s_linkToken = _linkToken;
+    emit LinkTokenSet(oldLinkToken, _linkToken);
+  }
+
+  /*
+   * @notice gets the LINK token contract used for paying oracles
+   * @return linkToken the address of the LINK token contract
+   */
+  function getLinkToken()
+    external
+    view
+    returns(LinkTokenInterface linkToken)
+  {
+    return s_linkToken;
   }
 
   /**
@@ -337,8 +393,14 @@ contract OffchainAggregatorBilling is Owned {
    * @param transmitter address from which the oracle sends reports to the transmit method
    * @param payee address to which the payment is sent
    * @param amount amount of LINK sent
+   * @param linkToken address of the LINK token contract
    */
-  event OraclePaid(address transmitter, address payee, uint256 amount);
+  event OraclePaid(
+    address indexed transmitter,
+    address indexed payee,
+    uint256 amount,
+    LinkTokenInterface indexed linkToken
+  );
 
   // payOracle pays out _transmitter's balance to the corresponding payee, and zeros it out
   function payOracle(address _transmitter)
@@ -350,10 +412,10 @@ contract OffchainAggregatorBilling is Owned {
       address payee = s_payees[_transmitter];
       // Poses no re-entrancy issues, because LINK.transfer does not yield
       // control flow.
-      require(LINK.transfer(payee, linkWeiAmount), "insufficient funds");
+      require(s_linkToken.transfer(payee, linkWeiAmount), "insufficient funds");
       s_oracleObservationsCounts[oracle.index] = 1; // "zero" the counts. see var's docstring
       s_gasReimbursementsLinkWei[oracle.index] = 1; // "zero" the counts. see var's docstring
-      emit OraclePaid(_transmitter, payee, linkWeiAmount);
+      emit OraclePaid(_transmitter, payee, linkWeiAmount, s_linkToken);
     }
   }
 
@@ -365,6 +427,7 @@ contract OffchainAggregatorBilling is Owned {
     internal
   {
     Billing memory billing = s_billing;
+    LinkTokenInterface linkToken = s_linkToken;
     uint16[maxNumOracles] memory observationsCounts = s_oracleObservationsCounts;
     uint256[maxNumOracles] memory gasReimbursementsLinkWei =
       s_gasReimbursementsLinkWei;
@@ -378,10 +441,10 @@ contract OffchainAggregatorBilling is Owned {
           address payee = s_payees[transmitters[transmitteridx]];
           // Poses no re-entrancy issues, because LINK.transfer does not yield
           // control flow.
-          require(LINK.transfer(payee, linkWeiAmount), "insufficient funds");
+          require(linkToken.transfer(payee, linkWeiAmount), "insufficient funds");
           observationsCounts[transmitteridx] = 1;       // "zero" the counts.
           gasReimbursementsLinkWei[transmitteridx] = 1; // "zero" the counts.
-          emit OraclePaid(transmitters[transmitteridx], payee, linkWeiAmount);
+          emit OraclePaid(transmitters[transmitteridx], payee, linkWeiAmount, linkToken);
         }
     }
     // "Zero" the accounting storage variables
@@ -499,9 +562,9 @@ contract OffchainAggregatorBilling is Owned {
     require(msg.sender == owner || s_billingAccessController.hasAccess(msg.sender, msg.data),
       "Only owner&billingAdmin can call");
     uint256 linkDue = totalLINKDue();
-    uint256 linkBalance = LINK.balanceOf(address(this));
+    uint256 linkBalance = s_linkToken.balanceOf(address(this));
     require(linkBalance >= linkDue, "insufficient balance");
-    require(LINK.transfer(_recipient, min(linkBalance - linkDue, _amount)), "insufficient funds");
+    require(s_linkToken.transfer(_recipient, min(linkBalance - linkDue, _amount)), "insufficient funds");
   }
 
   // Total LINK due to participants in past reports.
@@ -544,7 +607,7 @@ contract OffchainAggregatorBilling is Owned {
     returns (int256 availableBalance)
   {
     // there are at most one billion LINK, so this cast is safe
-    int256 balance = int256(LINK.balanceOf(address(this)));
+    int256 balance = int256(s_linkToken.balanceOf(address(this)));
     // according to the argument in the definition of totalLINKDue,
     // totalLINKDue is never greater than 2**172, so this cast is safe
     int256 due = int256(totalLINKDue());
