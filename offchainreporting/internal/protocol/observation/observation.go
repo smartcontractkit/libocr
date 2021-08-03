@@ -72,7 +72,7 @@ func (o Observation) Deviates(old Observation, thresholdPPB uint64) bool {
 		(&big.Int{}).SetUint64(thresholdPPB),
 		(&big.Int{}).SetUint64(1000000000),
 	)
-	return change.Cmp(threshold) > 0
+	return change.Cmp(threshold) >= 0
 }
 
 // Bytes returns the twos-complement representation of o
