@@ -31,6 +31,7 @@ func RunPacemaker(
 	chPacemakerToOracle chan<- uint32,
 	chReportGenerationToTransmission chan<- EventToTransmission,
 	config config.SharedConfig,
+	configOverrider types.ConfigOverrider,
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
 	datasource types.DataSource,
@@ -43,7 +44,7 @@ func RunPacemaker(
 ) {
 	pace := makePacemakerState(
 		ctx, subprocesses, chNetToPacemaker, chNetToReportGeneration, chPacemakerToOracle,
-		chReportGenerationToTransmission, config, contractTransmitter, database,
+		chReportGenerationToTransmission, config, configOverrider, contractTransmitter, database,
 		datasource, id, localConfig, logger, netSender, privateKeys,
 		telemetrySender,
 	)
@@ -56,7 +57,8 @@ func makePacemakerState(ctx context.Context,
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
 	chPacemakerToOracle chan<- uint32,
 	chReportGenerationToTransmission chan<- EventToTransmission,
-	config config.SharedConfig, contractTransmitter types.ContractTransmitter,
+	config config.SharedConfig, configOverrider types.ConfigOverrider,
+	contractTransmitter types.ContractTransmitter,
 	database types.Database, datasource types.DataSource, id types.OracleID,
 	localConfig types.LocalConfig, logger loghelper.LoggerWithContext,
 	netSender NetworkSender, privateKeys types.PrivateKeys,
@@ -71,6 +73,7 @@ func makePacemakerState(ctx context.Context,
 		chPacemakerToOracle:              chPacemakerToOracle,
 		chReportGenerationToTransmission: chReportGenerationToTransmission,
 		config:                           config,
+		configOverrider:                  configOverrider,
 		contractTransmitter:              contractTransmitter,
 		database:                         database,
 		datasource:                       datasource,
@@ -95,6 +98,7 @@ type pacemakerState struct {
 	chPacemakerToOracle              chan<- uint32
 	chReportGenerationToTransmission chan<- EventToTransmission
 	config                           config.SharedConfig
+	configOverrider                  types.ConfigOverrider
 	contractTransmitter              types.ContractTransmitter
 	database                         types.Database
 	datasource                       types.DataSource
@@ -480,6 +484,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 			chReportGenerationToPacemaker,
 			p.chReportGenerationToTransmission,
 			p.config,
+			p.configOverrider,
 			p.contractTransmitter,
 			p.datasource,
 			p.e,
