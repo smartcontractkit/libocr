@@ -14,6 +14,8 @@ import (
 
 // OracleArgs contains the configuration and services a caller must provide, in
 // order to run the offchainreporting protocol.
+//
+// All fields are expected to be non-nil unless otherwise noted.
 type OracleArgs struct {
 	// A factory for producing network endpoints. A network endpoints consists of
 	// networking methods a consumer must implement to allow a node to
@@ -25,6 +27,10 @@ type OracleArgs struct {
 
 	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack
 	V2Bootstrappers []types.BootstrapperLocator
+
+	// Enables locally overriding certain configuration parameters. This is
+	// useful for e.g. hibernation mode. This may be nil.
+	ConfigOverrider types.ConfigOverrider
 
 	// Interfaces with the OffchainAggregator smart contract's transmission related logic
 	ContractTransmitter types.ContractTransmitter
@@ -45,7 +51,7 @@ type OracleArgs struct {
 	// Logger logs stuff
 	Logger types.Logger
 
-	// Used to send logs to a monitor
+	// Used to send logs to a monitor. This may be nil.
 	MonitoringEndpoint types.MonitoringEndpoint
 
 	// PrivateKeys contains the secret keys needed for the OCR protocol, and methods
@@ -93,6 +99,7 @@ func (o *Oracle) Start() error {
 
 			o.oracleArgs.V1Bootstrappers,
 			o.oracleArgs.V2Bootstrappers,
+			o.oracleArgs.ConfigOverrider,
 			o.oracleArgs.ContractConfigTracker,
 			o.oracleArgs.ContractTransmitter,
 			o.oracleArgs.Database,
