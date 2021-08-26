@@ -20,6 +20,7 @@ func RunOracle(
 	ctx context.Context,
 
 	config config.SharedConfig,
+	configOverrider types.ConfigOverrider,
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
 	datasource types.DataSource,
@@ -34,6 +35,7 @@ func RunOracle(
 		ctx: ctx,
 
 		Config:              config,
+		configOverrider:     configOverrider,
 		contractTransmitter: contractTransmitter,
 		database:            database,
 		datasource:          datasource,
@@ -51,6 +53,7 @@ type oracleState struct {
 	ctx context.Context
 
 	Config              config.SharedConfig
+	configOverrider     types.ConfigOverrider
 	contractTransmitter types.ContractTransmitter
 	database            types.Database
 	datasource          types.DataSource
@@ -132,6 +135,7 @@ func (o *oracleState) run() {
 			chPacemakerToOracle,
 			chReportGenerationToTransmission,
 			o.Config,
+			o.configOverrider,
 			o.contractTransmitter,
 			o.database,
 			o.datasource,
@@ -149,6 +153,7 @@ func (o *oracleState) run() {
 			&o.subprocesses,
 
 			o.Config,
+			o.configOverrider,
 			chReportGenerationToTransmission,
 			o.database,
 			o.id,

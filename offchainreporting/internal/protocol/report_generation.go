@@ -19,6 +19,7 @@ func RunReportGeneration(
 	chReportGenerationToPacemaker chan<- EventToPacemaker,
 	chReportGenerationToTransmission chan<- EventToTransmission,
 	config config.SharedConfig,
+	configOverrider types.ConfigOverrider,
 	contractTransmitter types.ContractTransmitter,
 	datasource types.DataSource,
 	e uint32,
@@ -38,6 +39,7 @@ func RunReportGeneration(
 		chReportGenerationToPacemaker:    chReportGenerationToPacemaker,
 		chReportGenerationToTransmission: chReportGenerationToTransmission,
 		config:                           config,
+		configOverrider:                  configOverrider,
 		contractTransmitter:              contractTransmitter,
 		datasource:                       datasource,
 		e:                                e,
@@ -60,6 +62,7 @@ type reportGenerationState struct {
 	chReportGenerationToPacemaker    chan<- EventToPacemaker
 	chReportGenerationToTransmission chan<- EventToTransmission
 	config                           config.SharedConfig
+	configOverrider                  types.ConfigOverrider
 	contractTransmitter              types.ContractTransmitter
 	datasource                       types.DataSource
 	e                                uint32 // Current epoch number

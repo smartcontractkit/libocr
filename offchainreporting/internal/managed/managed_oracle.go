@@ -22,6 +22,7 @@ func RunManagedOracle(
 
 	v1bootstrappers []string,
 	v2bootstrappers []types.BootstrapperLocator,
+	configOverrider types.ConfigOverrider,
 	configTracker types.ContractConfigTracker,
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
@@ -37,6 +38,7 @@ func RunManagedOracle(
 
 		v1bootstrappers:     v1bootstrappers,
 		v2bootstrappers:     v2bootstrappers,
+		configOverrider:     configOverrider,
 		configTracker:       configTracker,
 		contractTransmitter: contractTransmitter,
 		database:            database,
@@ -56,6 +58,7 @@ type managedOracleState struct {
 	v1bootstrappers     []string
 	v2bootstrappers     []types.BootstrapperLocator
 	config              config.SharedConfig
+	configOverrider     types.ConfigOverrider
 	configTracker       types.ContractConfigTracker
 	contractTransmitter types.ContractTransmitter
 	database            types.Database
@@ -216,6 +219,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		protocol.RunOracle(
 			oracleCtx,
 			mo.config,
+			ConfigOverriderWrapper{mo.configOverrider},
 			mo.contractTransmitter,
 			mo.database,
 			mo.datasource,

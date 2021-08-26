@@ -467,15 +467,28 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 		return false
 	}
 
+	alphaPPB, deltaC := repgen.config.AlphaPPB, repgen.config.DeltaC
+	if override := repgen.configOverrider.ConfigOverride(); override != nil {
+		repgen.logger.Debug("shouldReport: using overrides for alphaPPB and deltaC", types.LogFields{
+			"round":             repgen.followerState.r,
+			"alphaPPB":          alphaPPB,
+			"deltaC":            deltaC,
+			"overridenAlphaPPB": override.AlphaPPB,
+			"overridenDeltaC":   override.DeltaC,
+		})
+		alphaPPB = override.AlphaPPB
+		deltaC = override.DeltaC
+	}
+
 	initialRound := // Is this the first round for this configuration?
 		resultTransmissionDetails.configDigest == repgen.config.ConfigDigest &&
 			resultTransmissionDetails.epoch == 0 &&
 			resultTransmissionDetails.round == 0
 	deviation := // Has the result changed enough to merit a new report?
 		observations[len(observations)/2].SignedObservation.Observation.
-			Deviates(answer, repgen.config.AlphaPPB)
+			Deviates(answer, alphaPPB)
 	deltaCTimeout := // Has enough time passed since the last report, to merit a new one?
-		resultTransmissionDetails.latestTimestamp.Add(repgen.config.DeltaC).
+		resultTransmissionDetails.latestTimestamp.Add(deltaC).
 			Before(time.Now())
 	unfulfilledRequest := // Has a new report been requested explicitly?
 		resultRoundRequested.configDigest == repgen.config.ConfigDigest &&
@@ -486,7 +499,7 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 		"round":                     repgen.followerState.r,
 		"initialRound":              initialRound,
 		"deviation":                 deviation,
-		"deltaC":                    repgen.config.DeltaC,
+		"deltaC":                    deltaC,
 		"deltaCTimeout":             deltaCTimeout,
 		"lastTransmissionTimestamp": resultTransmissionDetails.latestTimestamp,
 		"unfulfilledRequest":        unfulfilledRequest,

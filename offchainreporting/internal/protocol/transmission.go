@@ -28,6 +28,7 @@ func RunTransmission(
 	subprocesses *subprocesses.Subprocesses,
 
 	config config.SharedConfig,
+	configOverrider types.ConfigOverrider,
 	chReportGenerationToTransmission <-chan EventToTransmission,
 	database types.Database,
 	id types.OracleID,
@@ -39,8 +40,9 @@ func RunTransmission(
 		ctx:          ctx,
 		subprocesses: subprocesses,
 
-		config:                           config,
 		chReportGenerationToTransmission: chReportGenerationToTransmission,
+		config:                           config,
+		configOverrider:                  configOverrider,
 		database:                         database,
 		id:                               id,
 		localConfig:                      localConfig,
@@ -54,8 +56,9 @@ type transmissionState struct {
 	ctx          context.Context
 	subprocesses *subprocesses.Subprocesses
 
-	config                           config.SharedConfig
 	chReportGenerationToTransmission <-chan EventToTransmission
+	config                           config.SharedConfig
+	configOverrider                  types.ConfigOverrider
 	database                         types.Database
 	id                               types.OracleID
 	localConfig                      types.LocalConfig
@@ -357,7 +360,17 @@ func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound 
 		return false
 	}
 
-	deviates := t.latestMedian.Deviates(reportMedian, t.config.AlphaPPB)
+	alphaPPB := t.config.AlphaPPB
+	if override := t.configOverrider.ConfigOverride(); override != nil {
+		t.logger.Debug("shouldTransmit: using override for alphaPPB", types.LogFields{
+			"epochRound":        reportEpochRound,
+			"alphaPPB":          alphaPPB,
+			"overridenAlphaPPB": override.AlphaPPB,
+		})
+		alphaPPB = override.AlphaPPB
+	}
+
+	deviates := t.latestMedian.Deviates(reportMedian, alphaPPB)
 	nothingPending := t.latestEpochRound.Less(contractEpochRound) || t.latestEpochRound == contractEpochRound
 	result := deviates || nothingPending
 

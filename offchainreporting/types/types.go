@@ -171,6 +171,23 @@ type MonitoringEndpoint interface {
 	SendLog(log []byte)
 }
 
+type ConfigOverride struct {
+	AlphaPPB uint64
+	DeltaC   time.Duration
+}
+
+// ConfigOverrider allows overriding some OCR protocol configuration parameters.
+//
+// All its functions should be thread-safe.
+type ConfigOverrider interface {
+	// Enables locally overriding the configuration parameters in
+	// ConfigOverride by returning a non-nil result.  If no override
+	// is desired, return nil.
+	//
+	// This function is expected to return immediately.
+	ConfigOverride() *ConfigOverride
+}
+
 // ContractTransmitter sends new reports to the OffchainAggregator smart contract.
 //
 // All its functions should be thread-safe.
