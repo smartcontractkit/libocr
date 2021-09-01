@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"golang.org/x/crypto/sha3"
 )
@@ -46,13 +47,13 @@ func SharedConfigFromContractConfig(
 	privateKeys types.PrivateKeys,
 	peerID string,
 	transmitAddress common.Address,
-) (SharedConfig, types.OracleID, error) {
+) (SharedConfig, commontypes.OracleID, error) {
 	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
 	if err != nil {
 		return SharedConfig{}, 0, err
 	}
 
-	oracleID := types.OracleID(-1)
+	oracleID := commontypes.OracleID(-1)
 	{
 		var found bool
 		for i, identity := range publicConfig.OracleIdentities {
@@ -77,7 +78,7 @@ func SharedConfigFromContractConfig(
 							"mine, but TransmitAddress does not: 0x%x (config) vs 0x%x (mine)",
 						address, identity.TransmitAddress, transmitAddress)
 				}
-				oracleID = types.OracleID(i)
+				oracleID = commontypes.OracleID(i)
 				found = true
 			}
 		}

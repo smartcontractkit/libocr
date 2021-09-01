@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -55,7 +56,7 @@ func (state *trackConfigState) run() {
 					wait = state.localConfig.ContractConfigTrackerPollInterval
 				}
 				tCheckLatestConfigDetails = time.After(wait)
-				state.logger.Info("TrackConfig: awaiting confirmation of new config", types.LogFields{
+				state.logger.Info("TrackConfig: awaiting confirmation of new config", commontypes.LogFields{
 					"wait": wait,
 				})
 			} else {
@@ -64,7 +65,7 @@ func (state *trackConfigState) run() {
 
 			if change != nil {
 				state.configDigest = change.ConfigDigest
-				state.logger.Info("TrackConfig: returning config", types.LogFields{
+				state.logger.Info("TrackConfig: returning config", commontypes.LogFields{
 					"configDigest": change.ConfigDigest.Hex(),
 				})
 				select {
@@ -81,7 +82,7 @@ func (state *trackConfigState) run() {
 				state.logger.ErrorIfNotCanceled(
 					"TrackConfig: failed to SubscribeToNewConfigs. Retrying later",
 					subscribeCtx,
-					types.LogFields{
+					commontypes.LogFields{
 						"error":                                  err,
 						"ContractConfigTrackerSubscribeInterval": state.localConfig.ContractConfigTrackerSubscribeInterval,
 					},
@@ -115,7 +116,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer bhCancel()
 	blockheight, err := state.configTracker.LatestBlockHeight(bhCtx)
 	if err != nil {
-		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestBlockHeight()", bhCtx, types.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestBlockHeight()", bhCtx, commontypes.LogFields{
 			"error": err,
 		})
 		return nil, false
@@ -125,13 +126,13 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer detailsCancel()
 	changedInBlock, latestConfigDigest, err := state.configTracker.LatestConfigDetails(detailsCtx)
 	if err != nil {
-		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", detailsCtx, types.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", detailsCtx, commontypes.LogFields{
 			"error": err,
 		})
 		return nil, false
 	}
 	if latestConfigDigest == (types.ConfigDigest{}) {
-		state.logger.Error("TrackConfig: LatestConfigDetails() returned a zero configDigest. Looks like the contract has not been configured", types.LogFields{
+		state.logger.Error("TrackConfig: LatestConfigDetails() returned a zero configDigest. Looks like the contract has not been configured", commontypes.LogFields{
 			"configDigest": latestConfigDigest,
 		})
 		return nil, false
@@ -146,14 +147,14 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer configCancel()
 	contractConfig, err := state.configTracker.ConfigFromLogs(configCtx, changedInBlock)
 	if err != nil {
-		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", configCtx, types.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", configCtx, commontypes.LogFields{
 			"error": err,
 		})
 		return nil, true
 	}
 	if contractConfig.EncodedConfigVersion != config.EncodedConfigVersion {
 		state.logger.Error("TrackConfig: received config change with unknown EncodedConfigVersion",
-			types.LogFields{"versionReceived": contractConfig.EncodedConfigVersion})
+			commontypes.LogFields{"versionReceived": contractConfig.EncodedConfigVersion})
 		return nil, false
 	}
 	return &contractConfig, false

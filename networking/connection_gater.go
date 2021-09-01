@@ -7,8 +7,8 @@ import (
 	p2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"golang.org/x/time/rate"
 )
 
@@ -39,7 +39,7 @@ type connectionGater struct {
 func newConnectionGater(logger loghelper.LoggerWithContext) (*connectionGater, error) {
 	allowers := make(map[allower]struct{})
 
-	logger = logger.MakeChild(types.LogFields{
+	logger = logger.MakeChild(commontypes.LogFields{
 		"id": "ConnectionGater",
 	})
 
@@ -81,7 +81,7 @@ func (c *connectionGater) isAllowed(id p2ppeer.ID, checkRateLimit bool) bool {
 		}
 	}
 	if !oneAllowerPasses {
-		c.logger.Warn("ConnectionGater: denied access", types.LogFields{
+		c.logger.Warn("ConnectionGater: denied access", commontypes.LogFields{
 			"remotePeerID": id,
 		})
 		return false

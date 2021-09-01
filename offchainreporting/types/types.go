@@ -2,22 +2,16 @@
 package types
 
 import (
-	"bytes"
 	"context"
 	"crypto/ed25519"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"golang.org/x/crypto/curve25519"
 )
-
-// OracleID is an index over the oracles, used as a succinct attribution to an
-// oracle in communication with the on-chain contract. It is not a cryptographic
-// commitment to the oracle's private key, like a public key is.
-type OracleID int
 
 type ConfigDigest [16]byte
 
@@ -39,48 +33,14 @@ func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 	return configDigest, nil
 }
 
-// BinaryNetworkEndpoint contains the network methods a consumer must implement
-// SendTo and Broadcast must not block. They should buffer messages and
-// (optionally) drop the oldest buffered messages if the buffer reaches capacity.
-//
-// The protocol trusts the sender in BinaryMessageWithSender. Implementors of
-// this interface are responsible for securely authenticating that messages come
-// from their indicated senders.
-//
-// All its functions should be thread-safe.
-type BinaryNetworkEndpoint interface {
-	// SendTo(msg, to) sends msg to "to"
-	SendTo(payload []byte, to OracleID)
-	// Broadcast(msg) sends msg to all oracles
-	Broadcast(payload []byte)
-	// Receive returns channel which carries all messages sent to this oracle.
-	Receive() <-chan BinaryMessageWithSender
-	// Start starts the endpoint
-	Start() error
-	// Close stops the endpoint. Calling this multiple times may return an
-	// error, but must not panic.
-	Close() error
-}
-
-// Bootstrapper helps nodes find each other on the network level by providing
-// peer-discovery services.
-//
-// All its functions should be thread-safe.
-type Bootstrapper interface {
-	Start() error
-	// Close closes the bootstrapper. Calling this multiple times may return an
-	// error, but must not panic.
-	Close() error
-}
-
 // BinaryNetworkEndpointFactory creates permissioned BinaryNetworkEndpoints.
 //
 // All its functions should be thread-safe.
 type BinaryNetworkEndpointFactory interface {
 	NewEndpoint(cd ConfigDigest, peerIDs []string,
-		v1bootstrappers []string, v2bootstrappers []BootstrapperLocator,
+		v1bootstrappers []string, v2bootstrappers []commontypes.BootstrapperLocator,
 		failureThreshold int, tokenBucketRefillRate float64, tokenBucketSize int,
-	) (BinaryNetworkEndpoint, error)
+	) (commontypes.BinaryNetworkEndpoint, error)
 	PeerID() string
 }
 
@@ -89,54 +49,9 @@ type BinaryNetworkEndpointFactory interface {
 // All its functions should be thread-safe.
 type BootstrapperFactory interface {
 	NewBootstrapper(cd ConfigDigest, peerIDs []string,
-		v1bootstrappers []string, v2bootstrappers []BootstrapperLocator,
+		v1bootstrappers []string, v2bootstrappers []commontypes.BootstrapperLocator,
 		failureThreshold int,
-	) (Bootstrapper, error)
-}
-
-// BootstrapperLocator contains information for locating a bootstrapper on the network.
-type BootstrapperLocator struct {
-	// PeerID is the libp2p-style peer ID of the bootstrapper
-	PeerID string
-
-	// Addrs contains the addresses of the bootstrapper. An address must be of the form "<host>:<port>",
-	// such as "52.49.198.28:80" or "chain.link:443".
-	Addrs []string
-}
-
-func (b *BootstrapperLocator) MarshalText() ([]byte, error) {
-	var bs bytes.Buffer
-	bs.Write([]byte(b.PeerID))
-	bs.WriteRune('@')
-	for i, addr := range b.Addrs {
-		if i != 0 {
-			bs.WriteRune('/')
-		}
-		bs.Write([]byte(addr))
-	}
-	return bs.Bytes(), nil
-}
-
-func (b *BootstrapperLocator) UnmarshalText(text []byte) error {
-	parts := strings.Split(string(text), "@")
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid BootstrapperLocator")
-	}
-	peerid, addrsJoined := parts[0], parts[1]
-	b.PeerID = peerid
-	if len(addrsJoined) == 0 {
-		b.Addrs = []string{}
-	} else {
-		b.Addrs = strings.Split(addrsJoined, "/")
-	}
-	return nil
-}
-
-// BinaryMessageWithSender contains the information from a Receive() channel
-// message: The binary representation of the message, and the ID of its sender.
-type BinaryMessageWithSender struct {
-	Msg    []byte
-	Sender OracleID
+	) (commontypes.Bootstrapper, error)
 }
 
 // Observation is the type returned by the DataSource.Observe method. Represents
@@ -162,13 +77,6 @@ type DataSource interface {
 	// Important: Observe should not perform any potentially time-consuming
 	// actions like database access, once the context passed has expired.
 	Observe(context.Context) (Observation, error)
-}
-
-// MonitoringEndpoint is where the OCR protocol sends monitoring output
-//
-// All its functions should be thread-safe.
-type MonitoringEndpoint interface {
-	SendLog(log []byte)
 }
 
 type ConfigOverride struct {

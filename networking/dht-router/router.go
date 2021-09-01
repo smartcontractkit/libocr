@@ -11,7 +11,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/pkg/errors"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/subprocesses"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -79,20 +79,20 @@ func (router DHTRouter) Start() {
 
 		err := tryConnectToBootstrappers(router.ctx, router.aclHost, router.config.bootstrapNodes)
 		if err != nil {
-			router.logger().Error("DHT initial bootstrap connect failed", types.LogFields{
+			router.logger().Error("DHT initial bootstrap connect failed", commontypes.LogFields{
 				"err": err.Error(),
 			})
 		} else {
 			// Make a best effort to populate initial routing table
 			err = <-router.dht.ForceRefresh()
 			if err != nil {
-				router.logger().Warn("Initial DHT table refresh failed", types.LogFields{
+				router.logger().Warn("Initial DHT table refresh failed", commontypes.LogFields{
 					"err": err.Error(),
 				})
 			}
 		}
 
-		router.logger().Info("DHT initial bootstrap complete", types.LogFields{
+		router.logger().Info("DHT initial bootstrap complete", commontypes.LogFields{
 			"bnodes": router.config.bootstrapNodes,
 		})
 
@@ -108,11 +108,11 @@ func (router DHTRouter) Start() {
 			}
 
 			if toConnect {
-				router.logger().Debug("connect to bootstrap nodes", types.LogFields{
+				router.logger().Debug("connect to bootstrap nodes", commontypes.LogFields{
 					"bnodes": router.config.bootstrapNodes,
 				})
 				if err := tryConnectToBootstrappers(router.ctx, router.aclHost, router.config.bootstrapNodes); err != nil {
-					router.logger().Warn("DHT has no connection to any bootstrappers", types.LogFields{
+					router.logger().Warn("DHT has no connection to any bootstrappers", commontypes.LogFields{
 						"err": err.Error(),
 					})
 				}
@@ -131,7 +131,7 @@ func (router DHTRouter) ProtocolID() p2pprotocol.ID {
 	return router.config.ProtocolID()
 }
 
-func (router DHTRouter) logger() types.Logger {
+func (router DHTRouter) logger() commontypes.Logger {
 	return router.config.logger
 }
 
@@ -165,7 +165,7 @@ func dhtKeyToPeerId(s string) (id peer.ID, err error) {
 func (router DHTRouter) FindPeer(ctx context.Context, peerId peer.ID) (addr peer.AddrInfo, error error) {
 	key := peerIdToDhtKey(peerId)
 
-	router.logger().Debug("DHT: Lookup peer", types.LogFields{
+	router.logger().Debug("DHT: Lookup peer", commontypes.LogFields{
 		"peerID": peerId,
 		"key":    key,
 	})
@@ -185,7 +185,7 @@ func (router DHTRouter) FindPeer(ctx context.Context, peerId peer.ID) (addr peer
 	addr.ID = peerId
 	addr.Addrs = ann.Addrs
 
-	router.logger().Debug("DHT: Found peer", types.LogFields{
+	router.logger().Debug("DHT: Found peer", commontypes.LogFields{
 		"peerID":              peerId,
 		"key":                 key,
 		"foundPeerAddr":       addr,
@@ -201,7 +201,7 @@ func (router DHTRouter) publishHostAddr(ctx context.Context) error {
 
 	// cap at maxAddrInAnnouncements addresses
 	if len(router.aclHost.Addrs()) > maxAddrInAnnouncements {
-		router.logger().Warn("trying to publish many addresses. capped.", types.LogFields{
+		router.logger().Warn("trying to publish many addresses. capped.", commontypes.LogFields{
 			"nAddrs":            len(router.aclHost.Addrs()),
 			"addrsNotAnnounced": addrs[:maxAddrInAnnouncements],
 		})
@@ -258,7 +258,7 @@ func (router DHTRouter) publishHostAddr(ctx context.Context) error {
 	}
 
 	key := peerIdToDhtKey(router.aclHost.ID())
-	router.logger().Debug("DHT: Put value", types.LogFields{
+	router.logger().Debug("DHT: Put value", commontypes.LogFields{
 		"key":         key,
 		"addrs":       ann.Addrs,
 		"counter":     ann.Counter,
@@ -287,7 +287,7 @@ func (router DHTRouter) startAnnounceInBackground() {
 			case <-ticker.C:
 				err := router.publishHostAddr(router.ctx)
 				if err != nil {
-					router.logger().Warn("DHT: Error publishing address", types.LogFields{
+					router.logger().Warn("DHT: Error publishing address", commontypes.LogFields{
 						"err":     err.Error(),
 						"retryIn": retryInterval,
 					})
@@ -327,7 +327,7 @@ func (router DHTRouter) printPeriodicReport(interval time.Duration) {
 			peerAddrs[myPeer.Pretty()] = addrs
 		}
 
-		router.logger().Debug("DHT periodical report", types.LogFields{
+		router.logger().Debug("DHT periodical report", commontypes.LogFields{
 			"protocolID": router.config.ProtocolID(),
 			"acl":        router.aclHost.GetACL(),
 			"rt":         rtString,

@@ -11,8 +11,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 )
 
 type ACL interface {
@@ -76,21 +76,21 @@ func (aclHost BasicACLHost) Connect(ctx context.Context, pi peer.AddrInfo) error
 }
 
 func (aclHost BasicACLHost) SetStreamHandler(protocol protocol.ID, handler p2pnetwork.StreamHandler) {
-	aclHost.logger.Debug("ACLHost: setting stream handler", types.LogFields{
+	aclHost.logger.Debug("ACLHost: setting stream handler", commontypes.LogFields{
 		"id":         "DHT_ACL",
 		"protocolID": protocol,
 	})
 
 	wrapped := func(stream p2pnetwork.Stream) {
 		if !aclHost.acl.IsAllowed(stream.Conn().RemotePeer(), protocol) {
-			aclHost.logger.Warn("ACLHost: denied stream", types.LogFields{
+			aclHost.logger.Warn("ACLHost: denied stream", commontypes.LogFields{
 				"id":              "DHT_ACL",
 				"protocolID":      protocol,
 				"remotePeerID":    stream.Conn().RemotePeer(),
 				"remoteMultiaddr": stream.Conn().RemoteMultiaddr(),
 			})
 			if err := stream.Reset(); err != nil {
-				aclHost.logger.Error("ACLHost: Could not reset stream", types.LogFields{
+				aclHost.logger.Error("ACLHost: Could not reset stream", commontypes.LogFields{
 					"id":              "DHT_ACL",
 					"protocolID":      protocol,
 					"remotePeerID":    stream.Conn().RemotePeer(),
@@ -106,13 +106,13 @@ func (aclHost BasicACLHost) SetStreamHandler(protocol protocol.ID, handler p2pne
 	}
 
 	if aclHost.acl.IsACLEnforced(protocol) {
-		aclHost.logger.Debug("ACLHost: Wrapping ACL", types.LogFields{
+		aclHost.logger.Debug("ACLHost: Wrapping ACL", commontypes.LogFields{
 			"id":         "DHT_ACL",
 			"protocolID": protocol,
 		})
 		aclHost.host.SetStreamHandler(protocol, wrapped)
 	} else {
-		aclHost.logger.Debug("ACLHost: ACL not enforced for this protocol", types.LogFields{
+		aclHost.logger.Debug("ACLHost: ACL not enforced for this protocol", commontypes.LogFields{
 			"id":         "DHT_ACL",
 			"protocolID": protocol,
 		})
@@ -135,7 +135,7 @@ func (aclHost BasicACLHost) NewStream(ctx context.Context, p peer.ID, pids ...pr
 		if aclHost.acl.IsAllowed(p, pid) {
 			allowdPids = append(allowdPids, pid)
 		} else {
-			aclHost.logger.Warn("ACLHost: Denying NewStream", types.LogFields{
+			aclHost.logger.Warn("ACLHost: Denying NewStream", commontypes.LogFields{
 				"id":           "DHT_ACL",
 				"protocolID":   pid,
 				"remotePeerID": p,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/signature"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
@@ -19,7 +20,7 @@ var reportTypes = getReportTypes()
 // AttributedObservation succinctly atrributes a value reported to an oracle
 type AttributedObservation struct {
 	Observation observation.Observation
-	Observer    types.OracleID
+	Observer    commontypes.OracleID
 }
 
 func (o AttributedObservation) Equal(o2 AttributedObservation) bool {
@@ -120,8 +121,8 @@ func (c *AttestedReportOne) Verify(repctx ReportContext, a types.OnChainSigningA
 	if err != nil {
 		return err
 	}
-	var dummyID types.OracleID
-	address := map[types.OnChainSigningAddress]types.OracleID{a: dummyID}
+	var dummyID commontypes.OracleID
+	address := map[types.OnChainSigningAddress]commontypes.OracleID{a: dummyID}
 	_, err = signature.VerifyOnChain(report, c.Signature, address)
 	return err
 }
@@ -179,7 +180,7 @@ func (rep *AttestedReportMany) VerifySignatures(
 		return errors.Wrapf(err,
 			"while serializing report to check signatures on it")
 	}
-	seen := make(map[types.OracleID]bool)
+	seen := make(map[commontypes.OracleID]bool)
 	for _, sig := range rep.Signatures {
 		if oid, err := signature.VerifyOnChain(report, sig, as); err != nil {
 			return errors.Wrapf(err,

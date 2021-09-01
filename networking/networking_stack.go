@@ -21,6 +21,16 @@ func (n NetworkingStack) needsv1() bool {
 	return n == NetworkingStackV1 || n == NetworkingStackV1V2
 }
 
+func (n NetworkingStack) subsetOf(big NetworkingStack) bool {
+	if n.needsv1() && !big.needsv1() {
+		return false
+	}
+	if n.needsv2() && !big.needsv2() {
+		return false
+	}
+	return true
+}
+
 func (n NetworkingStack) MarshalText() (text []byte, err error) {
 	switch n {
 	case NetworkingStackV1:
@@ -31,6 +41,14 @@ func (n NetworkingStack) MarshalText() (text []byte, err error) {
 		return []byte("V1V2"), nil
 	}
 	return nil, fmt.Errorf("unknown NetworkingStack %v", n)
+}
+
+func (n NetworkingStack) String() string {
+	text, err := n.MarshalText()
+	if err == nil {
+		return string(text)
+	}
+	return fmt.Sprintf("<%s>", err)
 }
 
 func (n *NetworkingStack) UnmarshalText(text []byte) error {

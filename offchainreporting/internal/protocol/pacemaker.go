@@ -8,9 +8,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/persist"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"golang.org/x/crypto/sha3"
@@ -35,7 +36,7 @@ func RunPacemaker(
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
 	datasource types.DataSource,
-	id types.OracleID,
+	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender,
@@ -59,7 +60,7 @@ func makePacemakerState(ctx context.Context,
 	chReportGenerationToTransmission chan<- EventToTransmission,
 	config config.SharedConfig, configOverrider types.ConfigOverrider,
 	contractTransmitter types.ContractTransmitter,
-	database types.Database, datasource types.DataSource, id types.OracleID,
+	database types.Database, datasource types.DataSource, id commontypes.OracleID,
 	localConfig types.LocalConfig, logger loghelper.LoggerWithContext,
 	netSender NetworkSender, privateKeys types.PrivateKeys,
 	telemetrySender TelemetrySender,
@@ -102,7 +103,7 @@ type pacemakerState struct {
 	contractTransmitter              types.ContractTransmitter
 	database                         types.Database
 	datasource                       types.DataSource
-	id                               types.OracleID
+	id                               commontypes.OracleID
 	localConfig                      types.LocalConfig
 	logger                           loghelper.LoggerWithContext
 	netSender                        NetworkSender
@@ -126,7 +127,7 @@ type pacemakerState struct {
 	e uint32
 
 	// l is the index of the leader for the current epoch
-	l types.OracleID
+	l commontypes.OracleID
 
 	// newepoch[j] is the highest epoch number oracle j has sent in a newepoch
 	// message, during the current epoch.
@@ -239,14 +240,14 @@ func (pace *pacemakerState) restoreStateFromDatabase() {
 	)
 
 	if !ok {
-		pace.logger.Error("Pacemaker: Timeout while restoring state from database", types.LogFields{
+		pace.logger.Error("Pacemaker: Timeout while restoring state from database", commontypes.LogFields{
 			"timeout": pace.localConfig.DatabaseTimeout,
 		})
 		return
 	}
 
 	if err != nil {
-		pace.logger.ErrorIfNotCanceled("Pacemaker: error while restoring state from database", pace.ctx, types.LogFields{
+		pace.logger.ErrorIfNotCanceled("Pacemaker: error while restoring state from database", pace.ctx, commontypes.LogFields{
 			"error": err,
 		})
 		return
@@ -258,14 +259,14 @@ func (pace *pacemakerState) restoreStateFromDatabase() {
 	}
 
 	if err := pace.sanityCheckState(state); err != nil {
-		pace.logger.Error("Pacemaker: Ignoring state from database because it is corrupted", types.LogFields{
+		pace.logger.Error("Pacemaker: Ignoring state from database because it is corrupted", commontypes.LogFields{
 			"error": err,
 		})
 		return
 	}
 
 	if state.Epoch < pace.e {
-		pace.logger.Info("Skipped restore state from database because it was stale", types.LogFields{
+		pace.logger.Info("Skipped restore state from database because it was stale", commontypes.LogFields{
 			"databaseEpoch": state.Epoch,
 			"epoch":         pace.e,
 		})
@@ -278,7 +279,7 @@ func (pace *pacemakerState) restoreStateFromDatabase() {
 		pace.newepoch[i] = e
 	}
 	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
-	pace.logger.Info("Restored state from database", types.LogFields{
+	pace.logger.Info("Restored state from database", commontypes.LogFields{
 		"epoch":  pace.e,
 		"leader": pace.l,
 	})
@@ -297,21 +298,21 @@ func (pace *pacemakerState) restoreNeFromTransmitter() {
 	)
 
 	if !ok {
-		pace.logger.Error("Pacemaker: latestTransmissionDetails timed out while restoring ne", types.LogFields{
+		pace.logger.Error("Pacemaker: latestTransmissionDetails timed out while restoring ne", commontypes.LogFields{
 			"timeout": pace.localConfig.BlockchainTimeout,
 		})
 		return
 	}
 
 	if err != nil {
-		pace.logger.Error("Pacemaker: latestTransmissionDetails returned error while restoring ne", types.LogFields{
+		pace.logger.Error("Pacemaker: latestTransmissionDetails returned error while restoring ne", commontypes.LogFields{
 			"error": err,
 		})
 		return
 	}
 
 	if pace.config.ConfigDigest != configDigest {
-		pace.logger.Info("Pacemaker: ConfigDigest differs from contract. Cannot restore ne", types.LogFields{
+		pace.logger.Info("Pacemaker: ConfigDigest differs from contract. Cannot restore ne", commontypes.LogFields{
 			"pacemakerConfigDigest": pace.config.ConfigDigest,
 			"contractConfigDigest":  configDigest,
 		})
@@ -321,7 +322,7 @@ func (pace *pacemakerState) restoreNeFromTransmitter() {
 	// epoch + 1 can overflow and the condition will be false -- that's fine
 	// since we cannot proceed beyond epoch anyways at that point
 	if pace.ne < epoch+1 {
-		pace.logger.Info("Pacemaker: Restored ne from contract", types.LogFields{
+		pace.logger.Info("Pacemaker: Restored ne from contract", commontypes.LogFields{
 			"previousNe": pace.ne,
 			"ne":         epoch + 1,
 		})
@@ -352,7 +353,7 @@ func (pace *pacemakerState) persist() {
 	select {
 	case pace.chPersist <- state:
 	default:
-		pace.logger.Warn("Pacemaker: chPersist is backed up, discarding state", types.LogFields{
+		pace.logger.Warn("Pacemaker: chPersist is backed up, discarding state", commontypes.LogFields{
 			"state":    state,
 			"capacity": chPersistCapacity,
 		})
@@ -398,10 +399,10 @@ func (pace *pacemakerState) eventChangeLeader() {
 	pace.sendNewepoch(sendEpoch)
 }
 
-func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.OracleID) {
+func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender commontypes.OracleID) {
 
 	if int(sender) < 0 || int(sender) >= len(pace.newepoch) {
-		pace.logger.Error("Pacemaker: dropping NewEpoch message from invalid sender", types.LogFields{
+		pace.logger.Error("Pacemaker: dropping NewEpoch message from invalid sender", commontypes.LogFields{
 			"sender": sender,
 			"N":      len(pace.newepoch),
 		})
@@ -436,7 +437,7 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender types.Or
 			// the received newepoch messages, this value of newEpoch was sent by at
 			// least 2F+1 processes
 			newEpoch := candidateEpochs[len(candidateEpochs)-(2*pace.config.F+1)]
-			pace.logger.Debug("Moving to epoch, based on candidateEpochs", types.LogFields{
+			pace.logger.Debug("Moving to epoch, based on candidateEpochs", commontypes.LogFields{
 				"newEpoch":        newEpoch,
 				"candidateEpochs": candidateEpochs,
 			})
@@ -512,7 +513,7 @@ func sortedGreaterThan(xs []uint32, y uint32) (rv []uint32) {
 }
 
 // Leader will produce an oracle id for the given epoch.
-func Leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
+func Leader(epoch uint32, n int, key [16]byte) (leader commontypes.OracleID) {
 	// No need for HMAC. Since we use Keccak256, prepending
 	// with key gives us a PRF already.
 	h := sha3.NewLegacyKeccak256()
@@ -526,7 +527,7 @@ func Leader(epoch uint32, n int, key [16]byte) (leader types.OracleID) {
 	// This is biased, but we don't care because the prob of us hitting the bias are
 	// less than 2**5/2**256 = 2**-251.
 	result.Mod(r, big.NewInt(int64(n)))
-	return types.OracleID(result.Int64())
+	return commontypes.OracleID(result.Int64())
 }
 
 type eventTestBlock struct{}

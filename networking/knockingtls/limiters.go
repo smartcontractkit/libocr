@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"golang.org/x/time/rate"
 )
 
@@ -21,10 +21,10 @@ type Limiters struct {
 	limiters map[p2ppeer.ID]refCountLimiter
 	// Mutex for accessing all the properties of this collection!
 	mu     sync.Mutex
-	logger types.Logger
+	logger commontypes.Logger
 }
 
-func NewLimiters(logger types.Logger) *Limiters {
+func NewLimiters(logger commontypes.Logger) *Limiters {
 	return &Limiters{
 		make(map[p2ppeer.ID]refCountLimiter),
 		sync.Mutex{},
@@ -37,7 +37,7 @@ func NewLimiters(logger types.Logger) *Limiters {
 func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillRate int64, deltaTokenBucketSize int) {
 	if !((deltaTokenBucketRefillRate >= 0 && deltaTokenBucketSize >= 0) ||
 		(deltaTokenBucketRefillRate <= 0 && deltaTokenBucketSize <= 0)) {
-		ls.logger.Error("invariant violation: deltaTokenBucketRefillRate and deltaTokenBucketSize need to have the same sign", types.LogFields{
+		ls.logger.Error("invariant violation: deltaTokenBucketRefillRate and deltaTokenBucketSize need to have the same sign", commontypes.LogFields{
 			"deltaTokenBucketRefillRate": deltaTokenBucketRefillRate,
 			"deltaTokenBucketSize":       deltaTokenBucketSize,
 		})
@@ -59,7 +59,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 					deltaTokenBucketRefillRate,
 				}
 			} else {
-				ls.logger.Error("invariant violation: trying to decrease parameters for a rate limiter which doesn't exist", types.LogFields{
+				ls.logger.Error("invariant violation: trying to decrease parameters for a rate limiter which doesn't exist", commontypes.LogFields{
 					"peerID":                     peerID.Pretty(),
 					"deltaTokenBucketRefillRate": deltaTokenBucketRefillRate,
 					"deltaTokenBucketSize":       deltaTokenBucketSize,
@@ -75,7 +75,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 		newLimit := rcLimiter.refillRate + deltaTokenBucketRefillRate
 		newSize := rcLimiter.limiter.Burst() + deltaTokenBucketSize
 		if newLimit < 0 || newSize < 0 {
-			ls.logger.Error("incorrect new bandwith limiter params", types.LogFields{
+			ls.logger.Error("incorrect new bandwith limiter params", commontypes.LogFields{
 				"peerID":         peerID.Pretty(),
 				"newLimit":       newLimit,
 				"newSize":        newSize,
@@ -101,7 +101,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 
 		if rcLimiter.refCount == 0 {
 			delete(ls.limiters, peerID)
-			ls.logger.Info("removed bandwith limiter for peer connection as it's no longer used", types.LogFields{
+			ls.logger.Info("removed bandwith limiter for peer connection as it's no longer used", commontypes.LogFields{
 				"peerID":         peerID.Pretty(),
 				"referenceCount": rcLimiter.refCount,
 				"currentLimit":   rcLimiter.limiter.Limit(),

@@ -1,4 +1,4 @@
-package types
+package commontypes
 
 // Loggers logs things using a structured-logging approach.
 // All its functions should be thread-safe.

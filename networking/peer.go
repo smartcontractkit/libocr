@@ -2,6 +2,7 @@ package networking
 
 import (
 	"context"
+	"crypto/ed25519"
 	"net"
 	"sync"
 	"time"
@@ -9,10 +10,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/transport"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
+	"github.com/smartcontractkit/libocr/commontypes"
+	inhousedisco "github.com/smartcontractkit/libocr/networking/inhouse-disco"
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
+	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
+
+	"github.com/smartcontractkit/libocr/ragep2p"
+	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
 	"github.com/libp2p/go-libp2p"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -24,14 +30,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	_ types.BinaryNetworkEndpointFactory = &concretePeer{}
-	_ types.BootstrapperFactory          = &concretePeer{}
-)
-
 const (
 	dhtPrefix = "/cl_peer_discovery_dht"
 )
+
+type GroupedDiscoverer interface {
+	AddGroup(digest ocr2types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error
+	RemoveGroup(digest ocr2types.ConfigDigest) error
+}
 
 type DiscovererDatabase interface {
 	// StoreAnnouncement has key-value-store semantics and stores a peerID (key) and an associated serialized
@@ -50,7 +56,7 @@ type PeerConfig struct {
 	// NetworkingStack declares which network stack will be used: v1, v2 or both (prefer v2).
 	NetworkingStack NetworkingStack
 	PrivKey         p2pcrypto.PrivKey
-	Logger          types.Logger
+	Logger          commontypes.Logger
 
 	V1ListenIP     net.IP
 	V1ListenPort   uint16
@@ -83,52 +89,68 @@ type PeerConfig struct {
 
 // concretePeer represents a libp2p peer with one peer ID listening on one port
 type concretePeer struct {
-	p2phost.Host
+	libp2pHost   p2phost.Host
+	libp2pPeerID p2ppeer.ID
+
+	ragep2pHost       *ragep2p.Host
+	ragep2pPeerID     ragetypes.PeerID
+	ragep2pDiscoverer GroupedDiscoverer
+
 	tls            *knockingtls.KnockingTLSTransport
 	gater          *connectionGater
 	logger         loghelper.LoggerWithContext
 	endpointConfig EndpointConfig
-	registrants    map[types.ConfigDigest]struct{}
+	v1registrants  map[ocr2types.ConfigDigest]struct{}
+	v2registrants  map[ocr2types.ConfigDigest]struct{}
 	registrantsMu  *sync.Mutex
 
 	dhtAnnouncementCounterUserPrefix uint32
+
+	networkingStack NetworkingStack
 
 	// list of bandwidth limiters, one for each connection to a remote peer.
 	bandwidthLimiters *knockingtls.Limiters
 }
 
-var _ types.BinaryNetworkEndpointFactory = (*concretePeer)(nil)
-var _ types.BootstrapperFactory = (*concretePeer)(nil)
-
 // registrant is an endpoint pinned to a particular config digest that is attached to this peer
 // There may only be one registrant per config digest
 type registrant interface {
+	getConfigDigest() ocr2types.ConfigDigest
+}
+
+type registrantV1 interface {
+	registrant
 	allower
-	getConfigDigest() types.ConfigDigest
+}
+
+type registrantV2 interface {
+	registrant
+	getV2Bootstrappers() []ragetypes.PeerInfo
+	getV2Oracles() []ragetypes.PeerID
 }
 
 // NewPeer creates a new peer
 func NewPeer(c PeerConfig) (*concretePeer, error) {
-	if c.V1ListenPort == 0 {
-		return nil, errors.New("NewPeer requires a non-zero listen port")
-	}
 
-	peerID, err := p2ppeer.IDFromPrivateKey(c.PrivKey)
+	rawPriv, err := c.PrivKey.Raw()
 	if err != nil {
-		return nil, errors.Wrap(err, "error extracting peer ID from private key")
+		return nil, errors.Wrap(err, "failed to get raw private key to use for v2")
 	}
+	ed25519Priv := ed25519.PrivateKey(rawPriv)
 
-	listenAddr, err := makeMultiaddr(c.V1ListenIP, c.V1ListenPort)
+	libp2pPeerID, err := p2ppeer.IDFromPrivateKey(c.PrivKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not make listen multiaddr")
+		return nil, errors.Wrap(err, "error extracting v1 peer ID from private key")
 	}
 
-	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(types.LogFields{
-		"id":         "Peer",
-		"peerID":     peerID.Pretty(),
-		"listenPort": c.V1ListenPort,
-		"listenIP":   c.V1ListenIP.String(),
-		"listenAddr": listenAddr.String(),
+	ragep2pPeerID, err := ragetypes.PeerIDFromPrivateKey(ed25519Priv)
+	if err != nil {
+		return nil, errors.Wrap(err, "error extracting v2 peer ID from private key")
+	}
+
+	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(commontypes.LogFields{
+		"id":     "Peer",
+		"peerID": libp2pPeerID.Pretty(),
 	})
 
 	gater, err := newConnectionGater(logger)
@@ -136,97 +158,167 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 		return nil, errors.Wrap(err, "could not create gater")
 	}
 
-	bandwidthLimiters := knockingtls.NewLimiters(logger)
-
-	tlsID := knockingtls.ID
-	tls, err := knockingtls.NewKnockingTLS(logger, c.PrivKey, bandwidthLimiters)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create knocking tls")
-	}
-
-	addrsFactory, err := makeAddrsFactory(c.V1AnnounceIP, c.V1AnnouncePort)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not make addrs factory")
-	}
-
-	// build a custom upgrader that overrides the default secure transport with knocking TLS
-	transportCon := func(upgrader *tptu.Upgrader) transport.Transport {
-		betterUpgrader := tptu.Upgrader{
-			upgrader.PSK,
-			tls,
-			upgrader.Muxer,
-			upgrader.ConnGater,
+	var libp2pHost p2phost.Host
+	var tls *knockingtls.KnockingTLSTransport
+	var bandwidthLimiters *knockingtls.Limiters
+	if c.NetworkingStack.needsv1() {
+		if c.V1ListenPort == 0 {
+			return nil, errors.New("NewPeer requires a non-zero listen port")
 		}
 
-		return tcp.NewTCPTransport(&betterUpgrader)
+		listenAddr, err := makeMultiaddr(c.V1ListenIP, c.V1ListenPort)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not make listen multiaddr")
+		}
+		logger = logger.MakeChild(commontypes.LogFields{
+			"v1listenPort": c.V1ListenPort,
+			"v1listenIP":   c.V1ListenIP.String(),
+			"v1listenAddr": listenAddr.String(),
+		})
+
+		bandwidthLimiters = knockingtls.NewLimiters(logger)
+
+		tlsID := knockingtls.ID
+		tls, err = knockingtls.NewKnockingTLS(logger, c.PrivKey, bandwidthLimiters)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create knocking tls")
+		}
+
+		addrsFactory, err := makeAddrsFactory(c.V1AnnounceIP, c.V1AnnouncePort)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not make addrs factory")
+		}
+
+		// build a custom upgrader that overrides the default secure transport with knocking TLS
+		transportCon := func(upgrader *tptu.Upgrader) transport.Transport {
+			betterUpgrader := tptu.Upgrader{
+				upgrader.PSK,
+				tls,
+				upgrader.Muxer,
+				upgrader.ConnGater,
+			}
+
+			return tcp.NewTCPTransport(&betterUpgrader)
+		}
+
+		opts := []libp2p.Option{
+			libp2p.ListenAddrs(listenAddr),
+			libp2p.Identity(c.PrivKey),
+			libp2p.DisableRelay(),
+			libp2p.Security(tlsID, tls),
+			libp2p.ConnectionGater(gater),
+			libp2p.Peerstore(c.V1Peerstore),
+			libp2p.AddrsFactory(addrsFactory),
+			libp2p.Transport(transportCon),
+			libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
+		}
+
+		libp2pHost, err = libp2p.New(context.Background(), opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		logger.Info("Peer: libp2p host booted", nil)
 	}
 
-	opts := []libp2p.Option{
-		libp2p.ListenAddrs(listenAddr),
-		libp2p.Identity(c.PrivKey),
-		libp2p.DisableRelay(),
-		libp2p.Security(tlsID, tls),
-		libp2p.ConnectionGater(gater),
-		libp2p.Peerstore(c.V1Peerstore),
-		libp2p.AddrsFactory(addrsFactory),
-		libp2p.Transport(transportCon),
-		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
+	var ragep2pHost *ragep2p.Host
+	var gDiscoverer GroupedDiscoverer
+	if c.NetworkingStack.needsv2() {
+		discoverer := inhousedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, c.V2DiscovererDatabase)
+		gDiscoverer = discoverer
+		ragep2pHost, err = ragep2p.NewHost(
+			ragep2p.HostConfig{c.V2DeltaDial},
+			ed25519Priv,
+			c.V2ListenAddresses,
+			c.V2AnnounceAddresses,
+			discoverer,
+			c.Logger,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to construct ragep2p host")
+		}
+		err = ragep2pHost.Start()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to start ragep2p host")
+		}
 	}
-
-	basicHost, err := libp2p.New(context.Background(), opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Info("Peer: libp2p host booted", nil)
 
 	return &concretePeer{
-		Host:                             basicHost,
+		libp2pHost:                       libp2pHost,
+		libp2pPeerID:                     libp2pPeerID,
+		ragep2pHost:                      ragep2pHost,
+		ragep2pPeerID:                    ragep2pPeerID,
+		ragep2pDiscoverer:                gDiscoverer,
 		gater:                            gater,
 		tls:                              tls,
 		logger:                           logger,
 		endpointConfig:                   c.EndpointConfig,
-		registrants:                      make(map[types.ConfigDigest]struct{}),
+		v1registrants:                    make(map[ocr2types.ConfigDigest]struct{}),
+		v2registrants:                    make(map[ocr2types.ConfigDigest]struct{}),
 		registrantsMu:                    &sync.Mutex{},
 		dhtAnnouncementCounterUserPrefix: c.V1DHTAnnouncementCounterUserPrefix,
+		networkingStack:                  c.NetworkingStack,
 		bandwidthLimiters:                bandwidthLimiters,
 	}, nil
 }
 
-// NewEndpoint returns a new ocrEndpoint
-func (p *concretePeer) NewEndpoint(
-	configDigest types.ConfigDigest,
+// newEndpoint returns an appropriate OCR endpoint depending on the networking stack used
+func (p *concretePeer) newEndpoint(
+	networkingStack NetworkingStack,
+	configDigest ocr2types.ConfigDigest,
 	pids []string,
 	v1bootstrappers []string,
-	v2bootstrappers []types.BootstrapperLocator,
+	v2bootstrappers []commontypes.BootstrapperLocator,
 	failureThreshold int,
-	// number of messages allowed to be consumed by the peer per second.
-	tokenBucketRefillRate float64,
-	// number of allowed requests in a burst.
-	tokenBucketSize int,
-) (types.BinaryNetworkEndpoint, error) {
+	limits BinaryNetworkEndpointLimits,
+) (commontypes.BinaryNetworkEndpoint, error) {
 	if failureThreshold <= 0 {
 		return nil, errors.New("can't set F to 0 or smaller")
 	}
 
-	if len(v1bootstrappers) < 1 {
-		return nil, errors.New("requires at least one bootstrapper")
+	if networkingStack.needsv1() && len(v1bootstrappers) < 1 {
+		return nil, errors.New("requires at least one v1 bootstrapper")
 	}
-	peerIDs, err := decodePeerIDs(pids)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not decode peer IDs")
-	}
-
-	bnAddrs, err := decodeBootstrappers(v1bootstrappers)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not decode bootstrappers")
+	if networkingStack.needsv2() && len(v2bootstrappers) < 1 {
+		return nil, errors.New("requires at least one v2 bootstrapper")
 	}
 
-	return newOCREndpoint(p.logger, configDigest, p, peerIDs, bnAddrs, p.endpointConfig,
-		failureThreshold, tokenBucketRefillRate, tokenBucketSize)
+	v1peerIDs, err := decodev1PeerIDs(pids)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode v1 peer IDs")
+	}
+
+	v2peerIDs, err := decodev2PeerIDs(pids)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode v2 peer IDs")
+	}
+
+	bnAddrs, err := decodev1Bootstrappers(v1bootstrappers)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode v1 bootstrappers")
+	}
+
+	decodedv2Bootstrappers, err := decodev2Bootstrappers(v2bootstrappers)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode v2 bootstrappers")
+	}
+
+	return newOCREndpoint(
+		networkingStack,
+		p.logger,
+		configDigest,
+		p,
+		v1peerIDs,
+		v2peerIDs,
+		bnAddrs,
+		decodedv2Bootstrappers,
+		p.endpointConfig,
+		failureThreshold,
+		limits,
+	)
 }
 
-func decodeBootstrappers(bootstrappers []string) (bnAddrs []p2ppeer.AddrInfo, err error) {
+func decodev1Bootstrappers(bootstrappers []string) (bnAddrs []p2ppeer.AddrInfo, err error) {
 	bnMAddrs := make([]ma.Multiaddr, len(bootstrappers))
 	for i, bNode := range bootstrappers {
 		bnMAddr, err := ma.NewMultiaddr(bNode)
@@ -242,7 +334,26 @@ func decodeBootstrappers(bootstrappers []string) (bnAddrs []p2ppeer.AddrInfo, er
 	return
 }
 
-func decodePeerIDs(pids []string) ([]p2ppeer.ID, error) {
+func decodev2Bootstrappers(v2bootstrappers []commontypes.BootstrapperLocator) (infos []ragetypes.PeerInfo, err error) {
+	for _, b := range v2bootstrappers {
+		addrs := make([]ragetypes.Address, len(b.Addrs))
+		for i, a := range b.Addrs {
+			addrs[i] = ragetypes.Address(a)
+		}
+		var rageID ragetypes.PeerID
+		err := rageID.UnmarshalText([]byte(b.PeerID))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal v2 peer ID (%s) from BootstrapperLocator", b.PeerID)
+		}
+		infos = append(infos, ragetypes.PeerInfo{
+			rageID,
+			addrs,
+		})
+	}
+	return
+}
+
+func decodev1PeerIDs(pids []string) ([]p2ppeer.ID, error) {
 	peerIDs := make([]p2ppeer.ID, len(pids))
 	for i, pid := range pids {
 		peerID, err := p2ppeer.Decode(pid)
@@ -254,71 +365,178 @@ func decodePeerIDs(pids []string) ([]p2ppeer.ID, error) {
 	return peerIDs, nil
 }
 
-func (p *concretePeer) NewBootstrapper(
-	configDigest types.ConfigDigest,
+func decodev2PeerIDs(pids []string) ([]ragetypes.PeerID, error) {
+	peerIDs := make([]ragetypes.PeerID, len(pids))
+	for i, pid := range pids {
+		var rid ragetypes.PeerID
+		err := rid.UnmarshalText([]byte(pid))
+		if err != nil {
+			return nil, errors.Wrapf(err, "error decoding v2 peer ID: %s", pid)
+		}
+		peerIDs[i] = rid
+	}
+	return peerIDs, nil
+}
+
+func (p *concretePeer) newBootstrapper(
+	networkingStack NetworkingStack,
+	configDigest ocr2types.ConfigDigest,
 	pids []string,
 	v1bootstrappers []string,
-	v2bootstrappers []types.BootstrapperLocator,
+	v2bootstrappers []commontypes.BootstrapperLocator,
 	F int,
-) (types.Bootstrapper, error) {
+) (commontypes.Bootstrapper, error) {
 	if F <= 0 {
 		return nil, errors.New("can't set F to zero or smaller")
 	}
-	peerIDs, err := decodePeerIDs(pids)
+	v1peerIDs, err := decodev1PeerIDs(pids)
 	if err != nil {
 		return nil, err
 	}
 
-	bnAddrs, err := decodeBootstrappers(v1bootstrappers)
+	v2peerIDs, err := decodev2PeerIDs(pids)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not decode bootstrappers")
+		return nil, err
 	}
 
-	return newBootstrapper(p.logger, configDigest, p, peerIDs, bnAddrs, F)
+	bnAddrs, err := decodev1Bootstrappers(v1bootstrappers)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode v1 bootstrappers")
+	}
+
+	decodedv2Bootstrappers, err := decodev2Bootstrappers(v2bootstrappers)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode v2 bootstrappers")
+	}
+
+	return newBootstrapper(networkingStack, p.logger, configDigest, p, v1peerIDs, v2peerIDs, bnAddrs, decodedv2Bootstrappers, F)
 }
 
-func (p *concretePeer) register(r registrant) error {
+func (p *concretePeer) registerV1(r registrantV1) error {
+	if !p.needsv1() {
+		return nil
+	}
 	configDigest := r.getConfigDigest()
-	p.logger.Debug("Peer: registering protocol handler", types.LogFields{
+	p.registrantsMu.Lock()
+	defer p.registrantsMu.Unlock()
+
+	p.logger.Debug("Peer: registering v1 protocol handler", commontypes.LogFields{
 		"configDigest": configDigest.Hex(),
 	})
 
-	p.registrantsMu.Lock()
-	defer p.registrantsMu.Unlock()
-
-	if _, ok := p.registrants[configDigest]; ok {
-		return errors.Errorf("endpoint with config digest %s has already been registered", configDigest.Hex())
+	if _, ok := p.v1registrants[configDigest]; ok {
+		return errors.Errorf("v1 endpoint with config digest %s has already been registered", configDigest.Hex())
 	}
-	p.registrants[configDigest] = struct{}{}
-
+	p.v1registrants[configDigest] = struct{}{}
 	p.gater.add(r)
-
 	p.tls.UpdateAllowlist(p.gater.allowlist())
-
 	return nil
 }
 
-func (p *concretePeer) deregister(r registrant) error {
+func (p *concretePeer) registerV2(r registrantV2) error {
+	if !p.needsv2() {
+		return nil
+	}
 	configDigest := r.getConfigDigest()
-	p.logger.Debug("Peer: deregistering protocol handler", types.LogFields{
+	p.registrantsMu.Lock()
+	defer p.registrantsMu.Unlock()
+
+	p.logger.Debug("Peer: registering v2 protocol handler", commontypes.LogFields{
+		"configDigest": configDigest.Hex(),
+	})
+
+	if _, ok := p.v2registrants[configDigest]; ok {
+		return errors.Errorf("v2 endpoint with config digest %s has already been registered", configDigest.Hex())
+	}
+	p.v2registrants[configDigest] = struct{}{}
+	return p.ragep2pDiscoverer.AddGroup(
+		r.getConfigDigest(),
+		r.getV2Oracles(),
+		r.getV2Bootstrappers(),
+	)
+}
+
+func (p *concretePeer) deregisterV1(r registrantV1) error {
+	if !p.needsv1() {
+		return nil
+	}
+	configDigest := r.getConfigDigest()
+	p.registrantsMu.Lock()
+	defer p.registrantsMu.Unlock()
+	p.logger.Debug("Peer: deregistering v1 protocol handler", commontypes.LogFields{
 		"ProtocolID": configDigest.Hex(),
 	})
 
-	p.registrantsMu.Lock()
-	defer p.registrantsMu.Unlock()
-
-	if _, ok := p.registrants[configDigest]; !ok {
-		return errors.Errorf("endpoint with config digest %s is not currently registered", configDigest.Hex())
+	if _, ok := p.v1registrants[configDigest]; !ok {
+		return errors.Errorf("v1 endpoint with config digest %s is not currently registered", configDigest.Hex())
 	}
-	delete(p.registrants, configDigest)
+	delete(p.v1registrants, configDigest)
 
 	p.gater.remove(r)
-
 	p.tls.UpdateAllowlist(p.gater.allowlist())
-
 	return nil
 }
 
+func (p *concretePeer) deregisterV2(r registrantV2) error {
+	if !p.needsv2() {
+		return nil
+	}
+	configDigest := r.getConfigDigest()
+	p.registrantsMu.Lock()
+	defer p.registrantsMu.Unlock()
+	p.logger.Debug("Peer: deregistering v2 protocol handler", commontypes.LogFields{
+		"ProtocolID": configDigest.Hex(),
+	})
+
+	if _, ok := p.v2registrants[configDigest]; !ok {
+		return errors.Errorf("v2 endpoint with config digest %s is not currently registered", configDigest.Hex())
+	}
+	delete(p.v2registrants, configDigest)
+
+	return p.ragep2pDiscoverer.RemoveGroup(configDigest)
+}
+
+func (p *concretePeer) needsv1() bool {
+	return p.networkingStack.needsv1()
+}
+
+func (p *concretePeer) needsv2() bool {
+	return p.networkingStack.needsv2()
+}
+
 func (p *concretePeer) PeerID() string {
-	return p.ID().Pretty()
+	return p.ragep2pPeerID.String()
+}
+
+// backwards compatibility with libp2p provided method
+func (p *concretePeer) ID() p2ppeer.ID {
+	return p.libp2pPeerID
+}
+
+func (p *concretePeer) Close() error {
+	if p.needsv2() {
+		if err := p.ragep2pHost.Close(); err != nil {
+			return err
+		}
+	}
+	if p.needsv1() {
+		return p.libp2pHost.Close()
+	}
+	return nil
+}
+
+func (c *concretePeer) OCRBinaryNetworkEndpointFactory() *ocrBinaryNetworkEndpointFactory {
+	return &ocrBinaryNetworkEndpointFactory{c}
+}
+
+func (c *concretePeer) GenOCRBinaryNetworkEndpointFactory() *genocrBinaryNetworkEndpointFactory {
+	return &genocrBinaryNetworkEndpointFactory{c}
+}
+
+func (c *concretePeer) OCRBootstrapperFactory() *ocrBootstrapperFactory {
+	return &ocrBootstrapperFactory{c}
+}
+
+func (c *concretePeer) GenOCRBootstrapperFactory() *genocrBootstrapperFactory {
+	return &genocrBootstrapperFactory{c}
 }

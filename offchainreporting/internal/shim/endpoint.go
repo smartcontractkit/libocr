@@ -5,10 +5,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -16,8 +17,8 @@ import (
 type SerializingEndpoint struct {
 	chTelemetry  chan<- *protobuf.TelemetryWrapper
 	configDigest types.ConfigDigest
-	endpoint     types.BinaryNetworkEndpoint
-	logger       types.Logger
+	endpoint     commontypes.BinaryNetworkEndpoint
+	logger       commontypes.Logger
 	mutex        sync.Mutex
 	subprocesses subprocesses.Subprocesses
 	started      bool
@@ -33,8 +34,8 @@ var _ protocol.NetworkEndpoint = (*SerializingEndpoint)(nil)
 func NewSerializingEndpoint(
 	chTelemetry chan<- *protobuf.TelemetryWrapper,
 	configDigest types.ConfigDigest,
-	endpoint types.BinaryNetworkEndpoint,
-	logger types.Logger,
+	endpoint commontypes.BinaryNetworkEndpoint,
+	logger commontypes.Logger,
 ) *SerializingEndpoint {
 	return &SerializingEndpoint{
 		chTelemetry,
@@ -56,13 +57,13 @@ func (n *SerializingEndpoint) sendTelemetry(t *protobuf.TelemetryWrapper) {
 	select {
 	case n.chTelemetry <- t:
 		n.taper.Reset(func(oldCount uint64) {
-			n.logger.Info("SerializingEndpoint: stopped dropping telemetry", types.LogFields{
+			n.logger.Info("SerializingEndpoint: stopped dropping telemetry", commontypes.LogFields{
 				"droppedCount": oldCount,
 			})
 		})
 	default:
 		n.taper.Trigger(func(newCount uint64) {
-			n.logger.Warn("SerializingEndpoint: dropping telemetry", types.LogFields{
+			n.logger.Warn("SerializingEndpoint: dropping telemetry", commontypes.LogFields{
 				"droppedCount": newCount,
 			})
 		})
@@ -72,7 +73,7 @@ func (n *SerializingEndpoint) sendTelemetry(t *protobuf.TelemetryWrapper) {
 func (n *SerializingEndpoint) serialize(msg protocol.Message) ([]byte, *protobuf.MessageWrapper) {
 	sMsg, pbm, err := serialization.Serialize(msg)
 	if err != nil {
-		n.logger.Error("SerializingEndpoint: Failed to serialize", types.LogFields{
+		n.logger.Error("SerializingEndpoint: Failed to serialize", commontypes.LogFields{
 			"message": msg,
 		})
 		return nil, nil
@@ -109,7 +110,7 @@ func (n *SerializingEndpoint) Start() error {
 
 				m, pbm, err := serialization.Deserialize(raw.Msg)
 				if err != nil {
-					n.logger.Error("SerializingEndpoint: Failed to deserialize", types.LogFields{
+					n.logger.Error("SerializingEndpoint: Failed to deserialize", commontypes.LogFields{
 						"message": raw,
 					})
 					n.sendTelemetry(&protobuf.TelemetryWrapper{
@@ -167,7 +168,7 @@ func (n *SerializingEndpoint) Close() error {
 	return nil
 }
 
-func (n *SerializingEndpoint) SendTo(msg protocol.Message, to types.OracleID) {
+func (n *SerializingEndpoint) SendTo(msg protocol.Message, to commontypes.OracleID) {
 	sMsg, pbm := n.serialize(msg)
 	if sMsg != nil {
 		n.endpoint.SendTo(sMsg, to)
