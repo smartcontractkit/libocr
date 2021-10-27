@@ -27,7 +27,7 @@ type PendingTransmission struct {
 	Time                 time.Time
 	ExtraHash            [32]byte
 	Report               Report
-	AttributedSignatures []AttributedOnChainSignature
+	AttributedSignatures []AttributedOnchainSignature
 }
 
 type PersistentState struct {

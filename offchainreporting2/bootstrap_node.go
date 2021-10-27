@@ -2,6 +2,7 @@ package offchainreporting
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -12,7 +13,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-type BootstrapNodeArgs struct {
+type BootstrapperArgs struct {
 	BootstrapperFactory    types.BootstrapperFactory
 	V2Bootstrappers        []commontypes.BootstrapperLocator
 	ContractConfigTracker  types.ContractConfigTracker
@@ -23,43 +24,46 @@ type BootstrapNodeArgs struct {
 	OffchainConfigDigester types.OffchainConfigDigester
 }
 
-// BootstrapNode connects to a particular feed and listens for config changes,
+// Bootstrapper connects to a particular feed and listens for config changes,
 // but does not participate in the protocol. It merely acts as a bootstrap node
 // for the DHT
-type BootstrapNode struct {
-	bootstrapArgs BootstrapNodeArgs
+type Bootstrapper struct {
+	bootstrapArgs BootstrapperArgs
 
-	// Indicates whether the BootstrapNode has been started, in a thread-safe way
+	// Indicates whether the Bootstrapper has been started, in a thread-safe way
 	started *semaphore.Weighted
 
-	// subprocesses tracks completion of all go routines on BootstrapNode.Close()
+	// subprocesses tracks completion of all go routines on Bootstrapper.Close()
 	subprocesses subprocesses.Subprocesses
 
 	// cancel sends a cancel message to all subprocesses, via a context.Context
 	cancel context.CancelFunc
 }
 
-func NewBootstrapNode(args BootstrapNodeArgs) (*BootstrapNode, error) {
+func NewBootstrapper(args BootstrapperArgs) (*Bootstrapper, error) {
 	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
 		return nil, errors.Wrapf(err,
 			"bad local config while creating bootstrap node")
 	}
-	return &BootstrapNode{
+	return &Bootstrapper{
 		bootstrapArgs: args,
 		started:       semaphore.NewWeighted(1),
 	}, nil
 }
 
-// Start spins up a BootstrapNode. Panics if called more than once.
-func (b *BootstrapNode) Start() error {
-	b.failIfAlreadyStarted()
+// Start spins up a Bootstrapper. Panics if called more than once.
+func (b *Bootstrapper) Start() error {
+	if !b.started.TryAcquire(1) {
+		defer b.Close()
+		return fmt.Errorf("can only start a Bootstrapper once")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	b.cancel = cancel
 	b.subprocesses.Go(func() {
 		defer cancel()
 		logger := loghelper.MakeRootLoggerWithContext(b.bootstrapArgs.Logger)
-		managed.RunManagedBootstrapNode(
+		managed.RunManagedBootstrapper(
 			ctx,
 
 			b.bootstrapArgs.BootstrapperFactory,
@@ -74,8 +78,8 @@ func (b *BootstrapNode) Start() error {
 	return nil
 }
 
-// Close shuts down a BootstrapNode. Can safely be called multiple times.
-func (b *BootstrapNode) Close() error {
+// Close shuts down a Bootstrapper. Can safely be called multiple times.
+func (b *Bootstrapper) Close() error {
 	if b.cancel != nil {
 		b.cancel()
 	}
@@ -83,10 +87,4 @@ func (b *BootstrapNode) Close() error {
 	// (Wouldn't want anything to panic from attempting to use a closed resource.)
 	b.subprocesses.Wait()
 	return nil
-}
-
-func (b *BootstrapNode) failIfAlreadyStarted() {
-	if !b.started.TryAcquire(1) {
-		panic("can only start a BootstrapNode once")
-	}
 }

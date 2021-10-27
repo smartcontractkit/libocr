@@ -12,7 +12,7 @@ func NewMessageBuffer(cap int) *MessageBuffer {
 	return &MessageBuffer{
 		0,
 		0,
-		make([]*MessageToReportGeneration, cap, cap),
+		make([]*MessageToReportGeneration, cap),
 	}
 }
 

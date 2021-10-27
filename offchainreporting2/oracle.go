@@ -2,6 +2,7 @@ package offchainreporting
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -21,7 +22,7 @@ type OracleArgs struct {
 	// communicate with other participating nodes.
 	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
 
-	// GenOCR doesn't use the V1 networking
+	// OCR2 doesn't use the V1 networking
 	// // V1Bootstrappers is the list of bootstrap node addresses and IDs for the v1 stack
 	// V1Bootstrappers []string
 
@@ -86,7 +87,10 @@ func NewOracle(args OracleArgs) (*Oracle, error) {
 
 // Start spins up a Oracle. Panics if called more than once.
 func (o *Oracle) Start() error {
-	o.failIfAlreadyStarted()
+	if !o.started.TryAcquire(1) {
+		defer o.Close()
+		return fmt.Errorf("can only start an Oracle once")
+	}
 
 	logger := loghelper.MakeRootLoggerWithContext(o.oracleArgs.Logger)
 
@@ -123,10 +127,4 @@ func (o *Oracle) Close() error {
 	// (Wouldn't want anything to panic from attempting to use a closed resource.)
 	o.subprocesses.Wait()
 	return nil
-}
-
-func (o *Oracle) failIfAlreadyStarted() {
-	if !o.started.TryAcquire(1) {
-		panic("can only start an Oracle once")
-	}
 }

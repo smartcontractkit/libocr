@@ -7,15 +7,15 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 )
 
-type genocrBinaryNetworkEndpointFactory struct {
+type ocr2BinaryNetworkEndpointFactory struct {
 	*concretePeer
 }
 
-type genocrBootstrapperFactory struct {
+type ocr2BootstrapperFactory struct {
 	*concretePeer
 }
 
-func (o *genocrBinaryNetworkEndpointFactory) NewEndpoint(
+func (o *ocr2BinaryNetworkEndpointFactory) NewEndpoint(
 	configDigest types.ConfigDigest,
 	pids []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
@@ -36,7 +36,7 @@ func (o *genocrBinaryNetworkEndpointFactory) NewEndpoint(
 	)
 }
 
-func (o *genocrBootstrapperFactory) NewBootstrapper(
+func (o *ocr2BootstrapperFactory) NewBootstrapper(
 	configDigest types.ConfigDigest,
 	peerIDs []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,

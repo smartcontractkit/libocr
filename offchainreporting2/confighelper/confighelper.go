@@ -5,7 +5,6 @@ package confighelper
 import (
 	"crypto/rand"
 	"io"
-	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,10 +16,11 @@ import (
 // OracleIdentity is identical to the internal type in package config.
 // We intentionally make a copy to make potential future internal modifications easier.
 type OracleIdentity struct {
-	OnChainSigningAddress types.OnchainPublicKey
-	TransmitAccount       types.Account
-	OffchainPublicKey     types.OffchainPublicKey
-	PeerID                string
+	OffchainPublicKey types.OffchainPublicKey
+	// For EVM-chains, this an *address*.
+	OnchainPublicKey types.OnchainPublicKey
+	PeerID           string
+	TransmitAccount  types.Account
 }
 
 // PublicConfig is identical to the internal type in package config.
@@ -52,18 +52,18 @@ func (pc PublicConfig) N() int {
 	return len(pc.OracleIdentities)
 }
 
-func PublicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bool, change types.ContractConfig) (PublicConfig, error) {
-	internalPublicConfig, err := config.PublicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
+func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change types.ContractConfig) (PublicConfig, error) {
+	internalPublicConfig, err := config.PublicConfigFromContractConfig(skipResourceExhaustionChecks, change)
 	if err != nil {
 		return PublicConfig{}, err
 	}
 	identities := []OracleIdentity{}
 	for _, internalIdentity := range internalPublicConfig.OracleIdentities {
 		identities = append(identities, OracleIdentity{
-			internalIdentity.OnChainPublicKey,
-			internalIdentity.TransmitAccount,
 			internalIdentity.OffchainPublicKey,
+			internalIdentity.OnchainPublicKey,
 			internalIdentity.PeerID,
+			internalIdentity.TransmitAccount,
 		})
 	}
 	return PublicConfig{
@@ -102,8 +102,8 @@ func ContractSetConfigArgsForIntegrationTest(
 	transmitters []common.Address,
 	f_ uint8,
 	onchainConfig []byte,
-	encodedConfigVersion uint64,
-	encodedConfig []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
 	err error,
 ) {
 	S := []int{}
@@ -112,9 +112,9 @@ func ContractSetConfigArgsForIntegrationTest(
 	for _, oracle := range oracles {
 		S = append(S, 1)
 		identities = append(identities, config.OracleIdentity{
-			oracle.PeerID,
 			oracle.OffchainPublicKey,
-			oracle.OnChainSigningAddress,
+			oracle.OnchainPublicKey,
+			oracle.PeerID,
 			oracle.TransmitAccount,
 		})
 		sharedSecretEncryptionPublicKeys = append(sharedSecretEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)
@@ -129,7 +129,10 @@ func ContractSetConfigArgsForIntegrationTest(
 			3,
 			S,
 			identities,
-			median.Config{
+			median.OffchainConfig{
+				false,
+				alphaPPB,
+				false,
 				alphaPPB,
 				0,
 			}.Encode(),
@@ -139,7 +142,7 @@ func ContractSetConfigArgsForIntegrationTest(
 			50 * time.Millisecond,
 			50 * time.Millisecond,
 			f,
-			[]byte{},
+			nil, // The median reporting plugin has an empty onchain config
 			types.ConfigDigest{},
 		},
 		&[config.SharedSecretSize]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8},
@@ -147,8 +150,8 @@ func ContractSetConfigArgsForIntegrationTest(
 	return config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, sharedSecretEncryptionPublicKeys)
 }
 
-// // ContractSetConfigArgs generates setConfig args from the relevant parameters.
-// // Only use this for testing, *not* for production.
+// ContractSetConfigArgs generates setConfig args from the relevant parameters.
+// Only use this for testing, *not* for production.
 func ContractSetConfigArgs(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
@@ -180,9 +183,9 @@ func ContractSetConfigArgs(
 	configEncryptionPublicKeys := []types.ConfigEncryptionPublicKey{}
 	for _, oracle := range oracles {
 		identities = append(identities, config.OracleIdentity{
-			oracle.PeerID,
 			oracle.OffchainPublicKey,
-			oracle.OnChainSigningAddress,
+			oracle.OnchainPublicKey,
+			oracle.PeerID,
 			oracle.TransmitAccount,
 		})
 		configEncryptionPublicKeys = append(configEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)

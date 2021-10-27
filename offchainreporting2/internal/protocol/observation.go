@@ -50,17 +50,17 @@ func (so SignedObservation) Verify(repts types.ReportTimestamp, query types.Quer
 func signedObservationWireMessage(repts types.ReportTimestamp, query types.Query, observation types.Observation) []byte {
 	h := sha256.New()
 	// ConfigDigest
-	h.Write(repts.ConfigDigest[:])
-	binary.Write(h, binary.BigEndian, repts.Epoch)
-	h.Write([]byte{repts.Round})
+	_, _ = h.Write(repts.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, repts.Epoch)
+	_, _ = h.Write([]byte{repts.Round})
 
 	// Query
-	binary.Write(h, binary.BigEndian, uint64(len(query)))
-	h.Write(query)
+	_ = binary.Write(h, binary.BigEndian, uint64(len(query)))
+	_, _ = h.Write(query)
 
 	// Observation
-	binary.Write(h, binary.BigEndian, uint64(len(observation)))
-	h.Write(observation)
+	_ = binary.Write(h, binary.BigEndian, uint64(len(observation)))
+	_, _ = h.Write(observation)
 
 	return h.Sum(nil)
 }

@@ -2,75 +2,130 @@ package median
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"math/big"
 	"sort"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/golang/protobuf/proto"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2/internal/observationhelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"go.uber.org/multierr"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
-
-var i = big.NewInt
-
-// Bounds on an ethereum int192
-const byteWidth = 24
-const bitWidth = byteWidth * 8
-
-var MaxObservation = i(0).Sub(i(0).Lsh(i(1), bitWidth-1), i(1)) // 2**191 - 1
-var MinObservation = i(0).Sub(i(0).Neg(MaxObservation), i(1))   // -2**191
-
-var reportTypes = getReportTypes()
-
-func getReportTypes() abi.Arguments {
-	mustNewType := func(t string) abi.Type {
-		result, err := abi.NewType(t, "", []abi.ArgumentMarshaling{})
-		if err != nil {
-			panic(fmt.Sprintf("Unexpected error during abi.NewType: %s", err))
-		}
-		return result
-	}
-	return abi.Arguments([]abi.Argument{
-		{Name: "observationsTimestamp", Type: mustNewType("uint32")},
-		{Name: "rawObservers", Type: mustNewType("bytes32")},
-		{Name: "observations", Type: mustNewType("int192[]")},
-	})
-}
 
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
 
-type Config struct {
-	AlphaPPB uint64
-	DeltaC   time.Duration
+const onchainConfigVersion = 1
+const onchainConfigEncodedLength = 1 + byteWidth + byteWidth
+
+type OnchainConfig struct {
+	Min *big.Int
+	Max *big.Int
 }
 
-func DecodeConfig(b []byte) (Config, error) {
-	if len(b) != 16 {
-		return Config{}, fmt.Errorf("pluggable logic configuration has wrong length, expected %v got %v", 16, len(b))
+func DecodeOnchainConfig(b []byte) (OnchainConfig, error) {
+	if len(b) != onchainConfigEncodedLength {
+		return OnchainConfig{}, fmt.Errorf("unexpected length of OnchainConfig, expected %v, got %v", onchainConfigEncodedLength, len(b))
 	}
 
-	alphaPPB := binary.BigEndian.Uint64(b[0:8])
-	deltaCUint := binary.BigEndian.Uint64(b[8:16])
-	deltaC := time.Duration(int64(deltaCUint))
-	return Config{
-		alphaPPB,
-		deltaC,
+	if b[0] != onchainConfigVersion {
+		return OnchainConfig{}, fmt.Errorf("unexpected version of OnchainConfig, expected %v, got %v", onchainConfigVersion, b[0])
+	}
+
+	min, err := ToBigInt(b[1 : 1+byteWidth])
+	if err != nil {
+		return OnchainConfig{}, err
+	}
+	max, err := ToBigInt(b[1+byteWidth:])
+	if err != nil {
+		return OnchainConfig{}, err
+	}
+
+	if !(min.Cmp(max) <= 0) {
+		return OnchainConfig{}, fmt.Errorf("OnchainConfig min (%v) should not be greater than max(%v)", min, max)
+	}
+
+	return OnchainConfig{min, max}, nil
+}
+
+func (c OnchainConfig) Encode() ([]byte, error) {
+	minBytes, err := ToBytes(c.Min)
+	if err != nil {
+		return nil, err
+	}
+	maxBytes, err := ToBytes(c.Max)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]byte, 0, onchainConfigEncodedLength)
+	result = append(result, onchainConfigVersion)
+	result = append(result, minBytes...)
+	result = append(result, maxBytes...)
+	return result, nil
+}
+
+type OffchainConfig struct {
+	// AlphaReport is used during the reporting stage to determine whether there
+	// is sufficient deviation to warrant a report, i.e. if the deviation
+	// between the report under consideration and the answer stored in the
+	// contract is greater than or equal to AlphaReport, a report is created.
+	AlphaReportInfinite bool
+	AlphaReportPPB      uint64
+	// AlphaAccept is used during the transmission stage to determine whether
+	// there is sufficient deviation to warrant a report iff there is already a
+	// pending transmission. If the deviation between the pending transmission
+	// and the report under consideration is greater than or equal to
+	// AlphaAccept, the report is accepted for transmission.
+	AlphaAcceptInfinite bool
+	AlphaAcceptPPB      uint64
+	// DeltaC is used during the reporting stage to determine whether the last
+	// report on the contract is sufficiently old that a new report should be
+	// created.
+	DeltaC time.Duration
+}
+
+func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
+	var configProto NumericalMedianConfigProto
+	if err := proto.Unmarshal(b, &configProto); err != nil {
+		return OffchainConfig{}, err
+	}
+
+	deltaC := time.Duration(configProto.GetDeltaC())
+	if !(0 <= deltaC) {
+		return OffchainConfig{}, fmt.Errorf("DeltaC (%v) must be non-negative", deltaC)
+	}
+
+	return OffchainConfig{
+		configProto.GetAlphaReportInfinite(),
+		configProto.GetAlphaReportPpb(),
+		configProto.GetAlphaAcceptInfinite(),
+		configProto.GetAlphaAcceptPpb(),
+		time.Duration(configProto.GetDeltaC()),
 	}, nil
 }
 
-func (c Config) Encode() []byte {
-	pluginConfig := [16]byte{}
-	binary.BigEndian.PutUint64(pluginConfig[0:8], c.AlphaPPB)
-	binary.BigEndian.PutUint64(pluginConfig[8:16], uint64(c.DeltaC))
-	return pluginConfig[:]
+func (c OffchainConfig) Encode() []byte {
+	configProto := NumericalMedianConfigProto{
+		// zero-initialize protobuf built-ins
+		protoimpl.MessageState{},
+		0,
+		nil,
+		// fields
+		c.AlphaReportInfinite,
+		c.AlphaReportPPB,
+		c.AlphaAcceptInfinite,
+		c.AlphaAcceptPPB,
+		uint64(c.DeltaC),
+	}
+	result, err := proto.Marshal(&configProto)
+	if err != nil {
+		// assertion
+		panic(fmt.Sprintf("unexpected error while encoding Config: %v", err))
+	}
+	return result
 }
 
 type MedianContract interface {
@@ -107,38 +162,62 @@ type MedianContract interface {
 	)
 }
 
-// DataSource implementations must be thread-safe. Observe may be called by many different threads concurrently.
+// DataSource implementations must be thread-safe. Observe may be called by many
+// different threads concurrently.
 type DataSource interface {
 	// Observe queries the data source. Returns a value or an error. Once the
 	// context is expires, Observe may still do cheap computations and return a
 	// result, but should return as quickly as possible.
 	//
 	// More details: In the current implementation, the context passed to
-	// Observe will time out after LocalConfig.DataSourceTimeout. However,
-	// Observe should *not* make any assumptions about context timeout behavior.
-	// Once the context times out, Observe should prioritize returning as
-	// quickly as possible, but may still perform fast computations to return a
-	// result rather than errror. For example, if Observe medianizes a number
-	// of data sources, some of which already returned a result to Observe prior
-	// to the context's expiry, Observe might still compute their median, and
-	// return it instead of an error.
+	// Observe will time out after MaxDurationObservation. However, Observe
+	// should *not* make any assumptions about context timeout behavior. Once
+	// the context times out, Observe should prioritize returning as quickly as
+	// possible, but may still perform fast computations to return a result
+	// rather than errror. For example, if Observe medianizes a number of data
+	// sources, some of which already returned a result to Observe prior to the
+	// context's expiry, Observe might still compute their median, and return it
+	// instead of an error.
 	//
 	// Important: Observe should not perform any potentially time-consuming
 	// actions like database access, once the context passed has expired.
 	Observe(context.Context) (*big.Int, error)
 }
 
+// All functions on ReportCodec should be pure and thread-safe.
+// Be careful validating and parsing any data passed.
+type ReportCodec interface {
+	// Implementers may assume that there is at most one
+	// ParsedAttributedObservation per observer, and that all observers are
+	// valid. However, observation values, timestamps, etc... should all be
+	// treated as untrusted.
+	BuildReport([]ParsedAttributedObservation) (types.Report, error)
+
+	// Gets the "median" (the n//2-th ranked element to be more precise where n
+	// is the length of the list) observation from the report. The input to this
+	// function should be an output of BuildReport in the benign case.
+	// Nevertheless, make sure to treat the input to this function as untrusted.
+	MedianFromReport(types.Report) (*big.Int, error)
+}
+
 var _ types.ReportingPluginFactory = NumericalMedianFactory{}
 
 type NumericalMedianFactory struct {
-	ContractTransmitter MedianContract
-	DataSource          DataSource
-	Logger              commontypes.Logger
+	ContractTransmitter   MedianContract
+	DataSource            DataSource
+	JuelsPerEthDataSource DataSource
+	Logger                commontypes.Logger
+	ReportCodec           ReportCodec
 }
 
 func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
 
-	c, err := DecodeConfig(configuration.OffchainConfig)
+	offchainConfig, err := DecodeOffchainConfig(configuration.OffchainConfig)
+	if err != nil {
+		return nil, types.ReportingPluginInfo{}, err
+	}
+
+	onchainConfig, err := DecodeOnchainConfig(configuration.OnchainConfig)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
 	}
@@ -149,26 +228,30 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 	})
 
 	return &numericalMedian{
-			c,
+			offchainConfig,
+			onchainConfig,
 			fac.ContractTransmitter,
 			fac.DataSource,
+			fac.JuelsPerEthDataSource,
 			logger,
+			fac.ReportCodec,
 
 			configuration.ConfigDigest,
+			configuration.F,
 			epochRound{},
 			new(big.Int),
 		}, types.ReportingPluginInfo{
 			"NumericalMedian",
 			false,
 			0,
-			4 /* timestamp */ + byteWidth /* observation */ + 8, /* overhead */
-			32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + configuration.N*32 /*observations*/) + 32, /* overhead */
+			4 /* timestamp */ + byteWidth /* observation */ + byteWidth /* juelsPerEth */ + 32, /* overhead */
+			32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + configuration.N*32) /*observations*/ + 32 /* juelsPerEth */ + 32, /* overhead */
 		}, nil
 }
 
-func deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
+func Deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 	if old.Cmp(i(0)) == 0 {
-		if new.Cmp(i(0)) == 0 {
+		if new.Cmp(i(0)) == 0 { //nolint:gosimple
 			return false // Both values are zero; no deviation
 		}
 		return true // Any deviation from 0 is significant
@@ -180,7 +263,7 @@ func deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 	threshold := &big.Rat{}
 	threshold.SetFrac(
 		(&big.Int{}).SetUint64(thresholdPPB),
-		(&big.Int{}).SetUint64(1000000000),
+		(&big.Int{}).SetUint64(1e9),
 	)
 	return change.Cmp(threshold) > 0
 }
@@ -188,12 +271,16 @@ func deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
 
 type numericalMedian struct {
-	Config              Config
-	ContractTransmitter MedianContract
-	DataSource          DataSource
-	Logger              loghelper.LoggerWithContext
+	offchainConfig        OffchainConfig
+	onchainConfig         OnchainConfig
+	contractTransmitter   MedianContract
+	dataSource            DataSource
+	juelsPerEthDataSource DataSource
+	logger                loghelper.LoggerWithContext
+	reportCodec           ReportCodec
 
 	configDigest             types.ConfigDigest
+	f                        int
 	latestAcceptedEpochRound epochRound
 	latestAcceptedMedian     *big.Int
 }
@@ -206,56 +293,94 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 	if len(query) != 0 {
 		return nil, fmt.Errorf("expected empty query")
 	}
-	value, err := nm.DataSource.Observe(ctx)
+
+	observe := func(dataSource DataSource, name string) ([]byte, error) {
+		value, err := dataSource.Observe(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%v.Observe returned an error: %w", name, err)
+		}
+		if value == nil {
+			return nil, fmt.Errorf("%v.Observe returned nil big.Int which should never happen", name)
+		}
+		encoded, err := ToBytes(value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode output of %v.Observe : %w", name, err)
+		}
+		return encoded, nil
+	}
+	var subs subprocesses.Subprocesses
+	var value, juelsPerEth []byte
+	var valueErr, juelsPerEthErr error
+	subs.Go(func() {
+		value, valueErr = observe(nm.dataSource, "DataSource")
+	})
+	subs.Go(func() {
+		juelsPerEth, juelsPerEthErr = observe(nm.juelsPerEthDataSource, "JuelsPerEthDataSource")
+	})
+	subs.Wait()
+
+	err := multierr.Combine(valueErr, juelsPerEthErr)
 	if err != nil {
-		return nil, fmt.Errorf("error during DataSource.Observe: %w", err)
+		return nil, fmt.Errorf("error in Observation: %w", err)
 	}
-	if value == nil {
-		return nil, fmt.Errorf("DataSource.Observe returned nil big.Int which should never happen")
-	}
-	return proto.Marshal(&ObservationProto{
+
+	return proto.Marshal(&NumericalMedianObservationProto{
 		// zero-initialize protobuf built-ins
 		protoimpl.MessageState{},
 		0,
 		nil,
 		// fields
 		uint32(time.Now().Unix()),
-		observationhelper.ToBytes(value),
+		value,
+		juelsPerEth,
 	})
 }
 
-type parsedAttributedObservation struct {
-	Timestamp uint32
-	Value     *big.Int
-	Observer  commontypes.OracleID
+type ParsedAttributedObservation struct {
+	Timestamp   uint32
+	Value       *big.Int
+	JuelsPerEth *big.Int
+	Observer    commontypes.OracleID
 }
 
-func parseAttributedObservations(aos []types.AttributedObservation, skipBad bool) ([]parsedAttributedObservation, error) {
-	paos := make([]parsedAttributedObservation, 0, len(aos))
+func parseAttributedObservations(logger loghelper.LoggerWithContext, aos []types.AttributedObservation) []ParsedAttributedObservation {
+	paos := make([]ParsedAttributedObservation, 0, len(aos))
 	for i, ao := range aos {
-		var observationProto ObservationProto
+		var observationProto NumericalMedianObservationProto
 		if err := proto.Unmarshal(ao.Observation, &observationProto); err != nil {
-			if skipBad {
-				continue
-			} else {
-				return nil, fmt.Errorf("Error while unmarshalling %v-th attributed observation: %w", i, err)
-			}
+			logger.Warn("parseAttributedObservations: dropping attributed observation that cannot be unmarshaled", commontypes.LogFields{
+				"observer": ao.Observer,
+				"error":    err,
+				"i":        i,
+			})
+			continue
 		}
-		value, err := observationhelper.ToBigInt(observationProto.Value)
+		value, err := ToBigInt(observationProto.Value)
 		if err != nil {
-			if skipBad {
-				continue
-			} else {
-				return nil, fmt.Errorf("Error while converting %v-th attributed observation to big.Int: %w", i, err)
-			}
+			logger.Warn("parseAttributedObservations: dropping attributed observation with value that cannot be converted to big.Int", commontypes.LogFields{
+				"observer": ao.Observer,
+				"error":    err,
+				"i":        i,
+			})
+			continue
 		}
-		paos = append(paos, parsedAttributedObservation{
+		juelsPerEth, err := ToBigInt(observationProto.JuelsPerEth)
+		if err != nil {
+			logger.Warn("parseAttributedObservations: dropping attributed observation with juelsPerEth that cannot be converted to big.Int", commontypes.LogFields{
+				"observer": ao.Observer,
+				"error":    err,
+				"i":        i,
+			})
+			continue
+		}
+		paos = append(paos, ParsedAttributedObservation{
 			observationProto.Timestamp,
 			value,
+			juelsPerEth,
 			ao.Observer,
 		})
 	}
-	return paos, nil
+	return paos
 }
 
 func (nm *numericalMedian) Report(ctx context.Context, repts types.ReportTimestamp, query types.Query, aos []types.AttributedObservation) (bool, types.Report, error) {
@@ -263,9 +388,11 @@ func (nm *numericalMedian) Report(ctx context.Context, repts types.ReportTimesta
 		return false, nil, fmt.Errorf("expected empty query")
 	}
 
-	paos, err := parseAttributedObservations(aos, true)
-	if err != nil {
-		return false, nil, fmt.Errorf("error in parseAttributedObservations: %w", err)
+	paos := parseAttributedObservations(nm.logger, aos)
+
+	// By assumption, we have at most f malicious oracles, so there should be at least f+1 valid paos
+	if !(nm.f+1 <= len(paos)) {
+		return false, nil, fmt.Errorf("only received %v valid attributed observations, but need at least f+1 (%v)", len(paos), nm.f+1)
 	}
 
 	should, err := nm.shouldReport(ctx, repts, paos)
@@ -275,14 +402,14 @@ func (nm *numericalMedian) Report(ctx context.Context, repts types.ReportTimesta
 	if !should {
 		return false, nil, nil
 	}
-	report, err := nm.buildReport(ctx, paos)
+	report, err := nm.reportCodec.BuildReport(paos)
 	if err != nil {
 		return false, nil, err
 	}
 	return true, report, nil
 }
 
-func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportTimestamp, paos []parsedAttributedObservation) (bool, error) {
+func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportTimestamp, paos []ParsedAttributedObservation) (bool, error) {
 	if len(paos) == 0 {
 		return false, fmt.Errorf("cannot handle empty attributed observations")
 	}
@@ -310,14 +437,14 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 			resultTransmissionDetails.latestAnswer,
 			resultTransmissionDetails.latestTimestamp,
 			resultTransmissionDetails.err =
-			nm.ContractTransmitter.LatestTransmissionDetails(ctx)
+			nm.contractTransmitter.LatestTransmissionDetails(ctx)
 	})
 	subs.Go(func() {
 		resultRoundRequested.configDigest,
 			resultRoundRequested.epoch,
 			resultRoundRequested.round,
 			resultRoundRequested.err =
-			nm.ContractTransmitter.LatestRoundRequested(ctx, nm.Config.DeltaC)
+			nm.contractTransmitter.LatestRoundRequested(ctx, nm.offchainConfig.DeltaC)
 	})
 	subs.Wait()
 
@@ -335,27 +462,39 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 
 	answer := paos[len(paos)/2].Value
 
+	if !(nm.onchainConfig.Min.Cmp(answer) <= 0 && answer.Cmp(nm.onchainConfig.Max) <= 0) {
+		nm.logger.Warn("shouldReport: no, answer is outside of min/max configured for contract", commontypes.LogFields{
+			"result": false,
+			"answer": answer,
+			"min":    nm.onchainConfig.Min,
+			"max":    nm.onchainConfig.Max,
+		})
+		return false, nil
+	}
+
 	initialRound := // Is this the first round for this configuration?
 		resultTransmissionDetails.configDigest == repts.ConfigDigest &&
 			resultTransmissionDetails.epoch == 0 &&
 			resultTransmissionDetails.round == 0
 	deviation := // Has the result changed enough to merit a new report?
-		deviates(nm.Config.AlphaPPB, resultTransmissionDetails.latestAnswer, answer)
+		!nm.offchainConfig.AlphaReportInfinite &&
+			Deviates(nm.offchainConfig.AlphaReportPPB, resultTransmissionDetails.latestAnswer, answer)
 
 	deltaCTimeout := // Has enough time passed since the last report, to merit a new one?
-		resultTransmissionDetails.latestTimestamp.Add(nm.Config.DeltaC).
+		resultTransmissionDetails.latestTimestamp.Add(nm.offchainConfig.DeltaC).
 			Before(time.Now())
 	unfulfilledRequest := // Has a new report been requested explicitly?
 		resultRoundRequested.configDigest == repts.ConfigDigest &&
 			!(epochRound{resultRoundRequested.epoch, resultRoundRequested.round}).
 				Less(epochRound{resultTransmissionDetails.epoch, resultTransmissionDetails.round})
 
-	logger := nm.Logger.MakeChild(commontypes.LogFields{
+	logger := nm.logger.MakeChild(commontypes.LogFields{
 		"timestamp":                 repts,
 		"initialRound":              initialRound,
-		"alphaPPB":                  nm.Config.AlphaPPB,
+		"alphaReportInfinite":       nm.offchainConfig.AlphaReportInfinite,
+		"alphaReportPPB":            nm.offchainConfig.AlphaReportPPB,
 		"deviation":                 deviation,
-		"deltaC":                    nm.Config.DeltaC,
+		"deltaC":                    nm.offchainConfig.DeltaC,
 		"deltaCTimeout":             deltaCTimeout,
 		"lastTransmissionTimestamp": resultTransmissionDetails.latestTimestamp,
 		"unfulfilledRequest":        unfulfilledRequest,
@@ -392,46 +531,17 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 	return false, nil
 }
 
-func (nm *numericalMedian) buildReport(ctx context.Context, paos []parsedAttributedObservation) (types.Report, error) {
-	if len(paos) == 0 {
-		return nil, fmt.Errorf("Cannot build report from empty attributed observations")
-	}
-
-	// it's okay to mutate aos2 here
-	// get median timestamp
-	sort.Slice(paos, func(i, j int) bool {
-		return paos[i].Timestamp < paos[j].Timestamp
-	})
-	timestamp := paos[len(paos)/2].Timestamp
-
-	// sort by values
-	sort.Slice(paos, func(i, j int) bool {
-		return paos[i].Value.Cmp(paos[j].Value) < 0
-	})
-
-	observers := [32]byte{}
-	observations := []*big.Int{}
-
-	for i, pao := range paos {
-		observers[i] = byte(pao.Observer)
-		observations = append(observations, pao.Value)
-	}
-
-	reportBytes, err := reportTypes.Pack(timestamp, observers, observations)
-	return types.Report(reportBytes), err
-}
-
 func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, repts types.ReportTimestamp, report types.Report) (bool, error) {
 	reportEpochRound := epochRound{repts.Epoch, repts.Round}
 	if !nm.latestAcceptedEpochRound.Less(reportEpochRound) {
-		nm.Logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
+		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
 			"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
 			"reportEpochRound":         reportEpochRound,
 		})
 		return false, nil
 	}
 
-	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.ContractTransmitter.LatestTransmissionDetails(ctx)
+	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -439,7 +549,7 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 	contractEpochRound := epochRound{contractEpoch, contractRound}
 
 	if contractConfigDigest != nm.configDigest {
-		nm.Logger.Debug("ShouldAcceptFinalizedReport() = false, config digest mismatch", commontypes.LogFields{
+		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, config digest mismatch", commontypes.LogFields{
 			"contractConfigDigest": contractConfigDigest,
 			"reportConfigDigest":   nm.configDigest,
 			"reportEpochRound":     reportEpochRound,
@@ -448,26 +558,28 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 	}
 
 	if !contractEpochRound.Less(reportEpochRound) {
-		nm.Logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
+		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"reportEpochRound":   reportEpochRound,
 		})
 		return false, nil
 	}
 
-	reportMedian, err := medianFromReport(report)
+	reportMedian, err := nm.reportCodec.MedianFromReport(report)
 	if err != nil {
-		return false, fmt.Errorf("error during medianFromReport: %w", err)
+		return false, fmt.Errorf("error during MedianFromReport: %w", err)
 	}
 
-	deviates := deviates(nm.Config.AlphaPPB, nm.latestAcceptedMedian, reportMedian)
+	deviates := !nm.offchainConfig.AlphaAcceptInfinite && Deviates(nm.offchainConfig.AlphaAcceptPPB, nm.latestAcceptedMedian, reportMedian)
 	nothingPending := !contractEpochRound.Less(nm.latestAcceptedEpochRound)
 	result := deviates || nothingPending
 
-	nm.Logger.Debug("ShouldAcceptFinalizedReport() = result", commontypes.LogFields{
+	nm.logger.Debug("ShouldAcceptFinalizedReport() = result", commontypes.LogFields{
 		"contractEpochRound":       contractEpochRound,
 		"reportEpochRound":         reportEpochRound,
 		"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
+		"alphaAcceptInfinite":      nm.offchainConfig.AlphaAcceptInfinite,
+		"alphaAcceptPPB":           nm.offchainConfig.AlphaAcceptPPB,
 		"deviates":                 deviates,
 		"result":                   result,
 	})
@@ -480,37 +592,10 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 	return result, nil
 }
 
-func medianFromReport(report types.Report) (*big.Int, error) {
-	reportElems, err := reportTypes.Unpack(report)
-	if err != nil {
-		return nil, fmt.Errorf("error during unpack: %w", err)
-	}
-
-	if len(reportElems) != 3 {
-		return nil, fmt.Errorf("length mismatch, expected 3, got %v", len(reportElems))
-	}
-
-	observations, ok := reportElems[2].([]*big.Int)
-	if !ok {
-		return nil, fmt.Errorf("cannot cast observations to []*big.Int, type is %T", reportElems[1])
-	}
-
-	if len(observations) == 0 {
-		return nil, fmt.Errorf("observations are empty")
-	}
-
-	median := observations[len(observations)/2]
-	if median == nil {
-		return nil, fmt.Errorf("median is nil")
-	}
-
-	return median, nil
-}
-
 func (nm *numericalMedian) ShouldTransmitAcceptedReport(ctx context.Context, repts types.ReportTimestamp, report types.Report) (bool, error) {
 	reportEpochRound := epochRound{repts.Epoch, repts.Round}
 
-	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.ContractTransmitter.LatestTransmissionDetails(ctx)
+	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -518,7 +603,7 @@ func (nm *numericalMedian) ShouldTransmitAcceptedReport(ctx context.Context, rep
 	contractEpochRound := epochRound{contractEpoch, contractRound}
 
 	if contractConfigDigest != nm.configDigest {
-		nm.Logger.Debug("ShouldTransmitAcceptedReport() = false, config digest mismatch", commontypes.LogFields{
+		nm.logger.Debug("ShouldTransmitAcceptedReport() = false, config digest mismatch", commontypes.LogFields{
 			"contractConfigDigest": contractConfigDigest,
 			"reportConfigDigest":   nm.configDigest,
 			"reportEpochRound":     reportEpochRound,
@@ -527,7 +612,7 @@ func (nm *numericalMedian) ShouldTransmitAcceptedReport(ctx context.Context, rep
 	}
 
 	if !contractEpochRound.Less(reportEpochRound) {
-		nm.Logger.Debug("ShouldTransmitAcceptedReport() = false, report is stale", commontypes.LogFields{
+		nm.logger.Debug("ShouldTransmitAcceptedReport() = false, report is stale", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"reportEpochRound":   reportEpochRound,
 		})

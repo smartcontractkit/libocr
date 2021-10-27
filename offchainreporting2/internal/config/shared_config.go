@@ -4,7 +4,7 @@ import (
 	"bytes"
 	cryptorand "crypto/rand"
 	"fmt"
-	"math/big"
+	"math"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -42,41 +42,40 @@ func (c *SharedConfig) TransmissionOrderKey() [16]byte {
 }
 
 func SharedConfigFromContractConfig(
-	chainID *big.Int,
-	skipChainSpecificChecks bool,
+	skipResourceExhaustionChecks bool,
 	change types.ContractConfig,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
 	peerID string,
 	transmitAccount types.Account,
 ) (SharedConfig, commontypes.OracleID, error) {
-	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
+	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(skipResourceExhaustionChecks, change)
 	if err != nil {
 		return SharedConfig{}, 0, err
 	}
 
-	oracleID := commontypes.OracleID(-1)
+	oracleID := commontypes.OracleID(math.MaxUint8)
 	{
 		var found bool
 		for i, identity := range publicConfig.OracleIdentities {
 			onchainPublicKey := onchainKeyring.PublicKey()
 			offchainPublicKey := offchainKeyring.OffchainPublicKey()
-			if bytes.Equal(identity.OnChainPublicKey, onchainPublicKey) {
+			if bytes.Equal(identity.OnchainPublicKey, onchainPublicKey) {
 				if !bytes.Equal(identity.OffchainPublicKey, offchainPublicKey) {
 					return SharedConfig{}, 0, errors.Errorf(
-						"OnChainPublicKey %x in publicConfig matches "+
+						"OnchainPublicKey %x in publicConfig matches "+
 							"mine, but OffchainPublicKey does not: %v (config) vs %v (mine)",
 						onchainPublicKey, identity.OffchainPublicKey, offchainPublicKey)
 				}
 				if identity.PeerID != peerID {
 					return SharedConfig{}, 0, errors.Errorf(
-						"OnChainPublicKey %x in publicConfig matches "+
+						"OnchainPublicKey %x in publicConfig matches "+
 							"mine, but PeerID does not: %v (config) vs %v (mine)",
 						onchainPublicKey, identity.PeerID, peerID)
 				}
 				if identity.TransmitAccount != transmitAccount {
 					return SharedConfig{}, 0, errors.Errorf(
-						"OnChainPublicKey %x in publicConfig matches "+
+						"OnchainPublicKey %x in publicConfig matches "+
 							"mine, but TransmitAccount does not: %v (config) vs %v (mine)",
 						onchainPublicKey, identity.TransmitAccount, transmitAccount)
 				}
@@ -119,13 +118,13 @@ func XXXContractSetConfigArgsFromSharedConfig(
 	offChainPublicKeys := []types.OffchainPublicKey{}
 	peerIDs := []string{}
 	for _, identity := range c.OracleIdentities {
-		if len(identity.OnChainPublicKey) != 20 {
+		if len(identity.OnchainPublicKey) != 20 {
 			return nil, nil, 0, nil, 0, nil, fmt.Errorf("OnChainPublicKey has wrong length for address")
 		}
 		if !common.IsHexAddress(string(identity.TransmitAccount)) {
 			return nil, nil, 0, nil, 0, nil, fmt.Errorf("TransmitAccount is not a valid Ethereum address")
 		}
-		signers = append(signers, common.BytesToAddress(identity.OnChainPublicKey))
+		signers = append(signers, common.BytesToAddress(identity.OnchainPublicKey))
 		transmitters = append(transmitters, common.HexToAddress(string(identity.TransmitAccount)))
 		offChainPublicKeys = append(offChainPublicKeys, identity.OffchainPublicKey)
 		peerIDs = append(peerIDs, identity.PeerID)

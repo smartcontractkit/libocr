@@ -80,7 +80,7 @@ func aesDecryptBlock(key, ciphertext []byte) [16]byte {
 
 // Decrypt returns the sharedSecret
 func (e SharedSecretEncryptions) Decrypt(oid commontypes.OracleID, k types.OffchainKeyring) (*[SharedSecretSize]byte, error) {
-	if oid < 0 || len(e.Encryptions) <= int(oid) {
+	if len(e.Encryptions) <= int(oid) {
 		return nil, errors.New("oid out of range of SharedSecretEncryptions.Encryptions")
 	}
 

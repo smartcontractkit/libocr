@@ -36,14 +36,14 @@ func RunOracle(
 	o := oracleState{
 		ctx: ctx,
 
-		Config:              config,
+		config:              config,
 		contractTransmitter: contractTransmitter,
 		database:            database,
 		id:                  id,
 		localConfig:         localConfig,
 		logger:              logger,
 		netEndpoint:         netEndpoint,
-		OffchainKeyring:     offchainKeyring,
+		offchainKeyring:     offchainKeyring,
 		onchainKeyring:      onchainKeyring,
 		reportingPlugin:     reportingPlugin,
 		reportQuorum:        reportQuorum,
@@ -55,14 +55,14 @@ func RunOracle(
 type oracleState struct {
 	ctx context.Context
 
-	Config              config.SharedConfig
+	config              config.SharedConfig
 	contractTransmitter types.ContractTransmitter
 	database            types.Database
 	id                  commontypes.OracleID
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
 	netEndpoint         NetworkEndpoint
-	OffchainKeyring     types.OffchainKeyring
+	offchainKeyring     types.OffchainKeyring
 	onchainKeyring      types.OnchainKeyring
 	reportingPlugin     types.ReportingPlugin
 	reportQuorum        int
@@ -82,21 +82,29 @@ type oracleState struct {
 // (Pacemaker, ReportGeneration and Transmission) upon o.ctx.Done()
 // being closed.
 //
-// TODO: update graph
 // Here is a graph of the various channels involved and what they
 // transport.
 //
-//      ┌─────────────epoch changes─────────────┐
-//      ▼                                       │
-//  ┌──────┐                               ┌────┴────┐
-//  │Oracle├────pacemaker messages────────►│Pacemaker│
-//  └────┬─┘                               └─────────┘
-//       │                                       ▲
-//       └──────rep. gen. messages────────────┐  │
-//                                            ▼  │progress events
-//  ┌────────────┐                         ┌─────┴──────────┐
-//  │Transmission│◄──────reports───────────┤ReportGeneration│
-//  └────────────┘                         └────────────────┘
+//
+//        ┌────────────epoch changes──────────────┐
+//        ▼                                       │
+//    ┌──────┐                               ┌────┴────┐
+//    │Oracle├─────pacemaker messages───────►│Pacemaker│
+//    └──┬─┬─┘                               └─────────┘
+//       │ │                                       ▲
+//       │ └───────rep. gen. messages───────────┐  │
+//       │rep. fin. messages                    │  │
+//       ▼                                      ▼  │progress events
+//    ┌──────────────────┐                   ┌─────┴──────────┐
+//    │ReportFinalization│◄───final events───┤ReportGeneration│
+//    └────────┬─────────┘                   └────────────────┘
+//             │
+//             │transmit events
+//             ▼
+//        ┌────────────┐
+//        │Transmission│
+//        └────────────┘
+//
 //
 // All channels are unbuffered.
 //
@@ -114,7 +122,7 @@ type oracleState struct {
 func (o *oracleState) run() {
 	o.logger.Info("Running", nil)
 
-	for i := 0; i < o.Config.N(); i++ {
+	for i := 0; i < o.config.N(); i++ {
 		o.bufferedMessages = append(o.bufferedMessages, NewMessageBuffer(futureMessageBufferSize))
 	}
 
@@ -145,14 +153,14 @@ func (o *oracleState) run() {
 			chNetToReportGeneration,
 			chPacemakerToOracle,
 			chReportGenerationToReportFinalization,
-			o.Config,
+			o.config,
 			o.contractTransmitter,
 			o.database,
 			o.id,
 			o.localConfig,
 			o.logger,
 			o.netEndpoint,
-			o.OffchainKeyring,
+			o.offchainKeyring,
 			o.onchainKeyring,
 			o.reportingPlugin,
 			o.reportQuorum,
@@ -162,12 +170,11 @@ func (o *oracleState) run() {
 	o.subprocesses.Go(func() {
 		RunReportFinalization(
 			o.childCtx,
-			&o.subprocesses,
 
 			chNetToReportFinalization,
 			chReportFinalizationToTransmission,
 			chReportGenerationToReportFinalization,
-			o.Config,
+			o.config,
 			o.onchainKeyring,
 			o.logger,
 			o.netEndpoint,
@@ -179,7 +186,7 @@ func (o *oracleState) run() {
 			o.childCtx,
 			&o.subprocesses,
 
-			o.Config,
+			o.config,
 			chReportFinalizationToTransmission,
 			o.database,
 			o.id,

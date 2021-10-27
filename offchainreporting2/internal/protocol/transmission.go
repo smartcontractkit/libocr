@@ -8,11 +8,16 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2/internal/protocol/persist"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/permutation"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"golang.org/x/crypto/sha3"
 )
+
+const ContractTransmitterTimeoutWarningGracePeriod = 50 * time.Millisecond
+
+const chPersistCapacityTransmission = 16
 
 // TransmissionProtocol tracks the local oracle process's role in the transmission of a
 // report to the on-chain oracle contract.
@@ -63,14 +68,26 @@ type transmissionState struct {
 	reportingPlugin                    types.ReportingPlugin
 	transmitter                        types.ContractTransmitter
 
-	latestEpochRound EpochRound
-	times            MinHeapTimeToPendingTransmission
-	tTransmit        <-chan time.Time
+	chPersist chan<- persist.TransmissionDBUpdate
+	times     MinHeapTimeToPendingTransmission
+	tTransmit <-chan time.Time
 }
 
 // run runs the event loop for the local transmission protocol
 func (t *transmissionState) run() {
 	t.restoreFromDatabase()
+
+	chPersist := make(chan persist.TransmissionDBUpdate, chPersistCapacityTransmission)
+	t.chPersist = chPersist
+	t.subprocesses.Go(func() {
+		persist.PersistTransmission(
+			t.ctx,
+			chPersist,
+			t.database,
+			t.localConfig.DatabaseTimeout,
+			t.logger,
+		)
+	})
 
 	chDone := t.ctx.Done()
 	for {
@@ -160,7 +177,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 		shouldAccept, err := t.reportingPlugin.ShouldAcceptFinalizedReport(
 			ctx,
 			ts,
-			ev.Report.ReportData,
+			ev.AttestedReport.Report,
 		)
 
 		ins.Stop()
@@ -191,24 +208,16 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 	transmission := types.PendingTransmission{
 		now.Add(delay),
 		ev.H,
-		ev.Report.ReportData,
-		ev.Report.AttributedSignatures,
+		ev.AttestedReport.Report,
+		ev.AttestedReport.AttributedSignatures,
 	}
 
-	// ok := t.subprocesses.BlockForAtMost(
-	// 	t.ctx,
-	// 	t.localConfig.DatabaseTimeout,
-	// 	func(ctx context.Context) {
-	// 		if err := t.database.StorePendingTransmission(ctx, key, transmission); err != nil {
-	// 			t.logger.Error("Error while persisting pending transmission to database", commontypes.LogFields{"error": err})
-	// 		}
-	// 	},
-	// )
-	// if !ok {
-	// 	t.logger.Error("Database.StorePendingTransmission timed out", commontypes.LogFields{
-	// 		"timeout": t.localConfig.DatabaseTimeout,
-	// 	})
-	// }
+	select {
+	case t.chPersist <- persist.TransmissionDBUpdate{ts, &transmission}:
+	default:
+		t.logger.Warn("eventTransmit: chPersist is overflowing", nil)
+	}
+
 	t.times.Push(MinHeapTimeToPendingTransmissionItem{ts, transmission})
 
 	next := t.times.Peek()
@@ -231,24 +240,17 @@ func (t *transmissionState) eventTTransmitTimeout() {
 	}
 	item := t.times.Pop()
 
-	ok := t.subprocesses.BlockForAtMost(
-		t.ctx,
-		t.localConfig.DatabaseTimeout,
-		func(ctx context.Context) {
-			if err := t.database.DeletePendingTransmission(ctx, types.ReportTimestamp{
-				ConfigDigest: t.config.ConfigDigest,
-				Epoch:        item.Epoch,
-				Round:        item.Round,
-			}); err != nil {
-				t.logger.Error("eventTTransmitTimeout: Error while deleting pending transmission from database", commontypes.LogFields{"error": err})
-			}
+	select {
+	case t.chPersist <- persist.TransmissionDBUpdate{
+		types.ReportTimestamp{
+			t.config.ConfigDigest,
+			item.Epoch,
+			item.Round,
 		},
-	)
-	if !ok {
-		t.logger.Error("Database.DeletePendingTransmission timed out", commontypes.LogFields{
-			"timeout": t.localConfig.DatabaseTimeout,
-		})
-		// carry on
+		nil,
+	}:
+	default:
+		t.logger.Warn("eventTTransmitTimeout: chPersist is overflowing", nil)
 	}
 
 	{
@@ -291,31 +293,39 @@ func (t *transmissionState) eventTTransmitTimeout() {
 		"round": item.Round,
 	})
 
-	var err error
-	ok = t.subprocesses.BlockForAtMost(
-		t.ctx,
-		t.localConfig.ContractTransmitterTransmitTimeout,
-		func(ctx context.Context) {
-			err = t.transmitter.Transmit(
-				ctx,
-				types.ReportContext{
-					item.ReportTimestamp,
-					item.ExtraHash,
-				},
-				item.Report,
-				item.AttributedSignatures,
-			)
-		},
-	)
-	if !ok {
-		t.logger.Error("eventTTransmitTimeout: Transmit timed out", commontypes.LogFields{
-			"timeout": t.localConfig.ContractTransmitterTransmitTimeout,
-		})
-		return
-	}
-	if err != nil {
-		t.logger.Error("eventTTransmitTimeout: Error while transmitting report on-chain", commontypes.LogFields{"error": err})
-		return
+	{
+		ctx, cancel := context.WithTimeout(
+			t.ctx,
+			t.localConfig.ContractTransmitterTransmitTimeout,
+		)
+		defer cancel()
+
+		ins := loghelper.NewIfNotStopped(
+			t.localConfig.ContractTransmitterTransmitTimeout+ContractTransmitterTimeoutWarningGracePeriod,
+			func() {
+				t.logger.Error("Transmission: ContractTransmitter.Transmit is taking too long", commontypes.LogFields{
+					"item": item, "maxDuration": t.config.MaxDurationShouldTransmitAcceptedReport,
+				})
+			},
+		)
+
+		err := t.transmitter.Transmit(
+			ctx,
+			types.ReportContext{
+				item.ReportTimestamp,
+				item.ExtraHash,
+			},
+			item.Report,
+			item.AttributedSignatures,
+		)
+
+		ins.Stop()
+
+		if err != nil {
+			t.logger.Error("eventTTransmitTimeout: ContractTransmitter.Transmit error", commontypes.LogFields{"error": err})
+			return
+		}
+
 	}
 
 	t.logger.Info("eventTTransmitTimeout:❗️successfully transmitted report on-chain", commontypes.LogFields{

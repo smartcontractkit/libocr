@@ -1,4 +1,4 @@
-package inhousedisco
+package ragedisco
 
 import (
 	"context"
@@ -30,6 +30,27 @@ type outgoingMessage struct {
 	to      ragetypes.PeerID
 }
 
+type discoveryProtocolState int
+
+const (
+	_ discoveryProtocolState = iota
+	discoveryProtocolUnstarted
+	discoveryProtocolStarted
+	discoveryProtocolClosed
+)
+
+// discoveryProtocolLocked contains the subset of a discoveryProtocol's state
+// that requires the discoveryProtocol lock to be held in order to access or
+// modify
+type discoveryProtocolLocked struct {
+	state                   discoveryProtocolState
+	bestAnnouncement        map[ragetypes.PeerID]Announcement
+	groups                  map[types.ConfigDigest]*group
+	bootstrappers           map[ragetypes.PeerID]map[ragetypes.Address]int
+	numGroupsByOracle       map[ragetypes.PeerID]int
+	numGroupsByBootstrapper map[ragetypes.PeerID]int
+}
+
 type discoveryProtocol struct {
 	deltaReconcile     time.Duration
 	chIncomingMessages <-chan incomingMessage
@@ -40,12 +61,8 @@ type discoveryProtocol struct {
 	ownID              ragetypes.PeerID
 	ownAddrs           []ragetypes.Address
 
-	mu                      sync.RWMutex
-	bestAnnouncement        map[ragetypes.PeerID]Announcement
-	groups                  map[types.ConfigDigest]*group
-	bootstrappers           map[ragetypes.PeerID]map[ragetypes.Address]int
-	numGroupsByOracle       map[ragetypes.PeerID]int
-	numGroupsByBootstrapper map[ragetypes.PeerID]int
+	lock   sync.RWMutex
+	locked discoveryProtocolLocked
 
 	db nettypes.DiscovererDatabase
 
@@ -89,11 +106,14 @@ func newDiscoveryProtocol(
 		ownID,
 		ownAddrs,
 		sync.RWMutex{},
-		make(map[ragetypes.PeerID]Announcement),
-		make(map[types.ConfigDigest]*group),
-		make(map[ragetypes.PeerID]map[ragetypes.Address]int),
-		make(map[ragetypes.PeerID]int),
-		make(map[ragetypes.PeerID]int),
+		discoveryProtocolLocked{
+			discoveryProtocolUnstarted,
+			make(map[ragetypes.PeerID]Announcement),
+			make(map[types.ConfigDigest]*group),
+			make(map[ragetypes.PeerID]map[ragetypes.Address]int),
+			make(map[ragetypes.PeerID]int),
+			make(map[ragetypes.PeerID]int),
+		},
 		db,
 		subprocesses.Subprocesses{},
 		ctx,
@@ -103,7 +123,20 @@ func newDiscoveryProtocol(
 }
 
 func (p *discoveryProtocol) Start() error {
-	_, _, err := p.unsafeBumpOwnAnnouncement()
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			p.Close()
+		}
+	}()
+
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	if p.locked.state != discoveryProtocolUnstarted {
+		return fmt.Errorf("cannot start discoveryProtocol that is not unstarted, state was: %v", p.locked.state)
+	}
+	p.locked.state = discoveryProtocolStarted
+	_, _, err := p.lockedBumpOwnAnnouncement()
 	if err != nil {
 		return errors.Wrap(err, "failed to bump own announcement")
 	}
@@ -111,6 +144,7 @@ func (p *discoveryProtocol) Start() error {
 	p.processes.Go(p.sendLoop)
 	p.processes.Go(p.saveLoop)
 	p.processes.Go(p.statusReportLoop)
+	succeeded = true
 	return nil
 }
 
@@ -149,17 +183,17 @@ func (p *discoveryProtocol) statusReportLoop() {
 		select {
 		case <-timer:
 			func() {
-				p.mu.RLock()
-				defer p.mu.RUnlock()
+				p.lock.RLock()
+				defer p.lock.RUnlock()
 				uniquePeersToDetect := make(map[ragetypes.PeerID]struct{})
-				for id, cnt := range p.numGroupsByOracle {
+				for id, cnt := range p.locked.numGroupsByOracle {
 					if cnt == 0 {
 						continue
 					}
 					uniquePeersToDetect[id] = struct{}{}
 				}
 
-				reportStr, undetected := formatAnnouncementsForReport(uniquePeersToDetect, p.bestAnnouncement)
+				reportStr, undetected := formatAnnouncementsForReport(uniquePeersToDetect, p.locked.bestAnnouncement)
 				p.logger.Info("Discoverer status report", commontypes.LogFields{
 					"statusByPeer":    reportStr,
 					"peersToDetect":   len(uniquePeersToDetect),
@@ -176,14 +210,14 @@ func (p *discoveryProtocol) statusReportLoop() {
 
 // Peer A is allowed to learn about an Announcement by peer B if B is an oracle node in
 // one of the groups A participates in.
-func (p *discoveryProtocol) unsafeAllowedPeers(ann Announcement) (ps []ragetypes.PeerID) {
+func (p *discoveryProtocol) lockedAllowedPeers(ann Announcement) (ps []ragetypes.PeerID) {
 	annPeerID, err := ann.PeerID()
 	if err != nil {
 		p.logger.Warn("failed to obtain peer id from announcement", reason(err))
 		return
 	}
 	peers := make(map[ragetypes.PeerID]struct{})
-	for _, g := range p.groups {
+	for _, g := range p.locked.groups {
 		if !g.hasOracle(annPeerID) {
 			continue
 		}
@@ -202,27 +236,27 @@ func (p *discoveryProtocol) unsafeAllowedPeers(ann Announcement) (ps []ragetypes
 
 func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error {
 	var newPeerIDs []ragetypes.PeerID
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
-	if _, exists := p.groups[digest]; exists {
+	if _, exists := p.locked.groups[digest]; exists {
 		return fmt.Errorf("asked to add group with digest we already have (digest: %s)", digest.Hex())
 	}
 	newGroup := group{oracleNodes: onodes, bootstrapperNodes: bnodes}
-	p.groups[digest] = &newGroup
+	p.locked.groups[digest] = &newGroup
 	for _, oid := range onodes {
-		if p.numGroupsByOracle[oid] == 0 {
+		if p.locked.numGroupsByOracle[oid] == 0 {
 			newPeerIDs = append(newPeerIDs, oid)
 		}
-		p.numGroupsByOracle[oid]++
+		p.locked.numGroupsByOracle[oid]++
 	}
 	for _, bs := range bnodes {
-		p.numGroupsByBootstrapper[bs.ID]++
+		p.locked.numGroupsByBootstrapper[bs.ID]++
 		for _, addr := range bs.Addrs {
-			if _, exists := p.bootstrappers[bs.ID]; !exists {
-				p.bootstrappers[bs.ID] = make(map[ragetypes.Address]int)
+			if _, exists := p.locked.bootstrappers[bs.ID]; !exists {
+				p.locked.bootstrappers[bs.ID] = make(map[ragetypes.Address]int)
 			}
-			p.bootstrappers[bs.ID][addr]++
+			p.locked.bootstrappers[bs.ID][addr]++
 		}
 	}
 	for _, pid := range newGroup.peerIDs() {
@@ -234,15 +268,15 @@ func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetyp
 		}
 	}
 
-	// we hold mu here
-	if err := p.unsafeLoadFromDB(newPeerIDs); err != nil {
+	// we hold lock here
+	if err := p.lockedLoadFromDB(newPeerIDs); err != nil {
 		// db-level errors are not prohibitive
 		p.logger.Warn("Failed to load announcements from db", reason(err))
 	}
 	return nil
 }
 
-func (p *discoveryProtocol) unsafeLoadFromDB(ragePeerIDs []ragetypes.PeerID) error {
+func (p *discoveryProtocol) lockedLoadFromDB(ragePeerIDs []ragetypes.PeerID) error {
 	// The database may have been set to nil, and we don't necessarily need it to function.
 	if len(ragePeerIDs) == 0 || p.db == nil {
 		return nil
@@ -264,7 +298,7 @@ func (p *discoveryProtocol) unsafeLoadFromDB(ragePeerIDs []ragetypes.PeerID) err
 			})
 			continue
 		}
-		err = p.unsafeProcessAnnouncement(dbann)
+		err = p.lockedProcessAnnouncement(dbann)
 		if err != nil {
 			p.logger.Warn("failed to process announcement from db", commontypes.LogFields{
 				"error": err,
@@ -294,11 +328,11 @@ func (p *discoveryProtocol) saveToDB() error {
 	if p.db == nil {
 		return nil
 	}
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+	p.lock.RLock()
+	defer p.lock.RUnlock()
 
 	var allErrors error
-	for _, ann := range p.bestAnnouncement {
+	for _, ann := range p.locked.bestAnnouncement {
 		allErrors = multierr.Append(allErrors, p.saveAnnouncementToDB(ann))
 	}
 	return allErrors
@@ -324,49 +358,51 @@ func (p *discoveryProtocol) saveLoop() {
 func (p *discoveryProtocol) removeGroup(digest types.ConfigDigest) error {
 	logger := p.logger.MakeChild(commontypes.LogFields{"in": "removeGroup"})
 	logger.Trace("Called", nil)
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
-	goneGroup, exists := p.groups[digest]
+	goneGroup, exists := p.locked.groups[digest]
 	if !exists {
 		return fmt.Errorf("can't remove group that is not registered (digest: %s)", digest.Hex())
 	}
 
-	delete(p.groups, digest)
+	delete(p.locked.groups, digest)
 
 	for _, oid := range goneGroup.oracleIDs() {
-		p.numGroupsByOracle[oid]--
-		if p.numGroupsByOracle[oid] == 0 {
-			if ann, exists := p.bestAnnouncement[oid]; exists {
+		p.locked.numGroupsByOracle[oid]--
+		if p.locked.numGroupsByOracle[oid] == 0 {
+			if ann, exists := p.locked.bestAnnouncement[oid]; exists {
 				if err := p.saveAnnouncementToDB(ann); err != nil {
 					p.logger.Warn("Failed to save announcement from removed group to DB", reason(err))
 				}
 			}
-			delete(p.bestAnnouncement, oid)
-			delete(p.numGroupsByOracle, oid)
+			if oid != p.ownID {
+				delete(p.locked.bestAnnouncement, oid)
+			}
+			delete(p.locked.numGroupsByOracle, oid)
 		}
 	}
 
 	for _, binfo := range goneGroup.bootstrapperNodes {
 		bid := binfo.ID
 
-		p.numGroupsByBootstrapper[bid]--
-		if p.numGroupsByBootstrapper[bid] == 0 {
-			delete(p.numGroupsByBootstrapper, bid)
-			delete(p.bootstrappers, bid)
+		p.locked.numGroupsByBootstrapper[bid]--
+		if p.locked.numGroupsByBootstrapper[bid] == 0 {
+			delete(p.locked.numGroupsByBootstrapper, bid)
+			delete(p.locked.bootstrappers, bid)
 			continue
 		}
 		for _, addr := range binfo.Addrs {
-			p.bootstrappers[bid][addr]--
-			if p.bootstrappers[bid][addr] == 0 {
-				delete(p.bootstrappers[bid], addr)
+			p.locked.bootstrappers[bid][addr]--
+			if p.locked.bootstrappers[bid][addr] == 0 {
+				delete(p.locked.bootstrappers[bid], addr)
 			}
 		}
 	}
 
 	// Cleanup connections for peers we don't have in any group anymore.
 	for _, pid := range goneGroup.peerIDs() {
-		if p.numGroupsByOracle[pid]+p.numGroupsByBootstrapper[pid] == 0 {
+		if p.locked.numGroupsByOracle[pid]+p.locked.numGroupsByBootstrapper[pid] == 0 {
 			select {
 			case p.chConnectivity <- connectivityMsg{connectivityRemove, pid}:
 			case <-p.ctx.Done():
@@ -380,14 +416,14 @@ func (p *discoveryProtocol) removeGroup(digest types.ConfigDigest) error {
 
 func (p *discoveryProtocol) FindPeer(peer ragetypes.PeerID) (addrs []ragetypes.Address, err error) {
 	allAddrs := make(map[ragetypes.Address]struct{})
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	if baddrs, ok := p.bootstrappers[peer]; ok {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	if baddrs, ok := p.locked.bootstrappers[peer]; ok {
 		for a := range baddrs {
 			allAddrs[a] = struct{}{}
 		}
 	}
-	if ann, ok := p.bestAnnouncement[peer]; ok {
+	if ann, ok := p.locked.bestAnnouncement[peer]; ok {
 		for _, a := range ann.Addrs {
 			allAddrs[a] = struct{}{}
 		}
@@ -417,7 +453,7 @@ func (p *discoveryProtocol) recvLoop() {
 					logger.Warn("Failed to process announcement", nil)
 				}
 			case *reconcile:
-				logger.Trace("Received reconcile", commontypes.LogFields{"reconcile": v.toLogFields()})
+				// logger.Trace("Received reconcile", commontypes.LogFields{"reconcile": v.toLogFields()})
 				for _, ann := range v.Anns {
 					if err := p.processAnnouncement(ann); err != nil {
 						logger := logger.MakeChild(reason(err))
@@ -433,22 +469,22 @@ func (p *discoveryProtocol) recvLoop() {
 	}
 }
 
-// processAnnouncement locks mu for its whole lifetime.
+// processAnnouncement locks lock for its whole lifetime.
 func (p *discoveryProtocol) processAnnouncement(ann Announcement) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.unsafeProcessAnnouncement(ann)
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.lockedProcessAnnouncement(ann)
 }
 
-// unsafeProcessAnnouncement requires mu to be held.
-func (p *discoveryProtocol) unsafeProcessAnnouncement(ann Announcement) error {
+// lockedProcessAnnouncement requires lock to be held.
+func (p *discoveryProtocol) lockedProcessAnnouncement(ann Announcement) error {
 	logger := p.logger.MakeChild(commontypes.LogFields{"in": "processAnnouncement"}).MakeChild(ann.toLogFields())
 	pid, err := ann.PeerID()
 	if err != nil {
 		return errors.Wrap(err, "failed to obtain peer id from announcement")
 	}
 
-	if p.numGroupsByOracle[pid] == 0 {
+	if p.locked.numGroupsByOracle[pid] == 0 {
 		return fmt.Errorf("got announcement for an oracle we don't share a group with (%s)", pid)
 	}
 
@@ -457,13 +493,13 @@ func (p *discoveryProtocol) unsafeProcessAnnouncement(ann Announcement) error {
 		return errors.Wrap(err, "failed to verify announcement")
 	}
 
-	if localann, exists := p.bestAnnouncement[pid]; !exists || localann.Counter <= ann.Counter {
+	if localann, exists := p.locked.bestAnnouncement[pid]; !exists || localann.Counter <= ann.Counter {
 		if exists && pid != p.ownID && localann.Counter == ann.Counter {
 			return nil
 		}
-		p.bestAnnouncement[pid] = ann
+		p.locked.bestAnnouncement[pid] = ann
 		if pid == p.ownID {
-			bumpedann, better, err := p.unsafeBumpOwnAnnouncement()
+			bumpedann, better, err := p.lockedBumpOwnAnnouncement()
 			if err != nil {
 				return errors.Wrap(err, "failed to bump own announcement")
 			}
@@ -492,9 +528,9 @@ func (p *discoveryProtocol) unsafeProcessAnnouncement(ann Announcement) error {
 }
 
 func (p *discoveryProtocol) sendToAllowedPeers(ann Announcement) {
-	p.mu.RLock()
-	allowedPeers := p.unsafeAllowedPeers(ann)
-	p.mu.RUnlock()
+	p.lock.RLock()
+	allowedPeers := p.lockedAllowedPeers(ann)
+	p.lock.RUnlock()
 	for _, pid := range allowedPeers {
 		select {
 		case p.chOutgoingMessages <- outgoingMessage{ann, pid}:
@@ -520,10 +556,10 @@ func (p *discoveryProtocol) sendLoop() {
 			logger.Debug("Starting reconciliation", nil)
 			reconcileByPeer := make(map[ragetypes.PeerID]*reconcile)
 			func() {
-				p.mu.RLock()
-				defer p.mu.RUnlock()
-				for _, ann := range p.bestAnnouncement {
-					for _, pid := range p.unsafeAllowedPeers(ann) {
+				p.lock.RLock()
+				defer p.lock.RUnlock()
+				for _, ann := range p.locked.bestAnnouncement {
+					for _, pid := range p.lockedAllowedPeers(ann) {
 						if _, exists := reconcileByPeer[pid]; !exists {
 							reconcileByPeer[pid] = &reconcile{Anns: []Announcement{}}
 						}
@@ -546,10 +582,10 @@ func (p *discoveryProtocol) sendLoop() {
 	}
 }
 
-// unsafeBumpOwnAnnouncement requires mu to be held by the caller.
-func (p *discoveryProtocol) unsafeBumpOwnAnnouncement() (*Announcement, bool, error) {
-	logger := p.logger.MakeChild(commontypes.LogFields{"in": "unsafeBumpOwnAnnouncement"})
-	oldann, exists := p.bestAnnouncement[p.ownID]
+// lockedBumpOwnAnnouncement requires lock to be held by the caller.
+func (p *discoveryProtocol) lockedBumpOwnAnnouncement() (*Announcement, bool, error) {
+	logger := p.logger.MakeChild(commontypes.LogFields{"in": "lockedBumpOwnAnnouncement"})
+	oldann, exists := p.locked.bestAnnouncement[p.ownID]
 	newctr := uint64(0)
 
 	if exists {
@@ -570,14 +606,23 @@ func (p *discoveryProtocol) unsafeBumpOwnAnnouncement() (*Announcement, bool, er
 		return nil, false, errors.Wrap(err, "failed to sign own announcement")
 	}
 	logger.Info("Replacing our own announcement", sann.toLogFields())
-	p.bestAnnouncement[p.ownID] = sann
+	p.locked.bestAnnouncement[p.ownID] = sann
 	return &sann, true, nil
 }
 
-func (p *discoveryProtocol) Close() {
+func (p *discoveryProtocol) Close() error {
 	logger := p.logger.MakeChild(commontypes.LogFields{"in": "Close"})
+	p.lock.Lock()
+	if p.locked.state != discoveryProtocolStarted {
+		defer p.lock.Unlock()
+		return fmt.Errorf("cannot close discoveryProtocol that is not started, state was: %v", p.locked.state)
+	}
+	p.locked.state = discoveryProtocolClosed
+	p.lock.Unlock()
+
 	logger.Debug("Exiting", nil)
 	defer logger.Debug("Exited", nil)
 	p.ctxCancel()
 	p.processes.Wait()
+	return nil
 }

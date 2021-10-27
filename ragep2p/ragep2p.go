@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
-	"github.com/smartcontractkit/libocr/ragep2p/address"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -145,12 +144,11 @@ type HostConfig struct {
 // limiting.
 type Host struct {
 	// Constructor args
-	config            HostConfig
-	secretKey         ed25519.PrivateKey
-	listenAddresses   []types.Address
-	announceAddresses []types.Address
-	discoverer        Discoverer
-	logger            loghelper.LoggerWithContext
+	config          HostConfig
+	secretKey       ed25519.PrivateKey
+	listenAddresses []string
+	discoverer      Discoverer
+	logger          loghelper.LoggerWithContext
 
 	// Derived from secretKey
 	id      types.PeerID
@@ -177,7 +175,6 @@ func NewHost(
 	config HostConfig,
 	secretKey ed25519.PrivateKey,
 	listenAddresses []string,
-	announceAddresses []string,
 	discoverer Discoverer,
 	logger commontypes.Logger,
 ) (*Host, error) {
@@ -186,30 +183,11 @@ func NewHost(
 		return nil, err
 	}
 
-	listenAddrs := []types.Address{}
-	for _, addrStr := range listenAddresses {
-		addr := types.Address(addrStr)
-		if !address.IsValid(addr) {
-			return nil, fmt.Errorf("invalid listen address: %s", addrStr)
-		}
-		listenAddrs = append(listenAddrs, addr)
-	}
-
-	announceAddrs := []types.Address{}
-	for _, addrStr := range announceAddresses {
-		addr := types.Address(addrStr)
-		if !address.IsValid(addr) {
-			return nil, fmt.Errorf("invalid announce address: %s", addrStr)
-		}
-		announceAddrs = append(announceAddrs, addr)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Host{
 		config,
 		secretKey,
-		listenAddrs,
-		announceAddrs,
+		listenAddresses,
 		discoverer,
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
 		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"peerID": types.PeerID(id)}),
@@ -231,6 +209,12 @@ func NewHost(
 
 // Start listening on the network interfaces and dialling peers.
 func (ho *Host) Start() error {
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			ho.Close()
+		}
+	}()
 	ho.logger.Trace("ragep2p Start()", commontypes.LogFields{"listenAddresses": ho.listenAddresses})
 	ho.stateMu.Lock()
 	defer ho.stateMu.Unlock()
@@ -244,32 +228,21 @@ func (ho *Host) Start() error {
 		ho.dialLoop()
 	})
 	for _, addr := range ho.listenAddresses {
-		addrCopy := addr
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			return errors.Wrapf(err, "net.Listen(%s) failed", addr)
+		}
 		ho.subprocesses.Go(func() {
-			ho.listenLoop(addrCopy)
+			ho.listenLoop(ln)
 		})
 	}
 
-	// Auto-detect announce addresses if they have not been supplied explicitly.
-	// We do this here because interfaces may change between Host initialization
-	// and the actual listen.
-	if len(ho.announceAddresses) == 0 {
-		ho.announceAddresses = []types.Address{}
-		for _, addr := range ho.listenAddresses {
-			announceAddresses, err := address.AnnounceAddrs(addr)
-			if err != nil {
-				return err
-			}
-			ho.announceAddresses = append(ho.announceAddresses, announceAddresses...)
-		}
-	}
-
-	ho.logger.Trace("We have announce addresses", commontypes.LogFields{"announceAddresses": ho.announceAddresses})
-	err := ho.discoverer.Start(ho, ho.secretKey, ho.announceAddresses, ho.logger)
+	err := ho.discoverer.Start(ho, ho.secretKey, ho.logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to start discoverer")
 	}
 
+	succeeded = true
 	return nil
 }
 
@@ -550,13 +523,13 @@ func (ho *Host) Close() error {
 		return fmt.Errorf("cannot Close() host that isn't open")
 	}
 	ho.logger.Info("Host closing discoverer", nil)
-	ho.discoverer.Close()
+	err := ho.discoverer.Close()
 	ho.logger.Info("Host winding down", nil)
 	ho.state = hostStateClosed
 	ho.cancel()
 	ho.subprocesses.Wait()
 	ho.logger.Info("Host exiting", nil)
-	return nil
+	return errors.Wrap(err, "failed to close discoverer")
 }
 
 func (ho *Host) ID() types.PeerID {
@@ -612,9 +585,8 @@ func (ho *Host) dialLoop() {
 
 				dialer := net.Dialer{
 					Timeout: ho.config.DurationBetweenDials,
-					Cancel:  ho.ctx.Done(),
 				}
-				conn, err := dialer.Dial("tcp", string(addresses[ds.next%len(addresses)]))
+				conn, err := dialer.DialContext(ho.ctx, "tcp", string(addresses[ds.next%len(addresses)]))
 				if err != nil {
 					p.logger.Warn("Dial error", commontypes.LogFields{"error": err})
 					ds.next++
@@ -640,16 +612,12 @@ func (ho *Host) dialLoop() {
 	}
 }
 
-func (ho *Host) listenLoop(listenAddress types.Address) {
-	ln, err := net.Listen("tcp", string(listenAddress))
-	if err != nil {
-		ho.logger.Warn("ragep2p: failed to net.Listen", commontypes.LogFields{"error": err})
-		return
-	}
-
+func (ho *Host) listenLoop(ln net.Listener) {
 	ho.subprocesses.Go(func() {
 		<-ho.ctx.Done()
-		ln.Close()
+		if err := ln.Close(); err != nil {
+			ho.logger.Warn("Failed to close listener", commontypes.LogFields{"error": err})
+		}
 	})
 
 	for {
@@ -668,7 +636,9 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 	shouldClose := true
 	defer func() {
 		if shouldClose {
-			safeClose(conn)
+			if err := safeClose(conn); err != nil {
+				logger.Warn("Failed to close outgoing connection", commontypes.LogFields{"error": err})
+			}
 		}
 	}()
 
@@ -704,14 +674,15 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 }
 
 func (ho *Host) handleIncomingConnection(conn net.Conn) {
+	logger := ho.logger.MakeChild(commontypes.LogFields{"remoteAddr": conn.RemoteAddr()})
 	shouldClose := true
 	defer func() {
 		if shouldClose {
-			safeClose(conn)
+			if err := safeClose(conn); err != nil {
+				logger.Warn("Failed to close incoming connection", commontypes.LogFields{"error": err})
+			}
 		}
 	}()
-
-	logger := ho.logger.MakeChild(commontypes.LogFields{"remoteAddr": conn.RemoteAddr()})
 
 	knck := make([]byte, knock.KnockSize)
 	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
@@ -758,7 +729,9 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 	shouldClose := true
 	defer func() {
 		if shouldClose {
-			safeClose(tlsConn)
+			if err := safeClose(tlsConn); err != nil {
+				peer.logger.Warn("Failed to close connection", commontypes.LogFields{"error": err})
+			}
 		}
 	}()
 
@@ -784,7 +757,7 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 		peer.logger.Warn("Closing connection, error getting public key", commontypes.LogFields{"error": err})
 		return
 	}
-	if peer.other != types.PeerID(pubKey) {
+	if peer.other != pubKey {
 		peer.logger.Warn("TLS handshake PeerID mismatch", commontypes.LogFields{
 			"expected": peer.other,
 			"actual":   types.PeerID(pubKey),
@@ -804,7 +777,7 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 
 	rlConn.EnableRateLimiting()
 
-	peer.logger.Info("Connection established", commontypes.LogFields{"shouldClose": shouldClose})
+	peer.logger.Info("Connection established", nil)
 
 	// the lock here ensures there is at most one active connection at any time.
 	// it also prevents races on connLifeCycle.connSubs.
@@ -1138,7 +1111,11 @@ func authenticatedConnectionLoop(
 	var subs subprocesses.Subprocesses
 	defer subs.Wait()
 
-	defer safeClose(conn)
+	defer func() {
+		if err := safeClose(conn); err != nil {
+			logger.Warn("Failed to close connection", commontypes.LogFields{"error": err})
+		}
+	}()
 
 	childCtx, childCancel := context.WithCancel(ctx)
 	defer childCancel()
@@ -1210,6 +1187,9 @@ func authenticatedConnectionReadLoop(
 	// with unknown stream id.
 	unknownStreamIDTaper := loghelper.LogarithmicTaper{}
 
+	// We keep track of stream names for logging
+	streamNameByID := make(map[streamID]string)
+
 	rawHeader := make([]byte, frameHeaderEncodedSize)
 	for {
 		if !readInternal(rawHeader) {
@@ -1222,6 +1202,14 @@ func authenticatedConnectionReadLoop(
 			return
 		}
 
+		logger := func() commontypes.Logger {
+			return logger.MakeChild(commontypes.LogFields{
+				"payloadLength": header.PayloadLength,
+				"streamID":      header.StreamID,
+				"streamName":    streamNameByID[header.StreamID],
+			})
+		}
+
 		switch header.Type {
 		case frameTypeOpen:
 			if header.PayloadLength == 0 || header.PayloadLength > MaxStreamNameLength {
@@ -1231,6 +1219,7 @@ func authenticatedConnectionReadLoop(
 			if !readInternal(streamName) {
 				return
 			}
+			streamNameByID[header.StreamID] = string(streamName)
 			select {
 			case chOtherStreamStateNotification <- streamStateNotification{
 				header.StreamID,
@@ -1242,9 +1231,10 @@ func authenticatedConnectionReadLoop(
 			}
 		case frameTypeClose:
 			if header.PayloadLength != 0 {
-				logger.Warn("Frame close payload length is not zero", commontypes.LogFields{"length": header.PayloadLength})
+				logger().Warn("Frame close payload length is not zero", nil)
 				return
 			}
+			delete(streamNameByID, header.StreamID)
 			select {
 			case chOtherStreamStateNotification <- streamStateNotification{
 				header.StreamID,
@@ -1261,16 +1251,11 @@ func authenticatedConnectionReadLoop(
 			// Cast to int is safe since header.PayloadLength <= MaxMessageLength <= INT_MAX
 			switch demux.ShouldPush(header.StreamID, int(header.PayloadLength)) {
 			case shouldPushResultMessageTooBig:
-				logger.Warn("authenticatedConnectionReadLoop: message too big, closing connection", commontypes.LogFields{
-					"size":     header.PayloadLength,
-					"streamID": header.StreamID,
-				})
+				logger().Warn("authenticatedConnectionReadLoop: message too big, closing connection", nil)
 				return
 			case shouldPushResultMessagesLimitExceeded:
 				limitsExceededTaper.Trigger(func(count uint64) {
-					logger.Warn("authenticatedConnectionReadLoop: message limit exceeded, dropping message", commontypes.LogFields{
-						"size":                       header.PayloadLength,
-						"streamID":                   header.StreamID,
+					logger().Warn("authenticatedConnectionReadLoop: message limit exceeded, dropping message", commontypes.LogFields{
 						"limitsExceededDroppedCount": count,
 					})
 				})
@@ -1279,9 +1264,7 @@ func authenticatedConnectionReadLoop(
 				}
 			case shouldPushResultBytesLimitExceeded:
 				limitsExceededTaper.Trigger(func(count uint64) {
-					logger.Warn("authenticatedConnectionReadLoop: bytes limit exceeded, dropping message", commontypes.LogFields{
-						"size":                       header.PayloadLength,
-						"streamID":                   header.StreamID,
+					logger().Warn("authenticatedConnectionReadLoop: bytes limit exceeded, dropping message", commontypes.LogFields{
 						"limitsExceededDroppedCount": count,
 					})
 				})
@@ -1290,9 +1273,7 @@ func authenticatedConnectionReadLoop(
 				}
 			case shouldPushResultUnknownStream:
 				unknownStreamIDTaper.Trigger(func(count uint64) {
-					logger.Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
-						"size":                        header.PayloadLength,
-						"streamID":                    header.StreamID,
+					logger().Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
 						"unknownStreamIDDroppedCount": count,
 					})
 				})
@@ -1301,7 +1282,7 @@ func authenticatedConnectionReadLoop(
 				}
 			case shouldPushResultYes:
 				limitsExceededTaper.Reset(func(oldCount uint64) {
-					logger.Info("authenticatedConnectionReadLoop: limits are no longer being exceeded", commontypes.LogFields{
+					logger().Info("authenticatedConnectionReadLoop: limits are no longer being exceeded", commontypes.LogFields{
 						"droppedCount": oldCount,
 					})
 				})
@@ -1312,14 +1293,10 @@ func authenticatedConnectionReadLoop(
 				switch demux.PushMessage(header.StreamID, data) {
 				case pushResultSuccess:
 				case pushResultDropped:
-					logger.Trace("authenticatedConnectionReadLoop: demuxer is overflowing for stream id, dropping oldest message", commontypes.LogFields{
-						"streamID": header.StreamID,
-					})
+					logger().Trace("authenticatedConnectionReadLoop: demuxer is overflowing for stream, dropping oldest message", nil)
 				case pushResultUnknownStream:
 					unknownStreamIDTaper.Trigger(func(count uint64) {
-						logger.Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
-							"size":                        header.PayloadLength,
-							"streamID":                    header.StreamID,
+						logger().Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
 							"unknownStreamIDDroppedCount": count,
 						})
 					})
@@ -1343,7 +1320,9 @@ func authenticatedConnectionWriteLoop(
 		if err != nil {
 			logger.Warn("Error writing to connection", commontypes.LogFields{"error": err})
 			// shut everything down
-			safeClose(conn)
+			if err := safeClose(conn); err != nil {
+				logger.Warn("Failed to close connection", commontypes.LogFields{"error": err})
+			}
 			close(chWriteTerminated)
 			return false
 		}
@@ -1353,7 +1332,10 @@ func authenticatedConnectionWriteLoop(
 	for {
 		select {
 		case data := <-chWriteData:
-			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
+				return
+			}
 			header := frameHeader{
 				frameTypeData,
 				data.StreamID,
@@ -1366,7 +1348,10 @@ func authenticatedConnectionWriteLoop(
 				return
 			}
 		case notification := <-chSelfStreamStateNotification:
-			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
+				return
+			}
 			var header frameHeader
 			streamName := []byte(notification.streamName)
 			if notification.open {
@@ -1423,7 +1408,7 @@ func incomingConnsRateLimit(durationBetweenDials time.Duration) ratelimit.Millit
 
 // Discoverer is responsible for discovering the addresses of peers on the network.
 type Discoverer interface {
-	Start(host *Host, privKey ed25519.PrivateKey, ownAddrs []types.Address, logger loghelper.LoggerWithContext) error
-	Close()
+	Start(host *Host, privKey ed25519.PrivateKey, logger loghelper.LoggerWithContext) error
+	Close() error
 	FindPeer(peer types.PeerID) ([]types.Address, error)
 }

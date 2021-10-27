@@ -38,8 +38,7 @@ func tryConnectToBootstrappers(ctx context.Context, ph host.Host, peers []peer.A
 		wg.Add(1)
 		go func(p peer.AddrInfo) {
 			defer wg.Done()
-			var err error
-			err = ph.Connect(ctx, p)
+			err := ph.Connect(ctx, p)
 			errs <- err
 		}(p)
 	}

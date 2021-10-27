@@ -11,8 +11,9 @@ import (
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	"github.com/libp2p/go-tcp-transport"
 	"github.com/smartcontractkit/libocr/commontypes"
-	inhousedisco "github.com/smartcontractkit/libocr/networking/inhouse-disco"
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
+	"github.com/smartcontractkit/libocr/networking/ragedisco"
+	nettypes "github.com/smartcontractkit/libocr/networking/types"
 
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
@@ -37,16 +38,6 @@ const (
 type GroupedDiscoverer interface {
 	AddGroup(digest ocr2types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error
 	RemoveGroup(digest ocr2types.ConfigDigest) error
-}
-
-type DiscovererDatabase interface {
-	// StoreAnnouncement has key-value-store semantics and stores a peerID (key) and an associated serialized
-	//announcement (value).
-	StoreAnnouncement(ctx context.Context, peerID string, ann []byte) error
-
-	// ReadAnnouncements returns one serialized announcement (if available) for each of the peerIDs in the form of a map
-	// keyed by each announcement's corresponding peer ID.
-	ReadAnnouncements(ctx context.Context, peerIDs []string) (map[string][]byte, error)
 }
 
 // PeerConfig configures the peer. A peer can operate with the v1 or v2 or both networking stacks, depending on
@@ -82,7 +73,7 @@ type PeerConfig struct {
 	// Dial attempts will be at least V2DeltaDial apart.
 	V2DeltaDial time.Duration
 
-	V2DiscovererDatabase DiscovererDatabase
+	V2DiscovererDatabase nettypes.DiscovererDatabase
 
 	EndpointConfig EndpointConfig
 }
@@ -224,13 +215,16 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 	var ragep2pHost *ragep2p.Host
 	var gDiscoverer GroupedDiscoverer
 	if c.NetworkingStack.needsv2() {
-		discoverer := inhousedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, c.V2DiscovererDatabase)
+		announceAddresses := c.V2AnnounceAddresses
+		if len(c.V2AnnounceAddresses) == 0 {
+			announceAddresses = c.V2ListenAddresses
+		}
+		discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase)
 		gDiscoverer = discoverer
 		ragep2pHost, err = ragep2p.NewHost(
 			ragep2p.HostConfig{c.V2DeltaDial},
 			ed25519Priv,
 			c.V2ListenAddresses,
-			c.V2AnnounceAddresses,
 			discoverer,
 			c.Logger,
 		)
@@ -525,18 +519,18 @@ func (p *concretePeer) Close() error {
 	return nil
 }
 
-func (c *concretePeer) OCRBinaryNetworkEndpointFactory() *ocrBinaryNetworkEndpointFactory {
-	return &ocrBinaryNetworkEndpointFactory{c}
+func (c *concretePeer) OCR1BinaryNetworkEndpointFactory() *ocr1BinaryNetworkEndpointFactory {
+	return &ocr1BinaryNetworkEndpointFactory{c}
 }
 
-func (c *concretePeer) GenOCRBinaryNetworkEndpointFactory() *genocrBinaryNetworkEndpointFactory {
-	return &genocrBinaryNetworkEndpointFactory{c}
+func (c *concretePeer) OCR2BinaryNetworkEndpointFactory() *ocr2BinaryNetworkEndpointFactory {
+	return &ocr2BinaryNetworkEndpointFactory{c}
 }
 
-func (c *concretePeer) OCRBootstrapperFactory() *ocrBootstrapperFactory {
-	return &ocrBootstrapperFactory{c}
+func (c *concretePeer) OCR1BootstrapperFactory() *ocr1BootstrapperFactory {
+	return &ocr1BootstrapperFactory{c}
 }
 
-func (c *concretePeer) GenOCRBootstrapperFactory() *genocrBootstrapperFactory {
-	return &genocrBootstrapperFactory{c}
+func (c *concretePeer) OCR2BootstrapperFactory() *ocr2BootstrapperFactory {
+	return &ocr2BootstrapperFactory{c}
 }

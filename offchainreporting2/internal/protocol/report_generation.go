@@ -98,6 +98,10 @@ type leaderState struct {
 	// round.
 	tRound <-chan time.Time
 
+	// a round is only ready to start once the previous round has finished AND
+	// tRound has fired
+	readyToStartRound bool
+
 	// tGrace is a grace period the leader waits for after it has achieved
 	// quorum on "observe" messages, to allow slower oracles time to submit their
 	// observations.
@@ -112,17 +116,6 @@ type leaderState struct {
 type followerState struct {
 	// r is the current round within the epoch
 	r uint8
-
-	// receivedEcho's j-th entry indicates whether a valid final echo has been received
-	// from the j-th oracle
-	receivedEcho []bool
-
-	// sentEcho tracks the report the current oracle has final-echoed during
-	// this round.
-	sentEcho *struct {
-		h   [32]byte
-		arm AttestedReportMany
-	}
 
 	// sentReport tracks whether the current oracles has sent a report during
 	// this round
@@ -141,13 +134,13 @@ func (repgen *reportGenerationState) run() {
 	// Initialization
 	repgen.leaderState.r = 0
 	repgen.leaderState.report = make([]*AttestedReportOne, repgen.config.N())
+	repgen.leaderState.readyToStartRound = false
 	repgen.followerState.r = 0
-	repgen.followerState.receivedEcho = make([]bool, repgen.config.N())
-	repgen.followerState.sentEcho = nil
 	repgen.followerState.completedRound = false
 
 	// kick off the protocol
 	if repgen.id == repgen.l {
+		repgen.startRound()
 		repgen.startRound()
 	}
 

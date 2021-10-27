@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"strconv"
 	"time"
 
@@ -31,9 +30,6 @@ type PublicConfig struct {
 	MaxDurationShouldAcceptFinalizedReport  time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
 
-	// AlphaPPB         uint64
-	// DeltaStage       time.Duration
-
 	F int
 
 	OnchainConfig []byte
@@ -42,9 +38,9 @@ type PublicConfig struct {
 }
 
 type OracleIdentity struct {
-	PeerID            string
 	OffchainPublicKey types.OffchainPublicKey
-	OnChainPublicKey  types.OnchainPublicKey
+	OnchainPublicKey  types.OnchainPublicKey
+	PeerID            string
 	TransmitAccount   types.Account
 }
 
@@ -60,12 +56,16 @@ func (c *PublicConfig) CheckParameterBounds() error {
 	return nil
 }
 
-func PublicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bool, change types.ContractConfig) (PublicConfig, error) {
-	pubcon, _, err := publicConfigFromContractConfig(chainID, skipChainSpecificChecks, change)
+func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change types.ContractConfig) (PublicConfig, error) {
+	pubcon, _, err := publicConfigFromContractConfig(skipResourceExhaustionChecks, change)
 	return pubcon, err
 }
 
-func publicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bool, change types.ContractConfig) (PublicConfig, SharedSecretEncryptions, error) {
+func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change types.ContractConfig) (PublicConfig, SharedSecretEncryptions, error) {
+	if change.OffchainConfigVersion != OffchainConfigVersion {
+		return PublicConfig{}, SharedSecretEncryptions{}, fmt.Errorf("unsuppported OffchainConfigVersion %v, supported OffchainConfigVersion is %v", change.OffchainConfigVersion, OffchainConfigVersion)
+	}
+
 	oc, err := deserializeOffchainConfig(change.OffchainConfig)
 	if err != nil {
 		return PublicConfig{}, SharedSecretEncryptions{}, err
@@ -80,9 +80,9 @@ func publicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bo
 	identities := []OracleIdentity{}
 	for i := range change.Signers {
 		identities = append(identities, OracleIdentity{
-			oc.PeerIDs[i],
 			oc.OffchainPublicKeys[i],
 			types.OnchainPublicKey(change.Signers[i][:]),
+			oc.PeerIDs[i],
 			change.Transmitters[i],
 		})
 	}
@@ -112,8 +112,8 @@ func publicConfigFromContractConfig(chainID *big.Int, skipChainSpecificChecks bo
 		return PublicConfig{}, SharedSecretEncryptions{}, err
 	}
 
-	if !skipChainSpecificChecks {
-		if err := checkPublicConfigParametersForChain(chainID, cfg); err != nil {
+	if !skipResourceExhaustionChecks {
+		if err := checkResourceExhaustion(cfg); err != nil {
 			return PublicConfig{}, SharedSecretEncryptions{}, err
 		}
 	}
@@ -131,9 +131,9 @@ func checkIdentityListsHaveTheSameLength(
 		length int
 		name   string
 	}{
-		{len(oc.PeerIDs) /*                       */, "peer ID"},
+		{len(oc.PeerIDs) /*                       */, "peer ids"},
 		{len(oc.OffchainPublicKeys) /*            */, "offchain public keys"},
-		{len(change.Transmitters) /*              */, "transmitter address"},
+		{len(change.Transmitters) /*              */, "transmitters"},
 		{len(oc.SharedSecretEncryptions.Encryptions), "shared-secret encryptions"},
 	} {
 		if identityList.length != expectedLength {
@@ -153,11 +153,6 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 	// Be sure to think about changes to other tooling that need to
 	// be made when you change this function!
 	/////////////////////////////////////////////////////////////////
-
-	// if !(0 <= cfg.DeltaC) {
-	// 	return fmt.Errorf("DeltaC (%v) must be non-negative",
-	// 		cfg.DeltaC)
-	// }
 
 	if !(0 <= cfg.DeltaStage) {
 		return fmt.Errorf("DeltaStage (%v) must be non-negative", cfg.DeltaStage)
@@ -190,10 +185,43 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 			cfg.DeltaGrace)
 	}
 
+	if !(0 <= cfg.MaxDurationQuery) {
+		return fmt.Errorf("MaxDurationQuery (%v) must be non-negative", cfg.MaxDurationQuery)
+	}
+
+	if !(0 <= cfg.MaxDurationObservation) {
+		return fmt.Errorf("MaxDurationObservation (%v) must be non-negative", cfg.MaxDurationObservation)
+	}
+
+	if !(0 <= cfg.MaxDurationReport) {
+		return fmt.Errorf("MaxDurationReport (%v) must be non-negative", cfg.MaxDurationReport)
+	}
+
+	if !(0 <= cfg.MaxDurationShouldAcceptFinalizedReport) {
+		return fmt.Errorf("MaxDurationShouldAcceptFinalizedReport (%v) must be non-negative", cfg.MaxDurationShouldAcceptFinalizedReport)
+	}
+
+	if !(0 <= cfg.MaxDurationShouldTransmitAcceptedReport) {
+		return fmt.Errorf("MaxDurationShouldTransmitAcceptedReport (%v) must be non-negative", cfg.MaxDurationShouldTransmitAcceptedReport)
+	}
+
 	if !(cfg.DeltaRound < cfg.DeltaProgress) {
 		return fmt.Errorf("DeltaRound (%v) must be less than DeltaProgress (%v)",
 			cfg.DeltaRound, cfg.DeltaProgress)
 	}
+
+	sumMaxDurationsReportGeneration := cfg.MaxDurationQuery + cfg.MaxDurationObservation + cfg.MaxDurationReport
+	if !(sumMaxDurationsReportGeneration < cfg.DeltaProgress) {
+		return fmt.Errorf("sum of MaxDurationQuery/Observation/Report (%v) must be less than DeltaProgress (%v)",
+			sumMaxDurationsReportGeneration, cfg.DeltaProgress)
+	}
+
+	// We cannot easily add a similar check for the MaxDuration variables used
+	// in the transmission protocol (MaxDurationShouldAcceptFinalizedReport,
+	// MaxDurationShouldTransmitAcceptedReport), because we don't know how often
+	// they will be triggered. But if we assume that there is one transmission
+	// for each round, we should have MaxDurationShouldAcceptFinalizedReport +
+	// MaxDurationShouldTransmitAcceptedReport < round duration.
 
 	// *less* than 255 is intentional!
 	// In report_generation_leader.go, we add 1 to a round number that can equal RMax.
@@ -216,137 +244,17 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 	return nil
 }
 
-func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) error {
-	/////////////////////////////////////////////////////////////////
-	// Be sure to think about changes to other tooling that need to
-	// be made when you change this function!
-	/////////////////////////////////////////////////////////////////
-
-	type chainType int
-	const (
-		_ chainType = iota
-		chainTypeSlowUpdates
-		chainTypeModerateUpdates
-		chainTypeFastUpdates
-		chainTypePublicTestnet
-		chainTypePrivateTestnet
-	)
-
-	type chainInfo struct {
-		Name      string
-		ChainType chainType
+func checkResourceExhaustion(cfg PublicConfig) error {
+	// Sending a NewEpoch more than every 200ms shouldn't be necessary in any
+	// realistic WAN deployment and could cause resource exhaustion
+	const safeInterval = 200 * time.Millisecond
+	if cfg.DeltaProgress < safeInterval {
+		return fmt.Errorf("DeltaProgress (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaProgress, safeInterval)
 	}
-
-	type chainLimits struct {
-		MinDeltaC        time.Duration
-		MinDeltaStage    time.Duration
-		MinDeltaRound    time.Duration
-		MinDeltaProgress time.Duration
-		MinDeltaResend   time.Duration
+	if cfg.DeltaResend < safeInterval {
+		return fmt.Errorf("DeltaResend (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaResend, safeInterval)
 	}
-
-	if chainID == nil {
-		return fmt.Errorf("chainID is nil, cannot perform chain-specific checks")
-	}
-
-	info, ok := map[uint64]chainInfo{
-		1337:       {"SimulatedBackend", chainTypePrivateTestnet},
-		42161:      {"Arbitrum", chainTypeModerateUpdates},
-		421611:     {"Arbitrum Testnet Rinkeby", chainTypePublicTestnet},
-		43114:      {"Avalanche", chainTypeModerateUpdates},
-		43113:      {"Avalanche Testnet Fuji", chainTypePublicTestnet},
-		56:         {"BSC", chainTypeFastUpdates},
-		97:         {"BSC Testnet", chainTypePublicTestnet},
-		128:        {"HECO", chainTypeModerateUpdates},
-		256:        {"HECO Testnet", chainTypePublicTestnet},
-		1:          {"Ethereum", chainTypeSlowUpdates},
-		5:          {"Ethereum Testnet Goerli", chainTypePublicTestnet},
-		42:         {"Ethereum Testnet Kovan", chainTypePublicTestnet},
-		4:          {"Ethereum Testnet Rinkeby", chainTypePublicTestnet},
-		250:        {"Fantom", chainTypeModerateUpdates},
-		4002:       {"Fantom Testnet", chainTypePublicTestnet},
-		1666600000: {"Harmony Shard 0", chainTypeModerateUpdates},
-		1666600001: {"Harmony Shard 1", chainTypeModerateUpdates},
-		1666600002: {"Harmony Shard 2", chainTypeModerateUpdates},
-		1666600003: {"Harmony Shard 3", chainTypeModerateUpdates},
-		1666700000: {"Harmony Testnet Shard 0", chainTypePublicTestnet},
-		1666700001: {"Harmony Testnet Shard 1", chainTypePublicTestnet},
-		1666700002: {"Harmony Testnet Shard 2", chainTypePublicTestnet},
-		1666700003: {"Harmony Testnet Shard 3", chainTypePublicTestnet},
-		137:        {"Matic", chainTypeFastUpdates},
-		80001:      {"Matic Testnet", chainTypePublicTestnet},
-		10:         {"Optimism", chainTypeModerateUpdates},
-		69:         {"Optimism Testnet Kovan", chainTypePublicTestnet},
-		420:        {"Optimism Testnet Goerli", chainTypePublicTestnet},
-		30:         {"RSK", chainTypeModerateUpdates},
-		31:         {"RSK Testnet", chainTypePublicTestnet},
-		100:        {"xDai", chainTypeModerateUpdates},
-	}[chainID.Uint64()]
-	if !ok {
-		// "fail-closed" design. If we don't know the chain, we assume that
-		// we shouldn't be updating it quickly
-		info = chainInfo{"UNKNOWN", chainTypeSlowUpdates}
-	}
-
-	limits, ok := map[chainType]chainLimits{
-		chainTypeSlowUpdates: {
-			10 * time.Minute,
-			10 * time.Second,
-			20 * time.Second,
-			23 * time.Second,
-			10 * time.Second,
-		},
-		chainTypeModerateUpdates: {
-			1 * time.Minute,
-			5 * time.Second,
-			20 * time.Second,
-			23 * time.Second,
-			10 * time.Second,
-		},
-		chainTypeFastUpdates: {
-			10 * time.Second,
-			5 * time.Second,
-			5 * time.Second,
-			8 * time.Second,
-			5 * time.Second,
-		},
-		chainTypePublicTestnet: {
-			1 * time.Second,
-			5 * time.Second,
-			1 * time.Second,
-			2 * time.Second,
-			2 * time.Second,
-		},
-		chainTypePrivateTestnet: {}, // do whatever you want on private testnet
-	}[info.ChainType]
-	if !ok {
-		return fmt.Errorf("unknown chainType (%v) for chainID %v, cannot check config parameters", info.ChainType, chainID)
-	}
-
-	// if !(limits.MinDeltaC <= cfg.DeltaC) {
-	// 	return fmt.Errorf("DeltaC (%v) must be greater or equal %v on chain %v (chainID: %v)",
-	// 		cfg.DeltaC, limits.MinDeltaC, info.Name, chainID)
-	// }
-
-	if !(limits.MinDeltaStage <= cfg.DeltaStage) {
-		return fmt.Errorf("DeltaStage (%v) must be greater or equal %v on chain %v (chainID: %v)",
-			cfg.DeltaStage, limits.MinDeltaStage, info.Name, chainID)
-	}
-
-	if !(limits.MinDeltaRound <= cfg.DeltaRound) {
-		return fmt.Errorf("DeltaRound (%v) must be greater or equal %v on chain %v (chainID: %v)",
-			cfg.DeltaRound, limits.MinDeltaRound, info.Name, chainID)
-	}
-
-	if !(limits.MinDeltaProgress <= cfg.DeltaProgress) {
-		return fmt.Errorf("DeltaProgress (%v) must be greater or equal %v on chain %v (chainID: %v)",
-			cfg.DeltaProgress, limits.MinDeltaProgress, info.Name, chainID)
-	}
-
-	if !(limits.MinDeltaResend <= cfg.DeltaResend) {
-		return fmt.Errorf("DeltaResend (%v) must be greater or equal %v on chain %v (chainID: %v)",
-			cfg.DeltaResend, limits.MinDeltaResend, info.Name, chainID)
-	}
-
+	// We don't check DeltaGrace, DeltaRound, DeltaStage since none of them
+	// would exhaust the oracle's resources even if they are all set to 0.
 	return nil
 }

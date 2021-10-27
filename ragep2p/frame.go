@@ -34,7 +34,7 @@ func (fh frameHeader) Encode() []byte {
 	buf := bytes.NewBuffer(make([]byte, 0, frameHeaderEncodedSize))
 	buf.WriteByte(byte(fh.Type))
 	buf.Write(fh.StreamID[:])
-	binary.Write(buf, binary.BigEndian, fh.PayloadLength)
+	binary.Write(buf, binary.BigEndian, fh.PayloadLength) //nolint:errcheck
 	return buf.Bytes()
 }
 

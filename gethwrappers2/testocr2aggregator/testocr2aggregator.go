@@ -498,10 +498,10 @@ func (_AccessControlTestHelper *AccessControlTestHelperFilterer) ParseDummy(log 
 }
 
 // AccessControlledOCR2AggregatorABI is the input ABI used to generate the binding from.
-const AccessControlledOCR2AggregatorABI = "[{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_link\",\"type\":\"address\"},{\"internalType\":\"int192\",\"name\":\"_minAnswer\",\"type\":\"int192\"},{\"internalType\":\"int192\",\"name\":\"_maxAnswer\",\"type\":\"int192\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAccessController\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"_decimals\",\"type\":\"uint8\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"AddedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessDisabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessEnabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"encodedConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"encoded\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"aggregatorRoundId\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"answer\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationsTimestamp\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192[]\",\"name\":\"observations\",\"type\":\"int192[]\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"observers\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint40\",\"name\":\"epochAndRound\",\"type\":\"uint40\"}],\"name\":\"NewTransmission\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"RemovedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"RequesterAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"}],\"name\":\"RoundRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"previousValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousGasLimit\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"currentValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"currentGasLimit\",\"type\":\"uint32\"}],\"name\":\"ValidatorConfigSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"addAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"billingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"enableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"hasAccess\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTransmissionDetails\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"},{\"internalType\":\"int192\",\"name\":\"latestAnswer\",\"type\":\"int192\"},{\"internalType\":\"uint64\",\"name\":\"latestTimestamp\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_signerOrTransmitter\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"removeAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requesterAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"_f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAccessController\",\"type\":\"address\"}],\"name\":\"setRequesterAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"_newValidator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"_newGasLimit\",\"type\":\"uint32\"}],\"name\":\"setValidatorConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"transmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"validatorConfig\",\"outputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"validator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"gasLimit\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const AccessControlledOCR2AggregatorABI = "[{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_link\",\"type\":\"address\"},{\"internalType\":\"int192\",\"name\":\"_minAnswer\",\"type\":\"int192\"},{\"internalType\":\"int192\",\"name\":\"_maxAnswer\",\"type\":\"int192\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAccessController\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"_decimals\",\"type\":\"uint8\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"AddedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessDisabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessEnabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"aggregatorRoundId\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"answer\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationsTimestamp\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192[]\",\"name\":\"observations\",\"type\":\"int192[]\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"observers\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"juelsPerEth\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint40\",\"name\":\"epochAndRound\",\"type\":\"uint40\"}],\"name\":\"NewTransmission\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"RemovedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"RequesterAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"}],\"name\":\"RoundRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"previousValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousGasLimit\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"currentValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"currentGasLimit\",\"type\":\"uint32\"}],\"name\":\"ValidatorConfigSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"addAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"enableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBillingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getRequesterAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTransmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getValidatorConfig\",\"outputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"validator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"gasLimit\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"hasAccess\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDigestAndEpoch\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"scanLogs\",\"type\":\"bool\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTransmissionDetails\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"},{\"internalType\":\"int192\",\"name\":\"latestAnswer_\",\"type\":\"int192\"},{\"internalType\":\"uint64\",\"name\":\"latestTimestamp_\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitterAddress\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitterAddress\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"removeAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"requesterAccessController\",\"type\":\"address\"}],\"name\":\"setRequesterAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"newValidator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"newGasLimit\",\"type\":\"uint32\"}],\"name\":\"setValidatorConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // AccessControlledOCR2AggregatorBin is the compiled bytecode used for deploying new contracts.
-var AccessControlledOCR2AggregatorBin = "0x6101006040523480156200001257600080fd5b5060405162005d8538038062005d858339810160408190526200003591620006dc565b868686868686868684600033808281620000965760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615620000c957620000c9816200025f565b505050151560f81b608052600980546001600160a01b0319166001600160a01b0384169081179091556040516000907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a908290a362000128816200030b565b6200013262000544565b6200013c62000544565b60005b601f8160ff161015620001a8576001838260ff16601f8110620001665762000166620008a6565b61ffff909216602092909202015260018260ff8316601f81106200018e576200018e620008a6565b6020020152806200019f8162000877565b9150506200013f565b50620001b8600b83601f62000563565b50620001c8600f82601f62000600565b5050507fff0000000000000000000000000000000000000000000000000000000000000060f885901b1660e052505080516200020c90603290602084019062000631565b50620002188362000384565b62000225600080620003ff565b50505050601791820b820b604090811b60a05290820b90910b901b60c05250506033805460ff1916600117905550620008eb945050505050565b6001600160a01b038116331415620002ba5760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c6600000000000000000060448201526064016200008d565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b600a546001600160a01b0390811690821681146200038057600a80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291015b60405180910390a15b5050565b6200038e620004e6565b6031546001600160a01b0390811690821681146200038057603180546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae634910162000377565b62000409620004e6565b604080518082019091526030546001600160a01b03808216808452600160a01b90920463ffffffff16602084015284161415806200045757508163ffffffff16816020015163ffffffff1614155b15620004e1576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052603080546001600160c01b0319168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6000546001600160a01b03163314620005425760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e65720000000000000000000060448201526064016200008d565b565b604051806103e00160405280601f906020820280368337509192915050565b600283019183908215620005ee5791602002820160005b83821115620005bc57835183826101000a81548161ffff021916908361ffff16021790555092602001926002016020816001010492830192600103026200057a565b8015620005ec5782816101000a81549061ffff0219169055600201602081600101049283019260010302620005bc565b505b50620005fc929150620006ad565b5090565b82601f8101928215620005ee579160200282015b82811115620005ee57825182559160200191906001019062000614565b8280546200063f906200083a565b90600052602060002090601f016020900481019282620006635760008555620005ee565b82601f106200067e57805160ff1916838001178555620005ee565b82800160010185558215620005ee5791820182811115620005ee57825182559160200191906001019062000614565b5b80821115620005fc5760008155600101620006ae565b8051601781900b8114620006d757600080fd5b919050565b600080600080600080600060e0888a031215620006f857600080fd5b87516200070581620008d2565b9650602062000716898201620006c4565b96506200072660408a01620006c4565b955060608901516200073881620008d2565b60808a01519095506200074b81620008d2565b60a08a015190945060ff811681146200076357600080fd5b60c08a01519093506001600160401b03808211156200078157600080fd5b818b0191508b601f8301126200079657600080fd5b815181811115620007ab57620007ab620008bc565b604051601f8201601f19908116603f01168101908382118183101715620007d657620007d6620008bc565b816040528281528e86848701011115620007ef57600080fd5b600093505b82841015620008135784840186015181850187015292850192620007f4565b82841115620008255760008684830101525b80965050505050505092959891949750929550565b600181811c908216806200084f57607f821691505b602082108114156200087157634e487b7160e01b600052602260045260246000fd5b50919050565b600060ff821660ff8114156200089d57634e487b7160e01b600052601160045260246000fd5b60010192915050565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b0381168114620008e857600080fd5b50565b60805160f81c60a05160401c60c05160401c60e05160f81c6154466200093f60003960006104340152600081816104bb0152613848015260008181610359015261381b015260006117db01526154466000f3fe608060405234801561001057600080fd5b506004361061030a5760003560e01c806398e5b12a1161019c578063c1075329116100ee578063e76d516811610097578063f2fde38b11610071578063f2fde38b146107d7578063fbffd2c1146107ea578063feaf968c146107fd57600080fd5b8063e76d5168146107a0578063eb457163146107b1578063eb5dcd6c146107c457600080fd5b8063e3d0e712116100c8578063e3d0e7121461071d578063e4902f8214610730578063e5fe45771461075657600080fd5b8063c1075329146106f5578063d09dc33914610708578063dc7f01241461071057600080fd5b8063a118f24911610150578063b5ab58dc1161012a578063b5ab58dc146106bc578063b633620c146106cf578063bd824706146106e257600080fd5b8063a118f24914610683578063b121e14714610696578063b1dc65a4146106a957600080fd5b80639a6fc8f5116101815780639a6fc8f5146106135780639c849b301461065d5780639e3ceeab1461067057600080fd5b806398e5b12a146105df578063996e82981461060257600080fd5b806370da2f671161026057806381ff7048116102095780638ac28d5a116101e35780638ac28d5a1461057a5780638da5cb5b1461058d5780638e0566de1461059e57600080fd5b806381ff70481461052f5780638205bf6a1461055f5780638823da6c1461056757600080fd5b806379ba50971161023a57806379ba50971461050a5780638038e4a114610512578063814118341461051a57600080fd5b806370da2f67146104b657806370efdf2d146104dd5780637284e4161461050257600080fd5b8063313ce567116102c257806354fd4d501161029c57806354fd4d5014610483578063668a0f021461048b5780636b14daf81461049357600080fd5b8063313ce5671461042f5780634fb174701461046857806350d25bcd1461047b57600080fd5b8063181f5a77116102f3578063181f5a771461033f57806322adbc7814610354578063299372681461038e57600080fd5b80630a7569831461030f5780630eafb25b14610319575b600080fd5b610317610805565b005b61032c6103273660046149d1565b61084e565b6040519081526020015b60405180910390f35b61034761099e565b604051610336919061505e565b61037b7f000000000000000000000000000000000000000000000000000000000000000081565b60405160179190910b8152602001610336565b6103f86040805160a08101825260085463ffffffff80821680845264010000000083048216602085018190526801000000000000000084048316958501869052600160601b8404831660608601819052600160801b90940490921660809094018490529490939290565b6040805163ffffffff968716815294861660208601529285169284019290925283166060830152909116608082015260a001610336565b6104567f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff9091168152602001610336565b6103176104763660046149f5565b6109be565b61032c610c08565b61032c600681565b61032c610cb5565b6104a66104a1366004614a2e565b610d47565b6040519015158152602001610336565b61037b7f000000000000000000000000000000000000000000000000000000000000000081565b6031546001600160a01b03165b6040516001600160a01b039091168152602001610336565b610347610d6f565b610317610df2565b610317610ea3565b610522610eed565b6040516103369190614fa9565b6004546002546040805163ffffffff80851682526401000000009094049093166020840152820152606001610336565b61032c610f4f565b6103176105753660046149d1565b610ff9565b6103176105883660046149d1565b61107b565b6000546001600160a01b03166104ea565b6040805180820182526030546001600160a01b038116808352600160a01b90910463ffffffff16602092830181905283519182529181019190915201610336565b6105e76110ed565b60405169ffffffffffffffffffff9091168152602001610336565b600a546001600160a01b03166104ea565b610626610621366004614e81565b61126c565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a001610336565b61031761066b366004614aaa565b611308565b61031761067e3660046149d1565b6114e6565b6103176106913660046149d1565b611565565b6103176106a43660046149d1565b6115e1565b6103176106b7366004614be3565b6116bd565b61032c6106ca366004614d18565b611c97565b61032c6106dd366004614d18565b611d23565b6103176106f0366004614e10565b611da7565b610317610703366004614a7e565b611ec9565b61032c612186565b6033546104a69060ff1681565b61031761072b366004614b16565b61221b565b61074361073e3660046149d1565b612984565b60405161ffff9091168152602001610336565b61075e612a48565b6040805195865263ffffffff909416602086015260ff9092169284019290925260179190910b606083015267ffffffffffffffff16608082015260a001610336565b6009546001600160a01b03166104ea565b6103176107bf366004614cea565b612aef565b6103176107d23660046149f5565b612bea565b6103176107e53660046149d1565b612d23565b6103176107f83660046149d1565b612d34565b610626612d45565b61080d612e36565b60335460ff161561084c576033805460ff191690556040517f3be8a977a014527b50ae38adda80b56911c267328965c98ddc385d248f53963890600090a15b565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff80821684528594840191610100900416600281111561089657610896615390565b60028111156108a7576108a7615390565b90525090506000816020015160028111156108c4576108c4615390565b14156108d35750600092915050565b6040805160a08101825260085463ffffffff8082168352640100000000820481166020840152680100000000000000008204811693830193909352600160601b8104831660608301819052600160801b909104909216608082015282519091600091600190600b9060ff16601f811061094e5761094e6153bc565b601091828204019190066002029054906101000a900461ffff160361ffff1602633b9aca000290506001600f846000015160ff16601f8110610992576109926153bc565b01540301949350505050565b60606040518060600160405280602a8152602001615410602a9139905090565b6109c6612e36565b6009546001600160a01b039081169083168114156109e357505050565b6040516370a0823160e01b81523060048201526001600160a01b038416906370a082319060240160206040518083038186803b158015610a2257600080fd5b505afa158015610a36573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a5a9190614d31565b50610a63612e90565b6040516370a0823160e01b81523060048201526000906001600160a01b038316906370a082319060240160206040518083038186803b158015610aa557600080fd5b505afa158015610ab9573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610add9190614d31565b60405163a9059cbb60e01b81526001600160a01b038581166004830152602482018390529192509083169063a9059cbb90604401602060405180830381600087803b158015610b2b57600080fd5b505af1158015610b3f573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b639190614cc8565b610bb45760405162461bcd60e51b815260206004820152601f60248201527f7472616e736665722072656d61696e696e672066756e6473206661696c65640060448201526064015b60405180910390fd5b600980546001600160a01b0319166001600160a01b0386811691821790925560405190918416907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a90600090a350505b5050565b6000610c4b336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b610c835760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b602e5465010000000000900463ffffffff166000908152602f6020526040902054601790810b900b905090565b905090565b6000610cf8336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b610d305760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b602e5465010000000000900463ffffffff16905090565b6000610d538383613226565b80610d6657506001600160a01b03831632145b90505b92915050565b6060610db2336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b610dea5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b610cb0613256565b6001546001600160a01b03163314610e4c5760405162461bcd60e51b815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e6572000000000000000000006044820152606401610bab565b60008054336001600160a01b0319808316821784556001805490911690556040516001600160a01b0390921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b610eab612e36565b60335460ff1661084c576033805460ff191660011790556040517faebf329500988c6488a0074e5a0a9ff304561fc5c6fc877aeb1d59c8282c348090600090a1565b60606007805480602002602001604051908101604052809291908181526020018280548015610f4557602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311610f27575b5050505050905090565b6000610f92336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b610fca5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b50602e5463ffffffff6501000000000090910481166000908152602f6020526040902054600160e01b90041690565b611001612e36565b6001600160a01b03811660009081526034602052604090205460ff1615611078576001600160a01b038116600081815260346020908152604091829020805460ff1916905590519182527f3d68a6fce901d20453d1a7aa06bf3950302a735948037deb182a8db66df2a0d191015b60405180910390a15b50565b6001600160a01b038181166000908152600d60205260409020541633146110e45760405162461bcd60e51b815260206004820152601760248201527f4f6e6c792070617965652063616e2077697468647261770000000000000000006044820152606401610bab565b611078816132df565b600080546001600160a01b03163314806111875750603154604051630d629b5f60e31b81526001600160a01b0390911690636b14daf8906111379033906000903690600401614f6a565b60206040518083038186803b15801561114f57600080fd5b505afa158015611163573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906111879190614cc8565b6111d35760405162461bcd60e51b815260206004820152601d60248201527f4f6e6c79206f776e6572267265717565737465722063616e2063616c6c0000006044820152606401610bab565b604080518082018252602e5464ffffffffff8116825265010000000000810463ffffffff9081166020808501919091526002548551908152600884901c9092169082015260ff909116818401529151909133917f41e3990591fd372502daa15842da15bc7f41c75309ab3ff4f56f1848c178825c9181900360600190a260208101516112609060016151fc565b63ffffffff1691505090565b60008060008060006112b5336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b6112ed5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b6112f6866134e1565b939a9299509097509550909350915050565b611310612e36565b82811461135f5760405162461bcd60e51b815260206004820181905260248201527f7472616e736d6974746572732e73697a6520213d207061796565732e73697a656044820152606401610bab565b60005b838110156114df57600085858381811061137e5761137e6153bc565b905060200201602081019061139391906149d1565b905060008484848181106113a9576113a96153bc565b90506020020160208101906113be91906149d1565b6001600160a01b038084166000908152600d602052604090205491925016801580806113fb5750826001600160a01b0316826001600160a01b0316145b6114475760405162461bcd60e51b815260206004820152601160248201527f706179656520616c7265616479207365740000000000000000000000000000006044820152606401610bab565b6001600160a01b038481166000908152600d6020526040902080546001600160a01b031916858316908117909155908316146114c857826001600160a01b0316826001600160a01b0316856001600160a01b03167f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b360405160405180910390a45b5050505080806114d79061530f565b915050611362565b5050505050565b6114ee612e36565b6031546001600160a01b039081169082168114610c0457603180546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491015b60405180910390a15050565b61156d612e36565b6001600160a01b03811660009081526034602052604090205460ff16611078576001600160a01b038116600081815260346020908152604091829020805460ff1916600117905590519182527f87286ad1f399c8e82bf0c4ef4fcdc570ea2e1e92176e5c848b6413545b885db4910161106f565b6001600160a01b038181166000908152600e602052604090205416331461164a5760405162461bcd60e51b815260206004820152601f60248201527f6f6e6c792070726f706f736564207061796565732063616e20616363657074006044820152606401610bab565b6001600160a01b038181166000818152600d602090815260408083208054336001600160a01b03198083168217909355600e909452828520805490921690915590519416939092849290917f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b39190a45050565b60005a604080516020601f8b018190048102820181019092528981529192508a3591818c01359161170d9184918491908e908e90819084018382808284376000920191909152506135b792505050565b6040805183815263ffffffff600884901c1660208201527fd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3910160405180910390a16040805160608101825260025480825260035460ff808216602085015261010090910416928201929092529083146117c95760405162461bcd60e51b815260206004820152601560248201527f636f6e666967446967657374206d69736d6174636800000000000000000000006044820152606401610bab565b6117d78b8b8b8b8b8b613ad4565b60007f000000000000000000000000000000000000000000000000000000000000000015611834576002826020015183604001516118159190615224565b61181f919061525d565b61182a906001615224565b60ff16905061184a565b6020820151611844906001615224565b60ff1690505b8881146118995760405162461bcd60e51b815260206004820152601a60248201527f77726f6e67206e756d626572206f66207369676e6174757265730000000000006044820152606401610bab565b8887146118e85760405162461bcd60e51b815260206004820152601e60248201527f7369676e617475726573206f7574206f6620726567697374726174696f6e00006044820152606401610bab565b3360009081526005602090815260408083208151808301909252805460ff8082168452929391929184019161010090910416600281111561192b5761192b615390565b600281111561193c5761193c615390565b905250905060028160200151600281111561195957611959615390565b14801561199357506007816000015160ff168154811061197b5761197b6153bc565b6000918252602090912001546001600160a01b031633145b6119df5760405162461bcd60e51b815260206004820152601860248201527f756e617574686f72697a6564207472616e736d697474657200000000000000006044820152606401610bab565b5050505050600088886040516119f6929190614f5a565b604051908190038120611a0d918c90602001614f3e565b604051602081830303815290604052805190602001209050611a2d614779565b604080518082019091526000808252602082015260005b88811015611c6b576000600185888460208110611a6357611a636153bc565b611a7091901a601b615224565b8d8d86818110611a8257611a826153bc565b905060200201358c8c87818110611a9b57611a9b6153bc565b9050602002013560405160008152602001604052604051611ad8949392919093845260ff9290921660208401526040830152606082015260800190565b6020604051602081039080840390855afa158015611afa573d6000803e3d6000fd5b505060408051601f198101516001600160a01b03811660009081526005602090815290849020838501909452835460ff80821685529296509294508401916101009004166002811115611b4f57611b4f615390565b6002811115611b6057611b60615390565b9052509250600183602001516002811115611b7d57611b7d615390565b14611bca5760405162461bcd60e51b815260206004820152601e60248201527f61646472657373206e6f7420617574686f72697a656420746f207369676e00006044820152606401610bab565b8251849060ff16601f8110611be157611be16153bc565b602002015115611c335760405162461bcd60e51b815260206004820152601460248201527f6e6f6e2d756e69717565207369676e61747572650000000000000000000000006044820152606401610bab565b600184846000015160ff16601f8110611c4e57611c4e6153bc565b911515602090920201525080611c638161530f565b915050611a44565b5050505063ffffffff8110611c8257611c8261534e565b611c8c8133613b71565b505050505050505050565b6000611cda336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b611d125760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b611d1b82613d12565b90505b919050565b6000611d66336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b611d9e5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b611d1b82613d48565b600a546001600160a01b0316611dc56000546001600160a01b031690565b6001600160a01b0316336001600160a01b03161480611e605750604051630d629b5f60e31b81526001600160a01b03821690636b14daf890611e109033906000903690600401614f6a565b60206040518083038186803b158015611e2857600080fd5b505afa158015611e3c573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611e609190614cc8565b611eac5760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610bab565b611eb4612e90565b611ec18686868686613d81565b505050505050565b6000546001600160a01b0316331480611f625750600a54604051630d629b5f60e31b81526001600160a01b0390911690636b14daf890611f129033906000903690600401614f6a565b60206040518083038186803b158015611f2a57600080fd5b505afa158015611f3e573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611f629190614cc8565b611fae5760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610bab565b6000611fb8613eb3565b6009546040516370a0823160e01b81523060048201529192506000916001600160a01b03909116906370a082319060240160206040518083038186803b15801561200157600080fd5b505afa158015612015573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906120399190614d31565b90508181101561208b5760405162461bcd60e51b815260206004820152601460248201527f696e73756666696369656e742062616c616e63650000000000000000000000006044820152606401610bab565b6009546001600160a01b031663a9059cbb856120a985850387614079565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e085901b1681526001600160a01b0390921660048301526024820152604401602060405180830381600087803b15801561210757600080fd5b505af115801561211b573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061213f9190614cc8565b6121805760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610bab565b50505050565b6009546040516370a0823160e01b815230600482015260009182916001600160a01b03909116906370a082319060240160206040518083038186803b1580156121ce57600080fd5b505afa1580156121e2573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906122069190614d31565b90506000612212613eb3565b90910392915050565b855185518560ff16601f8311156122745760405162461bcd60e51b815260206004820152601060248201527f746f6f206d616e79207369676e657273000000000000000000000000000000006044820152606401610bab565b600081116122c45760405162461bcd60e51b815260206004820152601260248201527f66206d75737420626520706f73697469766500000000000000000000000000006044820152606401610bab565b8183146123385760405162461bcd60e51b8152602060048201526024808201527f6f7261636c6520616464726573736573206f7574206f6620726567697374726160448201527f74696f6e000000000000000000000000000000000000000000000000000000006064820152608401610bab565b61234381600361527f565b83116123915760405162461bcd60e51b815260206004820152601860248201527f6661756c74792d6f7261636c65206620746f6f206869676800000000000000006044820152606401610bab565b612399612e36565b6040805160c0810182528a8152602081018a905260ff89169181018290526060810188905267ffffffffffffffff8716608082015260a08101869052906123e09088614090565b600654156124f2576006546000906123fa9060019061529e565b9050600060068281548110612411576124116153bc565b6000918252602082200154600780546001600160a01b039092169350908490811061243e5761243e6153bc565b60009182526020808320909101546001600160a01b03858116845260059092526040808420805461ffff1990811690915592909116808452922080549091169055600680549192509080612494576124946153a6565b600082815260209020810160001990810180546001600160a01b031916905501905560078054806124c7576124c76153a6565b600082815260209020810160001990810180546001600160a01b0319169055019055506123e0915050565b60005b815151811015612831576000600560008460000151848151811061251b5761251b6153bc565b6020908102919091018101516001600160a01b0316825281019190915260400160002054610100900460ff16600281111561255857612558615390565b146125a55760405162461bcd60e51b815260206004820152601760248201527f7265706561746564207369676e657220616464726573730000000000000000006044820152606401610bab565b6040805180820190915260ff821681526001602082015282518051600591600091859081106125d6576125d66153bc565b6020908102919091018101516001600160a01b03168252818101929092526040016000208251815460ff90911660ff19821681178355928401519192839161ffff19161761010083600281111561262f5761262f615390565b02179055506000915061263f9050565b6005600084602001518481518110612659576126596153bc565b6020908102919091018101516001600160a01b0316825281019190915260400160002054610100900460ff16600281111561269657612696615390565b146126e35760405162461bcd60e51b815260206004820152601c60248201527f7265706561746564207472616e736d69747465722061646472657373000000006044820152606401610bab565b6040805180820190915260ff821681526020810160028152506005600084602001518481518110612716576127166153bc565b6020908102919091018101516001600160a01b03168252818101929092526040016000208251815460ff90911660ff19821681178355928401519192839161ffff19161761010083600281111561276f5761276f615390565b02179055505082518051600692508390811061278d5761278d6153bc565b602090810291909101810151825460018101845560009384529282902090920180546001600160a01b0319166001600160a01b0390931692909217909155820151805160079190839081106127e4576127e46153bc565b60209081029190910181015182546001810184556000938452919092200180546001600160a01b0319166001600160a01b03909216919091179055806128298161530f565b9150506124f5565b5060408101516003805460ff191660ff9092169190911790556004805467ffffffff0000000019811664010000000063ffffffff43811682029283178555908304811693600193909260009261288e9286929082169116176151fc565b92506101000a81548163ffffffff021916908363ffffffff1602179055506128ed4630600460009054906101000a900463ffffffff1663ffffffff16856000015186602001518760400151886060015189608001518a60a001516140aa565b6002819055825180516003805460ff9092166101000261ff001990921691909117905560045460208501516040808701516060880151608089015160a08a015193517f1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e059861296f988b98919763ffffffff909216969095919491939192615109565b60405180910390a15050505050505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff8082168452859484019161010090041660028111156129cc576129cc615390565b60028111156129dd576129dd615390565b90525090506000816020015160028111156129fa576129fa615390565b1415612a095750600092915050565b6001600b826000015160ff16601f8110612a2557612a256153bc565b601091828204019190066002029054906101000a900461ffff1603915050919050565b600080808080333214612a9d5760405162461bcd60e51b815260206004820152601460248201527f4f6e6c792063616c6c61626c6520627920454f410000000000000000000000006044820152606401610bab565b5050600254602e5463ffffffff65010000000000820481166000908152602f60205260409020549296600883901c8216965064ffffffffff9092169450601783900b9350600160e01b90920490911690565b612af7612e36565b604080518082019091526030546001600160a01b03808216808452600160a01b90920463ffffffff1660208401528416141580612b4457508163ffffffff16816020015163ffffffff1614155b15612be5576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052603080547fffffffffffffffff000000000000000000000000000000000000000000000000168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6001600160a01b038281166000908152600d6020526040902054163314612c535760405162461bcd60e51b815260206004820152601d60248201527f6f6e6c792063757272656e742070617965652063616e207570646174650000006044820152606401610bab565b336001600160a01b0382161415612cac5760405162461bcd60e51b815260206004820152601760248201527f63616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610bab565b6001600160a01b038083166000908152600e6020526040902080548383166001600160a01b031982168117909255909116908114612be5576040516001600160a01b038084169133918616907f84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e3836790600090a4505050565b612d2b612e36565b61107881614137565b612d3c612e36565b611078816141e1565b6000806000806000612d8e336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d4792505050565b612dc65760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610bab565b5050602e5465010000000000900463ffffffff9081166000818152602f602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048816948401859052600160e01b9092049096169190930181905292979190930b955091935091508490565b6000546001600160a01b0316331461084c5760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401610bab565b6040805160a08101825260085463ffffffff8082168352640100000000820481166020840152680100000000000000008204811683850152600160601b820481166060840152600160801b90910416608082015260095482516103e081019384905291926001600160a01b0390911691600091600b90601f908285855b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411612f0d575050604080516103e08101918290529596506000959450600f9350601f9250905082845b815481526020019060010190808311612f67575050505050905060006007805480602002602001604051908101604052809291908181526020018280548015612fd957602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311612fbb575b5050505050905060005b815181101561320a57600060018483601f8110613002576130026153bc565b6020020151039050600060018684601f8110613020576130206153bc565b60200201510361ffff169050600082896060015163ffffffff168302633b9aca000201905060008111156131ff576000600d6000878781518110613066576130666153bc565b6020908102919091018101516001600160a01b03908116835290820192909252604090810160002054905163a9059cbb60e01b815290821660048201819052602482018590529250908a169063a9059cbb90604401602060405180830381600087803b1580156130d557600080fd5b505af11580156130e9573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061310d9190614cc8565b61314e5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610bab565b60018886601f8110613162576131626153bc565b61ffff909216602092909202015260018786601f8110613184576131846153bc565b602002018181525050886001600160a01b0316816001600160a01b03168787815181106131b3576131b36153bc565b60200260200101516001600160a01b03167fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c856040516131f591815260200190565b60405180910390a4505b505050600101612fe3565b50613218600b84601f614798565b50611ec1600f83601f61482e565b6001600160a01b03821660009081526034602052604081205460ff1680610d6657505060335460ff161592915050565b606060328054613265906152da565b80601f0160208091040260200160405190810160405280929190818152602001828054613291906152da565b8015610f455780601f106132b357610100808354040283529160200191610f45565b820191906000526020600020905b8154815290600101906020018083116132c157509395945050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff8082168452929391929184019161010090910416600281111561332b5761332b615390565b600281111561333c5761333c615390565b9052509050600061334c8361084e565b90508015612be5576001600160a01b038381166000908152600d60205260409081902054600954915163a9059cbb60e01b8152908316600482018190526024820185905292919091169063a9059cbb90604401602060405180830381600087803b1580156133b957600080fd5b505af11580156133cd573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906133f19190614cc8565b6134325760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610bab565b6001600b846000015160ff16601f811061344e5761344e6153bc565b601091828204019190066002026101000a81548161ffff021916908361ffff1602179055506001600f846000015160ff16601f811061348f5761348f6153bc565b01556009546040518381526001600160a01b039182169183811691908716907fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c9060200160405180910390a450505050565b600080600080600063ffffffff8669ffffffffffffffffffff1611156040518060400160405280600f81526020017f4e6f20646174612070726573656e740000000000000000000000000000000000815250906135515760405162461bcd60e51b8152600401610bab919061505e565b5050505063ffffffff8381166000908152602f602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048716948401859052600160e01b9092049095169190930181905295969190920b949193509091508490565b60408051808201909152602e5464ffffffffff8082168084526501000000000090920463ffffffff1660208401528416116136345760405162461bcd60e51b815260206004820152600c60248201527f7374616c65207265706f727400000000000000000000000000000000000000006044820152606401610bab565b600061363f83614250565b60035460408201515191925060ff1690601f101561369f5760405162461bcd60e51b815260206004820152601e60248201527f6e756d206f62736572766174696f6e73206f7574206f6620626f756e647300006044820152606401610bab565b6136aa81600261527f565b826040015151116136fd5760405162461bcd60e51b815260206004820152601e60248201527f746f6f206665772076616c75657320746f207472757374206d656469616e00006044820152606401610bab565b61370a8260200151614425565b64ffffffffff8516835260005b6001836040015151613729919061529e565b8110156137e35760408301516000906137438360016151e4565b81518110613753576137536153bc565b602002602001015160170b84604001518381518110613774576137746153bc565b602002602001015160170b13159050806137d05760405162461bcd60e51b815260206004820152601760248201527f6f62736572766174696f6e73206e6f7420736f727465640000000000000000006044820152606401610bab565b50806137db8161530f565b915050613717565b5060408201518051600091906137fb90600290615249565b8151811061380b5761380b6153bc565b602002602001015190508060170b7f000000000000000000000000000000000000000000000000000000000000000060170b1315801561387157507f000000000000000000000000000000000000000000000000000000000000000060170b8160170b13155b6138bd5760405162461bcd60e51b815260206004820152601e60248201527f6d656469616e206973206f7574206f66206d696e2d6d61782072616e676500006044820152606401610bab565b602084018051906138cd8261532a565b63ffffffff90811690915260408051606081018252601785810b82528751841660208084019182524286168486019081528b8201805188166000908152602f845287902095518654945192518916600160e01b027bffffffffffffffffffffffffffffffffffffffffffffffffffffffff938a16600160c01b027fffffffff000000000000000000000000000000000000000000000000000000009096169190960b77ffffffffffffffffffffffffffffffffffffffffffffffff161793909317169290921790925590518751888401519289015193519190941694507face8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901936139e093879333939091908f908f90614fbc565b60405180910390a260006001600160a01b0316846020015163ffffffff167f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac6027142604051613a2f91815260200190565b60405180910390a3836020015163ffffffff168160170b7f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f42604051613a7791815260200190565b60405180910390a3613a9084602001518260170b614494565b50508151602e805460209094015163ffffffff16650100000000000268ffffffffffffffffff1990941664ffffffffff909216919091179290921790915550505050565b6000613ae182602061527f565b613aec85602061527f565b613af8886101446151e4565b613b0291906151e4565b613b0c91906151e4565b613b179060006151e4565b9050368114613b685760405162461bcd60e51b815260206004820152601860248201527f63616c6c64617461206c656e677468206d69736d6174636800000000000000006044820152606401610bab565b50505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff80821684529293919291840191610100909104166002811115613bbd57613bbd615390565b6002811115613bce57613bce615390565b9052509050600281602001516002811115613beb57613beb615390565b14613bf557600080fd5b6040805160a08101825260085463ffffffff8082168084526401000000008304821660208501819052680100000000000000008404831695850195909552600160601b830482166060850152600160801b9092041660808301529091600091613c6591633b9aca003a04916145af565b90506010360260005a90506000613c848863ffffffff168585856145d5565b6fffffffffffffffffffffffffffffffff1690506000620f4240866040015163ffffffff16830281613cb857613cb861537a565b049050856080015163ffffffff16633b9aca000281600f896000015160ff16601f8110613ce757613ce76153bc565b01540101600f886000015160ff16601f8110613d0557613d056153bc565b0155505050505050505050565b600063ffffffff821115613d2857506000919050565b5063ffffffff166000908152602f6020526040902054601790810b900b90565b600063ffffffff821115613d5e57506000919050565b5063ffffffff9081166000908152602f6020526040902054600160e01b90041690565b6040805160a0808201835263ffffffff88811680845288821660208086018290528984168688018190528985166060808901829052958a1660809889018190526008805467ffffffffffffffff191687176401000000008702177fffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffff166801000000000000000085027fffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff1617600160601b8402177fffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff16600160801b83021790558951958652928501939093529683019690965291810191909152918201929092527fd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6910160405180910390a15050505050565b604080516103e0810191829052600091829190600b90601f908285855b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411613ed05790505050505050905060005b601f811015613f465760018282601f8110613f2f57613f2f6153bc565b60200201510361ffff169290920191600101613f12565b506040805160a08101825260085463ffffffff808216835264010000000082048116602080850191909152680100000000000000008304821684860152600160601b8304821660608501819052600160801b90930490911660808401526007805485518184028101840190965280865296909202633b9aca000295929360009390929183018282801561400257602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311613fe4575b5050604080516103e08101918290529495506000949350600f9250601f915082845b815481526020019060010190808311614024575050505050905060005b82518110156140715760018282601f811061405e5761405e6153bc565b6020020151039590950194600101614041565b505050505090565b60008183101561408a575081610d69565b50919050565b614098612e90565b5050602e805464ffffffffff19169055565b6000808a8a8a8a8a8a8a8a8a6040516020016140ce99989796959493929190615071565b60408051601f1981840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150509998505050505050505050565b6001600160a01b0381163314156141905760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610bab565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b600a546001600160a01b039081169082168114610c0457600a80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d489129101611559565b61427a6040518060600160405280600063ffffffff16815260200160608152602001606081525090565b6000806060848060200190518101906142939190614d4a565b919450925090506142a48582614662565b6000815167ffffffffffffffff8111156142c0576142c06153d2565b6040519080825280601f01601f1916602001820160405280156142ea576020820181803683370190505b5090506142f5614779565b60005b83518110156143fd576000858260208110614315576143156153bc565b1a90508281601f811061432a5761432a6153bc565b60200201511561437c5760405162461bcd60e51b815260206004820152601760248201527f6f6273657276657220696e6465782072657065617465640000000000000000006044820152606401610bab565b60018382601f8110614390576143906153bc565b911515602092830291909101528690839081106143af576143af6153bc565b1a60f81b8483815181106143c5576143c56153bc565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350506001016142f8565b50506040805160608101825263ffffffff909516855260208501919091528301525092915050565b604080516103e081019182905261448691839190600b90601f90826000855b82829054906101000a900461ffff1661ffff168152602001906002019060208260010104928301926001038202915080841161444457905050505050506146da565b610c0490600b90601f614798565b604080518082019091526030546001600160a01b038116808352600160a01b90910463ffffffff1660208301526144ca57505050565b60006144d76001856152b5565b63ffffffff8181166000818152602f60209081526040918290205487519188015192517fbeed9b510000000000000000000000000000000000000000000000000000000081526004810194909452601790810b900b602484018190528985166044850152606484018990529495506001600160a01b03169263beed9b5192911690608401602060405180830381600088803b15801561457557600080fd5b5087f1935050505080156145a6575060408051601f3d908101601f191682019092526145a391810190614cc8565b60015b611ec1576114df565b600083838110156145c257600285850304015b6145cc8184614079565b95945050505050565b6000818510156146275760405162461bcd60e51b815260206004820181905260248201527f6761734c6566742063616e6e6f742065786365656420696e697469616c4761736044820152606401610bab565b818503830161179301633b9aca00858202026fffffffffffffffffffffffffffffffff81106146585761465861534e565b9695505050505050565b600081516020614672919061527f565b61467d9060806151e4565b6146889060006151e4565b905080835114612be55760405162461bcd60e51b815260206004820152601660248201527f7265706f7274206c656e677468206d69736d61746368000000000000000000006044820152606401610bab565b6146e2614779565b60005b8351811015614759576000848281518110614702576147026153bc565b016020015160f81c905061472d8482601f8110614721576147216153bc565b60200201516001614761565b848260ff16601f8110614742576147426153bc565b61ffff9092166020929092020152506001016146e5565b509092915050565b6000610d668261ffff168461ffff160161ffff614079565b604051806103e00160405280601f906020820280368337509192915050565b60028301918390821561481e5791602002820160005b838211156147ee57835183826101000a81548161ffff021916908361ffff16021790555092602001926002016020816001010492830192600103026147ae565b801561481c5782816101000a81549061ffff02191690556002016020816001010492830192600103026147ee565b505b5061482a92915061485c565b5090565b82601f810192821561481e579160200282015b8281111561481e578251825591602001919060010190614841565b5b8082111561482a576000815560010161485d565b60008083601f84011261488357600080fd5b50813567ffffffffffffffff81111561489b57600080fd5b6020830191508360208260051b85010111156148b657600080fd5b9250929050565b600082601f8301126148ce57600080fd5b813560206148e36148de836151c0565b61518f565b80838252828201915082860187848660051b890101111561490357600080fd5b60005b8581101561492b578135614919816153e8565b84529284019290840190600101614906565b5090979650505050505050565b600082601f83011261494957600080fd5b813567ffffffffffffffff811115614963576149636153d2565b614976601f8201601f191660200161518f565b81815284602083860101111561498b57600080fd5b816020850160208301376000918101602001919091529392505050565b803567ffffffffffffffff81168114611d1e57600080fd5b803560ff81168114611d1e57600080fd5b6000602082840312156149e357600080fd5b81356149ee816153e8565b9392505050565b60008060408385031215614a0857600080fd5b8235614a13816153e8565b91506020830135614a23816153e8565b809150509250929050565b60008060408385031215614a4157600080fd5b8235614a4c816153e8565b9150602083013567ffffffffffffffff811115614a6857600080fd5b614a7485828601614938565b9150509250929050565b60008060408385031215614a9157600080fd5b8235614a9c816153e8565b946020939093013593505050565b60008060008060408587031215614ac057600080fd5b843567ffffffffffffffff80821115614ad857600080fd5b614ae488838901614871565b90965094506020870135915080821115614afd57600080fd5b50614b0a87828801614871565b95989497509550505050565b60008060008060008060c08789031215614b2f57600080fd5b863567ffffffffffffffff80821115614b4757600080fd5b614b538a838b016148bd565b97506020890135915080821115614b6957600080fd5b614b758a838b016148bd565b9650614b8360408a016149c0565b95506060890135915080821115614b9957600080fd5b614ba58a838b01614938565b9450614bb360808a016149a8565b935060a0890135915080821115614bc957600080fd5b50614bd689828a01614938565b9150509295509295509295565b60008060008060008060008060e0898b031215614bff57600080fd5b606089018a811115614c1057600080fd5b8998503567ffffffffffffffff80821115614c2a57600080fd5b818b0191508b601f830112614c3e57600080fd5b813581811115614c4d57600080fd5b8c6020828501011115614c5f57600080fd5b6020830199508098505060808b0135915080821115614c7d57600080fd5b614c898c838d01614871565b909750955060a08b0135915080821115614ca257600080fd5b50614caf8b828c01614871565b999c989b50969995989497949560c00135949350505050565b600060208284031215614cda57600080fd5b815180151581146149ee57600080fd5b60008060408385031215614cfd57600080fd5b8235614d08816153e8565b91506020830135614a23816153fd565b600060208284031215614d2a57600080fd5b5035919050565b600060208284031215614d4357600080fd5b5051919050565b600080600060608486031215614d5f57600080fd5b8351614d6a816153fd565b809350506020808501519250604085015167ffffffffffffffff811115614d9057600080fd5b8501601f81018713614da157600080fd5b8051614daf6148de826151c0565b8082825284820191508484018a868560051b8701011115614dcf57600080fd5b60009450845b84811015614dff5781518060170b8114614ded578687fd5b84529286019290860190600101614dd5565b505080955050505050509250925092565b600080600080600060a08688031215614e2857600080fd5b8535614e33816153fd565b94506020860135614e43816153fd565b93506040860135614e53816153fd565b92506060860135614e63816153fd565b91506080860135614e73816153fd565b809150509295509295909350565b600060208284031215614e9357600080fd5b813569ffffffffffffffffffff811681146149ee57600080fd5b600081518084526020808501945080840160005b83811015614ee65781516001600160a01b031687529582019590820190600101614ec1565b509495945050505050565b6000815180845260005b81811015614f1757602081850181015186830182015201614efb565b81811115614f29576000602083870101525b50601f01601f19169290920160200192915050565b8281526060826020830137600060809190910190815292915050565b8183823760009101908152919050565b6001600160a01b038416815260406020820152816040820152818360608301376000818301606090810191909152601f909201601f1916010192915050565b602081526000610d666020830184614ead565b600060e0820160178a810b845260206001600160a01b038b168186015263ffffffff8a16604086015260e0606086015282895180855261010087019150828b01945060005b8181101561501f578551850b83529483019491830191600101615001565b50508581036080870152615033818a614ef1565b9450505050508360a083015261505260c083018464ffffffffff169052565b98975050505050505050565b602081526000610d666020830184614ef1565b60006101208b83526001600160a01b038b16602084015267ffffffffffffffff808b1660408501528160608501526150ab8285018b614ead565b915083820360808501526150bf828a614ead565b915060ff881660a085015283820360c08501526150dc8288614ef1565b90861660e085015283810361010085015290506150f98185614ef1565b9c9b505050505050505050505050565b600061012063ffffffff808d1684528b6020850152808b166040850152508060608401526151398184018a614ead565b9050828103608084015261514d8189614ead565b905060ff871660a084015282810360c084015261516a8187614ef1565b905067ffffffffffffffff851660e08401528281036101008401526150f98185614ef1565b604051601f8201601f1916810167ffffffffffffffff811182821017156151b8576151b86153d2565b604052919050565b600067ffffffffffffffff8211156151da576151da6153d2565b5060051b60200190565b600082198211156151f7576151f7615364565b500190565b600063ffffffff80831681851680830382111561521b5761521b615364565b01949350505050565b600060ff821660ff84168060ff0382111561524157615241615364565b019392505050565b6000826152585761525861537a565b500490565b600060ff8316806152705761527061537a565b8060ff84160491505092915050565b600081600019048311821515161561529957615299615364565b500290565b6000828210156152b0576152b0615364565b500390565b600063ffffffff838116908316818110156152d2576152d2615364565b039392505050565b600181811c908216806152ee57607f821691505b6020821081141561408a57634e487b7160e01b600052602260045260246000fd5b600060001982141561532357615323615364565b5060010190565b600063ffffffff8083168181141561534457615344615364565b6001019392505050565b634e487b7160e01b600052600160045260246000fd5b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052601260045260246000fd5b634e487b7160e01b600052602160045260246000fd5b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b038116811461107857600080fd5b63ffffffff8116811461107857600080fdfe416363657373436f6e74726f6c6c65644f43523241676772656761746f7220312e302e302d616c706861a164736f6c6343000806000a"
+var AccessControlledOCR2AggregatorBin = "0x60e06040523480156200001157600080fd5b506040516200594838038062005948833981016040819052620000349162000553565b868686868686863380600081620000925760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615620000c557620000c581620001b0565b5050601180546001600160a01b0319166001600160a01b038a169081179091556040519091506000907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a908290a36200011e846200025c565b7fff0000000000000000000000000000000000000000000000000000000000000060f883901b1660c05280516200015d90601090602084019062000495565b506200016983620002d5565b6200017660008062000350565b50505050601791820b820b604090811b60805290820b90910b901b60a05250506015805460ff19166001179055506200071d945050505050565b6001600160a01b0381163314156200020b5760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c66000000000000000000604482015260640162000089565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6012546001600160a01b039081169082168114620002d157601280546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291015b60405180910390a15b5050565b620002df62000437565b600f546001600160a01b039081169082168114620002d157600f80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae6349101620002c8565b6200035a62000437565b60408051808201909152600e546001600160a01b03808216808452600160a01b90920463ffffffff1660208401528416141580620003a857508163ffffffff16816020015163ffffffff1614155b1562000432576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052600e80546001600160c01b0319168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6000546001600160a01b03163314620004935760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e657200000000000000000000604482015260640162000089565b565b828054620004a390620006b1565b90600052602060002090601f016020900481019282620004c7576000855562000512565b82601f10620004e257805160ff191683800117855562000512565b8280016001018555821562000512579182015b8281111562000512578251825591602001919060010190620004f5565b506200052092915062000524565b5090565b5b8082111562000520576000815560010162000525565b8051601781900b81146200054e57600080fd5b919050565b600080600080600080600060e0888a0312156200056f57600080fd5b87516200057c8162000704565b965060206200058d8982016200053b565b96506200059d60408a016200053b565b95506060890151620005af8162000704565b60808a0151909550620005c28162000704565b60a08a015190945060ff81168114620005da57600080fd5b60c08a01519093506001600160401b0380821115620005f857600080fd5b818b0191508b601f8301126200060d57600080fd5b815181811115620006225762000622620006ee565b604051601f8201601f19908116603f011681019083821181831017156200064d576200064d620006ee565b816040528281528e868487010111156200066657600080fd5b600093505b828410156200068a57848401860151818501870152928501926200066b565b828411156200069c5760008684830101525b80965050505050505092959891949750929550565b600181811c90821680620006c657607f821691505b60208210811415620006e857634e487b7160e01b600052602260045260246000fd5b50919050565b634e487b7160e01b600052604160045260246000fd5b6001600160a01b03811681146200071a57600080fd5b50565b60805160401c60a05160401c60c05160f81c6151d66200077260003960006104240152600081816104d30152818161243901526138750152600081816103640152818161240c015261384801526151d66000f3fe608060405234801561001057600080fd5b50600436106103155760003560e01c80639a6fc8f5116101a7578063d09dc339116100ee578063e76d516811610097578063f2fde38b11610071578063f2fde38b146107fa578063fbffd2c11461080d578063feaf968c1461082057600080fd5b8063e76d5168146107c3578063eb457163146107d4578063eb5dcd6c146107e757600080fd5b8063e3d0e712116100c8578063e3d0e7121461073e578063e4902f8214610751578063e5fe45771461077957600080fd5b8063d09dc33914610718578063daffc4b514610720578063dc7f01241461073157600080fd5b8063b121e14711610150578063b633620c1161012a578063b633620c146106e1578063c1075329146106f4578063c4c92b371461070757600080fd5b8063b121e147146106a8578063b1dc65a4146106bb578063b5ab58dc146106ce57600080fd5b80639e3ceeab116101815780639e3ceeab14610651578063a118f24914610664578063afcb95d71461067757600080fd5b80639a6fc8f5146105b35780639bd2c0b1146105fd5780639c849b301461063e57600080fd5b8063668a0f021161026b57806381ff7048116102145780638ac28d5a116101ee5780638ac28d5a146105585780638da5cb5b1461056b57806398e5b12a1461059057600080fd5b806381ff70481461050d5780638205bf6a1461053d5780638823da6c1461054557600080fd5b80637284e416116102455780637284e416146104f557806379ba5097146104fd5780638038e4a11461050557600080fd5b8063668a0f02146104a35780636b14daf8146104ab57806370da2f67146104ce57600080fd5b8063313ce567116102cd57806354fd4d50116102a757806354fd4d5014610473578063643dc1051461047b578063666cab8d1461048e57600080fd5b8063313ce5671461041f5780634fb174701461045857806350d25bcd1461046b57600080fd5b8063181f5a77116102fe578063181f5a771461034a57806322adbc781461035f578063299372681461039957600080fd5b80630a7569831461031a5780630eafb25b14610324575b600080fd5b610322610828565b005b610337610332366004614709565b610871565b6040519081526020015b60405180910390f35b610352610976565b6040516103419190614da7565b6103867f000000000000000000000000000000000000000000000000000000000000000081565b60405160179190910b8152602001610341565b6103e3600b546a0100000000000000000000810463ffffffff90811692600160701b8304821692600160901b8104831692600160b01b82041691600160d01b90910462ffffff1690565b6040805163ffffffff9687168152948616602086015292851692840192909252909216606082015262ffffff909116608082015260a001610341565b6104467f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff9091168152602001610341565b610322610466366004614726565b610996565b610337610be0565b610337600681565b610322610489366004614b4b565b610c8b565b610496610ef8565b6040516103419190614cec565b610337610f5a565b6104be6104b936600461475f565b610fea565b6040519015158152602001610341565b6103867f000000000000000000000000000000000000000000000000000000000000000081565b610352611012565b610322611095565b610322611146565b600d54600a546040805163ffffffff80851682526401000000009094049093166020840152820152606001610341565b610337611190565b610322610553366004614709565b611238565b610322610566366004614709565b6112ba565b6000546001600160a01b03165b6040516001600160a01b039091168152602001610341565b61059861132c565b60405169ffffffffffffffffffff9091168152602001610341565b6105c66105c1366004614bc4565b611496565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a001610341565b604080518082018252600e546001600160a01b038116808352600160a01b90910463ffffffff16602092830181905283519182529181019190915201610341565b61032261064c3660046147db565b611534565b61032261065f366004614709565b611712565b610322610672366004614709565b611791565b600a54600b546040805160008152602081019390935261010090910460081c63ffffffff1690820152606001610341565b6103226106b6366004614709565b61180d565b6103226106c9366004614914565b6118e9565b6103376106dc366004614a49565b611ded565b6103376106ef366004614a49565b611e79565b6103226107023660046147af565b611efd565b6012546001600160a01b0316610578565b6103376121c1565b600f546001600160a01b0316610578565b6015546104be9060ff1681565b61032261074c366004614847565b612260565b61076461075f366004614709565b612a95565b60405163ffffffff9091168152602001610341565b610781612b4b565b6040805195865263ffffffff909416602086015260ff9092169284019290925260179190910b606083015267ffffffffffffffff16608082015260a001610341565b6011546001600160a01b0316610578565b6103226107e2366004614a1b565b612bf4565b6103226107f5366004614726565b612cef565b610322610808366004614709565b612e28565b61032261081b366004614709565b612e39565b6105c6612e4a565b610830612f39565b60155460ff161561086f576015805460ff191690556040517f3be8a977a014527b50ae38adda80b56911c267328965c98ddc385d248f53963890600090a15b565b6001600160a01b03811660009081526002602090815260408083208151606081018352905460ff80821615158084526101008304909116948301949094526201000090046001600160601b031691810191909152906108d35750600092915050565b600b546020820151600091600160901b900463ffffffff169060069060ff16601f81106109025761090261514c565b600881049190910154600b54610935926007166004026101000a90910463ffffffff90811691600160301b900416615087565b63ffffffff166109459190614fb4565b61095390633b9aca00614fb4565b905081604001516001600160601b03168161096e9190614f2d565b949350505050565b60606040518060600160405280602a81526020016151a0602a9139905090565b61099e612f39565b6011546001600160a01b039081169083168114156109bb57505050565b6040516370a0823160e01b81523060048201526001600160a01b038416906370a082319060240160206040518083038186803b1580156109fa57600080fd5b505afa158015610a0e573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a329190614a62565b50610a3b612f93565b6040516370a0823160e01b81523060048201526000906001600160a01b038316906370a082319060240160206040518083038186803b158015610a7d57600080fd5b505afa158015610a91573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ab59190614a62565b60405163a9059cbb60e01b81526001600160a01b038581166004830152602482018390529192509083169063a9059cbb90604401602060405180830381600087803b158015610b0357600080fd5b505af1158015610b17573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b3b91906149f9565b610b8c5760405162461bcd60e51b815260206004820152601f60248201527f7472616e736665722072656d61696e696e672066756e6473206661696c65640060448201526064015b60405180910390fd5b601180546001600160a01b0319166001600160a01b0386811691821790925560405190918416907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a90600090a350505b5050565b6000610c23336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b610c5b5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b600b54600160301b900463ffffffff166000908152600c6020526040902054601790810b900b905090565b905090565b6012546001600160a01b0316610ca96000546001600160a01b031690565b6001600160a01b0316336001600160a01b03161480610d445750604051630d629b5f60e31b81526001600160a01b03821690636b14daf890610cf49033906000903690600401614cad565b60206040518083038186803b158015610d0c57600080fd5b505afa158015610d20573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d4491906149f9565b610d905760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610b83565b610d98612f93565b600b80547fffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffff166a010000000000000000000063ffffffff8981169182027fffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff1692909217600160701b898416908102919091177fffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffff16600160901b8985169081027fffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff1691909117600160b01b948916948502177fffffff000000ffffffffffffffffffffffffffffffffffffffffffffffffffff16600160d01b62ffffff89169081029190911790955560408051938452602084019290925290820152606081019190915260808101919091527f0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f9060a00160405180910390a1505050505050565b60606005805480602002602001604051908101604052809291908181526020018280548015610f5057602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311610f32575b5050505050905090565b6000610f9d336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b610fd55760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b600b54600160301b900463ffffffff16905090565b6000610ff6838361333c565b8061100957506001600160a01b03831632145b90505b92915050565b6060611055336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b61108d5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b610c8661336c565b6001546001600160a01b031633146110ef5760405162461bcd60e51b815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e6572000000000000000000006044820152606401610b83565b60008054336001600160a01b0319808316821784556001805490911690556040516001600160a01b0390921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b61114e612f39565b60155460ff1661086f576015805460ff191660011790556040517faebf329500988c6488a0074e5a0a9ff304561fc5c6fc877aeb1d59c8282c348090600090a1565b60006111d3336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b61120b5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b50600b5463ffffffff600160301b90910481166000908152600c6020526040902054600160e01b90041690565b611240612f39565b6001600160a01b03811660009081526016602052604090205460ff16156112b7576001600160a01b038116600081815260166020908152604091829020805460ff1916905590519182527f3d68a6fce901d20453d1a7aa06bf3950302a735948037deb182a8db66df2a0d191015b60405180910390a15b50565b6001600160a01b038181166000908152601360205260409020541633146113235760405162461bcd60e51b815260206004820152601760248201527f4f6e6c792070617965652063616e2077697468647261770000000000000000006044820152606401610b83565b6112b7816133f5565b600080546001600160a01b03163314806113c65750600f54604051630d629b5f60e31b81526001600160a01b0390911690636b14daf8906113769033906000903690600401614cad565b60206040518083038186803b15801561138e57600080fd5b505afa1580156113a2573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906113c691906149f9565b6114125760405162461bcd60e51b815260206004820152601d60248201527f4f6e6c79206f776e6572267265717565737465722063616e2063616c6c0000006044820152606401610b83565b600b54600a546040805191825263ffffffff6101008404600881901c8216602085015260ff811684840152915164ffffffffff90921693600160301b9004169133917f41e3990591fd372502daa15842da15bc7f41c75309ab3ff4f56f1848c178825c9181900360600190a2611489816001614f45565b63ffffffff169250505090565b60008060008060006114df336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b6115175760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b61152086613616565b945094509450945094505b91939590929450565b61153c612f39565b82811461158b5760405162461bcd60e51b815260206004820181905260248201527f7472616e736d6974746572732e73697a6520213d207061796565732e73697a656044820152606401610b83565b60005b8381101561170b5760008585838181106115aa576115aa61514c565b90506020020160208101906115bf9190614709565b905060008484848181106115d5576115d561514c565b90506020020160208101906115ea9190614709565b6001600160a01b0380841660009081526013602052604090205491925016801580806116275750826001600160a01b0316826001600160a01b0316145b6116735760405162461bcd60e51b815260206004820152601160248201527f706179656520616c7265616479207365740000000000000000000000000000006044820152606401610b83565b6001600160a01b03848116600090815260136020526040902080546001600160a01b031916858316908117909155908316146116f457826001600160a01b0316826001600160a01b0316856001600160a01b03167f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b360405160405180910390a45b505050508080611703906150e1565b91505061158e565b5050505050565b61171a612f39565b600f546001600160a01b039081169082168114610bdc57600f80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491015b60405180910390a15050565b611799612f39565b6001600160a01b03811660009081526016602052604090205460ff166112b7576001600160a01b038116600081815260166020908152604091829020805460ff1916600117905590519182527f87286ad1f399c8e82bf0c4ef4fcdc570ea2e1e92176e5c848b6413545b885db491016112ae565b6001600160a01b038181166000908152601460205260409020541633146118765760405162461bcd60e51b815260206004820152601f60248201527f6f6e6c792070726f706f736564207061796565732063616e20616363657074006044820152606401610b83565b6001600160a01b0381811660008181526013602090815260408083208054336001600160a01b031980831682179093556014909452828520805490921690915590519416939092849290917f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b39190a45050565b60005a604080516101008082018352600b5460ff8116835290810464ffffffffff9081166020808501829052600160301b840463ffffffff908116968601969096526a0100000000000000000000840486166060860152600160701b840486166080860152600160901b8404861660a0860152600160b01b840490951660c0850152600160d01b90920462ffffff1660e08401529394509092918c0135918216116119d65760405162461bcd60e51b815260206004820152600c60248201527f7374616c65207265706f727400000000000000000000000000000000000000006044820152606401610b83565b3360009081526002602052604090205460ff16611a355760405162461bcd60e51b815260206004820152601860248201527f756e617574686f72697a6564207472616e736d697474657200000000000000006044820152606401610b83565b600a548b3514611a875760405162461bcd60e51b815260206004820152601560248201527f636f6e666967446967657374206d69736d6174636800000000000000000000006044820152606401610b83565b611a958a8a8a8a8a8a6136ab565b8151611aa2906001614f6d565b60ff168714611af35760405162461bcd60e51b815260206004820152601a60248201527f77726f6e67206e756d626572206f66207369676e6174757265730000000000006044820152606401610b83565b868514611b425760405162461bcd60e51b815260206004820152601e60248201527f7369676e617475726573206f7574206f6620726567697374726174696f6e00006044820152606401610b83565b60008a8a604051611b54929190614c9d565b604051908190038120611b6b918e90602001614c81565b60408051601f19818403018152828252805160209182012083830190925260008084529083018190529092509060005b8a811015611d115760006001858a8460208110611bba57611bba61514c565b611bc791901a601b614f6d565b8f8f86818110611bd957611bd961514c565b905060200201358e8e87818110611bf257611bf261514c565b9050602002013560405160008152602001604052604051611c2f949392919093845260ff9290921660208401526040830152606082015260800190565b6020604051602081039080840390855afa158015611c51573d6000803e3d6000fd5b505060408051601f198101516001600160a01b03811660009081526003602090815290849020838501909452925460ff8082161515808552610100909204169383019390935290955092509050611cea5760405162461bcd60e51b815260206004820152600f60248201527f7369676e6174757265206572726f7200000000000000000000000000000000006044820152606401610b83565b826020015160080260ff166001901b84019350508080611d09906150e1565b915050611b9b565b5081827e010101010101010101010101010101010101010101010101010101010101011614611d825760405162461bcd60e51b815260206004820152601060248201527f6475706c6963617465207369676e6572000000000000000000000000000000006044820152606401610b83565b5060009150611dd19050838d836020020135848e8e8080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061374892505050565b9050611ddf83828633613c45565b505050505050505050505050565b6000611e30336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b611e685760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b611e7182613d7b565b90505b919050565b6000611ebc336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b611ef45760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b611e7182613db1565b6000546001600160a01b0316331480611f965750601254604051630d629b5f60e31b81526001600160a01b0390911690636b14daf890611f469033906000903690600401614cad565b60206040518083038186803b158015611f5e57600080fd5b505afa158015611f72573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611f9691906149f9565b611fe25760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610b83565b6000611fec613dea565b6011546040516370a0823160e01b81523060048201529192506000916001600160a01b03909116906370a082319060240160206040518083038186803b15801561203557600080fd5b505afa158015612049573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061206d9190614a62565b9050818110156120bf5760405162461bcd60e51b815260206004820152601460248201527f696e73756666696369656e742062616c616e63650000000000000000000000006044820152606401610b83565b6011546001600160a01b031663a9059cbb856120e46120de8686615070565b87613fb4565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e085901b1681526001600160a01b0390921660048301526024820152604401602060405180830381600087803b15801561214257600080fd5b505af1158015612156573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061217a91906149f9565b6121bb5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b83565b50505050565b6011546040516370a0823160e01b815230600482015260009182916001600160a01b03909116906370a082319060240160206040518083038186803b15801561220957600080fd5b505afa15801561221d573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906122419190614a62565b9050600061224d613dea565b90506122598183614ffc565b9250505090565b612268612f39565b601f865111156122ba5760405162461bcd60e51b815260206004820152601060248201527f746f6f206d616e79206f7261636c6573000000000000000000000000000000006044820152606401610b83565b845186511461230b5760405162461bcd60e51b815260206004820152601660248201527f6f7261636c65206c656e677468206d69736d61746368000000000000000000006044820152606401610b83565b8551612318856003614fd3565b60ff16106123685760405162461bcd60e51b815260206004820152601860248201527f6661756c74792d6f7261636c65206620746f6f206869676800000000000000006044820152606401610b83565b6123748460ff16613fcb565b8251156123c35760405162461bcd60e51b815260206004820152601b60248201527f6f6e636861696e436f6e666967206d75737420626520656d70747900000000006044820152606401610b83565b6040805160c081018252878152602080820188905260ff87168284015282517f0100000000000000000000000000000000000000000000000000000000000000918101919091527f0000000000000000000000000000000000000000000000000000000000000000601790810b841b60218301527f0000000000000000000000000000000000000000000000000000000000000000900b831b6039820152825160318183030181526051909101909252606081019190915267ffffffffffffffff8316608082015260a08101829052600b805465ffffffffff00191690556124a9612f93565b600454156125c9576004546000906124c390600190615070565b90506000600482815481106124da576124da61514c565b6000918252602082200154600580546001600160a01b03909216935090849081106125075761250761514c565b60009182526020808320909101546001600160a01b038581168452600383526040808520805461ffff191690559116808452600290925290912080546dffffffffffffffffffffffffffff1916905560048054919250908061256b5761256b615136565b600082815260209020810160001990810180546001600160a01b0319169055019055600580548061259e5761259e615136565b600082815260209020810160001990810180546001600160a01b0319169055019055506124a9915050565b60005b8151518110156128f15760036000836000015183815181106125f0576125f061514c565b6020908102919091018101516001600160a01b031682528101919091526040016000205460ff16156126645760405162461bcd60e51b815260206004820152601760248201527f7265706561746564207369676e657220616464726573730000000000000000006044820152606401610b83565b604080518082019091526001815260ff8216602082015282518051600391600091859081106126955761269561514c565b6020908102919091018101516001600160a01b03168252818101929092526040016000908120835181549484015161ffff1990951690151561ff0019161761010060ff909516949094029390931790925583015180516002929190849081106127005761270061514c565b6020908102919091018101516001600160a01b031682528101919091526040016000205460ff16156127745760405162461bcd60e51b815260206004820152601c60248201527f7265706561746564207472616e736d69747465722061646472657373000000006044820152606401610b83565b60405180606001604052806001151581526020018260ff16815260200160006001600160601b031681525060026000846020015184815181106127b9576127b961514c565b6020908102919091018101516001600160a01b03168252818101929092526040908101600020835181549385015194909201516001600160601b031662010000026dffffffffffffffffffffffff00001960ff959095166101000261ff00199315159390931661ffff1990941693909317919091179290921617905581518051600491908390811061284d5761284d61514c565b602090810291909101810151825460018101845560009384529282902090920180546001600160a01b0319166001600160a01b0390931692909217909155820151805160059190839081106128a4576128a461514c565b60209081029190910181015182546001810184556000938452919092200180546001600160a01b0319166001600160a01b03909216919091179055806128e9816150e1565b9150506125cc565b506040810151600b805460ff191660ff909216919091179055600d805467ffffffff0000000019811664010000000063ffffffff43811682029283178555908304811693600193909260009261294e928692908216911617614f45565b92506101000a81548163ffffffff021916908363ffffffff1602179055506129ad4630600d60009054906101000a900463ffffffff1663ffffffff16856000015186602001518760400151886060015189608001518a60a0015161401b565b600a819055600d54835160208501516040808701516060880151608089015160a08a015193517f1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e0598612a16988b98919763ffffffff909116969195909490939092909190614e52565b60405180910390a160005b825151811015612a8a57600b54600160301b900463ffffffff16600682601f8110612a4e57612a4e61514c565b600891828204019190066004026101000a81548163ffffffff021916908363ffffffff1602179055508080612a82906150e1565b915050612a21565b505050505050505050565b6001600160a01b03811660009081526002602090815260408083208151606081018352905460ff80821615158084526101008304909116948301949094526201000090046001600160601b03169181019190915290612af75750600092915050565b6006816020015160ff16601f8110612b1157612b1161514c565b600881049190910154600b54612b44926007166004026101000a90910463ffffffff90811691600160301b900416615087565b9392505050565b600080808080333214612ba05760405162461bcd60e51b815260206004820152601460248201527f4f6e6c792063616c6c61626c6520627920454f410000000000000000000000006044820152606401610b83565b5050600a54600b5463ffffffff600160301b820481166000908152600c60205260409020549296610100909204600881901c8216965064ffffffffff169450601783900b9350600160e01b90920490911690565b612bfc612f39565b60408051808201909152600e546001600160a01b03808216808452600160a01b90920463ffffffff1660208401528416141580612c4957508163ffffffff16816020015163ffffffff1614155b15612cea576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052600e80547fffffffffffffffff000000000000000000000000000000000000000000000000168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6001600160a01b03828116600090815260136020526040902054163314612d585760405162461bcd60e51b815260206004820152601d60248201527f6f6e6c792063757272656e742070617965652063616e207570646174650000006044820152606401610b83565b336001600160a01b0382161415612db15760405162461bcd60e51b815260206004820152601760248201527f63616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610b83565b6001600160a01b03808316600090815260146020526040902080548383166001600160a01b031982168117909255909116908114612cea576040516001600160a01b038084169133918616907f84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e3836790600090a4505050565b612e30612f39565b6112b7816140a9565b612e41612f39565b6112b781614153565b6000806000806000612e93336000368080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610fea92505050565b612ecb5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610b83565b5050600b54600160301b900463ffffffff9081166000818152600c602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048816948401859052600160e01b9092049096169190930181905292979190930b955091935091508490565b6000546001600160a01b0316331461086f5760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401610b83565b601154600b54604080516103e08101918290526001600160a01b0390931692600160301b90920463ffffffff1691600091600690601f908285855b82829054906101000a900463ffffffff1663ffffffff1681526020019060040190602082600301049283019260010382029150808411612fce579050505050505090506000600580548060200260200160405190810160405280929190818152602001828054801561306957602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161304b575b5050505050905060005b815181101561332e576000600260008484815181106130945761309461514c565b60200260200101516001600160a01b03166001600160a01b0316815260200190815260200160002060000160029054906101000a90046001600160601b03166001600160601b031690506000600260008585815181106130f6576130f661514c565b60200260200101516001600160a01b03166001600160a01b0316815260200190815260200160002060000160026101000a8154816001600160601b0302191690836001600160601b0316021790555060008483601f81106131595761315961514c565b6020020151600b5490870363ffffffff9081169250600160901b909104168102633b9aca0002820180156133235760006013600087878151811061319f5761319f61514c565b6020908102919091018101516001600160a01b03908116835290820192909252604090810160002054905163a9059cbb60e01b815290821660048201819052602482018590529250908a169063a9059cbb90604401602060405180830381600087803b15801561320e57600080fd5b505af1158015613222573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061324691906149f9565b6132875760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b83565b878786601f811061329a5761329a61514c565b602002019063ffffffff16908163ffffffff1681525050886001600160a01b0316816001600160a01b03168787815181106132d7576132d761514c565b60200260200101516001600160a01b03167fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c8560405161331991815260200190565b60405180910390a4505b505050600101613073565b5061170b600683601f6144e6565b6001600160a01b03821660009081526016602052604081205460ff168061100957505060155460ff161592915050565b60606010805461337b906150ac565b80601f01602080910402602001604051908101604052809291908181526020018280546133a7906150ac565b8015610f505780601f106133c957610100808354040283529160200191610f50565b820191906000526020600020905b8154815290600101906020018083116133d757509395945050505050565b6001600160a01b0381166000908152600260209081526040918290208251606081018452905460ff80821615158084526101008304909116938301939093526201000090046001600160601b031692810192909252613452575050565b600061345d83610871565b90508015612cea576001600160a01b038381166000908152601360205260409081902054601154915163a9059cbb60e01b8152908316600482018190526024820185905292919091169063a9059cbb90604401602060405180830381600087803b1580156134ca57600080fd5b505af11580156134de573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061350291906149f9565b6135435760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b83565b600b60000160069054906101000a900463ffffffff166006846020015160ff16601f81106135735761357361514c565b6008810491909101805460079092166004026101000a63ffffffff8181021990931693909216919091029190911790556001600160a01b0384811660008181526002602090815260409182902080546dffffffffffffffffffffffff000019169055601154915186815291841693851692917fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c910160405180910390a450505050565b60008080808063ffffffff69ffffffffffffffffffff871611156136485750600093508392508291508190508061152b565b5050505063ffffffff8281166000908152600c602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048716948401859052600160e01b9092049095169190930181905294959190920b939192508490565b60006136b8826020614fb4565b6136c3856020614fb4565b6136cf88610144614f2d565b6136d99190614f2d565b6136e39190614f2d565b6136ee906000614f2d565b905036811461373f5760405162461bcd60e51b815260206004820152601860248201527f63616c6c64617461206c656e677468206d69736d6174636800000000000000006044820152606401610b83565b50505050505050565b600080613754836141c2565b9050601f81604001515111156137ac5760405162461bcd60e51b815260206004820152601e60248201527f6e756d206f62736572766174696f6e73206f7574206f6620626f756e647300006044820152606401610b83565b604081015151865160ff16106138045760405162461bcd60e51b815260206004820152601e60248201527f746f6f206665772076616c75657320746f207472757374206d656469616e00006044820152606401610b83565b64ffffffffff84166020870152604081015180516000919061382890600290614f92565b815181106138385761383861514c565b602002602001015190508060170b7f000000000000000000000000000000000000000000000000000000000000000060170b1315801561389e57507f000000000000000000000000000000000000000000000000000000000000000060170b8160170b13155b6138ea5760405162461bcd60e51b815260206004820152601e60248201527f6d656469616e206973206f7574206f66206d696e2d6d61782072616e676500006044820152606401610b83565b604087018051906138fa826150fc565b63ffffffff1663ffffffff168152505060405180606001604052808260170b8152602001836000015163ffffffff1681526020014263ffffffff16815250600c6000896040015163ffffffff1663ffffffff16815260200190815260200160002060008201518160000160006101000a81548177ffffffffffffffffffffffffffffffffffffffffffffffff021916908360170b77ffffffffffffffffffffffffffffffffffffffffffffffff16021790555060208201518160000160186101000a81548163ffffffff021916908363ffffffff160217905550604082015181600001601c6101000a81548163ffffffff021916908363ffffffff16021790555090505086600b60008201518160000160006101000a81548160ff021916908360ff16021790555060208201518160000160016101000a81548164ffffffffff021916908364ffffffffff16021790555060408201518160000160066101000a81548163ffffffff021916908363ffffffff160217905550606082015181600001600a6101000a81548163ffffffff021916908363ffffffff160217905550608082015181600001600e6101000a81548163ffffffff021916908363ffffffff16021790555060a08201518160000160126101000a81548163ffffffff021916908363ffffffff16021790555060c08201518160000160166101000a81548163ffffffff021916908363ffffffff16021790555060e082015181600001601a6101000a81548162ffffff021916908362ffffff160217905550905050866040015163ffffffff167fc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a823385600001518660400151876020015188606001518d8d604051613b8e989796959493929190614cff565b60405180910390a26040808801518351915163ffffffff9283168152600092909116907f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac602719060200160405180910390a3866040015163ffffffff168160170b7f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f42604051613c1e91815260200190565b60405180910390a3613c3787604001518260170b614267565b506060015195945050505050565b60008360170b1215613c56576121bb565b6000613c7d633b9aca003a04866080015163ffffffff16876060015163ffffffff166143a8565b90506010360260005a90506000613ca68663ffffffff1685858b60e0015162ffffff16866143ce565b90506000670de0b6b3a764000077ffffffffffffffffffffffffffffffffffffffffffffffff891683026001600160a01b03881660009081526002602052604090205460c08c01519290910492506201000090046001600160601b039081169163ffffffff16633b9aca000282840101908116821115613d2c57505050505050506121bb565b6001600160a01b038816600090815260026020526040902080546001600160601b0390921662010000026dffffffffffffffffffffffff00001990921691909117905550505050505050505050565b600063ffffffff821115613d9157506000919050565b5063ffffffff166000908152600c6020526040902054601790810b900b90565b600063ffffffff821115613dc757506000919050565b5063ffffffff9081166000908152600c6020526040902054600160e01b90041690565b6000806005805480602002602001604051908101604052809291908181526020018280548015613e4357602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311613e25575b50508351600b54604080516103e08101918290529697509195600160301b90910463ffffffff169450600093509150600690601f908285855b82829054906101000a900463ffffffff1663ffffffff1681526020019060040190602082600301049283019260010382029150808411613e7c5790505050505050905060005b83811015613f0f578181601f8110613edc57613edc61514c565b6020020151613eeb9084615087565b613efb9063ffffffff1687614f2d565b955080613f07816150e1565b915050613ec2565b50600b54613f2e90600160901b900463ffffffff16633b9aca00614fb4565b613f389086614fb4565b945060005b83811015613fac5760026000868381518110613f5b57613f5b61514c565b6020908102919091018101516001600160a01b0316825281019190915260400160002054613f98906201000090046001600160601b031687614f2d565b955080613fa4816150e1565b915050613f3d565b505050505090565b600081831015613fc557508161100c565b50919050565b806000106112b75760405162461bcd60e51b815260206004820152601260248201527f66206d75737420626520706f73697469766500000000000000000000000000006044820152606401610b83565b6000808a8a8a8a8a8a8a8a8a60405160200161403f99989796959493929190614dba565b60408051601f1981840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150505b9998505050505050505050565b6001600160a01b0381163314156141025760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610b83565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6012546001600160a01b039081169082168114610bdc57601280546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d489129101611785565b6141f66040518060800160405280600063ffffffff1681526020016060815260200160608152602001600060170b81525090565b60008060606000858060200190518101906142119190614a7b565b929650909450925090506142258683614432565b81516040805160208082019690965281519082018252918252805160808101825263ffffffff969096168652938501529183015260170b606082015292915050565b60408051808201909152600e546001600160a01b038116808352600160a01b90910463ffffffff16602083015261429d57505050565b60006142aa600185615087565b63ffffffff8181166000818152600c60209081526040918290205490870151875192516024810194909452601791820b90910b6044840181905289851660648501526084840189905294955061435c93169160a40160408051601f198184030181529190526020810180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fbeed9b51000000000000000000000000000000000000000000000000000000001790526144aa565b61170b5760405162461bcd60e51b815260206004820152601060248201527f696e73756666696369656e7420676173000000000000000000000000000000006044820152606401610b83565b600083838110156143bb57600285850304015b6143c58184613fb4565b95945050505050565b6000818610156144205760405162461bcd60e51b815260206004820181905260248201527f6c6566744761732063616e6e6f742065786365656420696e697469616c4761736044820152606401610b83565b50633b9aca0094039190910101020290565b6000815160206144429190614fb4565b61444d9060a0614f2d565b614458906000614f2d565b905080835114612cea5760405162461bcd60e51b815260206004820152601660248201527f7265706f7274206c656e677468206d69736d61746368000000000000000000006044820152606401610b83565b60005a61138881106144de57611388810390508460408204820311156144de576000808451602086016000888af150600191505b509392505050565b6004830191839082156145725791602002820160005b8382111561454057835183826101000a81548163ffffffff021916908363ffffffff16021790555092602001926004016020816003010492830192600103026144fc565b80156145705782816101000a81549063ffffffff0219169055600401602081600301049283019260010302614540565b505b5061457e929150614582565b5090565b5b8082111561457e5760008155600101614583565b60008083601f8401126145a957600080fd5b50813567ffffffffffffffff8111156145c157600080fd5b6020830191508360208260051b85010111156145dc57600080fd5b9250929050565b600082601f8301126145f457600080fd5b8135602061460961460483614f09565b614ed8565b80838252828201915082860187848660051b890101111561462957600080fd5b60005b8581101561465157813561463f81615178565b8452928401929084019060010161462c565b5090979650505050505050565b600082601f83011261466f57600080fd5b813567ffffffffffffffff81111561468957614689615162565b61469c601f8201601f1916602001614ed8565b8181528460208386010111156146b157600080fd5b816020850160208301376000918101602001919091529392505050565b8051601781900b8114611e7457600080fd5b803567ffffffffffffffff81168114611e7457600080fd5b803560ff81168114611e7457600080fd5b60006020828403121561471b57600080fd5b8135612b4481615178565b6000806040838503121561473957600080fd5b823561474481615178565b9150602083013561475481615178565b809150509250929050565b6000806040838503121561477257600080fd5b823561477d81615178565b9150602083013567ffffffffffffffff81111561479957600080fd5b6147a58582860161465e565b9150509250929050565b600080604083850312156147c257600080fd5b82356147cd81615178565b946020939093013593505050565b600080600080604085870312156147f157600080fd5b843567ffffffffffffffff8082111561480957600080fd5b61481588838901614597565b9096509450602087013591508082111561482e57600080fd5b5061483b87828801614597565b95989497509550505050565b60008060008060008060c0878903121561486057600080fd5b863567ffffffffffffffff8082111561487857600080fd5b6148848a838b016145e3565b9750602089013591508082111561489a57600080fd5b6148a68a838b016145e3565b96506148b460408a016146f8565b955060608901359150808211156148ca57600080fd5b6148d68a838b0161465e565b94506148e460808a016146e0565b935060a08901359150808211156148fa57600080fd5b5061490789828a0161465e565b9150509295509295509295565b60008060008060008060008060e0898b03121561493057600080fd5b606089018a81111561494157600080fd5b8998503567ffffffffffffffff8082111561495b57600080fd5b818b0191508b601f83011261496f57600080fd5b81358181111561497e57600080fd5b8c602082850101111561499057600080fd5b6020830199508098505060808b01359150808211156149ae57600080fd5b6149ba8c838d01614597565b909750955060a08b01359150808211156149d357600080fd5b506149e08b828c01614597565b999c989b50969995989497949560c00135949350505050565b600060208284031215614a0b57600080fd5b81518015158114612b4457600080fd5b60008060408385031215614a2e57600080fd5b8235614a3981615178565b915060208301356147548161518d565b600060208284031215614a5b57600080fd5b5035919050565b600060208284031215614a7457600080fd5b5051919050565b60008060008060808587031215614a9157600080fd5b8451614a9c8161518d565b809450506020808601519350604086015167ffffffffffffffff811115614ac257600080fd5b8601601f81018813614ad357600080fd5b8051614ae161460482614f09565b8082825284820191508484018b868560051b8701011115614b0157600080fd5b600094505b83851015614b2b57614b17816146ce565b835260019490940193918501918501614b06565b508096505050505050614b40606086016146ce565b905092959194509250565b600080600080600060a08688031215614b6357600080fd5b8535614b6e8161518d565b94506020860135614b7e8161518d565b93506040860135614b8e8161518d565b92506060860135614b9e8161518d565b9150608086013562ffffff81168114614bb657600080fd5b809150509295509295909350565b600060208284031215614bd657600080fd5b813569ffffffffffffffffffff81168114612b4457600080fd5b600081518084526020808501945080840160005b83811015614c295781516001600160a01b031687529582019590820190600101614c04565b509495945050505050565b6000815180845260005b81811015614c5a57602081850181015186830182015201614c3e565b81811115614c6c576000602083870101525b50601f01601f19169290920160200192915050565b8281526060826020830137600060809190910190815292915050565b8183823760009101908152919050565b6001600160a01b038416815260406020820152816040820152818360608301376000818301606090810191909152601f909201601f1916010192915050565b6020815260006110096020830184614bf0565b600061010080830160178c810b855260206001600160a01b038d168187015263ffffffff8c1660408701528360608701528293508a5180845261012087019450818c01935060005b81811015614d65578451840b86529482019493820193600101614d47565b50505050508281036080840152614d7c8188614c34565b915050614d8e60a083018660170b9052565b8360c083015261409c60e083018464ffffffffff169052565b6020815260006110096020830184614c34565b60006101208b83526001600160a01b038b16602084015267ffffffffffffffff808b166040850152816060850152614df48285018b614bf0565b91508382036080850152614e08828a614bf0565b915060ff881660a085015283820360c0850152614e258288614c34565b90861660e08501528381036101008501529050614e428185614c34565b9c9b505050505050505050505050565b600061012063ffffffff808d1684528b6020850152808b16604085015250806060840152614e828184018a614bf0565b90508281036080840152614e968189614bf0565b905060ff871660a084015282810360c0840152614eb38187614c34565b905067ffffffffffffffff851660e0840152828103610100840152614e428185614c34565b604051601f8201601f1916810167ffffffffffffffff81118282101715614f0157614f01615162565b604052919050565b600067ffffffffffffffff821115614f2357614f23615162565b5060051b60200190565b60008219821115614f4057614f40615120565b500190565b600063ffffffff808316818516808303821115614f6457614f64615120565b01949350505050565b600060ff821660ff84168060ff03821115614f8a57614f8a615120565b019392505050565b600082614faf57634e487b7160e01b600052601260045260246000fd5b500490565b6000816000190483118215151615614fce57614fce615120565b500290565b600060ff821660ff84168160ff0481118215151615614ff457614ff4615120565b029392505050565b6000808312837f80000000000000000000000000000000000000000000000000000000000000000183128115161561503657615036615120565b837f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01831381161561506a5761506a615120565b50500390565b60008282101561508257615082615120565b500390565b600063ffffffff838116908316818110156150a4576150a4615120565b039392505050565b600181811c908216806150c057607f821691505b60208210811415613fc557634e487b7160e01b600052602260045260246000fd5b60006000198214156150f5576150f5615120565b5060010190565b600063ffffffff8083168181141561511657615116615120565b6001019392505050565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b03811681146112b757600080fd5b63ffffffff811681146112b757600080fdfe416363657373436f6e74726f6c6c65644f43523241676772656761746f7220312e302e302d616c706861a164736f6c6343000806000a"
 
 // DeployAccessControlledOCR2Aggregator deploys a new Ethereum contract, binding an instance of AccessControlledOCR2Aggregator to it.
 func DeployAccessControlledOCR2Aggregator(auth *bind.TransactOpts, backend bind.ContractBackend, _link common.Address, _minAnswer *big.Int, _maxAnswer *big.Int, _billingAccessController common.Address, _requesterAccessController common.Address, _decimals uint8, description string) (common.Address, *types.Transaction, *AccessControlledOCR2Aggregator, error) {
@@ -659,37 +659,6 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorR
 	return _AccessControlledOCR2Aggregator.Contract.contract.Transact(opts, method, params...)
 }
 
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) BillingAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "billingAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) BillingAccessController() (common.Address, error) {
-	return _AccessControlledOCR2Aggregator.Contract.BillingAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) BillingAccessController() (common.Address, error) {
-	return _AccessControlledOCR2Aggregator.Contract.BillingAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
 // CheckEnabled is a free data retrieval call binding the contract method 0xdc7f0124.
 //
 // Solidity: function checkEnabled() view returns(bool)
@@ -816,33 +785,33 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSessi
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) GetBilling(opts *bind.CallOpts) (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	var out []interface{}
 	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "getBilling")
 
 	outstruct := new(struct {
-		MaximumGasPrice         uint32
-		ReasonableGasPrice      uint32
-		MicroLinkPerEth         uint32
-		LinkGweiPerObservation  uint32
-		LinkGweiPerTransmission uint32
+		MaximumGasPriceGwei       uint32
+		ReasonableGasPriceGwei    uint32
+		ObservationPaymentGjuels  uint32
+		TransmissionPaymentGjuels uint32
+		AccountingGas             *big.Int
 	})
 	if err != nil {
 		return *outstruct, err
 	}
 
-	outstruct.MaximumGasPrice = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.ReasonableGasPrice = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.MicroLinkPerEth = *abi.ConvertType(out[2], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerObservation = *abi.ConvertType(out[3], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerTransmission = *abi.ConvertType(out[4], new(uint32)).(*uint32)
+	outstruct.MaximumGasPriceGwei = *abi.ConvertType(out[0], new(uint32)).(*uint32)
+	outstruct.ReasonableGasPriceGwei = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+	outstruct.ObservationPaymentGjuels = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+	outstruct.TransmissionPaymentGjuels = *abi.ConvertType(out[3], new(uint32)).(*uint32)
+	outstruct.AccountingGas = *abi.ConvertType(out[4], new(*big.Int)).(**big.Int)
 
 	return *outstruct, err
 
@@ -850,28 +819,59 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) Get
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	return _AccessControlledOCR2Aggregator.Contract.GetBilling(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	return _AccessControlledOCR2Aggregator.Contract.GetBilling(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) GetBillingAccessController(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "getBillingAccessController")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) GetBillingAccessController() (common.Address, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetBillingAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetBillingAccessController() (common.Address, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetBillingAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
 // GetLinkToken is a free data retrieval call binding the contract method 0xe76d5168.
@@ -903,6 +903,37 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) Ge
 // Solidity: function getLinkToken() view returns(address linkToken)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetLinkToken() (common.Address, error) {
 	return _AccessControlledOCR2Aggregator.Contract.GetLinkToken(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) GetRequesterAccessController(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "getRequesterAccessController")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) GetRequesterAccessController() (common.Address, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetRequesterAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetRequesterAccessController() (common.Address, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetRequesterAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
 // GetRoundData is a free data retrieval call binding the contract method 0x9a6fc8f5.
@@ -994,6 +1025,82 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) Ge
 // Solidity: function getTimestamp(uint256 _roundId) view returns(uint256)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetTimestamp(_roundId *big.Int) (*big.Int, error) {
 	return _AccessControlledOCR2Aggregator.Contract.GetTimestamp(&_AccessControlledOCR2Aggregator.CallOpts, _roundId)
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) GetTransmitters(opts *bind.CallOpts) ([]common.Address, error) {
+	var out []interface{}
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "getTransmitters")
+
+	if err != nil {
+		return *new([]common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
+
+	return out0, err
+
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) GetTransmitters() ([]common.Address, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetTransmitters(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetTransmitters() ([]common.Address, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetTransmitters(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) GetValidatorConfig(opts *bind.CallOpts) (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	var out []interface{}
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "getValidatorConfig")
+
+	outstruct := new(struct {
+		Validator common.Address
+		GasLimit  uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	outstruct.GasLimit = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) GetValidatorConfig() (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetValidatorConfig(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) GetValidatorConfig() (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	return _AccessControlledOCR2Aggregator.Contract.GetValidatorConfig(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
 // HasAccess is a free data retrieval call binding the contract method 0x6b14daf8.
@@ -1106,6 +1213,56 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSessi
 	ConfigDigest [32]byte
 }, error) {
 	return _AccessControlledOCR2Aggregator.Contract.LatestConfigDetails(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) LatestConfigDigestAndEpoch(opts *bind.CallOpts) (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	var out []interface{}
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "latestConfigDigestAndEpoch")
+
+	outstruct := new(struct {
+		ScanLogs     bool
+		ConfigDigest [32]byte
+		Epoch        uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.ScanLogs = *abi.ConvertType(out[0], new(bool)).(*bool)
+	outstruct.ConfigDigest = *abi.ConvertType(out[1], new([32]byte)).(*[32]byte)
+	outstruct.Epoch = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _AccessControlledOCR2Aggregator.Contract.LatestConfigDigestAndEpoch(&_AccessControlledOCR2Aggregator.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _AccessControlledOCR2Aggregator.Contract.LatestConfigDigestAndEpoch(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
 // LatestRound is a free data retrieval call binding the contract method 0x668a0f02.
@@ -1232,7 +1389,7 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSessi
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) LatestTransmissionDetails(opts *bind.CallOpts) (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -1266,7 +1423,7 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) Lat
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) LatestTransmissionDetails() (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -1279,7 +1436,7 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) La
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) LatestTransmissionDetails() (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -1385,16 +1542,16 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSessi
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) OracleObservationCount(opts *bind.CallOpts, _signerOrTransmitter common.Address) (uint16, error) {
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) OracleObservationCount(opts *bind.CallOpts, transmitterAddress common.Address) (uint32, error) {
 	var out []interface{}
-	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "oracleObservationCount", _signerOrTransmitter)
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "oracleObservationCount", transmitterAddress)
 
 	if err != nil {
-		return *new(uint16), err
+		return *new(uint32), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint16)).(*uint16)
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
 
 	return out0, err
 
@@ -1402,24 +1559,24 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) Ora
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _AccessControlledOCR2Aggregator.Contract.OracleObservationCount(&_AccessControlledOCR2Aggregator.CallOpts, _signerOrTransmitter)
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) OracleObservationCount(transmitterAddress common.Address) (uint32, error) {
+	return _AccessControlledOCR2Aggregator.Contract.OracleObservationCount(&_AccessControlledOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _AccessControlledOCR2Aggregator.Contract.OracleObservationCount(&_AccessControlledOCR2Aggregator.CallOpts, _signerOrTransmitter)
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) OracleObservationCount(transmitterAddress common.Address) (uint32, error) {
+	return _AccessControlledOCR2Aggregator.Contract.OracleObservationCount(&_AccessControlledOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, _transmitter common.Address) (*big.Int, error) {
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, transmitterAddress common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "owedPayment", _transmitter)
+	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "owedPayment", transmitterAddress)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -1433,16 +1590,16 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) Owe
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _AccessControlledOCR2Aggregator.Contract.OwedPayment(&_AccessControlledOCR2Aggregator.CallOpts, _transmitter)
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) OwedPayment(transmitterAddress common.Address) (*big.Int, error) {
+	return _AccessControlledOCR2Aggregator.Contract.OwedPayment(&_AccessControlledOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _AccessControlledOCR2Aggregator.Contract.OwedPayment(&_AccessControlledOCR2Aggregator.CallOpts, _transmitter)
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) OwedPayment(transmitterAddress common.Address) (*big.Int, error) {
+	return _AccessControlledOCR2Aggregator.Contract.OwedPayment(&_AccessControlledOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
@@ -1476,68 +1633,6 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSessi
 	return _AccessControlledOCR2Aggregator.Contract.Owner(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) RequesterAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "requesterAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) RequesterAccessController() (common.Address, error) {
-	return _AccessControlledOCR2Aggregator.Contract.RequesterAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) RequesterAccessController() (common.Address, error) {
-	return _AccessControlledOCR2Aggregator.Contract.RequesterAccessController(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) Transmitters(opts *bind.CallOpts) ([]common.Address, error) {
-	var out []interface{}
-	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "transmitters")
-
-	if err != nil {
-		return *new([]common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
-
-	return out0, err
-
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) Transmitters() ([]common.Address, error) {
-	return _AccessControlledOCR2Aggregator.Contract.Transmitters(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) Transmitters() ([]common.Address, error) {
-	return _AccessControlledOCR2Aggregator.Contract.Transmitters(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
 // TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
 //
 // Solidity: function typeAndVersion() pure returns(string)
@@ -1567,51 +1662,6 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) Ty
 // Solidity: function typeAndVersion() pure returns(string)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) TypeAndVersion() (string, error) {
 	return _AccessControlledOCR2Aggregator.Contract.TypeAndVersion(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCaller) ValidatorConfig(opts *bind.CallOpts) (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	var out []interface{}
-	err := _AccessControlledOCR2Aggregator.contract.Call(opts, &out, "validatorConfig")
-
-	outstruct := new(struct {
-		Validator common.Address
-		GasLimit  uint32
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-	outstruct.GasLimit = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-
-	return *outstruct, err
-
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) ValidatorConfig() (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	return _AccessControlledOCR2Aggregator.Contract.ValidatorConfig(&_AccessControlledOCR2Aggregator.CallOpts)
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorCallerSession) ValidatorConfig() (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	return _AccessControlledOCR2Aggregator.Contract.ValidatorConfig(&_AccessControlledOCR2Aggregator.CallOpts)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
@@ -1668,23 +1718,23 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorS
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) AcceptPayeeship(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "acceptPayeeship", _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) AcceptPayeeship(opts *bind.TransactOpts, transmitter common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "acceptPayeeship", transmitter)
 }
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.AcceptPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) AcceptPayeeship(transmitter common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.AcceptPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.AcceptPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) AcceptPayeeship(transmitter common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.AcceptPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // AddAccess is a paid mutator transaction binding the contract method 0xa118f249.
@@ -1792,25 +1842,25 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorS
 	return _AccessControlledOCR2Aggregator.Contract.RequestNewRound(&_AccessControlledOCR2Aggregator.TransactOpts)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetBilling(opts *bind.TransactOpts, _maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setBilling", _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetBilling(opts *bind.TransactOpts, maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setBilling", maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetBilling(&_AccessControlledOCR2Aggregator.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetBilling(maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetBilling(&_AccessControlledOCR2Aggregator.TransactOpts, maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetBilling(&_AccessControlledOCR2Aggregator.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetBilling(maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetBilling(&_AccessControlledOCR2Aggregator.TransactOpts, maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
 // SetBillingAccessController is a paid mutator transaction binding the contract method 0xfbffd2c1.
@@ -1836,107 +1886,107 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorS
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetConfig(opts *bind.TransactOpts, _signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setConfig", _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetConfig(opts *bind.TransactOpts, signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setConfig", signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetConfig(&_AccessControlledOCR2Aggregator.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetConfig(&_AccessControlledOCR2Aggregator.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetConfig(&_AccessControlledOCR2Aggregator.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetConfig(&_AccessControlledOCR2Aggregator.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetLinkToken(opts *bind.TransactOpts, _linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setLinkToken", _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetLinkToken(opts *bind.TransactOpts, linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setLinkToken", linkToken, recipient)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetLinkToken(&_AccessControlledOCR2Aggregator.TransactOpts, _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetLinkToken(linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetLinkToken(&_AccessControlledOCR2Aggregator.TransactOpts, linkToken, recipient)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetLinkToken(&_AccessControlledOCR2Aggregator.TransactOpts, _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetLinkToken(linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetLinkToken(&_AccessControlledOCR2Aggregator.TransactOpts, linkToken, recipient)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetPayees(opts *bind.TransactOpts, _transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setPayees", _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetPayees(opts *bind.TransactOpts, transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setPayees", transmitters, payees)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetPayees(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetPayees(transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetPayees(&_AccessControlledOCR2Aggregator.TransactOpts, transmitters, payees)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetPayees(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetPayees(transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetPayees(&_AccessControlledOCR2Aggregator.TransactOpts, transmitters, payees)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetRequesterAccessController(opts *bind.TransactOpts, _requesterAccessController common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setRequesterAccessController", _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetRequesterAccessController(opts *bind.TransactOpts, requesterAccessController common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setRequesterAccessController", requesterAccessController)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetRequesterAccessController(_requesterAccessController common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetRequesterAccessController(&_AccessControlledOCR2Aggregator.TransactOpts, _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetRequesterAccessController(requesterAccessController common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetRequesterAccessController(&_AccessControlledOCR2Aggregator.TransactOpts, requesterAccessController)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetRequesterAccessController(_requesterAccessController common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetRequesterAccessController(&_AccessControlledOCR2Aggregator.TransactOpts, _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetRequesterAccessController(requesterAccessController common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetRequesterAccessController(&_AccessControlledOCR2Aggregator.TransactOpts, requesterAccessController)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetValidatorConfig(opts *bind.TransactOpts, _newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setValidatorConfig", _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) SetValidatorConfig(opts *bind.TransactOpts, newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "setValidatorConfig", newValidator, newGasLimit)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetValidatorConfig(_newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetValidatorConfig(&_AccessControlledOCR2Aggregator.TransactOpts, _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) SetValidatorConfig(newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetValidatorConfig(&_AccessControlledOCR2Aggregator.TransactOpts, newValidator, newGasLimit)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetValidatorConfig(_newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.SetValidatorConfig(&_AccessControlledOCR2Aggregator.TransactOpts, _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) SetValidatorConfig(newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.SetValidatorConfig(&_AccessControlledOCR2Aggregator.TransactOpts, newValidator, newGasLimit)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
@@ -1962,23 +2012,23 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorS
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) TransferPayeeship(opts *bind.TransactOpts, _transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "transferPayeeship", _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) TransferPayeeship(opts *bind.TransactOpts, transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "transferPayeeship", transmitter, proposed)
 }
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.TransferPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) TransferPayeeship(transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.TransferPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, transmitter, proposed)
 }
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.TransferPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) TransferPayeeship(transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.TransferPayeeship(&_AccessControlledOCR2Aggregator.TransactOpts, transmitter, proposed)
 }
 
 // Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
@@ -2004,44 +2054,44 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorS
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) WithdrawFunds(opts *bind.TransactOpts, _recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "withdrawFunds", _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) WithdrawFunds(opts *bind.TransactOpts, recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "withdrawFunds", recipient, amount)
 }
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.WithdrawFunds(&_AccessControlledOCR2Aggregator.TransactOpts, _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) WithdrawFunds(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.WithdrawFunds(&_AccessControlledOCR2Aggregator.TransactOpts, recipient, amount)
 }
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.WithdrawFunds(&_AccessControlledOCR2Aggregator.TransactOpts, _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) WithdrawFunds(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.WithdrawFunds(&_AccessControlledOCR2Aggregator.TransactOpts, recipient, amount)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) WithdrawPayment(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "withdrawPayment", _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactor) WithdrawPayment(opts *bind.TransactOpts, transmitter common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.contract.Transact(opts, "withdrawPayment", transmitter)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.WithdrawPayment(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorSession) WithdrawPayment(transmitter common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.WithdrawPayment(&_AccessControlledOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _AccessControlledOCR2Aggregator.Contract.WithdrawPayment(&_AccessControlledOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorTransactorSession) WithdrawPayment(transmitter common.Address) (*types.Transaction, error) {
+	return _AccessControlledOCR2Aggregator.Contract.WithdrawPayment(&_AccessControlledOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // AccessControlledOCR2AggregatorAddedAccessIterator is returned from FilterAddedAccess and is used to iterate over the raw logs and unpacked data for AddedAccess events raised by the AccessControlledOCR2Aggregator contract.
@@ -2536,17 +2586,17 @@ func (it *AccessControlledOCR2AggregatorBillingSetIterator) Close() error {
 
 // AccessControlledOCR2AggregatorBillingSet represents a BillingSet event raised by the AccessControlledOCR2Aggregator contract.
 type AccessControlledOCR2AggregatorBillingSet struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-	Raw                     types.Log // Blockchain specific contextual infos
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
+	Raw                       types.Log // Blockchain specific contextual infos
 }
 
-// FilterBillingSet is a free log retrieval operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// FilterBillingSet is a free log retrieval operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterBillingSet(opts *bind.FilterOpts) (*AccessControlledOCR2AggregatorBillingSetIterator, error) {
 
 	logs, sub, err := _AccessControlledOCR2Aggregator.contract.FilterLogs(opts, "BillingSet")
@@ -2556,9 +2606,9 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) F
 	return &AccessControlledOCR2AggregatorBillingSetIterator{contract: _AccessControlledOCR2Aggregator.contract, event: "BillingSet", logs: logs, sub: sub}, nil
 }
 
-// WatchBillingSet is a free log subscription operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// WatchBillingSet is a free log subscription operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchBillingSet(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorBillingSet) (event.Subscription, error) {
 
 	logs, sub, err := _AccessControlledOCR2Aggregator.contract.WatchLogs(opts, "BillingSet")
@@ -2593,9 +2643,9 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) W
 	}), nil
 }
 
-// ParseBillingSet is a log parse operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// ParseBillingSet is a log parse operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) ParseBillingSet(log types.Log) (*AccessControlledOCR2AggregatorBillingSet, error) {
 	event := new(AccessControlledOCR2AggregatorBillingSet)
 	if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "BillingSet", log); err != nil {
@@ -2947,14 +2997,14 @@ type AccessControlledOCR2AggregatorConfigSet struct {
 	Transmitters              []common.Address
 	F                         uint8
 	OnchainConfig             []byte
-	EncodedConfigVersion      uint64
-	Encoded                   []byte
+	OffchainConfigVersion     uint64
+	OffchainConfig            []byte
 	Raw                       types.Log // Blockchain specific contextual infos
 }
 
 // FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterConfigSet(opts *bind.FilterOpts) (*AccessControlledOCR2AggregatorConfigSetIterator, error) {
 
 	logs, sub, err := _AccessControlledOCR2Aggregator.contract.FilterLogs(opts, "ConfigSet")
@@ -2966,7 +3016,7 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) F
 
 // WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorConfigSet) (event.Subscription, error) {
 
 	logs, sub, err := _AccessControlledOCR2Aggregator.contract.WatchLogs(opts, "ConfigSet")
@@ -3003,7 +3053,7 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) W
 
 // ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) ParseConfigSet(log types.Log) (*AccessControlledOCR2AggregatorConfigSet, error) {
 	event := new(AccessControlledOCR2AggregatorConfigSet)
 	if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "ConfigSet", log); err != nil {
@@ -3089,19 +3139,19 @@ type AccessControlledOCR2AggregatorLinkTokenSet struct {
 
 // FilterLinkTokenSet is a free log retrieval operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, _oldLinkToken []common.Address, _newLinkToken []common.Address) (*AccessControlledOCR2AggregatorLinkTokenSetIterator, error) {
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, oldLinkToken []common.Address, newLinkToken []common.Address) (*AccessControlledOCR2AggregatorLinkTokenSetIterator, error) {
 
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
+	var oldLinkTokenRule []interface{}
+	for _, oldLinkTokenItem := range oldLinkToken {
+		oldLinkTokenRule = append(oldLinkTokenRule, oldLinkTokenItem)
 	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
+	var newLinkTokenRule []interface{}
+	for _, newLinkTokenItem := range newLinkToken {
+		newLinkTokenRule = append(newLinkTokenRule, newLinkTokenItem)
 	}
 
-	logs, sub, err := _AccessControlledOCR2Aggregator.contract.FilterLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
+	logs, sub, err := _AccessControlledOCR2Aggregator.contract.FilterLogs(opts, "LinkTokenSet", oldLinkTokenRule, newLinkTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -3110,19 +3160,19 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) F
 
 // WatchLinkTokenSet is a free log subscription operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorLinkTokenSet, _oldLinkToken []common.Address, _newLinkToken []common.Address) (event.Subscription, error) {
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorLinkTokenSet, oldLinkToken []common.Address, newLinkToken []common.Address) (event.Subscription, error) {
 
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
+	var oldLinkTokenRule []interface{}
+	for _, oldLinkTokenItem := range oldLinkToken {
+		oldLinkTokenRule = append(oldLinkTokenRule, oldLinkTokenItem)
 	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
+	var newLinkTokenRule []interface{}
+	for _, newLinkTokenItem := range newLinkToken {
+		newLinkTokenRule = append(newLinkTokenRule, newLinkTokenItem)
 	}
 
-	logs, sub, err := _AccessControlledOCR2Aggregator.contract.WatchLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
+	logs, sub, err := _AccessControlledOCR2Aggregator.contract.WatchLogs(opts, "LinkTokenSet", oldLinkTokenRule, newLinkTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -3156,7 +3206,7 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) W
 
 // ParseLinkTokenSet is a log parse operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) ParseLinkTokenSet(log types.Log) (*AccessControlledOCR2AggregatorLinkTokenSet, error) {
 	event := new(AccessControlledOCR2AggregatorLinkTokenSet)
 	if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "LinkTokenSet", log); err != nil {
@@ -3395,14 +3445,15 @@ type AccessControlledOCR2AggregatorNewTransmission struct {
 	ObservationsTimestamp uint32
 	Observations          []*big.Int
 	Observers             []byte
+	JuelsPerEth           *big.Int
 	ConfigDigest          [32]byte
 	EpochAndRound         *big.Int
 	Raw                   types.Log // Blockchain specific contextual infos
 }
 
-// FilterNewTransmission is a free log retrieval operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// FilterNewTransmission is a free log retrieval operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterNewTransmission(opts *bind.FilterOpts, aggregatorRoundId []uint32) (*AccessControlledOCR2AggregatorNewTransmissionIterator, error) {
 
 	var aggregatorRoundIdRule []interface{}
@@ -3417,9 +3468,9 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) F
 	return &AccessControlledOCR2AggregatorNewTransmissionIterator{contract: _AccessControlledOCR2Aggregator.contract, event: "NewTransmission", logs: logs, sub: sub}, nil
 }
 
-// WatchNewTransmission is a free log subscription operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// WatchNewTransmission is a free log subscription operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchNewTransmission(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorNewTransmission, aggregatorRoundId []uint32) (event.Subscription, error) {
 
 	var aggregatorRoundIdRule []interface{}
@@ -3459,9 +3510,9 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) W
 	}), nil
 }
 
-// ParseNewTransmission is a log parse operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// ParseNewTransmission is a log parse operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) ParseNewTransmission(log types.Log) (*AccessControlledOCR2AggregatorNewTransmission, error) {
 	event := new(AccessControlledOCR2AggregatorNewTransmission)
 	if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "NewTransmission", log); err != nil {
@@ -4682,9 +4733,9 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) P
 	return event, nil
 }
 
-// AccessControlledOCR2AggregatorTransmitedIterator is returned from FilterTransmited and is used to iterate over the raw logs and unpacked data for Transmited events raised by the AccessControlledOCR2Aggregator contract.
-type AccessControlledOCR2AggregatorTransmitedIterator struct {
-	Event *AccessControlledOCR2AggregatorTransmited // Event containing the contract specifics and raw log
+// AccessControlledOCR2AggregatorTransmittedIterator is returned from FilterTransmitted and is used to iterate over the raw logs and unpacked data for Transmitted events raised by the AccessControlledOCR2Aggregator contract.
+type AccessControlledOCR2AggregatorTransmittedIterator struct {
+	Event *AccessControlledOCR2AggregatorTransmitted // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -4698,7 +4749,7 @@ type AccessControlledOCR2AggregatorTransmitedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *AccessControlledOCR2AggregatorTransmitedIterator) Next() bool {
+func (it *AccessControlledOCR2AggregatorTransmittedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -4707,7 +4758,7 @@ func (it *AccessControlledOCR2AggregatorTransmitedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(AccessControlledOCR2AggregatorTransmited)
+			it.Event = new(AccessControlledOCR2AggregatorTransmitted)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -4722,7 +4773,7 @@ func (it *AccessControlledOCR2AggregatorTransmitedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(AccessControlledOCR2AggregatorTransmited)
+		it.Event = new(AccessControlledOCR2AggregatorTransmitted)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -4738,42 +4789,42 @@ func (it *AccessControlledOCR2AggregatorTransmitedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *AccessControlledOCR2AggregatorTransmitedIterator) Error() error {
+func (it *AccessControlledOCR2AggregatorTransmittedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *AccessControlledOCR2AggregatorTransmitedIterator) Close() error {
+func (it *AccessControlledOCR2AggregatorTransmittedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// AccessControlledOCR2AggregatorTransmited represents a Transmited event raised by the AccessControlledOCR2Aggregator contract.
-type AccessControlledOCR2AggregatorTransmited struct {
+// AccessControlledOCR2AggregatorTransmitted represents a Transmitted event raised by the AccessControlledOCR2Aggregator contract.
+type AccessControlledOCR2AggregatorTransmitted struct {
 	ConfigDigest [32]byte
 	Epoch        uint32
 	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterTransmited is a free log retrieval operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// FilterTransmitted is a free log retrieval operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterTransmited(opts *bind.FilterOpts) (*AccessControlledOCR2AggregatorTransmitedIterator, error) {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) FilterTransmitted(opts *bind.FilterOpts) (*AccessControlledOCR2AggregatorTransmittedIterator, error) {
 
-	logs, sub, err := _AccessControlledOCR2Aggregator.contract.FilterLogs(opts, "Transmited")
+	logs, sub, err := _AccessControlledOCR2Aggregator.contract.FilterLogs(opts, "Transmitted")
 	if err != nil {
 		return nil, err
 	}
-	return &AccessControlledOCR2AggregatorTransmitedIterator{contract: _AccessControlledOCR2Aggregator.contract, event: "Transmited", logs: logs, sub: sub}, nil
+	return &AccessControlledOCR2AggregatorTransmittedIterator{contract: _AccessControlledOCR2Aggregator.contract, event: "Transmitted", logs: logs, sub: sub}, nil
 }
 
-// WatchTransmited is a free log subscription operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// WatchTransmitted is a free log subscription operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchTransmited(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorTransmited) (event.Subscription, error) {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) WatchTransmitted(opts *bind.WatchOpts, sink chan<- *AccessControlledOCR2AggregatorTransmitted) (event.Subscription, error) {
 
-	logs, sub, err := _AccessControlledOCR2Aggregator.contract.WatchLogs(opts, "Transmited")
+	logs, sub, err := _AccessControlledOCR2Aggregator.contract.WatchLogs(opts, "Transmitted")
 	if err != nil {
 		return nil, err
 	}
@@ -4783,8 +4834,8 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) W
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(AccessControlledOCR2AggregatorTransmited)
-				if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "Transmited", log); err != nil {
+				event := new(AccessControlledOCR2AggregatorTransmitted)
+				if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "Transmitted", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -4805,12 +4856,12 @@ func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) W
 	}), nil
 }
 
-// ParseTransmited is a log parse operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// ParseTransmitted is a log parse operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) ParseTransmited(log types.Log) (*AccessControlledOCR2AggregatorTransmited, error) {
-	event := new(AccessControlledOCR2AggregatorTransmited)
-	if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "Transmited", log); err != nil {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_AccessControlledOCR2Aggregator *AccessControlledOCR2AggregatorFilterer) ParseTransmitted(log types.Log) (*AccessControlledOCR2AggregatorTransmitted, error) {
+	event := new(AccessControlledOCR2AggregatorTransmitted)
+	if err := _AccessControlledOCR2Aggregator.contract.UnpackLog(event, "Transmitted", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -8642,20 +8693,615 @@ func (_LinkTokenInterface *LinkTokenInterfaceTransactorSession) TransferFrom(fro
 	return _LinkTokenInterface.Contract.TransferFrom(&_LinkTokenInterface.TransactOpts, from, to, value)
 }
 
+// OCR2AbstractABI is the input ABI used to generate the binding from.
+const OCR2AbstractABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmitted\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDigestAndEpoch\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"scanLogs\",\"type\":\"bool\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]"
+
+// OCR2Abstract is an auto generated Go binding around an Ethereum contract.
+type OCR2Abstract struct {
+	OCR2AbstractCaller     // Read-only binding to the contract
+	OCR2AbstractTransactor // Write-only binding to the contract
+	OCR2AbstractFilterer   // Log filterer for contract events
+}
+
+// OCR2AbstractCaller is an auto generated read-only Go binding around an Ethereum contract.
+type OCR2AbstractCaller struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// OCR2AbstractTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type OCR2AbstractTransactor struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// OCR2AbstractFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type OCR2AbstractFilterer struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// OCR2AbstractSession is an auto generated Go binding around an Ethereum contract,
+// with pre-set call and transact options.
+type OCR2AbstractSession struct {
+	Contract     *OCR2Abstract     // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts     // Call options to use throughout this session
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+}
+
+// OCR2AbstractCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// with pre-set call options.
+type OCR2AbstractCallerSession struct {
+	Contract *OCR2AbstractCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts       // Call options to use throughout this session
+}
+
+// OCR2AbstractTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// with pre-set transact options.
+type OCR2AbstractTransactorSession struct {
+	Contract     *OCR2AbstractTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts       // Transaction auth options to use throughout this session
+}
+
+// OCR2AbstractRaw is an auto generated low-level Go binding around an Ethereum contract.
+type OCR2AbstractRaw struct {
+	Contract *OCR2Abstract // Generic contract binding to access the raw methods on
+}
+
+// OCR2AbstractCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type OCR2AbstractCallerRaw struct {
+	Contract *OCR2AbstractCaller // Generic read-only contract binding to access the raw methods on
+}
+
+// OCR2AbstractTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type OCR2AbstractTransactorRaw struct {
+	Contract *OCR2AbstractTransactor // Generic write-only contract binding to access the raw methods on
+}
+
+// NewOCR2Abstract creates a new instance of OCR2Abstract, bound to a specific deployed contract.
+func NewOCR2Abstract(address common.Address, backend bind.ContractBackend) (*OCR2Abstract, error) {
+	contract, err := bindOCR2Abstract(address, backend, backend, backend)
+	if err != nil {
+		return nil, err
+	}
+	return &OCR2Abstract{OCR2AbstractCaller: OCR2AbstractCaller{contract: contract}, OCR2AbstractTransactor: OCR2AbstractTransactor{contract: contract}, OCR2AbstractFilterer: OCR2AbstractFilterer{contract: contract}}, nil
+}
+
+// NewOCR2AbstractCaller creates a new read-only instance of OCR2Abstract, bound to a specific deployed contract.
+func NewOCR2AbstractCaller(address common.Address, caller bind.ContractCaller) (*OCR2AbstractCaller, error) {
+	contract, err := bindOCR2Abstract(address, caller, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &OCR2AbstractCaller{contract: contract}, nil
+}
+
+// NewOCR2AbstractTransactor creates a new write-only instance of OCR2Abstract, bound to a specific deployed contract.
+func NewOCR2AbstractTransactor(address common.Address, transactor bind.ContractTransactor) (*OCR2AbstractTransactor, error) {
+	contract, err := bindOCR2Abstract(address, nil, transactor, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &OCR2AbstractTransactor{contract: contract}, nil
+}
+
+// NewOCR2AbstractFilterer creates a new log filterer instance of OCR2Abstract, bound to a specific deployed contract.
+func NewOCR2AbstractFilterer(address common.Address, filterer bind.ContractFilterer) (*OCR2AbstractFilterer, error) {
+	contract, err := bindOCR2Abstract(address, nil, nil, filterer)
+	if err != nil {
+		return nil, err
+	}
+	return &OCR2AbstractFilterer{contract: contract}, nil
+}
+
+// bindOCR2Abstract binds a generic wrapper to an already deployed contract.
+func bindOCR2Abstract(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(OCR2AbstractABI))
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_OCR2Abstract *OCR2AbstractRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _OCR2Abstract.Contract.OCR2AbstractCaller.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_OCR2Abstract *OCR2AbstractRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.OCR2AbstractTransactor.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_OCR2Abstract *OCR2AbstractRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.OCR2AbstractTransactor.contract.Transact(opts, method, params...)
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_OCR2Abstract *OCR2AbstractCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _OCR2Abstract.Contract.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_OCR2Abstract *OCR2AbstractTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_OCR2Abstract *OCR2AbstractTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.contract.Transact(opts, method, params...)
+}
+
+// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
+//
+// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
+func (_OCR2Abstract *OCR2AbstractCaller) LatestConfigDetails(opts *bind.CallOpts) (struct {
+	ConfigCount  uint32
+	BlockNumber  uint32
+	ConfigDigest [32]byte
+}, error) {
+	var out []interface{}
+	err := _OCR2Abstract.contract.Call(opts, &out, "latestConfigDetails")
+
+	outstruct := new(struct {
+		ConfigCount  uint32
+		BlockNumber  uint32
+		ConfigDigest [32]byte
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.ConfigCount = *abi.ConvertType(out[0], new(uint32)).(*uint32)
+	outstruct.BlockNumber = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+	outstruct.ConfigDigest = *abi.ConvertType(out[2], new([32]byte)).(*[32]byte)
+
+	return *outstruct, err
+
+}
+
+// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
+//
+// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
+func (_OCR2Abstract *OCR2AbstractSession) LatestConfigDetails() (struct {
+	ConfigCount  uint32
+	BlockNumber  uint32
+	ConfigDigest [32]byte
+}, error) {
+	return _OCR2Abstract.Contract.LatestConfigDetails(&_OCR2Abstract.CallOpts)
+}
+
+// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
+//
+// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
+func (_OCR2Abstract *OCR2AbstractCallerSession) LatestConfigDetails() (struct {
+	ConfigCount  uint32
+	BlockNumber  uint32
+	ConfigDigest [32]byte
+}, error) {
+	return _OCR2Abstract.Contract.LatestConfigDetails(&_OCR2Abstract.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_OCR2Abstract *OCR2AbstractCaller) LatestConfigDigestAndEpoch(opts *bind.CallOpts) (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	var out []interface{}
+	err := _OCR2Abstract.contract.Call(opts, &out, "latestConfigDigestAndEpoch")
+
+	outstruct := new(struct {
+		ScanLogs     bool
+		ConfigDigest [32]byte
+		Epoch        uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.ScanLogs = *abi.ConvertType(out[0], new(bool)).(*bool)
+	outstruct.ConfigDigest = *abi.ConvertType(out[1], new([32]byte)).(*[32]byte)
+	outstruct.Epoch = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_OCR2Abstract *OCR2AbstractSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _OCR2Abstract.Contract.LatestConfigDigestAndEpoch(&_OCR2Abstract.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_OCR2Abstract *OCR2AbstractCallerSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _OCR2Abstract.Contract.LatestConfigDigestAndEpoch(&_OCR2Abstract.CallOpts)
+}
+
+// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
+//
+// Solidity: function typeAndVersion() pure returns(string)
+func (_OCR2Abstract *OCR2AbstractCaller) TypeAndVersion(opts *bind.CallOpts) (string, error) {
+	var out []interface{}
+	err := _OCR2Abstract.contract.Call(opts, &out, "typeAndVersion")
+
+	if err != nil {
+		return *new(string), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(string)).(*string)
+
+	return out0, err
+
+}
+
+// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
+//
+// Solidity: function typeAndVersion() pure returns(string)
+func (_OCR2Abstract *OCR2AbstractSession) TypeAndVersion() (string, error) {
+	return _OCR2Abstract.Contract.TypeAndVersion(&_OCR2Abstract.CallOpts)
+}
+
+// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
+//
+// Solidity: function typeAndVersion() pure returns(string)
+func (_OCR2Abstract *OCR2AbstractCallerSession) TypeAndVersion() (string, error) {
+	return _OCR2Abstract.Contract.TypeAndVersion(&_OCR2Abstract.CallOpts)
+}
+
+// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
+//
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_OCR2Abstract *OCR2AbstractTransactor) SetConfig(opts *bind.TransactOpts, signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _OCR2Abstract.contract.Transact(opts, "setConfig", signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
+}
+
+// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
+//
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_OCR2Abstract *OCR2AbstractSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.SetConfig(&_OCR2Abstract.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
+}
+
+// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
+//
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_OCR2Abstract *OCR2AbstractTransactorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.SetConfig(&_OCR2Abstract.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
+}
+
+// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
+//
+// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
+func (_OCR2Abstract *OCR2AbstractTransactor) Transmit(opts *bind.TransactOpts, reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
+	return _OCR2Abstract.contract.Transact(opts, "transmit", reportContext, report, rs, ss, rawVs)
+}
+
+// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
+//
+// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
+func (_OCR2Abstract *OCR2AbstractSession) Transmit(reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.Transmit(&_OCR2Abstract.TransactOpts, reportContext, report, rs, ss, rawVs)
+}
+
+// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
+//
+// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
+func (_OCR2Abstract *OCR2AbstractTransactorSession) Transmit(reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
+	return _OCR2Abstract.Contract.Transmit(&_OCR2Abstract.TransactOpts, reportContext, report, rs, ss, rawVs)
+}
+
+// OCR2AbstractConfigSetIterator is returned from FilterConfigSet and is used to iterate over the raw logs and unpacked data for ConfigSet events raised by the OCR2Abstract contract.
+type OCR2AbstractConfigSetIterator struct {
+	Event *OCR2AbstractConfigSet // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *OCR2AbstractConfigSetIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(OCR2AbstractConfigSet)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(OCR2AbstractConfigSet)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *OCR2AbstractConfigSetIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *OCR2AbstractConfigSetIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// OCR2AbstractConfigSet represents a ConfigSet event raised by the OCR2Abstract contract.
+type OCR2AbstractConfigSet struct {
+	PreviousConfigBlockNumber uint32
+	ConfigDigest              [32]byte
+	ConfigCount               uint64
+	Signers                   []common.Address
+	Transmitters              []common.Address
+	F                         uint8
+	OnchainConfig             []byte
+	OffchainConfigVersion     uint64
+	OffchainConfig            []byte
+	Raw                       types.Log // Blockchain specific contextual infos
+}
+
+// FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
+//
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
+func (_OCR2Abstract *OCR2AbstractFilterer) FilterConfigSet(opts *bind.FilterOpts) (*OCR2AbstractConfigSetIterator, error) {
+
+	logs, sub, err := _OCR2Abstract.contract.FilterLogs(opts, "ConfigSet")
+	if err != nil {
+		return nil, err
+	}
+	return &OCR2AbstractConfigSetIterator{contract: _OCR2Abstract.contract, event: "ConfigSet", logs: logs, sub: sub}, nil
+}
+
+// WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
+//
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
+func (_OCR2Abstract *OCR2AbstractFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *OCR2AbstractConfigSet) (event.Subscription, error) {
+
+	logs, sub, err := _OCR2Abstract.contract.WatchLogs(opts, "ConfigSet")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(OCR2AbstractConfigSet)
+				if err := _OCR2Abstract.contract.UnpackLog(event, "ConfigSet", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
+//
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
+func (_OCR2Abstract *OCR2AbstractFilterer) ParseConfigSet(log types.Log) (*OCR2AbstractConfigSet, error) {
+	event := new(OCR2AbstractConfigSet)
+	if err := _OCR2Abstract.contract.UnpackLog(event, "ConfigSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// OCR2AbstractTransmittedIterator is returned from FilterTransmitted and is used to iterate over the raw logs and unpacked data for Transmitted events raised by the OCR2Abstract contract.
+type OCR2AbstractTransmittedIterator struct {
+	Event *OCR2AbstractTransmitted // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *OCR2AbstractTransmittedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(OCR2AbstractTransmitted)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(OCR2AbstractTransmitted)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *OCR2AbstractTransmittedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *OCR2AbstractTransmittedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// OCR2AbstractTransmitted represents a Transmitted event raised by the OCR2Abstract contract.
+type OCR2AbstractTransmitted struct {
+	ConfigDigest [32]byte
+	Epoch        uint32
+	Raw          types.Log // Blockchain specific contextual infos
+}
+
+// FilterTransmitted is a free log retrieval operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
+//
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_OCR2Abstract *OCR2AbstractFilterer) FilterTransmitted(opts *bind.FilterOpts) (*OCR2AbstractTransmittedIterator, error) {
+
+	logs, sub, err := _OCR2Abstract.contract.FilterLogs(opts, "Transmitted")
+	if err != nil {
+		return nil, err
+	}
+	return &OCR2AbstractTransmittedIterator{contract: _OCR2Abstract.contract, event: "Transmitted", logs: logs, sub: sub}, nil
+}
+
+// WatchTransmitted is a free log subscription operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
+//
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_OCR2Abstract *OCR2AbstractFilterer) WatchTransmitted(opts *bind.WatchOpts, sink chan<- *OCR2AbstractTransmitted) (event.Subscription, error) {
+
+	logs, sub, err := _OCR2Abstract.contract.WatchLogs(opts, "Transmitted")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(OCR2AbstractTransmitted)
+				if err := _OCR2Abstract.contract.UnpackLog(event, "Transmitted", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseTransmitted is a log parse operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
+//
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_OCR2Abstract *OCR2AbstractFilterer) ParseTransmitted(log types.Log) (*OCR2AbstractTransmitted, error) {
+	event := new(OCR2AbstractTransmitted)
+	if err := _OCR2Abstract.contract.UnpackLog(event, "Transmitted", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // OCR2AggregatorABI is the input ABI used to generate the binding from.
-const OCR2AggregatorABI = "[{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_link\",\"type\":\"address\"},{\"internalType\":\"int192\",\"name\":\"_minAnswer\",\"type\":\"int192\"},{\"internalType\":\"int192\",\"name\":\"_maxAnswer\",\"type\":\"int192\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAccessController\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"_decimals\",\"type\":\"uint8\"},{\"internalType\":\"string\",\"name\":\"_description\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"encodedConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"encoded\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"aggregatorRoundId\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"answer\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationsTimestamp\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192[]\",\"name\":\"observations\",\"type\":\"int192[]\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"observers\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint40\",\"name\":\"epochAndRound\",\"type\":\"uint40\"}],\"name\":\"NewTransmission\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"RequesterAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"}],\"name\":\"RoundRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"previousValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousGasLimit\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"currentValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"currentGasLimit\",\"type\":\"uint32\"}],\"name\":\"ValidatorConfigSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"billingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTransmissionDetails\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"},{\"internalType\":\"int192\",\"name\":\"latestAnswer\",\"type\":\"int192\"},{\"internalType\":\"uint64\",\"name\":\"latestTimestamp\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_signerOrTransmitter\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requesterAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"_f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAccessController\",\"type\":\"address\"}],\"name\":\"setRequesterAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"_newValidator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"_newGasLimit\",\"type\":\"uint32\"}],\"name\":\"setValidatorConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"transmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"validatorConfig\",\"outputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"validator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"gasLimit\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const OCR2AggregatorABI = "[{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"link\",\"type\":\"address\"},{\"internalType\":\"int192\",\"name\":\"minAnswer_\",\"type\":\"int192\"},{\"internalType\":\"int192\",\"name\":\"maxAnswer_\",\"type\":\"int192\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"billingAccessController\",\"type\":\"address\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"requesterAccessController\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"decimals_\",\"type\":\"uint8\"},{\"internalType\":\"string\",\"name\":\"description_\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"aggregatorRoundId\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"answer\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationsTimestamp\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192[]\",\"name\":\"observations\",\"type\":\"int192[]\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"observers\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"juelsPerEth\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint40\",\"name\":\"epochAndRound\",\"type\":\"uint40\"}],\"name\":\"NewTransmission\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"RequesterAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"}],\"name\":\"RoundRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"previousValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousGasLimit\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"currentValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"currentGasLimit\",\"type\":\"uint32\"}],\"name\":\"ValidatorConfigSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBillingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getRequesterAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId_\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTransmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getValidatorConfig\",\"outputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"validator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"gasLimit\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDigestAndEpoch\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"scanLogs\",\"type\":\"bool\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTransmissionDetails\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"},{\"internalType\":\"int192\",\"name\":\"latestAnswer_\",\"type\":\"int192\"},{\"internalType\":\"uint64\",\"name\":\"latestTimestamp_\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitterAddress\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitterAddress\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"requesterAccessController\",\"type\":\"address\"}],\"name\":\"setRequesterAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"newValidator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"newGasLimit\",\"type\":\"uint32\"}],\"name\":\"setValidatorConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // OCR2AggregatorBin is the compiled bytecode used for deploying new contracts.
-var OCR2AggregatorBin = "0x6101006040523480156200001257600080fd5b506040516200563b3803806200563b8339810160408190526200003591620006c0565b86846000338082816200008f5760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615620000c257620000c28162000243565b505050151560f81b608052600980546001600160a01b0319166001600160a01b0384169081179091556040516000907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a908290a36200012181620002ef565b6200012b62000528565b6200013562000528565b60005b601f8160ff161015620001a1576001838260ff16601f81106200015f576200015f6200088a565b61ffff909216602092909202015260018260ff8316601f81106200018757620001876200088a565b60200201528062000198816200085b565b91505062000138565b50620001b1600b83601f62000547565b50620001c1600f82601f620005e4565b5050507fff0000000000000000000000000000000000000000000000000000000000000060f885901b1660e052505080516200020590603290602084019062000615565b50620002118362000368565b6200021e600080620003e3565b50505050601791820b820b604090811b60a05290820b90910b901b60c05250620008cf565b6001600160a01b0381163314156200029e5760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c66000000000000000000604482015260640162000086565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b600a546001600160a01b0390811690821681146200036457600a80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291015b60405180910390a15b5050565b62000372620004ca565b6031546001600160a01b0390811690821681146200036457603180546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491016200035b565b620003ed620004ca565b604080518082019091526030546001600160a01b03808216808452600160a01b90920463ffffffff16602084015284161415806200043b57508163ffffffff16816020015163ffffffff1614155b15620004c5576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052603080546001600160c01b0319168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6000546001600160a01b03163314620005265760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e657200000000000000000000604482015260640162000086565b565b604051806103e00160405280601f906020820280368337509192915050565b600283019183908215620005d25791602002820160005b83821115620005a057835183826101000a81548161ffff021916908361ffff16021790555092602001926002016020816001010492830192600103026200055e565b8015620005d05782816101000a81549061ffff0219169055600201602081600101049283019260010302620005a0565b505b50620005e092915062000691565b5090565b82601f8101928215620005d2579160200282015b82811115620005d2578251825591602001919060010190620005f8565b82805462000623906200081e565b90600052602060002090601f016020900481019282620006475760008555620005d2565b82601f106200066257805160ff1916838001178555620005d2565b82800160010185558215620005d25791820182811115620005d2578251825591602001919060010190620005f8565b5b80821115620005e0576000815560010162000692565b8051601781900b8114620006bb57600080fd5b919050565b600080600080600080600060e0888a031215620006dc57600080fd5b8751620006e981620008b6565b96506020620006fa898201620006a8565b96506200070a60408a01620006a8565b955060608901516200071c81620008b6565b60808a01519095506200072f81620008b6565b60a08a015190945060ff811681146200074757600080fd5b60c08a01519093506001600160401b03808211156200076557600080fd5b818b0191508b601f8301126200077a57600080fd5b8151818111156200078f576200078f620008a0565b604051601f8201601f19908116603f01168101908382118183101715620007ba57620007ba620008a0565b816040528281528e86848701011115620007d357600080fd5b600093505b82841015620007f75784840186015181850187015292850192620007d8565b82841115620008095760008684830101525b80965050505050505092959891949750929550565b600181811c908216806200083357607f821691505b602082108114156200085557634e487b7160e01b600052602260045260246000fd5b50919050565b600060ff821660ff8114156200088157634e487b7160e01b600052601160045260246000fd5b60010192915050565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b0381168114620008cc57600080fd5b50565b60805160f81c60a05160401c60c05160401c60e05160f81c614d186200092360003960006104150152600081816104af01526131f501526000818161033a01526131c8015260006114a70152614d186000f3fe608060405234801561001057600080fd5b50600436106102c85760003560e01c8063996e82981161017b578063d09dc339116100d8578063eb4571631161008c578063f2fde38b11610071578063f2fde38b146107b8578063fbffd2c1146107cb578063feaf968c146107de57600080fd5b8063eb45716314610792578063eb5dcd6c146107a557600080fd5b8063e4902f82116100bd578063e4902f8214610711578063e5fe457714610737578063e76d51681461078157600080fd5b8063d09dc339146106f6578063e3d0e712146106fe57600080fd5b8063b1dc65a41161012f578063b633620c11610114578063b633620c146106bd578063bd824706146106d0578063c1075329146106e357600080fd5b8063b1dc65a414610697578063b5ab58dc146106aa57600080fd5b80639c849b30116101605780639c849b301461065e5780639e3ceeab14610671578063b121e1471461068457600080fd5b8063996e8298146106035780639a6fc8f51461061457600080fd5b806370efdf2d116102295780638205bf6a116101dd5780638da5cb5b116101c25780638da5cb5b1461058e5780638e0566de1461059f57806398e5b12a146105e057600080fd5b80638205bf6a1461054b5780638ac28d5a1461057b57600080fd5b806379ba50971161020e57806379ba5097146104fe578063814118341461050657806381ff70481461051b57600080fd5b806370efdf2d146104d15780637284e416146104f657600080fd5b80634fb174701161028057806354fd4d501161026557806354fd4d501461048b578063668a0f021461049357806370da2f67146104aa57600080fd5b80634fb174701461044957806350d25bcd1461045e57600080fd5b806322adbc78116102b157806322adbc7814610335578063299372681461036f578063313ce5671461041057600080fd5b80630eafb25b146102cd578063181f5a77146102f3575b600080fd5b6102e06102db36600461431e565b610848565b6040519081526020015b60405180910390f35b60408051808201909152601a81527f4f43523241676772656761746f7220312e302e302d616c70686100000000000060208201525b6040516102ea9190614954565b61035c7f000000000000000000000000000000000000000000000000000000000000000081565b60405160179190910b81526020016102ea565b6103d96040805160a08101825260085463ffffffff80821680845264010000000083048216602085018190526801000000000000000084048316958501869052600160601b8404831660608601819052600160801b90940490921660809094018490529490939290565b6040805163ffffffff968716815294861660208601529285169284019290925283166060830152909116608082015260a0016102ea565b6104377f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff90911681526020016102ea565b61045c61045736600461433b565b610998565b005b602e5465010000000000900463ffffffff166000908152602f6020526040902054601790810b900b6102e0565b6102e0600681565b602e5465010000000000900463ffffffff166102e0565b61035c7f000000000000000000000000000000000000000000000000000000000000000081565b6031546001600160a01b03165b6040516001600160a01b0390911681526020016102ea565b610328610be2565b61045c610c74565b61050e610d25565b6040516102ea919061489f565b6004546002546040805163ffffffff808516825264010000000090940490931660208401528201526060016102ea565b602e5465010000000000900463ffffffff9081166000908152602f6020526040902054600160e01b9004166102e0565b61045c61058936600461431e565b610d86565b6000546001600160a01b03166104de565b6040805180820182526030546001600160a01b038116808352600160a01b90910463ffffffff166020928301819052835191825291810191909152016102ea565b6105e8610dfb565b60405169ffffffffffffffffffff90911681526020016102ea565b600a546001600160a01b03166104de565b610627610622366004614777565b610f7a565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016102ea565b61045c61066c3660046143a0565b611050565b61045c61067f36600461431e565b61122e565b61045c61069236600461431e565b6112ad565b61045c6106a53660046144d9565b611389565b6102e06106b836600461460e565b611963565b6102e06106cb36600461460e565b611999565b61045c6106de366004614706565b6119d2565b61045c6106f1366004614374565b611af4565b6102e0611db1565b61045c61070c36600461440c565b611e46565b61072461071f36600461431e565b6125af565b60405161ffff90911681526020016102ea565b61073f612673565b6040805195865263ffffffff909416602086015260ff9092169284019290925260179190910b606083015267ffffffffffffffff16608082015260a0016102ea565b6009546001600160a01b03166104de565b61045c6107a03660046145e0565b61271a565b61045c6107b336600461433b565b612815565b61045c6107c636600461431e565b61294e565b61045c6107d936600461431e565b61295f565b602e5463ffffffff6501000000000090910481166000818152602f602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048816948401859052600160e01b9092049096169190930181905292939190910b9183610627565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff80821684528594840191610100900416600281111561089057610890614c8c565b60028111156108a1576108a1614c8c565b90525090506000816020015160028111156108be576108be614c8c565b14156108cd5750600092915050565b6040805160a08101825260085463ffffffff8082168352640100000000820481166020840152680100000000000000008204811693830193909352600160601b8104831660608301819052600160801b909104909216608082015282519091600091600190600b9060ff16601f811061094857610948614cb8565b601091828204019190066002029054906101000a900461ffff160361ffff1602633b9aca000290506001600f846000015160ff16601f811061098c5761098c614cb8565b01540301949350505050565b6109a0612970565b6009546001600160a01b039081169083168114156109bd57505050565b6040516370a0823160e01b81523060048201526001600160a01b038416906370a082319060240160206040518083038186803b1580156109fc57600080fd5b505afa158015610a10573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a349190614627565b50610a3d6129cc565b6040516370a0823160e01b81523060048201526000906001600160a01b038316906370a082319060240160206040518083038186803b158015610a7f57600080fd5b505afa158015610a93573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ab79190614627565b60405163a9059cbb60e01b81526001600160a01b038581166004830152602482018390529192509083169063a9059cbb90604401602060405180830381600087803b158015610b0557600080fd5b505af1158015610b19573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b3d91906145be565b610b8e5760405162461bcd60e51b815260206004820152601f60248201527f7472616e736665722072656d61696e696e672066756e6473206661696c65640060448201526064015b60405180910390fd5b600980546001600160a01b0319166001600160a01b0386811691821790925560405190918416907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a90600090a350505b5050565b606060328054610bf190614bd0565b80601f0160208091040260200160405190810160405280929190818152602001828054610c1d90614bd0565b8015610c6a5780601f10610c3f57610100808354040283529160200191610c6a565b820191906000526020600020905b815481529060010190602001808311610c4d57829003601f168201915b5050505050905090565b6001546001600160a01b03163314610cce5760405162461bcd60e51b815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e6572000000000000000000006044820152606401610b85565b60008054336001600160a01b0319808316821784556001805490911690556040516001600160a01b0390921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b60606007805480602002602001604051908101604052809291908181526020018280548015610c6a57602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311610d5f575050505050905090565b6001600160a01b038181166000908152600d6020526040902054163314610def5760405162461bcd60e51b815260206004820152601760248201527f4f6e6c792070617965652063616e2077697468647261770000000000000000006044820152606401610b85565b610df881612d62565b50565b600080546001600160a01b0316331480610e955750603154604051630d629b5f60e31b81526001600160a01b0390911690636b14daf890610e459033906000903690600401614860565b60206040518083038186803b158015610e5d57600080fd5b505afa158015610e71573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e9591906145be565b610ee15760405162461bcd60e51b815260206004820152601d60248201527f4f6e6c79206f776e6572267265717565737465722063616e2063616c6c0000006044820152606401610b85565b604080518082018252602e5464ffffffffff8116825265010000000000810463ffffffff9081166020808501919091526002548551908152600884901c9092169082015260ff909116818401529151909133917f41e3990591fd372502daa15842da15bc7f41c75309ab3ff4f56f1848c178825c9181900360600190a26020810151610f6e906001614af2565b63ffffffff1691505090565b600080600080600063ffffffff8669ffffffffffffffffffff1611156040518060400160405280600f81526020017f4e6f20646174612070726573656e74000000000000000000000000000000000081525090610fea5760405162461bcd60e51b8152600401610b859190614954565b5050505063ffffffff8381166000908152602f602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048716948401859052600160e01b9092049095169190930181905295969190920b949193509091508490565b611058612970565b8281146110a75760405162461bcd60e51b815260206004820181905260248201527f7472616e736d6974746572732e73697a6520213d207061796565732e73697a656044820152606401610b85565b60005b838110156112275760008585838181106110c6576110c6614cb8565b90506020020160208101906110db919061431e565b905060008484848181106110f1576110f1614cb8565b9050602002016020810190611106919061431e565b6001600160a01b038084166000908152600d602052604090205491925016801580806111435750826001600160a01b0316826001600160a01b0316145b61118f5760405162461bcd60e51b815260206004820152601160248201527f706179656520616c7265616479207365740000000000000000000000000000006044820152606401610b85565b6001600160a01b038481166000908152600d6020526040902080546001600160a01b0319168583169081179091559083161461121057826001600160a01b0316826001600160a01b0316856001600160a01b03167f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b360405160405180910390a45b50505050808061121f90614c0b565b9150506110aa565b5050505050565b611236612970565b6031546001600160a01b039081169082168114610bde57603180546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491015b60405180910390a15050565b6001600160a01b038181166000908152600e60205260409020541633146113165760405162461bcd60e51b815260206004820152601f60248201527f6f6e6c792070726f706f736564207061796565732063616e20616363657074006044820152606401610b85565b6001600160a01b038181166000818152600d602090815260408083208054336001600160a01b03198083168217909355600e909452828520805490921690915590519416939092849290917f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b39190a45050565b60005a604080516020601f8b018190048102820181019092528981529192508a3591818c0135916113d99184918491908e908e9081908401838280828437600092019190915250612f6492505050565b6040805183815263ffffffff600884901c1660208201527fd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3910160405180910390a16040805160608101825260025480825260035460ff808216602085015261010090910416928201929092529083146114955760405162461bcd60e51b815260206004820152601560248201527f636f6e666967446967657374206d69736d6174636800000000000000000000006044820152606401610b85565b6114a38b8b8b8b8b8b613481565b60007f000000000000000000000000000000000000000000000000000000000000000015611500576002826020015183604001516114e19190614b1a565b6114eb9190614b53565b6114f6906001614b1a565b60ff169050611516565b6020820151611510906001614b1a565b60ff1690505b8881146115655760405162461bcd60e51b815260206004820152601a60248201527f77726f6e67206e756d626572206f66207369676e6174757265730000000000006044820152606401610b85565b8887146115b45760405162461bcd60e51b815260206004820152601e60248201527f7369676e617475726573206f7574206f6620726567697374726174696f6e00006044820152606401610b85565b3360009081526005602090815260408083208151808301909252805460ff808216845292939192918401916101009091041660028111156115f7576115f7614c8c565b600281111561160857611608614c8c565b905250905060028160200151600281111561162557611625614c8c565b14801561165f57506007816000015160ff168154811061164757611647614cb8565b6000918252602090912001546001600160a01b031633145b6116ab5760405162461bcd60e51b815260206004820152601860248201527f756e617574686f72697a6564207472616e736d697474657200000000000000006044820152606401610b85565b5050505050600088886040516116c2929190614850565b6040519081900381206116d9918c90602001614834565b6040516020818303038152906040528051906020012090506116f96140c1565b604080518082019091526000808252602082015260005b8881101561193757600060018588846020811061172f5761172f614cb8565b61173c91901a601b614b1a565b8d8d8681811061174e5761174e614cb8565b905060200201358c8c8781811061176757611767614cb8565b90506020020135604051600081526020016040526040516117a4949392919093845260ff9290921660208401526040830152606082015260800190565b6020604051602081039080840390855afa1580156117c6573d6000803e3d6000fd5b505060408051601f198101516001600160a01b03811660009081526005602090815290849020838501909452835460ff8082168552929650929450840191610100900416600281111561181b5761181b614c8c565b600281111561182c5761182c614c8c565b905250925060018360200151600281111561184957611849614c8c565b146118965760405162461bcd60e51b815260206004820152601e60248201527f61646472657373206e6f7420617574686f72697a656420746f207369676e00006044820152606401610b85565b8251849060ff16601f81106118ad576118ad614cb8565b6020020151156118ff5760405162461bcd60e51b815260206004820152601460248201527f6e6f6e2d756e69717565207369676e61747572650000000000000000000000006044820152606401610b85565b600184846000015160ff16601f811061191a5761191a614cb8565b91151560209092020152508061192f81614c0b565b915050611710565b5050505063ffffffff811061194e5761194e614c4a565b611958813361351e565b505050505050505050565b600063ffffffff82111561197957506000919050565b5063ffffffff166000908152602f6020526040902054601790810b900b90565b600063ffffffff8211156119af57506000919050565b5063ffffffff9081166000908152602f6020526040902054600160e01b90041690565b600a546001600160a01b03166119f06000546001600160a01b031690565b6001600160a01b0316336001600160a01b03161480611a8b5750604051630d629b5f60e31b81526001600160a01b03821690636b14daf890611a3b9033906000903690600401614860565b60206040518083038186803b158015611a5357600080fd5b505afa158015611a67573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611a8b91906145be565b611ad75760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610b85565b611adf6129cc565b611aec86868686866136bf565b505050505050565b6000546001600160a01b0316331480611b8d5750600a54604051630d629b5f60e31b81526001600160a01b0390911690636b14daf890611b3d9033906000903690600401614860565b60206040518083038186803b158015611b5557600080fd5b505afa158015611b69573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611b8d91906145be565b611bd95760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610b85565b6000611be36137f1565b6009546040516370a0823160e01b81523060048201529192506000916001600160a01b03909116906370a082319060240160206040518083038186803b158015611c2c57600080fd5b505afa158015611c40573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611c649190614627565b905081811015611cb65760405162461bcd60e51b815260206004820152601460248201527f696e73756666696369656e742062616c616e63650000000000000000000000006044820152606401610b85565b6009546001600160a01b031663a9059cbb85611cd4858503876139b7565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e085901b1681526001600160a01b0390921660048301526024820152604401602060405180830381600087803b158015611d3257600080fd5b505af1158015611d46573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611d6a91906145be565b611dab5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b85565b50505050565b6009546040516370a0823160e01b815230600482015260009182916001600160a01b03909116906370a082319060240160206040518083038186803b158015611df957600080fd5b505afa158015611e0d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611e319190614627565b90506000611e3d6137f1565b90910392915050565b855185518560ff16601f831115611e9f5760405162461bcd60e51b815260206004820152601060248201527f746f6f206d616e79207369676e657273000000000000000000000000000000006044820152606401610b85565b60008111611eef5760405162461bcd60e51b815260206004820152601260248201527f66206d75737420626520706f73697469766500000000000000000000000000006044820152606401610b85565b818314611f635760405162461bcd60e51b8152602060048201526024808201527f6f7261636c6520616464726573736573206f7574206f6620726567697374726160448201527f74696f6e000000000000000000000000000000000000000000000000000000006064820152608401610b85565b611f6e816003614b75565b8311611fbc5760405162461bcd60e51b815260206004820152601860248201527f6661756c74792d6f7261636c65206620746f6f206869676800000000000000006044820152606401610b85565b611fc4612970565b6040805160c0810182528a8152602081018a905260ff89169181018290526060810188905267ffffffffffffffff8716608082015260a081018690529061200b90886139d1565b6006541561211d5760065460009061202590600190614b94565b905060006006828154811061203c5761203c614cb8565b6000918252602082200154600780546001600160a01b039092169350908490811061206957612069614cb8565b60009182526020808320909101546001600160a01b03858116845260059092526040808420805461ffff19908116909155929091168084529220805490911690556006805491925090806120bf576120bf614ca2565b600082815260209020810160001990810180546001600160a01b031916905501905560078054806120f2576120f2614ca2565b600082815260209020810160001990810180546001600160a01b03191690550190555061200b915050565b60005b81515181101561245c576000600560008460000151848151811061214657612146614cb8565b6020908102919091018101516001600160a01b0316825281019190915260400160002054610100900460ff16600281111561218357612183614c8c565b146121d05760405162461bcd60e51b815260206004820152601760248201527f7265706561746564207369676e657220616464726573730000000000000000006044820152606401610b85565b6040805180820190915260ff8216815260016020820152825180516005916000918590811061220157612201614cb8565b6020908102919091018101516001600160a01b03168252818101929092526040016000208251815460ff90911660ff19821681178355928401519192839161ffff19161761010083600281111561225a5761225a614c8c565b02179055506000915061226a9050565b600560008460200151848151811061228457612284614cb8565b6020908102919091018101516001600160a01b0316825281019190915260400160002054610100900460ff1660028111156122c1576122c1614c8c565b1461230e5760405162461bcd60e51b815260206004820152601c60248201527f7265706561746564207472616e736d69747465722061646472657373000000006044820152606401610b85565b6040805180820190915260ff82168152602081016002815250600560008460200151848151811061234157612341614cb8565b6020908102919091018101516001600160a01b03168252818101929092526040016000208251815460ff90911660ff19821681178355928401519192839161ffff19161761010083600281111561239a5761239a614c8c565b0217905550508251805160069250839081106123b8576123b8614cb8565b602090810291909101810151825460018101845560009384529282902090920180546001600160a01b0319166001600160a01b03909316929092179091558201518051600791908390811061240f5761240f614cb8565b60209081029190910181015182546001810184556000938452919092200180546001600160a01b0319166001600160a01b039092169190911790558061245481614c0b565b915050612120565b5060408101516003805460ff191660ff9092169190911790556004805467ffffffff0000000019811664010000000063ffffffff4381168202928317855590830481169360019390926000926124b9928692908216911617614af2565b92506101000a81548163ffffffff021916908363ffffffff1602179055506125184630600460009054906101000a900463ffffffff1663ffffffff16856000015186602001518760400151886060015189608001518a60a001516139eb565b6002819055825180516003805460ff9092166101000261ff001990921691909117905560045460208501516040808701516060880151608089015160a08a015193517f1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e059861259a988b98919763ffffffff9092169690959194919391926149ff565b60405180910390a15050505050505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff8082168452859484019161010090041660028111156125f7576125f7614c8c565b600281111561260857612608614c8c565b905250905060008160200151600281111561262557612625614c8c565b14156126345750600092915050565b6001600b826000015160ff16601f811061265057612650614cb8565b601091828204019190066002029054906101000a900461ffff1603915050919050565b6000808080803332146126c85760405162461bcd60e51b815260206004820152601460248201527f4f6e6c792063616c6c61626c6520627920454f410000000000000000000000006044820152606401610b85565b5050600254602e5463ffffffff65010000000000820481166000908152602f60205260409020549296600883901c8216965064ffffffffff9092169450601783900b9350600160e01b90920490911690565b612722612970565b604080518082019091526030546001600160a01b03808216808452600160a01b90920463ffffffff166020840152841614158061276f57508163ffffffff16816020015163ffffffff1614155b15612810576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052603080547fffffffffffffffff000000000000000000000000000000000000000000000000168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6001600160a01b038281166000908152600d602052604090205416331461287e5760405162461bcd60e51b815260206004820152601d60248201527f6f6e6c792063757272656e742070617965652063616e207570646174650000006044820152606401610b85565b336001600160a01b03821614156128d75760405162461bcd60e51b815260206004820152601760248201527f63616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610b85565b6001600160a01b038083166000908152600e6020526040902080548383166001600160a01b031982168117909255909116908114612810576040516001600160a01b038084169133918616907f84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e3836790600090a4505050565b612956612970565b610df881613a78565b612967612970565b610df881613b22565b6000546001600160a01b031633146129ca5760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401610b85565b565b6040805160a08101825260085463ffffffff8082168352640100000000820481166020840152680100000000000000008204811683850152600160601b820481166060840152600160801b90910416608082015260095482516103e081019384905291926001600160a01b0390911691600091600b90601f908285855b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411612a49575050604080516103e08101918290529596506000959450600f9350601f9250905082845b815481526020019060010190808311612aa3575050505050905060006007805480602002602001604051908101604052809291908181526020018280548015612b1557602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311612af7575b5050505050905060005b8151811015612d4657600060018483601f8110612b3e57612b3e614cb8565b6020020151039050600060018684601f8110612b5c57612b5c614cb8565b60200201510361ffff169050600082896060015163ffffffff168302633b9aca00020190506000811115612d3b576000600d6000878781518110612ba257612ba2614cb8565b6020908102919091018101516001600160a01b03908116835290820192909252604090810160002054905163a9059cbb60e01b815290821660048201819052602482018590529250908a169063a9059cbb90604401602060405180830381600087803b158015612c1157600080fd5b505af1158015612c25573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190612c4991906145be565b612c8a5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b85565b60018886601f8110612c9e57612c9e614cb8565b61ffff909216602092909202015260018786601f8110612cc057612cc0614cb8565b602002018181525050886001600160a01b0316816001600160a01b0316878781518110612cef57612cef614cb8565b60200260200101516001600160a01b03167fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c85604051612d3191815260200190565b60405180910390a4505b505050600101612b1f565b50612d54600b84601f6140e0565b50611aec600f83601f614176565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff80821684529293919291840191610100909104166002811115612dae57612dae614c8c565b6002811115612dbf57612dbf614c8c565b90525090506000612dcf83610848565b90508015612810576001600160a01b038381166000908152600d60205260409081902054600954915163a9059cbb60e01b8152908316600482018190526024820185905292919091169063a9059cbb90604401602060405180830381600087803b158015612e3c57600080fd5b505af1158015612e50573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190612e7491906145be565b612eb55760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b85565b6001600b846000015160ff16601f8110612ed157612ed1614cb8565b601091828204019190066002026101000a81548161ffff021916908361ffff1602179055506001600f846000015160ff16601f8110612f1257612f12614cb8565b01556009546040518381526001600160a01b039182169183811691908716907fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c9060200160405180910390a450505050565b60408051808201909152602e5464ffffffffff8082168084526501000000000090920463ffffffff166020840152841611612fe15760405162461bcd60e51b815260206004820152600c60248201527f7374616c65207265706f727400000000000000000000000000000000000000006044820152606401610b85565b6000612fec83613b91565b60035460408201515191925060ff1690601f101561304c5760405162461bcd60e51b815260206004820152601e60248201527f6e756d206f62736572766174696f6e73206f7574206f6620626f756e647300006044820152606401610b85565b613057816002614b75565b826040015151116130aa5760405162461bcd60e51b815260206004820152601e60248201527f746f6f206665772076616c75657320746f207472757374206d656469616e00006044820152606401610b85565b6130b78260200151613d66565b64ffffffffff8516835260005b60018360400151516130d69190614b94565b8110156131905760408301516000906130f0836001614ada565b8151811061310057613100614cb8565b602002602001015160170b8460400151838151811061312157613121614cb8565b602002602001015160170b131590508061317d5760405162461bcd60e51b815260206004820152601760248201527f6f62736572766174696f6e73206e6f7420736f727465640000000000000000006044820152606401610b85565b508061318881614c0b565b9150506130c4565b5060408201518051600091906131a890600290614b3f565b815181106131b8576131b8614cb8565b602002602001015190508060170b7f000000000000000000000000000000000000000000000000000000000000000060170b1315801561321e57507f000000000000000000000000000000000000000000000000000000000000000060170b8160170b13155b61326a5760405162461bcd60e51b815260206004820152601e60248201527f6d656469616e206973206f7574206f66206d696e2d6d61782072616e676500006044820152606401610b85565b6020840180519061327a82614c26565b63ffffffff90811690915260408051606081018252601785810b82528751841660208084019182524286168486019081528b8201805188166000908152602f845287902095518654945192518916600160e01b027bffffffffffffffffffffffffffffffffffffffffffffffffffffffff938a16600160c01b027fffffffff000000000000000000000000000000000000000000000000000000009096169190960b77ffffffffffffffffffffffffffffffffffffffffffffffff161793909317169290921790925590518751888401519289015193519190941694507face8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c9019361338d93879333939091908f908f906148b2565b60405180910390a260006001600160a01b0316846020015163ffffffff167f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac60271426040516133dc91815260200190565b60405180910390a3836020015163ffffffff168160170b7f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f4260405161342491815260200190565b60405180910390a361343d84602001518260170b613dd5565b50508151602e805460209094015163ffffffff16650100000000000268ffffffffffffffffff1990941664ffffffffff909216919091179290921790915550505050565b600061348e826020614b75565b613499856020614b75565b6134a588610144614ada565b6134af9190614ada565b6134b99190614ada565b6134c4906000614ada565b90503681146135155760405162461bcd60e51b815260206004820152601860248201527f63616c6c64617461206c656e677468206d69736d6174636800000000000000006044820152606401610b85565b50505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff8082168452929391929184019161010090910416600281111561356a5761356a614c8c565b600281111561357b5761357b614c8c565b905250905060028160200151600281111561359857613598614c8c565b146135a257600080fd5b6040805160a08101825260085463ffffffff8082168084526401000000008304821660208501819052680100000000000000008404831695850195909552600160601b830482166060850152600160801b909204166080830152909160009161361291633b9aca003a0491613ef0565b90506010360260005a905060006136318863ffffffff16858585613f16565b6fffffffffffffffffffffffffffffffff1690506000620f4240866040015163ffffffff1683028161366557613665614c76565b049050856080015163ffffffff16633b9aca000281600f896000015160ff16601f811061369457613694614cb8565b01540101600f886000015160ff16601f81106136b2576136b2614cb8565b0155505050505050505050565b6040805160a0808201835263ffffffff88811680845288821660208086018290528984168688018190528985166060808901829052958a1660809889018190526008805467ffffffffffffffff191687176401000000008702177fffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffff166801000000000000000085027fffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff1617600160601b8402177fffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff16600160801b83021790558951958652928501939093529683019690965291810191909152918201929092527fd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6910160405180910390a15050505050565b604080516103e0810191829052600091829190600b90601f908285855b82829054906101000a900461ffff1661ffff168152602001906002019060208260010104928301926001038202915080841161380e5790505050505050905060005b601f8110156138845760018282601f811061386d5761386d614cb8565b60200201510361ffff169290920191600101613850565b506040805160a08101825260085463ffffffff808216835264010000000082048116602080850191909152680100000000000000008304821684860152600160601b8304821660608501819052600160801b90930490911660808401526007805485518184028101840190965280865296909202633b9aca000295929360009390929183018282801561394057602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311613922575b5050604080516103e08101918290529495506000949350600f9250601f915082845b815481526020019060010190808311613962575050505050905060005b82518110156139af5760018282601f811061399c5761399c614cb8565b602002015103959095019460010161397f565b505050505090565b6000818310156139c85750816139cb565b50805b92915050565b6139d96129cc565b5050602e805464ffffffffff19169055565b6000808a8a8a8a8a8a8a8a8a604051602001613a0f99989796959493929190614967565b60408051601f1981840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150509998505050505050505050565b6001600160a01b038116331415613ad15760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610b85565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b600a546001600160a01b039081169082168114610bde57600a80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291016112a1565b613bbb6040518060600160405280600063ffffffff16815260200160608152602001606081525090565b600080606084806020019051810190613bd49190614640565b91945092509050613be58582613fa3565b6000815167ffffffffffffffff811115613c0157613c01614cce565b6040519080825280601f01601f191660200182016040528015613c2b576020820181803683370190505b509050613c366140c1565b60005b8351811015613d3e576000858260208110613c5657613c56614cb8565b1a90508281601f8110613c6b57613c6b614cb8565b602002015115613cbd5760405162461bcd60e51b815260206004820152601760248201527f6f6273657276657220696e6465782072657065617465640000000000000000006044820152606401610b85565b60018382601f8110613cd157613cd1614cb8565b91151560209283029190910152869083908110613cf057613cf0614cb8565b1a60f81b848381518110613d0657613d06614cb8565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a90535050600101613c39565b50506040805160608101825263ffffffff909516855260208501919091528301525092915050565b604080516103e0810191829052613dc791839190600b90601f90826000855b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411613d85579050505050505061401b565b610bde90600b90601f6140e0565b604080518082019091526030546001600160a01b038116808352600160a01b90910463ffffffff166020830152613e0b57505050565b6000613e18600185614bab565b63ffffffff8181166000818152602f60209081526040918290205487519188015192517fbeed9b510000000000000000000000000000000000000000000000000000000081526004810194909452601790810b900b602484018190528985166044850152606484018990529495506001600160a01b03169263beed9b5192911690608401602060405180830381600088803b158015613eb657600080fd5b5087f193505050508015613ee7575060408051601f3d908101601f19168201909252613ee4918101906145be565b60015b611aec57611227565b60008383811015613f0357600285850304015b613f0d81846139b7565b95945050505050565b600081851015613f685760405162461bcd60e51b815260206004820181905260248201527f6761734c6566742063616e6e6f742065786365656420696e697469616c4761736044820152606401610b85565b818503830161179301633b9aca00858202026fffffffffffffffffffffffffffffffff8110613f9957613f99614c4a565b9695505050505050565b600081516020613fb39190614b75565b613fbe906080614ada565b613fc9906000614ada565b9050808351146128105760405162461bcd60e51b815260206004820152601660248201527f7265706f7274206c656e677468206d69736d61746368000000000000000000006044820152606401610b85565b6140236140c1565b60005b835181101561409a57600084828151811061404357614043614cb8565b016020015160f81c905061406e8482601f811061406257614062614cb8565b602002015160016140a2565b848260ff16601f811061408357614083614cb8565b61ffff909216602092909202015250600101614026565b509092915050565b60006140ba8261ffff168461ffff160161ffff6139b7565b9392505050565b604051806103e00160405280601f906020820280368337509192915050565b6002830191839082156141665791602002820160005b8382111561413657835183826101000a81548161ffff021916908361ffff16021790555092602001926002016020816001010492830192600103026140f6565b80156141645782816101000a81549061ffff0219169055600201602081600101049283019260010302614136565b505b506141729291506141a4565b5090565b82601f8101928215614166579160200282015b82811115614166578251825591602001919060010190614189565b5b8082111561417257600081556001016141a5565b60008083601f8401126141cb57600080fd5b50813567ffffffffffffffff8111156141e357600080fd5b6020830191508360208260051b85010111156141fe57600080fd5b9250929050565b600082601f83011261421657600080fd5b8135602061422b61422683614ab6565b614a85565b80838252828201915082860187848660051b890101111561424b57600080fd5b60005b8581101561427357813561426181614ce4565b8452928401929084019060010161424e565b5090979650505050505050565b600082601f83011261429157600080fd5b813567ffffffffffffffff8111156142ab576142ab614cce565b6142be601f8201601f1916602001614a85565b8181528460208386010111156142d357600080fd5b816020850160208301376000918101602001919091529392505050565b803567ffffffffffffffff8116811461430857600080fd5b919050565b803560ff8116811461430857600080fd5b60006020828403121561433057600080fd5b81356140ba81614ce4565b6000806040838503121561434e57600080fd5b823561435981614ce4565b9150602083013561436981614ce4565b809150509250929050565b6000806040838503121561438757600080fd5b823561439281614ce4565b946020939093013593505050565b600080600080604085870312156143b657600080fd5b843567ffffffffffffffff808211156143ce57600080fd5b6143da888389016141b9565b909650945060208701359150808211156143f357600080fd5b50614400878288016141b9565b95989497509550505050565b60008060008060008060c0878903121561442557600080fd5b863567ffffffffffffffff8082111561443d57600080fd5b6144498a838b01614205565b9750602089013591508082111561445f57600080fd5b61446b8a838b01614205565b965061447960408a0161430d565b9550606089013591508082111561448f57600080fd5b61449b8a838b01614280565b94506144a960808a016142f0565b935060a08901359150808211156144bf57600080fd5b506144cc89828a01614280565b9150509295509295509295565b60008060008060008060008060e0898b0312156144f557600080fd5b606089018a81111561450657600080fd5b8998503567ffffffffffffffff8082111561452057600080fd5b818b0191508b601f83011261453457600080fd5b81358181111561454357600080fd5b8c602082850101111561455557600080fd5b6020830199508098505060808b013591508082111561457357600080fd5b61457f8c838d016141b9565b909750955060a08b013591508082111561459857600080fd5b506145a58b828c016141b9565b999c989b50969995989497949560c00135949350505050565b6000602082840312156145d057600080fd5b815180151581146140ba57600080fd5b600080604083850312156145f357600080fd5b82356145fe81614ce4565b9150602083013561436981614cf9565b60006020828403121561462057600080fd5b5035919050565b60006020828403121561463957600080fd5b5051919050565b60008060006060848603121561465557600080fd5b835161466081614cf9565b809350506020808501519250604085015167ffffffffffffffff81111561468657600080fd5b8501601f8101871361469757600080fd5b80516146a561422682614ab6565b8082825284820191508484018a868560051b87010111156146c557600080fd5b60009450845b848110156146f55781518060170b81146146e3578687fd5b845292860192908601906001016146cb565b505080955050505050509250925092565b600080600080600060a0868803121561471e57600080fd5b853561472981614cf9565b9450602086013561473981614cf9565b9350604086013561474981614cf9565b9250606086013561475981614cf9565b9150608086013561476981614cf9565b809150509295509295909350565b60006020828403121561478957600080fd5b813569ffffffffffffffffffff811681146140ba57600080fd5b600081518084526020808501945080840160005b838110156147dc5781516001600160a01b0316875295820195908201906001016147b7565b509495945050505050565b6000815180845260005b8181101561480d576020818501810151868301820152016147f1565b8181111561481f576000602083870101525b50601f01601f19169290920160200192915050565b8281526060826020830137600060809190910190815292915050565b8183823760009101908152919050565b6001600160a01b038416815260406020820152816040820152818360608301376000818301606090810191909152601f909201601f1916010192915050565b6020815260006140ba60208301846147a3565b600060e0820160178a810b845260206001600160a01b038b168186015263ffffffff8a16604086015260e0606086015282895180855261010087019150828b01945060005b81811015614915578551850b835294830194918301916001016148f7565b50508581036080870152614929818a6147e7565b9450505050508360a083015261494860c083018464ffffffffff169052565b98975050505050505050565b6020815260006140ba60208301846147e7565b60006101208b83526001600160a01b038b16602084015267ffffffffffffffff808b1660408501528160608501526149a18285018b6147a3565b915083820360808501526149b5828a6147a3565b915060ff881660a085015283820360c08501526149d282886147e7565b90861660e085015283810361010085015290506149ef81856147e7565b9c9b505050505050505050505050565b600061012063ffffffff808d1684528b6020850152808b16604085015250806060840152614a2f8184018a6147a3565b90508281036080840152614a4381896147a3565b905060ff871660a084015282810360c0840152614a6081876147e7565b905067ffffffffffffffff851660e08401528281036101008401526149ef81856147e7565b604051601f8201601f1916810167ffffffffffffffff81118282101715614aae57614aae614cce565b604052919050565b600067ffffffffffffffff821115614ad057614ad0614cce565b5060051b60200190565b60008219821115614aed57614aed614c60565b500190565b600063ffffffff808316818516808303821115614b1157614b11614c60565b01949350505050565b600060ff821660ff84168060ff03821115614b3757614b37614c60565b019392505050565b600082614b4e57614b4e614c76565b500490565b600060ff831680614b6657614b66614c76565b8060ff84160491505092915050565b6000816000190483118215151615614b8f57614b8f614c60565b500290565b600082821015614ba657614ba6614c60565b500390565b600063ffffffff83811690831681811015614bc857614bc8614c60565b039392505050565b600181811c90821680614be457607f821691505b60208210811415614c0557634e487b7160e01b600052602260045260246000fd5b50919050565b6000600019821415614c1f57614c1f614c60565b5060010190565b600063ffffffff80831681811415614c4057614c40614c60565b6001019392505050565b634e487b7160e01b600052600160045260246000fd5b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052601260045260246000fd5b634e487b7160e01b600052602160045260246000fd5b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b0381168114610df857600080fd5b63ffffffff81168114610df857600080fdfea164736f6c6343000806000a"
+var OCR2AggregatorBin = "0x60e06040523480156200001157600080fd5b50604051620051f9380380620051f9833981016040819052620000349162000537565b33806000816200008b5760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615620000be57620000be8162000194565b5050601180546001600160a01b0319166001600160a01b038a169081179091556040519091506000907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a908290a3620001178462000240565b7fff0000000000000000000000000000000000000000000000000000000000000060f883901b1660c05280516200015690601090602084019062000479565b506200016283620002b9565b6200016f60008062000334565b50505050601791820b820b604090811b60805290820b90910b901b60a0525062000701565b6001600160a01b038116331415620001ef5760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c66000000000000000000604482015260640162000082565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6012546001600160a01b039081169082168114620002b557601280546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291015b60405180910390a15b5050565b620002c36200041b565b600f546001600160a01b039081169082168114620002b557600f80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae6349101620002ac565b6200033e6200041b565b60408051808201909152600e546001600160a01b03808216808452600160a01b90920463ffffffff16602084015284161415806200038c57508163ffffffff16816020015163ffffffff1614155b1562000416576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052600e80546001600160c01b0319168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6000546001600160a01b03163314620004775760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e657200000000000000000000604482015260640162000082565b565b828054620004879062000695565b90600052602060002090601f016020900481019282620004ab5760008555620004f6565b82601f10620004c657805160ff1916838001178555620004f6565b82800160010185558215620004f6579182015b82811115620004f6578251825591602001919060010190620004d9565b506200050492915062000508565b5090565b5b8082111562000504576000815560010162000509565b8051601781900b81146200053257600080fd5b919050565b600080600080600080600060e0888a0312156200055357600080fd5b87516200056081620006e8565b96506020620005718982016200051f565b96506200058160408a016200051f565b955060608901516200059381620006e8565b60808a0151909550620005a681620006e8565b60a08a015190945060ff81168114620005be57600080fd5b60c08a01519093506001600160401b0380821115620005dc57600080fd5b818b0191508b601f830112620005f157600080fd5b815181811115620006065762000606620006d2565b604051601f8201601f19908116603f01168101908382118183101715620006315762000631620006d2565b816040528281528e868487010111156200064a57600080fd5b600093505b828410156200066e57848401860151818501870152928501926200064f565b82841115620006805760008684830101525b80965050505050505092959891949750929550565b600181811c90821680620006aa57607f821691505b60208210811415620006cc57634e487b7160e01b600052602260045260246000fd5b50919050565b634e487b7160e01b600052604160045260246000fd5b6001600160a01b0381168114620006fe57600080fd5b50565b60805160401c60a05160401c60c05160f81c614aa36200075660003960006104050152600081816104c30152818161201c015261321d01526000818161034501528181611fef01526131f00152614aa36000f3fe608060405234801561001057600080fd5b50600436106102d35760003560e01c80639bd2c0b111610186578063d09dc339116100e3578063e76d516811610097578063f2fde38b11610071578063f2fde38b146107d5578063fbffd2c1146107e8578063feaf968c146107fb57600080fd5b8063e76d51681461079e578063eb457163146107af578063eb5dcd6c146107c257600080fd5b8063e3d0e712116100c8578063e3d0e71214610719578063e4902f821461072c578063e5fe45771461075457600080fd5b8063d09dc33914610700578063daffc4b51461070857600080fd5b8063b1dc65a41161013a578063b633620c1161011f578063b633620c146106c9578063c1075329146106dc578063c4c92b37146106ef57600080fd5b8063b1dc65a4146106a3578063b5ab58dc146106b657600080fd5b80639e3ceeab1161016b5780639e3ceeab1461064c578063afcb95d71461065f578063b121e1471461069057600080fd5b80639bd2c0b1146105f85780639c849b301461063957600080fd5b8063668a0f02116102345780638205bf6a116101e85780638da5cb5b116101cd5780638da5cb5b1461056657806398e5b12a1461058b5780639a6fc8f5146105ae57600080fd5b80638205bf6a146105255780638ac28d5a1461055357600080fd5b80637284e416116102195780637284e416146104e557806379ba5097146104ed57806381ff7048146104f557600080fd5b8063668a0f02146104a957806370da2f67146104be57600080fd5b80634fb174701161028b57806354fd4d501161027057806354fd4d5014610479578063643dc10514610481578063666cab8d1461049457600080fd5b80634fb174701461043957806350d25bcd1461044e57600080fd5b806322adbc78116102bc57806322adbc7814610340578063299372681461037a578063313ce5671461040057600080fd5b80630eafb25b146102d8578063181f5a77146102fe575b600080fd5b6102eb6102e636600461404a565b610863565b6040519081526020015b60405180910390f35b60408051808201909152601a81527f4f43523241676772656761746f7220312e302e302d616c70686100000000000060208201525b6040516102f59190614698565b6103677f000000000000000000000000000000000000000000000000000000000000000081565b60405160179190910b81526020016102f5565b6103c4600b546a0100000000000000000000810463ffffffff90811692600160701b8304821692600160901b8104831692600160b01b82041691600160d01b90910462ffffff1690565b6040805163ffffffff9687168152948616602086015292851692840192909252909216606082015262ffffff909116608082015260a0016102f5565b6104277f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff90911681526020016102f5565b61044c610447366004614067565b610968565b005b600b54600160301b900463ffffffff166000908152600c6020526040902054601790810b900b6102eb565b6102eb600681565b61044c61048f36600461443c565b610bb2565b61049c610e1f565b6040516102f591906145dd565b600b54600160301b900463ffffffff166102eb565b6103677f000000000000000000000000000000000000000000000000000000000000000081565b610333610e81565b61044c610f0a565b600d54600a546040805163ffffffff808516825264010000000090940490931660208401528201526060016102f5565b600b54600160301b900463ffffffff9081166000908152600c6020526040902054600160e01b9004166102eb565b61044c61056136600461404a565b610fbb565b6000546001600160a01b03165b6040516001600160a01b0390911681526020016102f5565b610593611030565b60405169ffffffffffffffffffff90911681526020016102f5565b6105c16105bc3660046144b5565b61119a565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016102f5565b604080518082018252600e546001600160a01b038116808352600160a01b90910463ffffffff166020928301819052835191825291810191909152016102f5565b61044c6106473660046140cc565b611234565b61044c61065a36600461404a565b611412565b600a54600b546040805160008152602081019390935261010090910460081c63ffffffff16908201526060016102f5565b61044c61069e36600461404a565b611491565b61044c6106b1366004614205565b61156d565b6102eb6106c436600461433a565b611a71565b6102eb6106d736600461433a565b611aa7565b61044c6106ea3660046140a0565b611ae0565b6012546001600160a01b0316610573565b6102eb611da4565b600f546001600160a01b0316610573565b61044c610727366004614138565b611e43565b61073f61073a36600461404a565b612678565b60405163ffffffff90911681526020016102f5565b61075c61272e565b6040805195865263ffffffff909416602086015260ff9092169284019290925260179190910b606083015267ffffffffffffffff16608082015260a0016102f5565b6011546001600160a01b0316610573565b61044c6107bd36600461430c565b6127d7565b61044c6107d0366004614067565b6128d2565b61044c6107e336600461404a565b612a0b565b61044c6107f636600461404a565b612a1c565b600b5463ffffffff600160301b90910481166000818152600c602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048816948401859052600160e01b9092049096169190930181905292939190910b91836105c1565b6001600160a01b03811660009081526002602090815260408083208151606081018352905460ff80821615158084526101008304909116948301949094526201000090046001600160601b031691810191909152906108c55750600092915050565b600b546020820151600091600160901b900463ffffffff169060069060ff16601f81106108f4576108f4614a43565b600881049190910154600b54610927926007166004026101000a90910463ffffffff90811691600160301b900416614978565b63ffffffff1661093791906148a5565b61094590633b9aca006148a5565b905081604001516001600160601b031681610960919061481e565b949350505050565b610970612a2d565b6011546001600160a01b0390811690831681141561098d57505050565b6040516370a0823160e01b81523060048201526001600160a01b038416906370a082319060240160206040518083038186803b1580156109cc57600080fd5b505afa1580156109e0573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a049190614353565b50610a0d612a89565b6040516370a0823160e01b81523060048201526000906001600160a01b038316906370a082319060240160206040518083038186803b158015610a4f57600080fd5b505afa158015610a63573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a879190614353565b60405163a9059cbb60e01b81526001600160a01b038581166004830152602482018390529192509083169063a9059cbb90604401602060405180830381600087803b158015610ad557600080fd5b505af1158015610ae9573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b0d91906142ea565b610b5e5760405162461bcd60e51b815260206004820152601f60248201527f7472616e736665722072656d61696e696e672066756e6473206661696c65640060448201526064015b60405180910390fd5b601180546001600160a01b0319166001600160a01b0386811691821790925560405190918416907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a90600090a350505b5050565b6012546001600160a01b0316610bd06000546001600160a01b031690565b6001600160a01b0316336001600160a01b03161480610c6b5750604051630d629b5f60e31b81526001600160a01b03821690636b14daf890610c1b903390600090369060040161459e565b60206040518083038186803b158015610c3357600080fd5b505afa158015610c47573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c6b91906142ea565b610cb75760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610b55565b610cbf612a89565b600b80547fffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffff166a010000000000000000000063ffffffff8981169182027fffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff1692909217600160701b898416908102919091177fffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffff16600160901b8985169081027fffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff1691909117600160b01b948916948502177fffffff000000ffffffffffffffffffffffffffffffffffffffffffffffffffff16600160d01b62ffffff89169081029190911790955560408051938452602084019290925290820152606081019190915260808101919091527f0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f9060a00160405180910390a1505050505050565b60606005805480602002602001604051908101604052809291908181526020018280548015610e7757602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311610e59575b5050505050905090565b606060108054610e909061499d565b80601f0160208091040260200160405190810160405280929190818152602001828054610ebc9061499d565b8015610e775780601f10610ede57610100808354040283529160200191610e77565b820191906000526020600020905b815481529060010190602001808311610eec57509395945050505050565b6001546001600160a01b03163314610f645760405162461bcd60e51b815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e6572000000000000000000006044820152606401610b55565b60008054336001600160a01b0319808316821784556001805490911690556040516001600160a01b0390921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b6001600160a01b038181166000908152601360205260409020541633146110245760405162461bcd60e51b815260206004820152601760248201527f4f6e6c792070617965652063616e2077697468647261770000000000000000006044820152606401610b55565b61102d81612e32565b50565b600080546001600160a01b03163314806110ca5750600f54604051630d629b5f60e31b81526001600160a01b0390911690636b14daf89061107a903390600090369060040161459e565b60206040518083038186803b15801561109257600080fd5b505afa1580156110a6573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906110ca91906142ea565b6111165760405162461bcd60e51b815260206004820152601d60248201527f4f6e6c79206f776e6572267265717565737465722063616e2063616c6c0000006044820152606401610b55565b600b54600a546040805191825263ffffffff6101008404600881901c8216602085015260ff811684840152915164ffffffffff90921693600160301b9004169133917f41e3990591fd372502daa15842da15bc7f41c75309ab3ff4f56f1848c178825c9181900360600190a261118d816001614836565b63ffffffff169250505090565b60008080808063ffffffff69ffffffffffffffffffff871611156111cc5750600093508392508291508190508061122b565b50505063ffffffff8084166000908152600c602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048716948401859052600160e01b909204909516919093018190528695509190920b9250835b91939590929450565b61123c612a2d565b82811461128b5760405162461bcd60e51b815260206004820181905260248201527f7472616e736d6974746572732e73697a6520213d207061796565732e73697a656044820152606401610b55565b60005b8381101561140b5760008585838181106112aa576112aa614a43565b90506020020160208101906112bf919061404a565b905060008484848181106112d5576112d5614a43565b90506020020160208101906112ea919061404a565b6001600160a01b0380841660009081526013602052604090205491925016801580806113275750826001600160a01b0316826001600160a01b0316145b6113735760405162461bcd60e51b815260206004820152601160248201527f706179656520616c7265616479207365740000000000000000000000000000006044820152606401610b55565b6001600160a01b03848116600090815260136020526040902080546001600160a01b031916858316908117909155908316146113f457826001600160a01b0316826001600160a01b0316856001600160a01b03167f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b360405160405180910390a45b505050508080611403906149d8565b91505061128e565b5050505050565b61141a612a2d565b600f546001600160a01b039081169082168114610bae57600f80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491015b60405180910390a15050565b6001600160a01b038181166000908152601460205260409020541633146114fa5760405162461bcd60e51b815260206004820152601f60248201527f6f6e6c792070726f706f736564207061796565732063616e20616363657074006044820152606401610b55565b6001600160a01b0381811660008181526013602090815260408083208054336001600160a01b031980831682179093556014909452828520805490921690915590519416939092849290917f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b39190a45050565b60005a604080516101008082018352600b5460ff8116835290810464ffffffffff9081166020808501829052600160301b840463ffffffff908116968601969096526a0100000000000000000000840486166060860152600160701b840486166080860152600160901b8404861660a0860152600160b01b840490951660c0850152600160d01b90920462ffffff1660e08401529394509092918c01359182161161165a5760405162461bcd60e51b815260206004820152600c60248201527f7374616c65207265706f727400000000000000000000000000000000000000006044820152606401610b55565b3360009081526002602052604090205460ff166116b95760405162461bcd60e51b815260206004820152601860248201527f756e617574686f72697a6564207472616e736d697474657200000000000000006044820152606401610b55565b600a548b351461170b5760405162461bcd60e51b815260206004820152601560248201527f636f6e666967446967657374206d69736d6174636800000000000000000000006044820152606401610b55565b6117198a8a8a8a8a8a613053565b815161172690600161485e565b60ff1687146117775760405162461bcd60e51b815260206004820152601a60248201527f77726f6e67206e756d626572206f66207369676e6174757265730000000000006044820152606401610b55565b8685146117c65760405162461bcd60e51b815260206004820152601e60248201527f7369676e617475726573206f7574206f6620726567697374726174696f6e00006044820152606401610b55565b60008a8a6040516117d892919061458e565b6040519081900381206117ef918e90602001614572565b60408051601f19818403018152828252805160209182012083830190925260008084529083018190529092509060005b8a8110156119955760006001858a846020811061183e5761183e614a43565b61184b91901a601b61485e565b8f8f8681811061185d5761185d614a43565b905060200201358e8e8781811061187657611876614a43565b90506020020135604051600081526020016040526040516118b3949392919093845260ff9290921660208401526040830152606082015260800190565b6020604051602081039080840390855afa1580156118d5573d6000803e3d6000fd5b505060408051601f198101516001600160a01b03811660009081526003602090815290849020838501909452925460ff808216151580855261010090920416938301939093529095509250905061196e5760405162461bcd60e51b815260206004820152600f60248201527f7369676e6174757265206572726f7200000000000000000000000000000000006044820152606401610b55565b826020015160080260ff166001901b8401935050808061198d906149d8565b91505061181f565b5081827e010101010101010101010101010101010101010101010101010101010101011614611a065760405162461bcd60e51b815260206004820152601060248201527f6475706c6963617465207369676e6572000000000000000000000000000000006044820152606401610b55565b5060009150611a559050838d836020020135848e8e8080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152506130f092505050565b9050611a63838286336135ed565b505050505050505050505050565b600063ffffffff821115611a8757506000919050565b5063ffffffff166000908152600c6020526040902054601790810b900b90565b600063ffffffff821115611abd57506000919050565b5063ffffffff9081166000908152600c6020526040902054600160e01b90041690565b6000546001600160a01b0316331480611b795750601254604051630d629b5f60e31b81526001600160a01b0390911690636b14daf890611b29903390600090369060040161459e565b60206040518083038186803b158015611b4157600080fd5b505afa158015611b55573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611b7991906142ea565b611bc55760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610b55565b6000611bcf613723565b6011546040516370a0823160e01b81523060048201529192506000916001600160a01b03909116906370a082319060240160206040518083038186803b158015611c1857600080fd5b505afa158015611c2c573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611c509190614353565b905081811015611ca25760405162461bcd60e51b815260206004820152601460248201527f696e73756666696369656e742062616c616e63650000000000000000000000006044820152606401610b55565b6011546001600160a01b031663a9059cbb85611cc7611cc18686614961565b876138ed565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e085901b1681526001600160a01b0390921660048301526024820152604401602060405180830381600087803b158015611d2557600080fd5b505af1158015611d39573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611d5d91906142ea565b611d9e5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b55565b50505050565b6011546040516370a0823160e01b815230600482015260009182916001600160a01b03909116906370a082319060240160206040518083038186803b158015611dec57600080fd5b505afa158015611e00573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190611e249190614353565b90506000611e30613723565b9050611e3c81836148ed565b9250505090565b611e4b612a2d565b601f86511115611e9d5760405162461bcd60e51b815260206004820152601060248201527f746f6f206d616e79206f7261636c6573000000000000000000000000000000006044820152606401610b55565b8451865114611eee5760405162461bcd60e51b815260206004820152601660248201527f6f7261636c65206c656e677468206d69736d61746368000000000000000000006044820152606401610b55565b8551611efb8560036148c4565b60ff1610611f4b5760405162461bcd60e51b815260206004820152601860248201527f6661756c74792d6f7261636c65206620746f6f206869676800000000000000006044820152606401610b55565b611f578460ff16613907565b825115611fa65760405162461bcd60e51b815260206004820152601b60248201527f6f6e636861696e436f6e666967206d75737420626520656d70747900000000006044820152606401610b55565b6040805160c081018252878152602080820188905260ff87168284015282517f0100000000000000000000000000000000000000000000000000000000000000918101919091527f0000000000000000000000000000000000000000000000000000000000000000601790810b841b60218301527f0000000000000000000000000000000000000000000000000000000000000000900b831b6039820152825160318183030181526051909101909252606081019190915267ffffffffffffffff8316608082015260a08101829052600b805465ffffffffff001916905561208c612a89565b600454156121ac576004546000906120a690600190614961565b90506000600482815481106120bd576120bd614a43565b6000918252602082200154600580546001600160a01b03909216935090849081106120ea576120ea614a43565b60009182526020808320909101546001600160a01b038581168452600383526040808520805461ffff191690559116808452600290925290912080546dffffffffffffffffffffffffffff1916905560048054919250908061214e5761214e614a2d565b600082815260209020810160001990810180546001600160a01b0319169055019055600580548061218157612181614a2d565b600082815260209020810160001990810180546001600160a01b03191690550190555061208c915050565b60005b8151518110156124d45760036000836000015183815181106121d3576121d3614a43565b6020908102919091018101516001600160a01b031682528101919091526040016000205460ff16156122475760405162461bcd60e51b815260206004820152601760248201527f7265706561746564207369676e657220616464726573730000000000000000006044820152606401610b55565b604080518082019091526001815260ff82166020820152825180516003916000918590811061227857612278614a43565b6020908102919091018101516001600160a01b03168252818101929092526040016000908120835181549484015161ffff1990951690151561ff0019161761010060ff909516949094029390931790925583015180516002929190849081106122e3576122e3614a43565b6020908102919091018101516001600160a01b031682528101919091526040016000205460ff16156123575760405162461bcd60e51b815260206004820152601c60248201527f7265706561746564207472616e736d69747465722061646472657373000000006044820152606401610b55565b60405180606001604052806001151581526020018260ff16815260200160006001600160601b0316815250600260008460200151848151811061239c5761239c614a43565b6020908102919091018101516001600160a01b03168252818101929092526040908101600020835181549385015194909201516001600160601b031662010000026dffffffffffffffffffffffff00001960ff959095166101000261ff00199315159390931661ffff1990941693909317919091179290921617905581518051600491908390811061243057612430614a43565b602090810291909101810151825460018101845560009384529282902090920180546001600160a01b0319166001600160a01b03909316929092179091558201518051600591908390811061248757612487614a43565b60209081029190910181015182546001810184556000938452919092200180546001600160a01b0319166001600160a01b03909216919091179055806124cc816149d8565b9150506121af565b506040810151600b805460ff191660ff909216919091179055600d805467ffffffff0000000019811664010000000063ffffffff438116820292831785559083048116936001939092600092612531928692908216911617614836565b92506101000a81548163ffffffff021916908363ffffffff1602179055506125904630600d60009054906101000a900463ffffffff1663ffffffff16856000015186602001518760400151886060015189608001518a60a00151613957565b600a819055600d54835160208501516040808701516060880151608089015160a08a015193517f1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05986125f9988b98919763ffffffff909116969195909490939092909190614743565b60405180910390a160005b82515181101561266d57600b54600160301b900463ffffffff16600682601f811061263157612631614a43565b600891828204019190066004026101000a81548163ffffffff021916908363ffffffff1602179055508080612665906149d8565b915050612604565b505050505050505050565b6001600160a01b03811660009081526002602090815260408083208151606081018352905460ff80821615158084526101008304909116948301949094526201000090046001600160601b031691810191909152906126da5750600092915050565b6006816020015160ff16601f81106126f4576126f4614a43565b600881049190910154600b54612727926007166004026101000a90910463ffffffff90811691600160301b900416614978565b9392505050565b6000808080803332146127835760405162461bcd60e51b815260206004820152601460248201527f4f6e6c792063616c6c61626c6520627920454f410000000000000000000000006044820152606401610b55565b5050600a54600b5463ffffffff600160301b820481166000908152600c60205260409020549296610100909204600881901c8216965064ffffffffff169450601783900b9350600160e01b90920490911690565b6127df612a2d565b60408051808201909152600e546001600160a01b03808216808452600160a01b90920463ffffffff166020840152841614158061282c57508163ffffffff16816020015163ffffffff1614155b156128cd576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052600e80547fffffffffffffffff000000000000000000000000000000000000000000000000168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6001600160a01b0382811660009081526013602052604090205416331461293b5760405162461bcd60e51b815260206004820152601d60248201527f6f6e6c792063757272656e742070617965652063616e207570646174650000006044820152606401610b55565b336001600160a01b03821614156129945760405162461bcd60e51b815260206004820152601760248201527f63616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610b55565b6001600160a01b03808316600090815260146020526040902080548383166001600160a01b0319821681179092559091169081146128cd576040516001600160a01b038084169133918616907f84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e3836790600090a4505050565b612a13612a2d565b61102d816139e5565b612a24612a2d565b61102d81613a8f565b6000546001600160a01b03163314612a875760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401610b55565b565b601154600b54604080516103e08101918290526001600160a01b0390931692600160301b90920463ffffffff1691600091600690601f908285855b82829054906101000a900463ffffffff1663ffffffff1681526020019060040190602082600301049283019260010382029150808411612ac45790505050505050905060006005805480602002602001604051908101604052809291908181526020018280548015612b5f57602002820191906000526020600020905b81546001600160a01b03168152600190910190602001808311612b41575b5050505050905060005b8151811015612e2457600060026000848481518110612b8a57612b8a614a43565b60200260200101516001600160a01b03166001600160a01b0316815260200190815260200160002060000160029054906101000a90046001600160601b03166001600160601b03169050600060026000858581518110612bec57612bec614a43565b60200260200101516001600160a01b03166001600160a01b0316815260200190815260200160002060000160026101000a8154816001600160601b0302191690836001600160601b0316021790555060008483601f8110612c4f57612c4f614a43565b6020020151600b5490870363ffffffff9081169250600160901b909104168102633b9aca000282018015612e1957600060136000878781518110612c9557612c95614a43565b6020908102919091018101516001600160a01b03908116835290820192909252604090810160002054905163a9059cbb60e01b815290821660048201819052602482018590529250908a169063a9059cbb90604401602060405180830381600087803b158015612d0457600080fd5b505af1158015612d18573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190612d3c91906142ea565b612d7d5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b55565b878786601f8110612d9057612d90614a43565b602002019063ffffffff16908163ffffffff1681525050886001600160a01b0316816001600160a01b0316878781518110612dcd57612dcd614a43565b60200260200101516001600160a01b03167fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c85604051612e0f91815260200190565b60405180910390a4505b505050600101612b69565b5061140b600683601f613e22565b6001600160a01b0381166000908152600260209081526040918290208251606081018452905460ff80821615158084526101008304909116938301939093526201000090046001600160601b031692810192909252612e8f575050565b6000612e9a83610863565b905080156128cd576001600160a01b038381166000908152601360205260409081902054601154915163a9059cbb60e01b8152908316600482018190526024820185905292919091169063a9059cbb90604401602060405180830381600087803b158015612f0757600080fd5b505af1158015612f1b573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190612f3f91906142ea565b612f805760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610b55565b600b60000160069054906101000a900463ffffffff166006846020015160ff16601f8110612fb057612fb0614a43565b6008810491909101805460079092166004026101000a63ffffffff8181021990931693909216919091029190911790556001600160a01b0384811660008181526002602090815260409182902080546dffffffffffffffffffffffff000019169055601154915186815291841693851692917fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c910160405180910390a450505050565b60006130608260206148a5565b61306b8560206148a5565b6130778861014461481e565b613081919061481e565b61308b919061481e565b61309690600061481e565b90503681146130e75760405162461bcd60e51b815260206004820152601860248201527f63616c6c64617461206c656e677468206d69736d6174636800000000000000006044820152606401610b55565b50505050505050565b6000806130fc83613afe565b9050601f81604001515111156131545760405162461bcd60e51b815260206004820152601e60248201527f6e756d206f62736572766174696f6e73206f7574206f6620626f756e647300006044820152606401610b55565b604081015151865160ff16106131ac5760405162461bcd60e51b815260206004820152601e60248201527f746f6f206665772076616c75657320746f207472757374206d656469616e00006044820152606401610b55565b64ffffffffff8416602087015260408101518051600091906131d090600290614883565b815181106131e0576131e0614a43565b602002602001015190508060170b7f000000000000000000000000000000000000000000000000000000000000000060170b1315801561324657507f000000000000000000000000000000000000000000000000000000000000000060170b8160170b13155b6132925760405162461bcd60e51b815260206004820152601e60248201527f6d656469616e206973206f7574206f66206d696e2d6d61782072616e676500006044820152606401610b55565b604087018051906132a2826149f3565b63ffffffff1663ffffffff168152505060405180606001604052808260170b8152602001836000015163ffffffff1681526020014263ffffffff16815250600c6000896040015163ffffffff1663ffffffff16815260200190815260200160002060008201518160000160006101000a81548177ffffffffffffffffffffffffffffffffffffffffffffffff021916908360170b77ffffffffffffffffffffffffffffffffffffffffffffffff16021790555060208201518160000160186101000a81548163ffffffff021916908363ffffffff160217905550604082015181600001601c6101000a81548163ffffffff021916908363ffffffff16021790555090505086600b60008201518160000160006101000a81548160ff021916908360ff16021790555060208201518160000160016101000a81548164ffffffffff021916908364ffffffffff16021790555060408201518160000160066101000a81548163ffffffff021916908363ffffffff160217905550606082015181600001600a6101000a81548163ffffffff021916908363ffffffff160217905550608082015181600001600e6101000a81548163ffffffff021916908363ffffffff16021790555060a08201518160000160126101000a81548163ffffffff021916908363ffffffff16021790555060c08201518160000160166101000a81548163ffffffff021916908363ffffffff16021790555060e082015181600001601a6101000a81548162ffffff021916908362ffffff160217905550905050866040015163ffffffff167fc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a823385600001518660400151876020015188606001518d8d6040516135369897969594939291906145f0565b60405180910390a26040808801518351915163ffffffff9283168152600092909116907f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac602719060200160405180910390a3866040015163ffffffff168160170b7f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f426040516135c691815260200190565b60405180910390a36135df87604001518260170b613ba3565b506060015195945050505050565b60008360170b12156135fe57611d9e565b6000613625633b9aca003a04866080015163ffffffff16876060015163ffffffff16613ce4565b90506010360260005a9050600061364e8663ffffffff1685858b60e0015162ffffff1686613d0a565b90506000670de0b6b3a764000077ffffffffffffffffffffffffffffffffffffffffffffffff891683026001600160a01b03881660009081526002602052604090205460c08c01519290910492506201000090046001600160601b039081169163ffffffff16633b9aca0002828401019081168211156136d45750505050505050611d9e565b6001600160a01b038816600090815260026020526040902080546001600160601b0390921662010000026dffffffffffffffffffffffff00001990921691909117905550505050505050505050565b600080600580548060200260200160405190810160405280929190818152602001828054801561377c57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161375e575b50508351600b54604080516103e08101918290529697509195600160301b90910463ffffffff169450600093509150600690601f908285855b82829054906101000a900463ffffffff1663ffffffff16815260200190600401906020826003010492830192600103820291508084116137b55790505050505050905060005b83811015613848578181601f811061381557613815614a43565b60200201516138249084614978565b6138349063ffffffff168761481e565b955080613840816149d8565b9150506137fb565b50600b5461386790600160901b900463ffffffff16633b9aca006148a5565b61387190866148a5565b945060005b838110156138e5576002600086838151811061389457613894614a43565b6020908102919091018101516001600160a01b03168252810191909152604001600020546138d1906201000090046001600160601b03168761481e565b9550806138dd816149d8565b915050613876565b505050505090565b6000818310156138fe575081613901565b50805b92915050565b8060001061102d5760405162461bcd60e51b815260206004820152601260248201527f66206d75737420626520706f73697469766500000000000000000000000000006044820152606401610b55565b6000808a8a8a8a8a8a8a8a8a60405160200161397b999897969594939291906146ab565b60408051601f1981840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150505b9998505050505050505050565b6001600160a01b038116331415613a3e5760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610b55565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6012546001600160a01b039081169082168114610bae57601280546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d489129101611485565b613b326040518060800160405280600063ffffffff1681526020016060815260200160608152602001600060170b81525090565b6000806060600085806020019051810190613b4d919061436c565b92965090945092509050613b618683613d6e565b81516040805160208082019690965281519082018252918252805160808101825263ffffffff969096168652938501529183015260170b606082015292915050565b60408051808201909152600e546001600160a01b038116808352600160a01b90910463ffffffff166020830152613bd957505050565b6000613be6600185614978565b63ffffffff8181166000818152600c60209081526040918290205490870151875192516024810194909452601791820b90910b60448401819052898516606485015260848401899052949550613c9893169160a40160408051601f198184030181529190526020810180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fbeed9b5100000000000000000000000000000000000000000000000000000000179052613de6565b61140b5760405162461bcd60e51b815260206004820152601060248201527f696e73756666696369656e7420676173000000000000000000000000000000006044820152606401610b55565b60008383811015613cf757600285850304015b613d0181846138ed565b95945050505050565b600081861015613d5c5760405162461bcd60e51b815260206004820181905260248201527f6c6566744761732063616e6e6f742065786365656420696e697469616c4761736044820152606401610b55565b50633b9aca0094039190910101020290565b600081516020613d7e91906148a5565b613d899060a061481e565b613d9490600061481e565b9050808351146128cd5760405162461bcd60e51b815260206004820152601660248201527f7265706f7274206c656e677468206d69736d61746368000000000000000000006044820152606401610b55565b60005a6113888110613e1a5761138881039050846040820482031115613e1a576000808451602086016000888af150600191505b509392505050565b600483019183908215613eae5791602002820160005b83821115613e7c57835183826101000a81548163ffffffff021916908363ffffffff1602179055509260200192600401602081600301049283019260010302613e38565b8015613eac5782816101000a81549063ffffffff0219169055600401602081600301049283019260010302613e7c565b505b50613eba929150613ebe565b5090565b5b80821115613eba5760008155600101613ebf565b60008083601f840112613ee557600080fd5b50813567ffffffffffffffff811115613efd57600080fd5b6020830191508360208260051b8501011115613f1857600080fd5b9250929050565b600082601f830112613f3057600080fd5b81356020613f45613f40836147fa565b6147c9565b80838252828201915082860187848660051b8901011115613f6557600080fd5b60005b85811015613f8d578135613f7b81614a6f565b84529284019290840190600101613f68565b5090979650505050505050565b600082601f830112613fab57600080fd5b813567ffffffffffffffff811115613fc557613fc5614a59565b613fd8601f8201601f19166020016147c9565b818152846020838601011115613fed57600080fd5b816020850160208301376000918101602001919091529392505050565b8051601781900b811461401c57600080fd5b919050565b803567ffffffffffffffff8116811461401c57600080fd5b803560ff8116811461401c57600080fd5b60006020828403121561405c57600080fd5b813561272781614a6f565b6000806040838503121561407a57600080fd5b823561408581614a6f565b9150602083013561409581614a6f565b809150509250929050565b600080604083850312156140b357600080fd5b82356140be81614a6f565b946020939093013593505050565b600080600080604085870312156140e257600080fd5b843567ffffffffffffffff808211156140fa57600080fd5b61410688838901613ed3565b9096509450602087013591508082111561411f57600080fd5b5061412c87828801613ed3565b95989497509550505050565b60008060008060008060c0878903121561415157600080fd5b863567ffffffffffffffff8082111561416957600080fd5b6141758a838b01613f1f565b9750602089013591508082111561418b57600080fd5b6141978a838b01613f1f565b96506141a560408a01614039565b955060608901359150808211156141bb57600080fd5b6141c78a838b01613f9a565b94506141d560808a01614021565b935060a08901359150808211156141eb57600080fd5b506141f889828a01613f9a565b9150509295509295509295565b60008060008060008060008060e0898b03121561422157600080fd5b606089018a81111561423257600080fd5b8998503567ffffffffffffffff8082111561424c57600080fd5b818b0191508b601f83011261426057600080fd5b81358181111561426f57600080fd5b8c602082850101111561428157600080fd5b6020830199508098505060808b013591508082111561429f57600080fd5b6142ab8c838d01613ed3565b909750955060a08b01359150808211156142c457600080fd5b506142d18b828c01613ed3565b999c989b50969995989497949560c00135949350505050565b6000602082840312156142fc57600080fd5b8151801515811461272757600080fd5b6000806040838503121561431f57600080fd5b823561432a81614a6f565b9150602083013561409581614a84565b60006020828403121561434c57600080fd5b5035919050565b60006020828403121561436557600080fd5b5051919050565b6000806000806080858703121561438257600080fd5b845161438d81614a84565b809450506020808601519350604086015167ffffffffffffffff8111156143b357600080fd5b8601601f810188136143c457600080fd5b80516143d2613f40826147fa565b8082825284820191508484018b868560051b87010111156143f257600080fd5b600094505b8385101561441c576144088161400a565b8352600194909401939185019185016143f7565b5080965050505050506144316060860161400a565b905092959194509250565b600080600080600060a0868803121561445457600080fd5b853561445f81614a84565b9450602086013561446f81614a84565b9350604086013561447f81614a84565b9250606086013561448f81614a84565b9150608086013562ffffff811681146144a757600080fd5b809150509295509295909350565b6000602082840312156144c757600080fd5b813569ffffffffffffffffffff8116811461272757600080fd5b600081518084526020808501945080840160005b8381101561451a5781516001600160a01b0316875295820195908201906001016144f5565b509495945050505050565b6000815180845260005b8181101561454b5760208185018101518683018201520161452f565b8181111561455d576000602083870101525b50601f01601f19169290920160200192915050565b8281526060826020830137600060809190910190815292915050565b8183823760009101908152919050565b6001600160a01b038416815260406020820152816040820152818360608301376000818301606090810191909152601f909201601f1916010192915050565b60208152600061272760208301846144e1565b600061010080830160178c810b855260206001600160a01b038d168187015263ffffffff8c1660408701528360608701528293508a5180845261012087019450818c01935060005b81811015614656578451840b86529482019493820193600101614638565b5050505050828103608084015261466d8188614525565b91505061467f60a083018660170b9052565b8360c08301526139d860e083018464ffffffffff169052565b6020815260006127276020830184614525565b60006101208b83526001600160a01b038b16602084015267ffffffffffffffff808b1660408501528160608501526146e58285018b6144e1565b915083820360808501526146f9828a6144e1565b915060ff881660a085015283820360c08501526147168288614525565b90861660e085015283810361010085015290506147338185614525565b9c9b505050505050505050505050565b600061012063ffffffff808d1684528b6020850152808b166040850152508060608401526147738184018a6144e1565b9050828103608084015261478781896144e1565b905060ff871660a084015282810360c08401526147a48187614525565b905067ffffffffffffffff851660e08401528281036101008401526147338185614525565b604051601f8201601f1916810167ffffffffffffffff811182821017156147f2576147f2614a59565b604052919050565b600067ffffffffffffffff82111561481457614814614a59565b5060051b60200190565b6000821982111561483157614831614a17565b500190565b600063ffffffff80831681851680830382111561485557614855614a17565b01949350505050565b600060ff821660ff84168060ff0382111561487b5761487b614a17565b019392505050565b6000826148a057634e487b7160e01b600052601260045260246000fd5b500490565b60008160001904831182151516156148bf576148bf614a17565b500290565b600060ff821660ff84168160ff04811182151516156148e5576148e5614a17565b029392505050565b6000808312837f80000000000000000000000000000000000000000000000000000000000000000183128115161561492757614927614a17565b837f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01831381161561495b5761495b614a17565b50500390565b60008282101561497357614973614a17565b500390565b600063ffffffff8381169083168181101561499557614995614a17565b039392505050565b600181811c908216806149b157607f821691505b602082108114156149d257634e487b7160e01b600052602260045260246000fd5b50919050565b60006000198214156149ec576149ec614a17565b5060010190565b600063ffffffff80831681811415614a0d57614a0d614a17565b6001019392505050565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b038116811461102d57600080fd5b63ffffffff8116811461102d57600080fdfea164736f6c6343000806000a"
 
 // DeployOCR2Aggregator deploys a new Ethereum contract, binding an instance of OCR2Aggregator to it.
-func DeployOCR2Aggregator(auth *bind.TransactOpts, backend bind.ContractBackend, _link common.Address, _minAnswer *big.Int, _maxAnswer *big.Int, _billingAccessController common.Address, _requesterAccessController common.Address, _decimals uint8, _description string) (common.Address, *types.Transaction, *OCR2Aggregator, error) {
+func DeployOCR2Aggregator(auth *bind.TransactOpts, backend bind.ContractBackend, link common.Address, minAnswer_ *big.Int, maxAnswer_ *big.Int, billingAccessController common.Address, requesterAccessController common.Address, decimals_ uint8, description_ string) (common.Address, *types.Transaction, *OCR2Aggregator, error) {
 	parsed, err := abi.JSON(strings.NewReader(OCR2AggregatorABI))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
 
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(OCR2AggregatorBin), backend, _link, _minAnswer, _maxAnswer, _billingAccessController, _requesterAccessController, _decimals, _description)
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(OCR2AggregatorBin), backend, link, minAnswer_, maxAnswer_, billingAccessController, requesterAccessController, decimals_, description_)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -8804,37 +9450,6 @@ func (_OCR2Aggregator *OCR2AggregatorTransactorRaw) Transact(opts *bind.Transact
 	return _OCR2Aggregator.Contract.contract.Transact(opts, method, params...)
 }
 
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_OCR2Aggregator *OCR2AggregatorCaller) BillingAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "billingAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_OCR2Aggregator *OCR2AggregatorSession) BillingAccessController() (common.Address, error) {
-	return _OCR2Aggregator.Contract.BillingAccessController(&_OCR2Aggregator.CallOpts)
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) BillingAccessController() (common.Address, error) {
-	return _OCR2Aggregator.Contract.BillingAccessController(&_OCR2Aggregator.CallOpts)
-}
-
 // Decimals is a free data retrieval call binding the contract method 0x313ce567.
 //
 // Solidity: function decimals() view returns(uint8)
@@ -8899,10 +9514,10 @@ func (_OCR2Aggregator *OCR2AggregatorCallerSession) Description() (string, error
 
 // GetAnswer is a free data retrieval call binding the contract method 0xb5ab58dc.
 //
-// Solidity: function getAnswer(uint256 _roundId) view returns(int256)
-func (_OCR2Aggregator *OCR2AggregatorCaller) GetAnswer(opts *bind.CallOpts, _roundId *big.Int) (*big.Int, error) {
+// Solidity: function getAnswer(uint256 roundId) view returns(int256)
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetAnswer(opts *bind.CallOpts, roundId *big.Int) (*big.Int, error) {
 	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "getAnswer", _roundId)
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getAnswer", roundId)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -8916,47 +9531,47 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) GetAnswer(opts *bind.CallOpts, _rou
 
 // GetAnswer is a free data retrieval call binding the contract method 0xb5ab58dc.
 //
-// Solidity: function getAnswer(uint256 _roundId) view returns(int256)
-func (_OCR2Aggregator *OCR2AggregatorSession) GetAnswer(_roundId *big.Int) (*big.Int, error) {
-	return _OCR2Aggregator.Contract.GetAnswer(&_OCR2Aggregator.CallOpts, _roundId)
+// Solidity: function getAnswer(uint256 roundId) view returns(int256)
+func (_OCR2Aggregator *OCR2AggregatorSession) GetAnswer(roundId *big.Int) (*big.Int, error) {
+	return _OCR2Aggregator.Contract.GetAnswer(&_OCR2Aggregator.CallOpts, roundId)
 }
 
 // GetAnswer is a free data retrieval call binding the contract method 0xb5ab58dc.
 //
-// Solidity: function getAnswer(uint256 _roundId) view returns(int256)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetAnswer(_roundId *big.Int) (*big.Int, error) {
-	return _OCR2Aggregator.Contract.GetAnswer(&_OCR2Aggregator.CallOpts, _roundId)
+// Solidity: function getAnswer(uint256 roundId) view returns(int256)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetAnswer(roundId *big.Int) (*big.Int, error) {
+	return _OCR2Aggregator.Contract.GetAnswer(&_OCR2Aggregator.CallOpts, roundId)
 }
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_OCR2Aggregator *OCR2AggregatorCaller) GetBilling(opts *bind.CallOpts) (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	var out []interface{}
 	err := _OCR2Aggregator.contract.Call(opts, &out, "getBilling")
 
 	outstruct := new(struct {
-		MaximumGasPrice         uint32
-		ReasonableGasPrice      uint32
-		MicroLinkPerEth         uint32
-		LinkGweiPerObservation  uint32
-		LinkGweiPerTransmission uint32
+		MaximumGasPriceGwei       uint32
+		ReasonableGasPriceGwei    uint32
+		ObservationPaymentGjuels  uint32
+		TransmissionPaymentGjuels uint32
+		AccountingGas             *big.Int
 	})
 	if err != nil {
 		return *outstruct, err
 	}
 
-	outstruct.MaximumGasPrice = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.ReasonableGasPrice = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.MicroLinkPerEth = *abi.ConvertType(out[2], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerObservation = *abi.ConvertType(out[3], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerTransmission = *abi.ConvertType(out[4], new(uint32)).(*uint32)
+	outstruct.MaximumGasPriceGwei = *abi.ConvertType(out[0], new(uint32)).(*uint32)
+	outstruct.ReasonableGasPriceGwei = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+	outstruct.ObservationPaymentGjuels = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+	outstruct.TransmissionPaymentGjuels = *abi.ConvertType(out[3], new(uint32)).(*uint32)
+	outstruct.AccountingGas = *abi.ConvertType(out[4], new(*big.Int)).(**big.Int)
 
 	return *outstruct, err
 
@@ -8964,28 +9579,59 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) GetBilling(opts *bind.CallOpts) (st
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_OCR2Aggregator *OCR2AggregatorSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	return _OCR2Aggregator.Contract.GetBilling(&_OCR2Aggregator.CallOpts)
 }
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	return _OCR2Aggregator.Contract.GetBilling(&_OCR2Aggregator.CallOpts)
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetBillingAccessController(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getBillingAccessController")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_OCR2Aggregator *OCR2AggregatorSession) GetBillingAccessController() (common.Address, error) {
+	return _OCR2Aggregator.Contract.GetBillingAccessController(&_OCR2Aggregator.CallOpts)
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetBillingAccessController() (common.Address, error) {
+	return _OCR2Aggregator.Contract.GetBillingAccessController(&_OCR2Aggregator.CallOpts)
 }
 
 // GetLinkToken is a free data retrieval call binding the contract method 0xe76d5168.
@@ -9019,10 +9665,41 @@ func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetLinkToken() (common.Addre
 	return _OCR2Aggregator.Contract.GetLinkToken(&_OCR2Aggregator.CallOpts)
 }
 
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetRequesterAccessController(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getRequesterAccessController")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_OCR2Aggregator *OCR2AggregatorSession) GetRequesterAccessController() (common.Address, error) {
+	return _OCR2Aggregator.Contract.GetRequesterAccessController(&_OCR2Aggregator.CallOpts)
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetRequesterAccessController() (common.Address, error) {
+	return _OCR2Aggregator.Contract.GetRequesterAccessController(&_OCR2Aggregator.CallOpts)
+}
+
 // GetRoundData is a free data retrieval call binding the contract method 0x9a6fc8f5.
 //
-// Solidity: function getRoundData(uint80 _roundId) view returns(uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-func (_OCR2Aggregator *OCR2AggregatorCaller) GetRoundData(opts *bind.CallOpts, _roundId *big.Int) (struct {
+// Solidity: function getRoundData(uint80 roundId) view returns(uint80 roundId_, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetRoundData(opts *bind.CallOpts, roundId *big.Int) (struct {
 	RoundId         *big.Int
 	Answer          *big.Int
 	StartedAt       *big.Int
@@ -9030,7 +9707,7 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) GetRoundData(opts *bind.CallOpts, _
 	AnsweredInRound *big.Int
 }, error) {
 	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "getRoundData", _roundId)
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getRoundData", roundId)
 
 	outstruct := new(struct {
 		RoundId         *big.Int
@@ -9055,36 +9732,36 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) GetRoundData(opts *bind.CallOpts, _
 
 // GetRoundData is a free data retrieval call binding the contract method 0x9a6fc8f5.
 //
-// Solidity: function getRoundData(uint80 _roundId) view returns(uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-func (_OCR2Aggregator *OCR2AggregatorSession) GetRoundData(_roundId *big.Int) (struct {
+// Solidity: function getRoundData(uint80 roundId) view returns(uint80 roundId_, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+func (_OCR2Aggregator *OCR2AggregatorSession) GetRoundData(roundId *big.Int) (struct {
 	RoundId         *big.Int
 	Answer          *big.Int
 	StartedAt       *big.Int
 	UpdatedAt       *big.Int
 	AnsweredInRound *big.Int
 }, error) {
-	return _OCR2Aggregator.Contract.GetRoundData(&_OCR2Aggregator.CallOpts, _roundId)
+	return _OCR2Aggregator.Contract.GetRoundData(&_OCR2Aggregator.CallOpts, roundId)
 }
 
 // GetRoundData is a free data retrieval call binding the contract method 0x9a6fc8f5.
 //
-// Solidity: function getRoundData(uint80 _roundId) view returns(uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetRoundData(_roundId *big.Int) (struct {
+// Solidity: function getRoundData(uint80 roundId) view returns(uint80 roundId_, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetRoundData(roundId *big.Int) (struct {
 	RoundId         *big.Int
 	Answer          *big.Int
 	StartedAt       *big.Int
 	UpdatedAt       *big.Int
 	AnsweredInRound *big.Int
 }, error) {
-	return _OCR2Aggregator.Contract.GetRoundData(&_OCR2Aggregator.CallOpts, _roundId)
+	return _OCR2Aggregator.Contract.GetRoundData(&_OCR2Aggregator.CallOpts, roundId)
 }
 
 // GetTimestamp is a free data retrieval call binding the contract method 0xb633620c.
 //
-// Solidity: function getTimestamp(uint256 _roundId) view returns(uint256)
-func (_OCR2Aggregator *OCR2AggregatorCaller) GetTimestamp(opts *bind.CallOpts, _roundId *big.Int) (*big.Int, error) {
+// Solidity: function getTimestamp(uint256 roundId) view returns(uint256)
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetTimestamp(opts *bind.CallOpts, roundId *big.Int) (*big.Int, error) {
 	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "getTimestamp", _roundId)
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getTimestamp", roundId)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -9098,16 +9775,92 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) GetTimestamp(opts *bind.CallOpts, _
 
 // GetTimestamp is a free data retrieval call binding the contract method 0xb633620c.
 //
-// Solidity: function getTimestamp(uint256 _roundId) view returns(uint256)
-func (_OCR2Aggregator *OCR2AggregatorSession) GetTimestamp(_roundId *big.Int) (*big.Int, error) {
-	return _OCR2Aggregator.Contract.GetTimestamp(&_OCR2Aggregator.CallOpts, _roundId)
+// Solidity: function getTimestamp(uint256 roundId) view returns(uint256)
+func (_OCR2Aggregator *OCR2AggregatorSession) GetTimestamp(roundId *big.Int) (*big.Int, error) {
+	return _OCR2Aggregator.Contract.GetTimestamp(&_OCR2Aggregator.CallOpts, roundId)
 }
 
 // GetTimestamp is a free data retrieval call binding the contract method 0xb633620c.
 //
-// Solidity: function getTimestamp(uint256 _roundId) view returns(uint256)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetTimestamp(_roundId *big.Int) (*big.Int, error) {
-	return _OCR2Aggregator.Contract.GetTimestamp(&_OCR2Aggregator.CallOpts, _roundId)
+// Solidity: function getTimestamp(uint256 roundId) view returns(uint256)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetTimestamp(roundId *big.Int) (*big.Int, error) {
+	return _OCR2Aggregator.Contract.GetTimestamp(&_OCR2Aggregator.CallOpts, roundId)
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetTransmitters(opts *bind.CallOpts) ([]common.Address, error) {
+	var out []interface{}
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getTransmitters")
+
+	if err != nil {
+		return *new([]common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
+
+	return out0, err
+
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_OCR2Aggregator *OCR2AggregatorSession) GetTransmitters() ([]common.Address, error) {
+	return _OCR2Aggregator.Contract.GetTransmitters(&_OCR2Aggregator.CallOpts)
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetTransmitters() ([]common.Address, error) {
+	return _OCR2Aggregator.Contract.GetTransmitters(&_OCR2Aggregator.CallOpts)
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_OCR2Aggregator *OCR2AggregatorCaller) GetValidatorConfig(opts *bind.CallOpts) (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	var out []interface{}
+	err := _OCR2Aggregator.contract.Call(opts, &out, "getValidatorConfig")
+
+	outstruct := new(struct {
+		Validator common.Address
+		GasLimit  uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	outstruct.GasLimit = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_OCR2Aggregator *OCR2AggregatorSession) GetValidatorConfig() (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	return _OCR2Aggregator.Contract.GetValidatorConfig(&_OCR2Aggregator.CallOpts)
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) GetValidatorConfig() (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	return _OCR2Aggregator.Contract.GetValidatorConfig(&_OCR2Aggregator.CallOpts)
 }
 
 // LatestAnswer is a free data retrieval call binding the contract method 0x50d25bcd.
@@ -9189,6 +9942,56 @@ func (_OCR2Aggregator *OCR2AggregatorCallerSession) LatestConfigDetails() (struc
 	ConfigDigest [32]byte
 }, error) {
 	return _OCR2Aggregator.Contract.LatestConfigDetails(&_OCR2Aggregator.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_OCR2Aggregator *OCR2AggregatorCaller) LatestConfigDigestAndEpoch(opts *bind.CallOpts) (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	var out []interface{}
+	err := _OCR2Aggregator.contract.Call(opts, &out, "latestConfigDigestAndEpoch")
+
+	outstruct := new(struct {
+		ScanLogs     bool
+		ConfigDigest [32]byte
+		Epoch        uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.ScanLogs = *abi.ConvertType(out[0], new(bool)).(*bool)
+	outstruct.ConfigDigest = *abi.ConvertType(out[1], new([32]byte)).(*[32]byte)
+	outstruct.Epoch = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_OCR2Aggregator *OCR2AggregatorSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _OCR2Aggregator.Contract.LatestConfigDigestAndEpoch(&_OCR2Aggregator.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _OCR2Aggregator.Contract.LatestConfigDigestAndEpoch(&_OCR2Aggregator.CallOpts)
 }
 
 // LatestRound is a free data retrieval call binding the contract method 0x668a0f02.
@@ -9315,7 +10118,7 @@ func (_OCR2Aggregator *OCR2AggregatorCallerSession) LatestTimestamp() (*big.Int,
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_OCR2Aggregator *OCR2AggregatorCaller) LatestTransmissionDetails(opts *bind.CallOpts) (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -9349,7 +10152,7 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) LatestTransmissionDetails(opts *bin
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_OCR2Aggregator *OCR2AggregatorSession) LatestTransmissionDetails() (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -9362,7 +10165,7 @@ func (_OCR2Aggregator *OCR2AggregatorSession) LatestTransmissionDetails() (struc
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_OCR2Aggregator *OCR2AggregatorCallerSession) LatestTransmissionDetails() (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -9468,16 +10271,16 @@ func (_OCR2Aggregator *OCR2AggregatorCallerSession) MinAnswer() (*big.Int, error
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_OCR2Aggregator *OCR2AggregatorCaller) OracleObservationCount(opts *bind.CallOpts, _signerOrTransmitter common.Address) (uint16, error) {
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_OCR2Aggregator *OCR2AggregatorCaller) OracleObservationCount(opts *bind.CallOpts, transmitterAddress common.Address) (uint32, error) {
 	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "oracleObservationCount", _signerOrTransmitter)
+	err := _OCR2Aggregator.contract.Call(opts, &out, "oracleObservationCount", transmitterAddress)
 
 	if err != nil {
-		return *new(uint16), err
+		return *new(uint32), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint16)).(*uint16)
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
 
 	return out0, err
 
@@ -9485,24 +10288,24 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) OracleObservationCount(opts *bind.C
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_OCR2Aggregator *OCR2AggregatorSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _OCR2Aggregator.Contract.OracleObservationCount(&_OCR2Aggregator.CallOpts, _signerOrTransmitter)
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_OCR2Aggregator *OCR2AggregatorSession) OracleObservationCount(transmitterAddress common.Address) (uint32, error) {
+	return _OCR2Aggregator.Contract.OracleObservationCount(&_OCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _OCR2Aggregator.Contract.OracleObservationCount(&_OCR2Aggregator.CallOpts, _signerOrTransmitter)
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) OracleObservationCount(transmitterAddress common.Address) (uint32, error) {
+	return _OCR2Aggregator.Contract.OracleObservationCount(&_OCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_OCR2Aggregator *OCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, _transmitter common.Address) (*big.Int, error) {
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_OCR2Aggregator *OCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, transmitterAddress common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "owedPayment", _transmitter)
+	err := _OCR2Aggregator.contract.Call(opts, &out, "owedPayment", transmitterAddress)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -9516,16 +10319,16 @@ func (_OCR2Aggregator *OCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, _t
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_OCR2Aggregator *OCR2AggregatorSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _OCR2Aggregator.Contract.OwedPayment(&_OCR2Aggregator.CallOpts, _transmitter)
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_OCR2Aggregator *OCR2AggregatorSession) OwedPayment(transmitterAddress common.Address) (*big.Int, error) {
+	return _OCR2Aggregator.Contract.OwedPayment(&_OCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _OCR2Aggregator.Contract.OwedPayment(&_OCR2Aggregator.CallOpts, _transmitter)
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_OCR2Aggregator *OCR2AggregatorCallerSession) OwedPayment(transmitterAddress common.Address) (*big.Int, error) {
+	return _OCR2Aggregator.Contract.OwedPayment(&_OCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
@@ -9559,68 +10362,6 @@ func (_OCR2Aggregator *OCR2AggregatorCallerSession) Owner() (common.Address, err
 	return _OCR2Aggregator.Contract.Owner(&_OCR2Aggregator.CallOpts)
 }
 
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_OCR2Aggregator *OCR2AggregatorCaller) RequesterAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "requesterAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_OCR2Aggregator *OCR2AggregatorSession) RequesterAccessController() (common.Address, error) {
-	return _OCR2Aggregator.Contract.RequesterAccessController(&_OCR2Aggregator.CallOpts)
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) RequesterAccessController() (common.Address, error) {
-	return _OCR2Aggregator.Contract.RequesterAccessController(&_OCR2Aggregator.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2Aggregator *OCR2AggregatorCaller) Transmitters(opts *bind.CallOpts) ([]common.Address, error) {
-	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "transmitters")
-
-	if err != nil {
-		return *new([]common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
-
-	return out0, err
-
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2Aggregator *OCR2AggregatorSession) Transmitters() ([]common.Address, error) {
-	return _OCR2Aggregator.Contract.Transmitters(&_OCR2Aggregator.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) Transmitters() ([]common.Address, error) {
-	return _OCR2Aggregator.Contract.Transmitters(&_OCR2Aggregator.CallOpts)
-}
-
 // TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
 //
 // Solidity: function typeAndVersion() pure returns(string)
@@ -9650,51 +10391,6 @@ func (_OCR2Aggregator *OCR2AggregatorSession) TypeAndVersion() (string, error) {
 // Solidity: function typeAndVersion() pure returns(string)
 func (_OCR2Aggregator *OCR2AggregatorCallerSession) TypeAndVersion() (string, error) {
 	return _OCR2Aggregator.Contract.TypeAndVersion(&_OCR2Aggregator.CallOpts)
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_OCR2Aggregator *OCR2AggregatorCaller) ValidatorConfig(opts *bind.CallOpts) (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	var out []interface{}
-	err := _OCR2Aggregator.contract.Call(opts, &out, "validatorConfig")
-
-	outstruct := new(struct {
-		Validator common.Address
-		GasLimit  uint32
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-	outstruct.GasLimit = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-
-	return *outstruct, err
-
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_OCR2Aggregator *OCR2AggregatorSession) ValidatorConfig() (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	return _OCR2Aggregator.Contract.ValidatorConfig(&_OCR2Aggregator.CallOpts)
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_OCR2Aggregator *OCR2AggregatorCallerSession) ValidatorConfig() (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	return _OCR2Aggregator.Contract.ValidatorConfig(&_OCR2Aggregator.CallOpts)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
@@ -9751,23 +10447,23 @@ func (_OCR2Aggregator *OCR2AggregatorTransactorSession) AcceptOwnership() (*type
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) AcceptPayeeship(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "acceptPayeeship", _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) AcceptPayeeship(opts *bind.TransactOpts, transmitter common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "acceptPayeeship", transmitter)
 }
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.AcceptPayeeship(&_OCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) AcceptPayeeship(transmitter common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.AcceptPayeeship(&_OCR2Aggregator.TransactOpts, transmitter)
 }
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.AcceptPayeeship(&_OCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) AcceptPayeeship(transmitter common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.AcceptPayeeship(&_OCR2Aggregator.TransactOpts, transmitter)
 }
 
 // RequestNewRound is a paid mutator transaction binding the contract method 0x98e5b12a.
@@ -9791,25 +10487,25 @@ func (_OCR2Aggregator *OCR2AggregatorTransactorSession) RequestNewRound() (*type
 	return _OCR2Aggregator.Contract.RequestNewRound(&_OCR2Aggregator.TransactOpts)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) SetBilling(opts *bind.TransactOpts, _maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "setBilling", _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) SetBilling(opts *bind.TransactOpts, maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "setBilling", maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetBilling(&_OCR2Aggregator.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) SetBilling(maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetBilling(&_OCR2Aggregator.TransactOpts, maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetBilling(&_OCR2Aggregator.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetBilling(maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetBilling(&_OCR2Aggregator.TransactOpts, maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
 // SetBillingAccessController is a paid mutator transaction binding the contract method 0xfbffd2c1.
@@ -9835,107 +10531,107 @@ func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetBillingAccessControll
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) SetConfig(opts *bind.TransactOpts, _signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "setConfig", _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) SetConfig(opts *bind.TransactOpts, signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "setConfig", signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetConfig(&_OCR2Aggregator.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetConfig(&_OCR2Aggregator.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetConfig(&_OCR2Aggregator.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetConfig(&_OCR2Aggregator.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) SetLinkToken(opts *bind.TransactOpts, _linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "setLinkToken", _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) SetLinkToken(opts *bind.TransactOpts, linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "setLinkToken", linkToken, recipient)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetLinkToken(&_OCR2Aggregator.TransactOpts, _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) SetLinkToken(linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetLinkToken(&_OCR2Aggregator.TransactOpts, linkToken, recipient)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetLinkToken(&_OCR2Aggregator.TransactOpts, _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetLinkToken(linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetLinkToken(&_OCR2Aggregator.TransactOpts, linkToken, recipient)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) SetPayees(opts *bind.TransactOpts, _transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "setPayees", _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) SetPayees(opts *bind.TransactOpts, transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "setPayees", transmitters, payees)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetPayees(&_OCR2Aggregator.TransactOpts, _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) SetPayees(transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetPayees(&_OCR2Aggregator.TransactOpts, transmitters, payees)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetPayees(&_OCR2Aggregator.TransactOpts, _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetPayees(transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetPayees(&_OCR2Aggregator.TransactOpts, transmitters, payees)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) SetRequesterAccessController(opts *bind.TransactOpts, _requesterAccessController common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "setRequesterAccessController", _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) SetRequesterAccessController(opts *bind.TransactOpts, requesterAccessController common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "setRequesterAccessController", requesterAccessController)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) SetRequesterAccessController(_requesterAccessController common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetRequesterAccessController(&_OCR2Aggregator.TransactOpts, _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) SetRequesterAccessController(requesterAccessController common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetRequesterAccessController(&_OCR2Aggregator.TransactOpts, requesterAccessController)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetRequesterAccessController(_requesterAccessController common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetRequesterAccessController(&_OCR2Aggregator.TransactOpts, _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetRequesterAccessController(requesterAccessController common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetRequesterAccessController(&_OCR2Aggregator.TransactOpts, requesterAccessController)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) SetValidatorConfig(opts *bind.TransactOpts, _newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "setValidatorConfig", _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) SetValidatorConfig(opts *bind.TransactOpts, newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "setValidatorConfig", newValidator, newGasLimit)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) SetValidatorConfig(_newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetValidatorConfig(&_OCR2Aggregator.TransactOpts, _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) SetValidatorConfig(newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetValidatorConfig(&_OCR2Aggregator.TransactOpts, newValidator, newGasLimit)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetValidatorConfig(_newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.SetValidatorConfig(&_OCR2Aggregator.TransactOpts, _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) SetValidatorConfig(newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.SetValidatorConfig(&_OCR2Aggregator.TransactOpts, newValidator, newGasLimit)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
@@ -9961,23 +10657,23 @@ func (_OCR2Aggregator *OCR2AggregatorTransactorSession) TransferOwnership(to com
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) TransferPayeeship(opts *bind.TransactOpts, _transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "transferPayeeship", _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) TransferPayeeship(opts *bind.TransactOpts, transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "transferPayeeship", transmitter, proposed)
 }
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.TransferPayeeship(&_OCR2Aggregator.TransactOpts, _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) TransferPayeeship(transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.TransferPayeeship(&_OCR2Aggregator.TransactOpts, transmitter, proposed)
 }
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.TransferPayeeship(&_OCR2Aggregator.TransactOpts, _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) TransferPayeeship(transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.TransferPayeeship(&_OCR2Aggregator.TransactOpts, transmitter, proposed)
 }
 
 // Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
@@ -10003,44 +10699,44 @@ func (_OCR2Aggregator *OCR2AggregatorTransactorSession) Transmit(reportContext [
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) WithdrawFunds(opts *bind.TransactOpts, _recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "withdrawFunds", _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) WithdrawFunds(opts *bind.TransactOpts, recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "withdrawFunds", recipient, amount)
 }
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.WithdrawFunds(&_OCR2Aggregator.TransactOpts, _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) WithdrawFunds(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.WithdrawFunds(&_OCR2Aggregator.TransactOpts, recipient, amount)
 }
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.WithdrawFunds(&_OCR2Aggregator.TransactOpts, _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) WithdrawFunds(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.WithdrawFunds(&_OCR2Aggregator.TransactOpts, recipient, amount)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactor) WithdrawPayment(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.contract.Transact(opts, "withdrawPayment", _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactor) WithdrawPayment(opts *bind.TransactOpts, transmitter common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.contract.Transact(opts, "withdrawPayment", transmitter)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_OCR2Aggregator *OCR2AggregatorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.WithdrawPayment(&_OCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_OCR2Aggregator *OCR2AggregatorSession) WithdrawPayment(transmitter common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.WithdrawPayment(&_OCR2Aggregator.TransactOpts, transmitter)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_OCR2Aggregator *OCR2AggregatorTransactorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2Aggregator.Contract.WithdrawPayment(&_OCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_OCR2Aggregator *OCR2AggregatorTransactorSession) WithdrawPayment(transmitter common.Address) (*types.Transaction, error) {
+	return _OCR2Aggregator.Contract.WithdrawPayment(&_OCR2Aggregator.TransactOpts, transmitter)
 }
 
 // OCR2AggregatorAnswerUpdatedIterator is returned from FilterAnswerUpdated and is used to iterate over the raw logs and unpacked data for AnswerUpdated events raised by the OCR2Aggregator contract.
@@ -10401,17 +11097,17 @@ func (it *OCR2AggregatorBillingSetIterator) Close() error {
 
 // OCR2AggregatorBillingSet represents a BillingSet event raised by the OCR2Aggregator contract.
 type OCR2AggregatorBillingSet struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-	Raw                     types.Log // Blockchain specific contextual infos
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
+	Raw                       types.Log // Blockchain specific contextual infos
 }
 
-// FilterBillingSet is a free log retrieval operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// FilterBillingSet is a free log retrieval operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterBillingSet(opts *bind.FilterOpts) (*OCR2AggregatorBillingSetIterator, error) {
 
 	logs, sub, err := _OCR2Aggregator.contract.FilterLogs(opts, "BillingSet")
@@ -10421,9 +11117,9 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterBillingSet(opts *bind.Filte
 	return &OCR2AggregatorBillingSetIterator{contract: _OCR2Aggregator.contract, event: "BillingSet", logs: logs, sub: sub}, nil
 }
 
-// WatchBillingSet is a free log subscription operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// WatchBillingSet is a free log subscription operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchBillingSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingSet) (event.Subscription, error) {
 
 	logs, sub, err := _OCR2Aggregator.contract.WatchLogs(opts, "BillingSet")
@@ -10458,9 +11154,9 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchBillingSet(opts *bind.WatchO
 	}), nil
 }
 
-// ParseBillingSet is a log parse operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// ParseBillingSet is a log parse operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseBillingSet(log types.Log) (*OCR2AggregatorBillingSet, error) {
 	event := new(OCR2AggregatorBillingSet)
 	if err := _OCR2Aggregator.contract.UnpackLog(event, "BillingSet", log); err != nil {
@@ -10546,14 +11242,14 @@ type OCR2AggregatorConfigSet struct {
 	Transmitters              []common.Address
 	F                         uint8
 	OnchainConfig             []byte
-	EncodedConfigVersion      uint64
-	Encoded                   []byte
+	OffchainConfigVersion     uint64
+	OffchainConfig            []byte
 	Raw                       types.Log // Blockchain specific contextual infos
 }
 
 // FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterConfigSet(opts *bind.FilterOpts) (*OCR2AggregatorConfigSetIterator, error) {
 
 	logs, sub, err := _OCR2Aggregator.contract.FilterLogs(opts, "ConfigSet")
@@ -10565,7 +11261,7 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterConfigSet(opts *bind.Filter
 
 // WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorConfigSet) (event.Subscription, error) {
 
 	logs, sub, err := _OCR2Aggregator.contract.WatchLogs(opts, "ConfigSet")
@@ -10602,7 +11298,7 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchConfigSet(opts *bind.WatchOp
 
 // ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseConfigSet(log types.Log) (*OCR2AggregatorConfigSet, error) {
 	event := new(OCR2AggregatorConfigSet)
 	if err := _OCR2Aggregator.contract.UnpackLog(event, "ConfigSet", log); err != nil {
@@ -10688,19 +11384,19 @@ type OCR2AggregatorLinkTokenSet struct {
 
 // FilterLinkTokenSet is a free log retrieval operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, _oldLinkToken []common.Address, _newLinkToken []common.Address) (*OCR2AggregatorLinkTokenSetIterator, error) {
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
+func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, oldLinkToken []common.Address, newLinkToken []common.Address) (*OCR2AggregatorLinkTokenSetIterator, error) {
 
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
+	var oldLinkTokenRule []interface{}
+	for _, oldLinkTokenItem := range oldLinkToken {
+		oldLinkTokenRule = append(oldLinkTokenRule, oldLinkTokenItem)
 	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
+	var newLinkTokenRule []interface{}
+	for _, newLinkTokenItem := range newLinkToken {
+		newLinkTokenRule = append(newLinkTokenRule, newLinkTokenItem)
 	}
 
-	logs, sub, err := _OCR2Aggregator.contract.FilterLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
+	logs, sub, err := _OCR2Aggregator.contract.FilterLogs(opts, "LinkTokenSet", oldLinkTokenRule, newLinkTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -10709,19 +11405,19 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.Fil
 
 // WatchLinkTokenSet is a free log subscription operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorLinkTokenSet, _oldLinkToken []common.Address, _newLinkToken []common.Address) (event.Subscription, error) {
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
+func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorLinkTokenSet, oldLinkToken []common.Address, newLinkToken []common.Address) (event.Subscription, error) {
 
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
+	var oldLinkTokenRule []interface{}
+	for _, oldLinkTokenItem := range oldLinkToken {
+		oldLinkTokenRule = append(oldLinkTokenRule, oldLinkTokenItem)
 	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
+	var newLinkTokenRule []interface{}
+	for _, newLinkTokenItem := range newLinkToken {
+		newLinkTokenRule = append(newLinkTokenRule, newLinkTokenItem)
 	}
 
-	logs, sub, err := _OCR2Aggregator.contract.WatchLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
+	logs, sub, err := _OCR2Aggregator.contract.WatchLogs(opts, "LinkTokenSet", oldLinkTokenRule, newLinkTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -10755,7 +11451,7 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.Watc
 
 // ParseLinkTokenSet is a log parse operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseLinkTokenSet(log types.Log) (*OCR2AggregatorLinkTokenSet, error) {
 	event := new(OCR2AggregatorLinkTokenSet)
 	if err := _OCR2Aggregator.contract.UnpackLog(event, "LinkTokenSet", log); err != nil {
@@ -10994,14 +11690,15 @@ type OCR2AggregatorNewTransmission struct {
 	ObservationsTimestamp uint32
 	Observations          []*big.Int
 	Observers             []byte
+	JuelsPerEth           *big.Int
 	ConfigDigest          [32]byte
 	EpochAndRound         *big.Int
 	Raw                   types.Log // Blockchain specific contextual infos
 }
 
-// FilterNewTransmission is a free log retrieval operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// FilterNewTransmission is a free log retrieval operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterNewTransmission(opts *bind.FilterOpts, aggregatorRoundId []uint32) (*OCR2AggregatorNewTransmissionIterator, error) {
 
 	var aggregatorRoundIdRule []interface{}
@@ -11016,9 +11713,9 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterNewTransmission(opts *bind.
 	return &OCR2AggregatorNewTransmissionIterator{contract: _OCR2Aggregator.contract, event: "NewTransmission", logs: logs, sub: sub}, nil
 }
 
-// WatchNewTransmission is a free log subscription operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// WatchNewTransmission is a free log subscription operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchNewTransmission(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorNewTransmission, aggregatorRoundId []uint32) (event.Subscription, error) {
 
 	var aggregatorRoundIdRule []interface{}
@@ -11058,9 +11755,9 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchNewTransmission(opts *bind.W
 	}), nil
 }
 
-// ParseNewTransmission is a log parse operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// ParseNewTransmission is a log parse operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseNewTransmission(log types.Log) (*OCR2AggregatorNewTransmission, error) {
 	event := new(OCR2AggregatorNewTransmission)
 	if err := _OCR2Aggregator.contract.UnpackLog(event, "NewTransmission", log); err != nil {
@@ -12147,9 +12844,9 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseRoundRequested(log types.Log
 	return event, nil
 }
 
-// OCR2AggregatorTransmitedIterator is returned from FilterTransmited and is used to iterate over the raw logs and unpacked data for Transmited events raised by the OCR2Aggregator contract.
-type OCR2AggregatorTransmitedIterator struct {
-	Event *OCR2AggregatorTransmited // Event containing the contract specifics and raw log
+// OCR2AggregatorTransmittedIterator is returned from FilterTransmitted and is used to iterate over the raw logs and unpacked data for Transmitted events raised by the OCR2Aggregator contract.
+type OCR2AggregatorTransmittedIterator struct {
+	Event *OCR2AggregatorTransmitted // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -12163,7 +12860,7 @@ type OCR2AggregatorTransmitedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorTransmitedIterator) Next() bool {
+func (it *OCR2AggregatorTransmittedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -12172,7 +12869,7 @@ func (it *OCR2AggregatorTransmitedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorTransmited)
+			it.Event = new(OCR2AggregatorTransmitted)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -12187,7 +12884,7 @@ func (it *OCR2AggregatorTransmitedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorTransmited)
+		it.Event = new(OCR2AggregatorTransmitted)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -12203,42 +12900,42 @@ func (it *OCR2AggregatorTransmitedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorTransmitedIterator) Error() error {
+func (it *OCR2AggregatorTransmittedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *OCR2AggregatorTransmitedIterator) Close() error {
+func (it *OCR2AggregatorTransmittedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// OCR2AggregatorTransmited represents a Transmited event raised by the OCR2Aggregator contract.
-type OCR2AggregatorTransmited struct {
+// OCR2AggregatorTransmitted represents a Transmitted event raised by the OCR2Aggregator contract.
+type OCR2AggregatorTransmitted struct {
 	ConfigDigest [32]byte
 	Epoch        uint32
 	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterTransmited is a free log retrieval operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// FilterTransmitted is a free log retrieval operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterTransmited(opts *bind.FilterOpts) (*OCR2AggregatorTransmitedIterator, error) {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_OCR2Aggregator *OCR2AggregatorFilterer) FilterTransmitted(opts *bind.FilterOpts) (*OCR2AggregatorTransmittedIterator, error) {
 
-	logs, sub, err := _OCR2Aggregator.contract.FilterLogs(opts, "Transmited")
+	logs, sub, err := _OCR2Aggregator.contract.FilterLogs(opts, "Transmitted")
 	if err != nil {
 		return nil, err
 	}
-	return &OCR2AggregatorTransmitedIterator{contract: _OCR2Aggregator.contract, event: "Transmited", logs: logs, sub: sub}, nil
+	return &OCR2AggregatorTransmittedIterator{contract: _OCR2Aggregator.contract, event: "Transmitted", logs: logs, sub: sub}, nil
 }
 
-// WatchTransmited is a free log subscription operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// WatchTransmitted is a free log subscription operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchTransmited(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorTransmited) (event.Subscription, error) {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchTransmitted(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorTransmitted) (event.Subscription, error) {
 
-	logs, sub, err := _OCR2Aggregator.contract.WatchLogs(opts, "Transmited")
+	logs, sub, err := _OCR2Aggregator.contract.WatchLogs(opts, "Transmitted")
 	if err != nil {
 		return nil, err
 	}
@@ -12248,8 +12945,8 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchTransmited(opts *bind.WatchO
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorTransmited)
-				if err := _OCR2Aggregator.contract.UnpackLog(event, "Transmited", log); err != nil {
+				event := new(OCR2AggregatorTransmitted)
+				if err := _OCR2Aggregator.contract.UnpackLog(event, "Transmitted", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -12270,12 +12967,12 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchTransmited(opts *bind.WatchO
 	}), nil
 }
 
-// ParseTransmited is a log parse operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// ParseTransmitted is a log parse operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseTransmited(log types.Log) (*OCR2AggregatorTransmited, error) {
-	event := new(OCR2AggregatorTransmited)
-	if err := _OCR2Aggregator.contract.UnpackLog(event, "Transmited", log); err != nil {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseTransmitted(log types.Log) (*OCR2AggregatorTransmitted, error) {
+	event := new(OCR2AggregatorTransmitted)
+	if err := _OCR2Aggregator.contract.UnpackLog(event, "Transmitted", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -12433,3214 +13130,6 @@ func (_OCR2Aggregator *OCR2AggregatorFilterer) WatchValidatorConfigSet(opts *bin
 func (_OCR2Aggregator *OCR2AggregatorFilterer) ParseValidatorConfigSet(log types.Log) (*OCR2AggregatorValidatorConfigSet, error) {
 	event := new(OCR2AggregatorValidatorConfigSet)
 	if err := _OCR2Aggregator.contract.UnpackLog(event, "ValidatorConfigSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingABI is the input ABI used to generate the binding from.
-const OCR2AggregatorBillingABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"encodedConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"encoded\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmited\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"billingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_signerOrTransmitter\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"_f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"transmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
-
-// OCR2AggregatorBilling is an auto generated Go binding around an Ethereum contract.
-type OCR2AggregatorBilling struct {
-	OCR2AggregatorBillingCaller     // Read-only binding to the contract
-	OCR2AggregatorBillingTransactor // Write-only binding to the contract
-	OCR2AggregatorBillingFilterer   // Log filterer for contract events
-}
-
-// OCR2AggregatorBillingCaller is an auto generated read-only Go binding around an Ethereum contract.
-type OCR2AggregatorBillingCaller struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// OCR2AggregatorBillingTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type OCR2AggregatorBillingTransactor struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// OCR2AggregatorBillingFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type OCR2AggregatorBillingFilterer struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// OCR2AggregatorBillingSession is an auto generated Go binding around an Ethereum contract,
-// with pre-set call and transact options.
-type OCR2AggregatorBillingSession struct {
-	Contract     *OCR2AggregatorBilling // Generic contract binding to set the session for
-	CallOpts     bind.CallOpts          // Call options to use throughout this session
-	TransactOpts bind.TransactOpts      // Transaction auth options to use throughout this session
-}
-
-// OCR2AggregatorBillingCallerSession is an auto generated read-only Go binding around an Ethereum contract,
-// with pre-set call options.
-type OCR2AggregatorBillingCallerSession struct {
-	Contract *OCR2AggregatorBillingCaller // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts                // Call options to use throughout this session
-}
-
-// OCR2AggregatorBillingTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
-// with pre-set transact options.
-type OCR2AggregatorBillingTransactorSession struct {
-	Contract     *OCR2AggregatorBillingTransactor // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts                // Transaction auth options to use throughout this session
-}
-
-// OCR2AggregatorBillingRaw is an auto generated low-level Go binding around an Ethereum contract.
-type OCR2AggregatorBillingRaw struct {
-	Contract *OCR2AggregatorBilling // Generic contract binding to access the raw methods on
-}
-
-// OCR2AggregatorBillingCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type OCR2AggregatorBillingCallerRaw struct {
-	Contract *OCR2AggregatorBillingCaller // Generic read-only contract binding to access the raw methods on
-}
-
-// OCR2AggregatorBillingTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type OCR2AggregatorBillingTransactorRaw struct {
-	Contract *OCR2AggregatorBillingTransactor // Generic write-only contract binding to access the raw methods on
-}
-
-// NewOCR2AggregatorBilling creates a new instance of OCR2AggregatorBilling, bound to a specific deployed contract.
-func NewOCR2AggregatorBilling(address common.Address, backend bind.ContractBackend) (*OCR2AggregatorBilling, error) {
-	contract, err := bindOCR2AggregatorBilling(address, backend, backend, backend)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBilling{OCR2AggregatorBillingCaller: OCR2AggregatorBillingCaller{contract: contract}, OCR2AggregatorBillingTransactor: OCR2AggregatorBillingTransactor{contract: contract}, OCR2AggregatorBillingFilterer: OCR2AggregatorBillingFilterer{contract: contract}}, nil
-}
-
-// NewOCR2AggregatorBillingCaller creates a new read-only instance of OCR2AggregatorBilling, bound to a specific deployed contract.
-func NewOCR2AggregatorBillingCaller(address common.Address, caller bind.ContractCaller) (*OCR2AggregatorBillingCaller, error) {
-	contract, err := bindOCR2AggregatorBilling(address, caller, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingCaller{contract: contract}, nil
-}
-
-// NewOCR2AggregatorBillingTransactor creates a new write-only instance of OCR2AggregatorBilling, bound to a specific deployed contract.
-func NewOCR2AggregatorBillingTransactor(address common.Address, transactor bind.ContractTransactor) (*OCR2AggregatorBillingTransactor, error) {
-	contract, err := bindOCR2AggregatorBilling(address, nil, transactor, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingTransactor{contract: contract}, nil
-}
-
-// NewOCR2AggregatorBillingFilterer creates a new log filterer instance of OCR2AggregatorBilling, bound to a specific deployed contract.
-func NewOCR2AggregatorBillingFilterer(address common.Address, filterer bind.ContractFilterer) (*OCR2AggregatorBillingFilterer, error) {
-	contract, err := bindOCR2AggregatorBilling(address, nil, nil, filterer)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingFilterer{contract: contract}, nil
-}
-
-// bindOCR2AggregatorBilling binds a generic wrapper to an already deployed contract.
-func bindOCR2AggregatorBilling(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(OCR2AggregatorBillingABI))
-	if err != nil {
-		return nil, err
-	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
-}
-
-// Call invokes the (constant) contract method with params as input values and
-// sets the output to result. The result type might be a single field for simple
-// returns, a slice of interfaces for anonymous returns and a struct for named
-// returns.
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _OCR2AggregatorBilling.Contract.OCR2AggregatorBillingCaller.contract.Call(opts, result, method, params...)
-}
-
-// Transfer initiates a plain transaction to move funds to the contract, calling
-// its default method if one is available.
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.OCR2AggregatorBillingTransactor.contract.Transfer(opts)
-}
-
-// Transact invokes the (paid) contract method with params as input values.
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.OCR2AggregatorBillingTransactor.contract.Transact(opts, method, params...)
-}
-
-// Call invokes the (constant) contract method with params as input values and
-// sets the output to result. The result type might be a single field for simple
-// returns, a slice of interfaces for anonymous returns and a struct for named
-// returns.
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _OCR2AggregatorBilling.Contract.contract.Call(opts, result, method, params...)
-}
-
-// Transfer initiates a plain transaction to move funds to the contract, calling
-// its default method if one is available.
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.contract.Transfer(opts)
-}
-
-// Transact invokes the (paid) contract method with params as input values.
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.contract.Transact(opts, method, params...)
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) BillingAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "billingAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) BillingAccessController() (common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.BillingAccessController(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) BillingAccessController() (common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.BillingAccessController(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// GetBilling is a free data retrieval call binding the contract method 0x29937268.
-//
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) GetBilling(opts *bind.CallOpts) (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-}, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "getBilling")
-
-	outstruct := new(struct {
-		MaximumGasPrice         uint32
-		ReasonableGasPrice      uint32
-		MicroLinkPerEth         uint32
-		LinkGweiPerObservation  uint32
-		LinkGweiPerTransmission uint32
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.MaximumGasPrice = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.ReasonableGasPrice = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.MicroLinkPerEth = *abi.ConvertType(out[2], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerObservation = *abi.ConvertType(out[3], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerTransmission = *abi.ConvertType(out[4], new(uint32)).(*uint32)
-
-	return *outstruct, err
-
-}
-
-// GetBilling is a free data retrieval call binding the contract method 0x29937268.
-//
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-}, error) {
-	return _OCR2AggregatorBilling.Contract.GetBilling(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// GetBilling is a free data retrieval call binding the contract method 0x29937268.
-//
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-}, error) {
-	return _OCR2AggregatorBilling.Contract.GetBilling(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// GetLinkToken is a free data retrieval call binding the contract method 0xe76d5168.
-//
-// Solidity: function getLinkToken() view returns(address linkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) GetLinkToken(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "getLinkToken")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// GetLinkToken is a free data retrieval call binding the contract method 0xe76d5168.
-//
-// Solidity: function getLinkToken() view returns(address linkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) GetLinkToken() (common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.GetLinkToken(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// GetLinkToken is a free data retrieval call binding the contract method 0xe76d5168.
-//
-// Solidity: function getLinkToken() view returns(address linkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) GetLinkToken() (common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.GetLinkToken(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
-//
-// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) LatestConfigDetails(opts *bind.CallOpts) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "latestConfigDetails")
-
-	outstruct := new(struct {
-		ConfigCount  uint32
-		BlockNumber  uint32
-		ConfigDigest [32]byte
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.ConfigCount = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.BlockNumber = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.ConfigDigest = *abi.ConvertType(out[2], new([32]byte)).(*[32]byte)
-
-	return *outstruct, err
-
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
-//
-// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) LatestConfigDetails() (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _OCR2AggregatorBilling.Contract.LatestConfigDetails(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
-//
-// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) LatestConfigDetails() (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _OCR2AggregatorBilling.Contract.LatestConfigDetails(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// LinkAvailableForPayment is a free data retrieval call binding the contract method 0xd09dc339.
-//
-// Solidity: function linkAvailableForPayment() view returns(int256 availableBalance)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) LinkAvailableForPayment(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "linkAvailableForPayment")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// LinkAvailableForPayment is a free data retrieval call binding the contract method 0xd09dc339.
-//
-// Solidity: function linkAvailableForPayment() view returns(int256 availableBalance)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) LinkAvailableForPayment() (*big.Int, error) {
-	return _OCR2AggregatorBilling.Contract.LinkAvailableForPayment(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// LinkAvailableForPayment is a free data retrieval call binding the contract method 0xd09dc339.
-//
-// Solidity: function linkAvailableForPayment() view returns(int256 availableBalance)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) LinkAvailableForPayment() (*big.Int, error) {
-	return _OCR2AggregatorBilling.Contract.LinkAvailableForPayment(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
-//
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) OracleObservationCount(opts *bind.CallOpts, _signerOrTransmitter common.Address) (uint16, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "oracleObservationCount", _signerOrTransmitter)
-
-	if err != nil {
-		return *new(uint16), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(uint16)).(*uint16)
-
-	return out0, err
-
-}
-
-// OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
-//
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _OCR2AggregatorBilling.Contract.OracleObservationCount(&_OCR2AggregatorBilling.CallOpts, _signerOrTransmitter)
-}
-
-// OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
-//
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _OCR2AggregatorBilling.Contract.OracleObservationCount(&_OCR2AggregatorBilling.CallOpts, _signerOrTransmitter)
-}
-
-// OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
-//
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) OwedPayment(opts *bind.CallOpts, _transmitter common.Address) (*big.Int, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "owedPayment", _transmitter)
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
-//
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _OCR2AggregatorBilling.Contract.OwedPayment(&_OCR2AggregatorBilling.CallOpts, _transmitter)
-}
-
-// OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
-//
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _OCR2AggregatorBilling.Contract.OwedPayment(&_OCR2AggregatorBilling.CallOpts, _transmitter)
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "owner")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) Owner() (common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.Owner(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) Owner() (common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.Owner(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) Transmitters(opts *bind.CallOpts) ([]common.Address, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "transmitters")
-
-	if err != nil {
-		return *new([]common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
-
-	return out0, err
-
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) Transmitters() ([]common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.Transmitters(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) Transmitters() ([]common.Address, error) {
-	return _OCR2AggregatorBilling.Contract.Transmitters(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
-//
-// Solidity: function typeAndVersion() pure returns(string)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCaller) TypeAndVersion(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
-	err := _OCR2AggregatorBilling.contract.Call(opts, &out, "typeAndVersion")
-
-	if err != nil {
-		return *new(string), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(string)).(*string)
-
-	return out0, err
-
-}
-
-// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
-//
-// Solidity: function typeAndVersion() pure returns(string)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) TypeAndVersion() (string, error) {
-	return _OCR2AggregatorBilling.Contract.TypeAndVersion(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
-//
-// Solidity: function typeAndVersion() pure returns(string)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingCallerSession) TypeAndVersion() (string, error) {
-	return _OCR2AggregatorBilling.Contract.TypeAndVersion(&_OCR2AggregatorBilling.CallOpts)
-}
-
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
-//
-// Solidity: function acceptOwnership() returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) AcceptOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "acceptOwnership")
-}
-
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
-//
-// Solidity: function acceptOwnership() returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) AcceptOwnership() (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.AcceptOwnership(&_OCR2AggregatorBilling.TransactOpts)
-}
-
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
-//
-// Solidity: function acceptOwnership() returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) AcceptOwnership() (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.AcceptOwnership(&_OCR2AggregatorBilling.TransactOpts)
-}
-
-// AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
-//
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) AcceptPayeeship(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "acceptPayeeship", _transmitter)
-}
-
-// AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
-//
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.AcceptPayeeship(&_OCR2AggregatorBilling.TransactOpts, _transmitter)
-}
-
-// AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
-//
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.AcceptPayeeship(&_OCR2AggregatorBilling.TransactOpts, _transmitter)
-}
-
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
-//
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) SetBilling(opts *bind.TransactOpts, _maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "setBilling", _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
-}
-
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
-//
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetBilling(&_OCR2AggregatorBilling.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
-}
-
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
-//
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetBilling(&_OCR2AggregatorBilling.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
-}
-
-// SetBillingAccessController is a paid mutator transaction binding the contract method 0xfbffd2c1.
-//
-// Solidity: function setBillingAccessController(address _billingAccessController) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) SetBillingAccessController(opts *bind.TransactOpts, _billingAccessController common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "setBillingAccessController", _billingAccessController)
-}
-
-// SetBillingAccessController is a paid mutator transaction binding the contract method 0xfbffd2c1.
-//
-// Solidity: function setBillingAccessController(address _billingAccessController) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) SetBillingAccessController(_billingAccessController common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetBillingAccessController(&_OCR2AggregatorBilling.TransactOpts, _billingAccessController)
-}
-
-// SetBillingAccessController is a paid mutator transaction binding the contract method 0xfbffd2c1.
-//
-// Solidity: function setBillingAccessController(address _billingAccessController) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) SetBillingAccessController(_billingAccessController common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetBillingAccessController(&_OCR2AggregatorBilling.TransactOpts, _billingAccessController)
-}
-
-// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
-//
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) SetConfig(opts *bind.TransactOpts, _signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "setConfig", _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
-}
-
-// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
-//
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetConfig(&_OCR2AggregatorBilling.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
-}
-
-// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
-//
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetConfig(&_OCR2AggregatorBilling.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
-}
-
-// SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
-//
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) SetLinkToken(opts *bind.TransactOpts, _linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "setLinkToken", _linkToken, _recipient)
-}
-
-// SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
-//
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetLinkToken(&_OCR2AggregatorBilling.TransactOpts, _linkToken, _recipient)
-}
-
-// SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
-//
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetLinkToken(&_OCR2AggregatorBilling.TransactOpts, _linkToken, _recipient)
-}
-
-// SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
-//
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) SetPayees(opts *bind.TransactOpts, _transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "setPayees", _transmitters, _payees)
-}
-
-// SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
-//
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetPayees(&_OCR2AggregatorBilling.TransactOpts, _transmitters, _payees)
-}
-
-// SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
-//
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.SetPayees(&_OCR2AggregatorBilling.TransactOpts, _transmitters, _payees)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) TransferOwnership(opts *bind.TransactOpts, to common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "transferOwnership", to)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) TransferOwnership(to common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.TransferOwnership(&_OCR2AggregatorBilling.TransactOpts, to)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) TransferOwnership(to common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.TransferOwnership(&_OCR2AggregatorBilling.TransactOpts, to)
-}
-
-// TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
-//
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) TransferPayeeship(opts *bind.TransactOpts, _transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "transferPayeeship", _transmitter, _proposed)
-}
-
-// TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
-//
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.TransferPayeeship(&_OCR2AggregatorBilling.TransactOpts, _transmitter, _proposed)
-}
-
-// TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
-//
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.TransferPayeeship(&_OCR2AggregatorBilling.TransactOpts, _transmitter, _proposed)
-}
-
-// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
-//
-// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) Transmit(opts *bind.TransactOpts, reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "transmit", reportContext, report, rs, ss, rawVs)
-}
-
-// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
-//
-// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) Transmit(reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.Transmit(&_OCR2AggregatorBilling.TransactOpts, reportContext, report, rs, ss, rawVs)
-}
-
-// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
-//
-// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) Transmit(reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.Transmit(&_OCR2AggregatorBilling.TransactOpts, reportContext, report, rs, ss, rawVs)
-}
-
-// WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
-//
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) WithdrawFunds(opts *bind.TransactOpts, _recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "withdrawFunds", _recipient, _amount)
-}
-
-// WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
-//
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.WithdrawFunds(&_OCR2AggregatorBilling.TransactOpts, _recipient, _amount)
-}
-
-// WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
-//
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.WithdrawFunds(&_OCR2AggregatorBilling.TransactOpts, _recipient, _amount)
-}
-
-// WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
-//
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactor) WithdrawPayment(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.contract.Transact(opts, "withdrawPayment", _transmitter)
-}
-
-// WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
-//
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.WithdrawPayment(&_OCR2AggregatorBilling.TransactOpts, _transmitter)
-}
-
-// WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
-//
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingTransactorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _OCR2AggregatorBilling.Contract.WithdrawPayment(&_OCR2AggregatorBilling.TransactOpts, _transmitter)
-}
-
-// OCR2AggregatorBillingBillingAccessControllerSetIterator is returned from FilterBillingAccessControllerSet and is used to iterate over the raw logs and unpacked data for BillingAccessControllerSet events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingBillingAccessControllerSetIterator struct {
-	Event *OCR2AggregatorBillingBillingAccessControllerSet // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingBillingAccessControllerSetIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingBillingAccessControllerSet)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingBillingAccessControllerSet)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingBillingAccessControllerSetIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingBillingAccessControllerSetIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingBillingAccessControllerSet represents a BillingAccessControllerSet event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingBillingAccessControllerSet struct {
-	Old     common.Address
-	Current common.Address
-	Raw     types.Log // Blockchain specific contextual infos
-}
-
-// FilterBillingAccessControllerSet is a free log retrieval operation binding the contract event 0x793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d48912.
-//
-// Solidity: event BillingAccessControllerSet(address old, address current)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterBillingAccessControllerSet(opts *bind.FilterOpts) (*OCR2AggregatorBillingBillingAccessControllerSetIterator, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "BillingAccessControllerSet")
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingBillingAccessControllerSetIterator{contract: _OCR2AggregatorBilling.contract, event: "BillingAccessControllerSet", logs: logs, sub: sub}, nil
-}
-
-// WatchBillingAccessControllerSet is a free log subscription operation binding the contract event 0x793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d48912.
-//
-// Solidity: event BillingAccessControllerSet(address old, address current)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchBillingAccessControllerSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingBillingAccessControllerSet) (event.Subscription, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "BillingAccessControllerSet")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingBillingAccessControllerSet)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "BillingAccessControllerSet", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseBillingAccessControllerSet is a log parse operation binding the contract event 0x793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d48912.
-//
-// Solidity: event BillingAccessControllerSet(address old, address current)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseBillingAccessControllerSet(log types.Log) (*OCR2AggregatorBillingBillingAccessControllerSet, error) {
-	event := new(OCR2AggregatorBillingBillingAccessControllerSet)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "BillingAccessControllerSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingBillingSetIterator is returned from FilterBillingSet and is used to iterate over the raw logs and unpacked data for BillingSet events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingBillingSetIterator struct {
-	Event *OCR2AggregatorBillingBillingSet // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingBillingSetIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingBillingSet)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingBillingSet)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingBillingSetIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingBillingSetIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingBillingSet represents a BillingSet event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingBillingSet struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-	Raw                     types.Log // Blockchain specific contextual infos
-}
-
-// FilterBillingSet is a free log retrieval operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
-//
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterBillingSet(opts *bind.FilterOpts) (*OCR2AggregatorBillingBillingSetIterator, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "BillingSet")
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingBillingSetIterator{contract: _OCR2AggregatorBilling.contract, event: "BillingSet", logs: logs, sub: sub}, nil
-}
-
-// WatchBillingSet is a free log subscription operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
-//
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchBillingSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingBillingSet) (event.Subscription, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "BillingSet")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingBillingSet)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "BillingSet", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseBillingSet is a log parse operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
-//
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseBillingSet(log types.Log) (*OCR2AggregatorBillingBillingSet, error) {
-	event := new(OCR2AggregatorBillingBillingSet)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "BillingSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingConfigSetIterator is returned from FilterConfigSet and is used to iterate over the raw logs and unpacked data for ConfigSet events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingConfigSetIterator struct {
-	Event *OCR2AggregatorBillingConfigSet // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingConfigSetIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingConfigSet)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingConfigSet)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingConfigSetIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingConfigSetIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingConfigSet represents a ConfigSet event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingConfigSet struct {
-	PreviousConfigBlockNumber uint32
-	ConfigDigest              [32]byte
-	ConfigCount               uint64
-	Signers                   []common.Address
-	Transmitters              []common.Address
-	F                         uint8
-	OnchainConfig             []byte
-	EncodedConfigVersion      uint64
-	Encoded                   []byte
-	Raw                       types.Log // Blockchain specific contextual infos
-}
-
-// FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
-//
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterConfigSet(opts *bind.FilterOpts) (*OCR2AggregatorBillingConfigSetIterator, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "ConfigSet")
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingConfigSetIterator{contract: _OCR2AggregatorBilling.contract, event: "ConfigSet", logs: logs, sub: sub}, nil
-}
-
-// WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
-//
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingConfigSet) (event.Subscription, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "ConfigSet")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingConfigSet)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "ConfigSet", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
-//
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseConfigSet(log types.Log) (*OCR2AggregatorBillingConfigSet, error) {
-	event := new(OCR2AggregatorBillingConfigSet)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "ConfigSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingLinkTokenSetIterator is returned from FilterLinkTokenSet and is used to iterate over the raw logs and unpacked data for LinkTokenSet events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingLinkTokenSetIterator struct {
-	Event *OCR2AggregatorBillingLinkTokenSet // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingLinkTokenSetIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingLinkTokenSet)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingLinkTokenSet)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingLinkTokenSetIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingLinkTokenSetIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingLinkTokenSet represents a LinkTokenSet event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingLinkTokenSet struct {
-	OldLinkToken common.Address
-	NewLinkToken common.Address
-	Raw          types.Log // Blockchain specific contextual infos
-}
-
-// FilterLinkTokenSet is a free log retrieval operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
-//
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, _oldLinkToken []common.Address, _newLinkToken []common.Address) (*OCR2AggregatorBillingLinkTokenSetIterator, error) {
-
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
-	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingLinkTokenSetIterator{contract: _OCR2AggregatorBilling.contract, event: "LinkTokenSet", logs: logs, sub: sub}, nil
-}
-
-// WatchLinkTokenSet is a free log subscription operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
-//
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingLinkTokenSet, _oldLinkToken []common.Address, _newLinkToken []common.Address) (event.Subscription, error) {
-
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
-	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingLinkTokenSet)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "LinkTokenSet", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseLinkTokenSet is a log parse operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
-//
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseLinkTokenSet(log types.Log) (*OCR2AggregatorBillingLinkTokenSet, error) {
-	event := new(OCR2AggregatorBillingLinkTokenSet)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "LinkTokenSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingOraclePaidIterator is returned from FilterOraclePaid and is used to iterate over the raw logs and unpacked data for OraclePaid events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingOraclePaidIterator struct {
-	Event *OCR2AggregatorBillingOraclePaid // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingOraclePaidIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingOraclePaid)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingOraclePaid)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingOraclePaidIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingOraclePaidIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingOraclePaid represents a OraclePaid event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingOraclePaid struct {
-	Transmitter common.Address
-	Payee       common.Address
-	Amount      *big.Int
-	LinkToken   common.Address
-	Raw         types.Log // Blockchain specific contextual infos
-}
-
-// FilterOraclePaid is a free log retrieval operation binding the contract event 0xd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c.
-//
-// Solidity: event OraclePaid(address indexed transmitter, address indexed payee, uint256 amount, address indexed linkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterOraclePaid(opts *bind.FilterOpts, transmitter []common.Address, payee []common.Address, linkToken []common.Address) (*OCR2AggregatorBillingOraclePaidIterator, error) {
-
-	var transmitterRule []interface{}
-	for _, transmitterItem := range transmitter {
-		transmitterRule = append(transmitterRule, transmitterItem)
-	}
-	var payeeRule []interface{}
-	for _, payeeItem := range payee {
-		payeeRule = append(payeeRule, payeeItem)
-	}
-
-	var linkTokenRule []interface{}
-	for _, linkTokenItem := range linkToken {
-		linkTokenRule = append(linkTokenRule, linkTokenItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "OraclePaid", transmitterRule, payeeRule, linkTokenRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingOraclePaidIterator{contract: _OCR2AggregatorBilling.contract, event: "OraclePaid", logs: logs, sub: sub}, nil
-}
-
-// WatchOraclePaid is a free log subscription operation binding the contract event 0xd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c.
-//
-// Solidity: event OraclePaid(address indexed transmitter, address indexed payee, uint256 amount, address indexed linkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchOraclePaid(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingOraclePaid, transmitter []common.Address, payee []common.Address, linkToken []common.Address) (event.Subscription, error) {
-
-	var transmitterRule []interface{}
-	for _, transmitterItem := range transmitter {
-		transmitterRule = append(transmitterRule, transmitterItem)
-	}
-	var payeeRule []interface{}
-	for _, payeeItem := range payee {
-		payeeRule = append(payeeRule, payeeItem)
-	}
-
-	var linkTokenRule []interface{}
-	for _, linkTokenItem := range linkToken {
-		linkTokenRule = append(linkTokenRule, linkTokenItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "OraclePaid", transmitterRule, payeeRule, linkTokenRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingOraclePaid)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "OraclePaid", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOraclePaid is a log parse operation binding the contract event 0xd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c.
-//
-// Solidity: event OraclePaid(address indexed transmitter, address indexed payee, uint256 amount, address indexed linkToken)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseOraclePaid(log types.Log) (*OCR2AggregatorBillingOraclePaid, error) {
-	event := new(OCR2AggregatorBillingOraclePaid)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "OraclePaid", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingOwnershipTransferRequestedIterator is returned from FilterOwnershipTransferRequested and is used to iterate over the raw logs and unpacked data for OwnershipTransferRequested events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingOwnershipTransferRequestedIterator struct {
-	Event *OCR2AggregatorBillingOwnershipTransferRequested // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingOwnershipTransferRequestedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingOwnershipTransferRequested)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingOwnershipTransferRequested)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingOwnershipTransferRequestedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingOwnershipTransferRequestedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingOwnershipTransferRequested represents a OwnershipTransferRequested event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingOwnershipTransferRequested struct {
-	From common.Address
-	To   common.Address
-	Raw  types.Log // Blockchain specific contextual infos
-}
-
-// FilterOwnershipTransferRequested is a free log retrieval operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
-//
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterOwnershipTransferRequested(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*OCR2AggregatorBillingOwnershipTransferRequestedIterator, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "OwnershipTransferRequested", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingOwnershipTransferRequestedIterator{contract: _OCR2AggregatorBilling.contract, event: "OwnershipTransferRequested", logs: logs, sub: sub}, nil
-}
-
-// WatchOwnershipTransferRequested is a free log subscription operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
-//
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchOwnershipTransferRequested(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingOwnershipTransferRequested, from []common.Address, to []common.Address) (event.Subscription, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "OwnershipTransferRequested", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingOwnershipTransferRequested)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOwnershipTransferRequested is a log parse operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
-//
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseOwnershipTransferRequested(log types.Log) (*OCR2AggregatorBillingOwnershipTransferRequested, error) {
-	event := new(OCR2AggregatorBillingOwnershipTransferRequested)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingOwnershipTransferredIterator struct {
-	Event *OCR2AggregatorBillingOwnershipTransferred // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingOwnershipTransferredIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingOwnershipTransferred)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingOwnershipTransferred)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingOwnershipTransferredIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingOwnershipTransferredIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingOwnershipTransferred represents a OwnershipTransferred event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingOwnershipTransferred struct {
-	From common.Address
-	To   common.Address
-	Raw  types.Log // Blockchain specific contextual infos
-}
-
-// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*OCR2AggregatorBillingOwnershipTransferredIterator, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "OwnershipTransferred", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingOwnershipTransferredIterator{contract: _OCR2AggregatorBilling.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
-}
-
-// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingOwnershipTransferred, from []common.Address, to []common.Address) (event.Subscription, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "OwnershipTransferred", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingOwnershipTransferred)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseOwnershipTransferred(log types.Log) (*OCR2AggregatorBillingOwnershipTransferred, error) {
-	event := new(OCR2AggregatorBillingOwnershipTransferred)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingPayeeshipTransferRequestedIterator is returned from FilterPayeeshipTransferRequested and is used to iterate over the raw logs and unpacked data for PayeeshipTransferRequested events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingPayeeshipTransferRequestedIterator struct {
-	Event *OCR2AggregatorBillingPayeeshipTransferRequested // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingPayeeshipTransferRequestedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingPayeeshipTransferRequested)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingPayeeshipTransferRequested)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingPayeeshipTransferRequestedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingPayeeshipTransferRequestedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingPayeeshipTransferRequested represents a PayeeshipTransferRequested event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingPayeeshipTransferRequested struct {
-	Transmitter common.Address
-	Current     common.Address
-	Proposed    common.Address
-	Raw         types.Log // Blockchain specific contextual infos
-}
-
-// FilterPayeeshipTransferRequested is a free log retrieval operation binding the contract event 0x84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e38367.
-//
-// Solidity: event PayeeshipTransferRequested(address indexed transmitter, address indexed current, address indexed proposed)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterPayeeshipTransferRequested(opts *bind.FilterOpts, transmitter []common.Address, current []common.Address, proposed []common.Address) (*OCR2AggregatorBillingPayeeshipTransferRequestedIterator, error) {
-
-	var transmitterRule []interface{}
-	for _, transmitterItem := range transmitter {
-		transmitterRule = append(transmitterRule, transmitterItem)
-	}
-	var currentRule []interface{}
-	for _, currentItem := range current {
-		currentRule = append(currentRule, currentItem)
-	}
-	var proposedRule []interface{}
-	for _, proposedItem := range proposed {
-		proposedRule = append(proposedRule, proposedItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "PayeeshipTransferRequested", transmitterRule, currentRule, proposedRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingPayeeshipTransferRequestedIterator{contract: _OCR2AggregatorBilling.contract, event: "PayeeshipTransferRequested", logs: logs, sub: sub}, nil
-}
-
-// WatchPayeeshipTransferRequested is a free log subscription operation binding the contract event 0x84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e38367.
-//
-// Solidity: event PayeeshipTransferRequested(address indexed transmitter, address indexed current, address indexed proposed)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchPayeeshipTransferRequested(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingPayeeshipTransferRequested, transmitter []common.Address, current []common.Address, proposed []common.Address) (event.Subscription, error) {
-
-	var transmitterRule []interface{}
-	for _, transmitterItem := range transmitter {
-		transmitterRule = append(transmitterRule, transmitterItem)
-	}
-	var currentRule []interface{}
-	for _, currentItem := range current {
-		currentRule = append(currentRule, currentItem)
-	}
-	var proposedRule []interface{}
-	for _, proposedItem := range proposed {
-		proposedRule = append(proposedRule, proposedItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "PayeeshipTransferRequested", transmitterRule, currentRule, proposedRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingPayeeshipTransferRequested)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "PayeeshipTransferRequested", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParsePayeeshipTransferRequested is a log parse operation binding the contract event 0x84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e38367.
-//
-// Solidity: event PayeeshipTransferRequested(address indexed transmitter, address indexed current, address indexed proposed)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParsePayeeshipTransferRequested(log types.Log) (*OCR2AggregatorBillingPayeeshipTransferRequested, error) {
-	event := new(OCR2AggregatorBillingPayeeshipTransferRequested)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "PayeeshipTransferRequested", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingPayeeshipTransferredIterator is returned from FilterPayeeshipTransferred and is used to iterate over the raw logs and unpacked data for PayeeshipTransferred events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingPayeeshipTransferredIterator struct {
-	Event *OCR2AggregatorBillingPayeeshipTransferred // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingPayeeshipTransferredIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingPayeeshipTransferred)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingPayeeshipTransferred)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingPayeeshipTransferredIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingPayeeshipTransferredIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingPayeeshipTransferred represents a PayeeshipTransferred event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingPayeeshipTransferred struct {
-	Transmitter common.Address
-	Previous    common.Address
-	Current     common.Address
-	Raw         types.Log // Blockchain specific contextual infos
-}
-
-// FilterPayeeshipTransferred is a free log retrieval operation binding the contract event 0x78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b3.
-//
-// Solidity: event PayeeshipTransferred(address indexed transmitter, address indexed previous, address indexed current)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterPayeeshipTransferred(opts *bind.FilterOpts, transmitter []common.Address, previous []common.Address, current []common.Address) (*OCR2AggregatorBillingPayeeshipTransferredIterator, error) {
-
-	var transmitterRule []interface{}
-	for _, transmitterItem := range transmitter {
-		transmitterRule = append(transmitterRule, transmitterItem)
-	}
-	var previousRule []interface{}
-	for _, previousItem := range previous {
-		previousRule = append(previousRule, previousItem)
-	}
-	var currentRule []interface{}
-	for _, currentItem := range current {
-		currentRule = append(currentRule, currentItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "PayeeshipTransferred", transmitterRule, previousRule, currentRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingPayeeshipTransferredIterator{contract: _OCR2AggregatorBilling.contract, event: "PayeeshipTransferred", logs: logs, sub: sub}, nil
-}
-
-// WatchPayeeshipTransferred is a free log subscription operation binding the contract event 0x78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b3.
-//
-// Solidity: event PayeeshipTransferred(address indexed transmitter, address indexed previous, address indexed current)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchPayeeshipTransferred(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingPayeeshipTransferred, transmitter []common.Address, previous []common.Address, current []common.Address) (event.Subscription, error) {
-
-	var transmitterRule []interface{}
-	for _, transmitterItem := range transmitter {
-		transmitterRule = append(transmitterRule, transmitterItem)
-	}
-	var previousRule []interface{}
-	for _, previousItem := range previous {
-		previousRule = append(previousRule, previousItem)
-	}
-	var currentRule []interface{}
-	for _, currentItem := range current {
-		currentRule = append(currentRule, currentItem)
-	}
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "PayeeshipTransferred", transmitterRule, previousRule, currentRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingPayeeshipTransferred)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "PayeeshipTransferred", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParsePayeeshipTransferred is a log parse operation binding the contract event 0x78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b3.
-//
-// Solidity: event PayeeshipTransferred(address indexed transmitter, address indexed previous, address indexed current)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParsePayeeshipTransferred(log types.Log) (*OCR2AggregatorBillingPayeeshipTransferred, error) {
-	event := new(OCR2AggregatorBillingPayeeshipTransferred)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "PayeeshipTransferred", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2AggregatorBillingTransmitedIterator is returned from FilterTransmited and is used to iterate over the raw logs and unpacked data for Transmited events raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingTransmitedIterator struct {
-	Event *OCR2AggregatorBillingTransmited // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2AggregatorBillingTransmitedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2AggregatorBillingTransmited)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2AggregatorBillingTransmited)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2AggregatorBillingTransmitedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2AggregatorBillingTransmitedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2AggregatorBillingTransmited represents a Transmited event raised by the OCR2AggregatorBilling contract.
-type OCR2AggregatorBillingTransmited struct {
-	ConfigDigest [32]byte
-	Epoch        uint32
-	Raw          types.Log // Blockchain specific contextual infos
-}
-
-// FilterTransmited is a free log retrieval operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
-//
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) FilterTransmited(opts *bind.FilterOpts) (*OCR2AggregatorBillingTransmitedIterator, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.FilterLogs(opts, "Transmited")
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2AggregatorBillingTransmitedIterator{contract: _OCR2AggregatorBilling.contract, event: "Transmited", logs: logs, sub: sub}, nil
-}
-
-// WatchTransmited is a free log subscription operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
-//
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) WatchTransmited(opts *bind.WatchOpts, sink chan<- *OCR2AggregatorBillingTransmited) (event.Subscription, error) {
-
-	logs, sub, err := _OCR2AggregatorBilling.contract.WatchLogs(opts, "Transmited")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2AggregatorBillingTransmited)
-				if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "Transmited", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseTransmited is a log parse operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
-//
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2AggregatorBilling *OCR2AggregatorBillingFilterer) ParseTransmited(log types.Log) (*OCR2AggregatorBillingTransmited, error) {
-	event := new(OCR2AggregatorBillingTransmited)
-	if err := _OCR2AggregatorBilling.contract.UnpackLog(event, "Transmited", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2BaseABI is the input ABI used to generate the binding from.
-const OCR2BaseABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"encodedConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"encoded\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmited\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"_f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"transmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]"
-
-// OCR2Base is an auto generated Go binding around an Ethereum contract.
-type OCR2Base struct {
-	OCR2BaseCaller     // Read-only binding to the contract
-	OCR2BaseTransactor // Write-only binding to the contract
-	OCR2BaseFilterer   // Log filterer for contract events
-}
-
-// OCR2BaseCaller is an auto generated read-only Go binding around an Ethereum contract.
-type OCR2BaseCaller struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// OCR2BaseTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type OCR2BaseTransactor struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// OCR2BaseFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type OCR2BaseFilterer struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// OCR2BaseSession is an auto generated Go binding around an Ethereum contract,
-// with pre-set call and transact options.
-type OCR2BaseSession struct {
-	Contract     *OCR2Base         // Generic contract binding to set the session for
-	CallOpts     bind.CallOpts     // Call options to use throughout this session
-	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
-}
-
-// OCR2BaseCallerSession is an auto generated read-only Go binding around an Ethereum contract,
-// with pre-set call options.
-type OCR2BaseCallerSession struct {
-	Contract *OCR2BaseCaller // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts   // Call options to use throughout this session
-}
-
-// OCR2BaseTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
-// with pre-set transact options.
-type OCR2BaseTransactorSession struct {
-	Contract     *OCR2BaseTransactor // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts   // Transaction auth options to use throughout this session
-}
-
-// OCR2BaseRaw is an auto generated low-level Go binding around an Ethereum contract.
-type OCR2BaseRaw struct {
-	Contract *OCR2Base // Generic contract binding to access the raw methods on
-}
-
-// OCR2BaseCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type OCR2BaseCallerRaw struct {
-	Contract *OCR2BaseCaller // Generic read-only contract binding to access the raw methods on
-}
-
-// OCR2BaseTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type OCR2BaseTransactorRaw struct {
-	Contract *OCR2BaseTransactor // Generic write-only contract binding to access the raw methods on
-}
-
-// NewOCR2Base creates a new instance of OCR2Base, bound to a specific deployed contract.
-func NewOCR2Base(address common.Address, backend bind.ContractBackend) (*OCR2Base, error) {
-	contract, err := bindOCR2Base(address, backend, backend, backend)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2Base{OCR2BaseCaller: OCR2BaseCaller{contract: contract}, OCR2BaseTransactor: OCR2BaseTransactor{contract: contract}, OCR2BaseFilterer: OCR2BaseFilterer{contract: contract}}, nil
-}
-
-// NewOCR2BaseCaller creates a new read-only instance of OCR2Base, bound to a specific deployed contract.
-func NewOCR2BaseCaller(address common.Address, caller bind.ContractCaller) (*OCR2BaseCaller, error) {
-	contract, err := bindOCR2Base(address, caller, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseCaller{contract: contract}, nil
-}
-
-// NewOCR2BaseTransactor creates a new write-only instance of OCR2Base, bound to a specific deployed contract.
-func NewOCR2BaseTransactor(address common.Address, transactor bind.ContractTransactor) (*OCR2BaseTransactor, error) {
-	contract, err := bindOCR2Base(address, nil, transactor, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseTransactor{contract: contract}, nil
-}
-
-// NewOCR2BaseFilterer creates a new log filterer instance of OCR2Base, bound to a specific deployed contract.
-func NewOCR2BaseFilterer(address common.Address, filterer bind.ContractFilterer) (*OCR2BaseFilterer, error) {
-	contract, err := bindOCR2Base(address, nil, nil, filterer)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseFilterer{contract: contract}, nil
-}
-
-// bindOCR2Base binds a generic wrapper to an already deployed contract.
-func bindOCR2Base(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(OCR2BaseABI))
-	if err != nil {
-		return nil, err
-	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
-}
-
-// Call invokes the (constant) contract method with params as input values and
-// sets the output to result. The result type might be a single field for simple
-// returns, a slice of interfaces for anonymous returns and a struct for named
-// returns.
-func (_OCR2Base *OCR2BaseRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _OCR2Base.Contract.OCR2BaseCaller.contract.Call(opts, result, method, params...)
-}
-
-// Transfer initiates a plain transaction to move funds to the contract, calling
-// its default method if one is available.
-func (_OCR2Base *OCR2BaseRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCR2Base.Contract.OCR2BaseTransactor.contract.Transfer(opts)
-}
-
-// Transact invokes the (paid) contract method with params as input values.
-func (_OCR2Base *OCR2BaseRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OCR2Base.Contract.OCR2BaseTransactor.contract.Transact(opts, method, params...)
-}
-
-// Call invokes the (constant) contract method with params as input values and
-// sets the output to result. The result type might be a single field for simple
-// returns, a slice of interfaces for anonymous returns and a struct for named
-// returns.
-func (_OCR2Base *OCR2BaseCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _OCR2Base.Contract.contract.Call(opts, result, method, params...)
-}
-
-// Transfer initiates a plain transaction to move funds to the contract, calling
-// its default method if one is available.
-func (_OCR2Base *OCR2BaseTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCR2Base.Contract.contract.Transfer(opts)
-}
-
-// Transact invokes the (paid) contract method with params as input values.
-func (_OCR2Base *OCR2BaseTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OCR2Base.Contract.contract.Transact(opts, method, params...)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
-//
-// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCR2Base *OCR2BaseCaller) LatestConfigDetails(opts *bind.CallOpts) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	var out []interface{}
-	err := _OCR2Base.contract.Call(opts, &out, "latestConfigDetails")
-
-	outstruct := new(struct {
-		ConfigCount  uint32
-		BlockNumber  uint32
-		ConfigDigest [32]byte
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.ConfigCount = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.BlockNumber = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.ConfigDigest = *abi.ConvertType(out[2], new([32]byte)).(*[32]byte)
-
-	return *outstruct, err
-
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
-//
-// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCR2Base *OCR2BaseSession) LatestConfigDetails() (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _OCR2Base.Contract.LatestConfigDetails(&_OCR2Base.CallOpts)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
-//
-// Solidity: function latestConfigDetails() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCR2Base *OCR2BaseCallerSession) LatestConfigDetails() (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _OCR2Base.Contract.LatestConfigDetails(&_OCR2Base.CallOpts)
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCR2Base *OCR2BaseCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCR2Base.contract.Call(opts, &out, "owner")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCR2Base *OCR2BaseSession) Owner() (common.Address, error) {
-	return _OCR2Base.Contract.Owner(&_OCR2Base.CallOpts)
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCR2Base *OCR2BaseCallerSession) Owner() (common.Address, error) {
-	return _OCR2Base.Contract.Owner(&_OCR2Base.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2Base *OCR2BaseCaller) Transmitters(opts *bind.CallOpts) ([]common.Address, error) {
-	var out []interface{}
-	err := _OCR2Base.contract.Call(opts, &out, "transmitters")
-
-	if err != nil {
-		return *new([]common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
-
-	return out0, err
-
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2Base *OCR2BaseSession) Transmitters() ([]common.Address, error) {
-	return _OCR2Base.Contract.Transmitters(&_OCR2Base.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_OCR2Base *OCR2BaseCallerSession) Transmitters() ([]common.Address, error) {
-	return _OCR2Base.Contract.Transmitters(&_OCR2Base.CallOpts)
-}
-
-// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
-//
-// Solidity: function typeAndVersion() pure returns(string)
-func (_OCR2Base *OCR2BaseCaller) TypeAndVersion(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
-	err := _OCR2Base.contract.Call(opts, &out, "typeAndVersion")
-
-	if err != nil {
-		return *new(string), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(string)).(*string)
-
-	return out0, err
-
-}
-
-// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
-//
-// Solidity: function typeAndVersion() pure returns(string)
-func (_OCR2Base *OCR2BaseSession) TypeAndVersion() (string, error) {
-	return _OCR2Base.Contract.TypeAndVersion(&_OCR2Base.CallOpts)
-}
-
-// TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
-//
-// Solidity: function typeAndVersion() pure returns(string)
-func (_OCR2Base *OCR2BaseCallerSession) TypeAndVersion() (string, error) {
-	return _OCR2Base.Contract.TypeAndVersion(&_OCR2Base.CallOpts)
-}
-
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
-//
-// Solidity: function acceptOwnership() returns()
-func (_OCR2Base *OCR2BaseTransactor) AcceptOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCR2Base.contract.Transact(opts, "acceptOwnership")
-}
-
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
-//
-// Solidity: function acceptOwnership() returns()
-func (_OCR2Base *OCR2BaseSession) AcceptOwnership() (*types.Transaction, error) {
-	return _OCR2Base.Contract.AcceptOwnership(&_OCR2Base.TransactOpts)
-}
-
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
-//
-// Solidity: function acceptOwnership() returns()
-func (_OCR2Base *OCR2BaseTransactorSession) AcceptOwnership() (*types.Transaction, error) {
-	return _OCR2Base.Contract.AcceptOwnership(&_OCR2Base.TransactOpts)
-}
-
-// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
-//
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2Base *OCR2BaseTransactor) SetConfig(opts *bind.TransactOpts, _signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2Base.contract.Transact(opts, "setConfig", _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
-}
-
-// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
-//
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2Base *OCR2BaseSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2Base.Contract.SetConfig(&_OCR2Base.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
-}
-
-// SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
-//
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_OCR2Base *OCR2BaseTransactorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _OCR2Base.Contract.SetConfig(&_OCR2Base.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCR2Base *OCR2BaseTransactor) TransferOwnership(opts *bind.TransactOpts, to common.Address) (*types.Transaction, error) {
-	return _OCR2Base.contract.Transact(opts, "transferOwnership", to)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCR2Base *OCR2BaseSession) TransferOwnership(to common.Address) (*types.Transaction, error) {
-	return _OCR2Base.Contract.TransferOwnership(&_OCR2Base.TransactOpts, to)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCR2Base *OCR2BaseTransactorSession) TransferOwnership(to common.Address) (*types.Transaction, error) {
-	return _OCR2Base.Contract.TransferOwnership(&_OCR2Base.TransactOpts, to)
-}
-
-// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
-//
-// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
-func (_OCR2Base *OCR2BaseTransactor) Transmit(opts *bind.TransactOpts, reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
-	return _OCR2Base.contract.Transact(opts, "transmit", reportContext, report, rs, ss, rawVs)
-}
-
-// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
-//
-// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
-func (_OCR2Base *OCR2BaseSession) Transmit(reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
-	return _OCR2Base.Contract.Transmit(&_OCR2Base.TransactOpts, reportContext, report, rs, ss, rawVs)
-}
-
-// Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
-//
-// Solidity: function transmit(bytes32[3] reportContext, bytes report, bytes32[] rs, bytes32[] ss, bytes32 rawVs) returns()
-func (_OCR2Base *OCR2BaseTransactorSession) Transmit(reportContext [3][32]byte, report []byte, rs [][32]byte, ss [][32]byte, rawVs [32]byte) (*types.Transaction, error) {
-	return _OCR2Base.Contract.Transmit(&_OCR2Base.TransactOpts, reportContext, report, rs, ss, rawVs)
-}
-
-// OCR2BaseConfigSetIterator is returned from FilterConfigSet and is used to iterate over the raw logs and unpacked data for ConfigSet events raised by the OCR2Base contract.
-type OCR2BaseConfigSetIterator struct {
-	Event *OCR2BaseConfigSet // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2BaseConfigSetIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2BaseConfigSet)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2BaseConfigSet)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2BaseConfigSetIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2BaseConfigSetIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2BaseConfigSet represents a ConfigSet event raised by the OCR2Base contract.
-type OCR2BaseConfigSet struct {
-	PreviousConfigBlockNumber uint32
-	ConfigDigest              [32]byte
-	ConfigCount               uint64
-	Signers                   []common.Address
-	Transmitters              []common.Address
-	F                         uint8
-	OnchainConfig             []byte
-	EncodedConfigVersion      uint64
-	Encoded                   []byte
-	Raw                       types.Log // Blockchain specific contextual infos
-}
-
-// FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
-//
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
-func (_OCR2Base *OCR2BaseFilterer) FilterConfigSet(opts *bind.FilterOpts) (*OCR2BaseConfigSetIterator, error) {
-
-	logs, sub, err := _OCR2Base.contract.FilterLogs(opts, "ConfigSet")
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseConfigSetIterator{contract: _OCR2Base.contract, event: "ConfigSet", logs: logs, sub: sub}, nil
-}
-
-// WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
-//
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
-func (_OCR2Base *OCR2BaseFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *OCR2BaseConfigSet) (event.Subscription, error) {
-
-	logs, sub, err := _OCR2Base.contract.WatchLogs(opts, "ConfigSet")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2BaseConfigSet)
-				if err := _OCR2Base.contract.UnpackLog(event, "ConfigSet", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
-//
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
-func (_OCR2Base *OCR2BaseFilterer) ParseConfigSet(log types.Log) (*OCR2BaseConfigSet, error) {
-	event := new(OCR2BaseConfigSet)
-	if err := _OCR2Base.contract.UnpackLog(event, "ConfigSet", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2BaseOwnershipTransferRequestedIterator is returned from FilterOwnershipTransferRequested and is used to iterate over the raw logs and unpacked data for OwnershipTransferRequested events raised by the OCR2Base contract.
-type OCR2BaseOwnershipTransferRequestedIterator struct {
-	Event *OCR2BaseOwnershipTransferRequested // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2BaseOwnershipTransferRequestedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2BaseOwnershipTransferRequested)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2BaseOwnershipTransferRequested)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2BaseOwnershipTransferRequestedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2BaseOwnershipTransferRequestedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2BaseOwnershipTransferRequested represents a OwnershipTransferRequested event raised by the OCR2Base contract.
-type OCR2BaseOwnershipTransferRequested struct {
-	From common.Address
-	To   common.Address
-	Raw  types.Log // Blockchain specific contextual infos
-}
-
-// FilterOwnershipTransferRequested is a free log retrieval operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
-//
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCR2Base *OCR2BaseFilterer) FilterOwnershipTransferRequested(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*OCR2BaseOwnershipTransferRequestedIterator, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2Base.contract.FilterLogs(opts, "OwnershipTransferRequested", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseOwnershipTransferRequestedIterator{contract: _OCR2Base.contract, event: "OwnershipTransferRequested", logs: logs, sub: sub}, nil
-}
-
-// WatchOwnershipTransferRequested is a free log subscription operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
-//
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCR2Base *OCR2BaseFilterer) WatchOwnershipTransferRequested(opts *bind.WatchOpts, sink chan<- *OCR2BaseOwnershipTransferRequested, from []common.Address, to []common.Address) (event.Subscription, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2Base.contract.WatchLogs(opts, "OwnershipTransferRequested", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2BaseOwnershipTransferRequested)
-				if err := _OCR2Base.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOwnershipTransferRequested is a log parse operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
-//
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCR2Base *OCR2BaseFilterer) ParseOwnershipTransferRequested(log types.Log) (*OCR2BaseOwnershipTransferRequested, error) {
-	event := new(OCR2BaseOwnershipTransferRequested)
-	if err := _OCR2Base.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2BaseOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the OCR2Base contract.
-type OCR2BaseOwnershipTransferredIterator struct {
-	Event *OCR2BaseOwnershipTransferred // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2BaseOwnershipTransferredIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2BaseOwnershipTransferred)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2BaseOwnershipTransferred)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2BaseOwnershipTransferredIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2BaseOwnershipTransferredIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2BaseOwnershipTransferred represents a OwnershipTransferred event raised by the OCR2Base contract.
-type OCR2BaseOwnershipTransferred struct {
-	From common.Address
-	To   common.Address
-	Raw  types.Log // Blockchain specific contextual infos
-}
-
-// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCR2Base *OCR2BaseFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*OCR2BaseOwnershipTransferredIterator, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2Base.contract.FilterLogs(opts, "OwnershipTransferred", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseOwnershipTransferredIterator{contract: _OCR2Base.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
-}
-
-// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCR2Base *OCR2BaseFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *OCR2BaseOwnershipTransferred, from []common.Address, to []common.Address) (event.Subscription, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCR2Base.contract.WatchLogs(opts, "OwnershipTransferred", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2BaseOwnershipTransferred)
-				if err := _OCR2Base.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCR2Base *OCR2BaseFilterer) ParseOwnershipTransferred(log types.Log) (*OCR2BaseOwnershipTransferred, error) {
-	event := new(OCR2BaseOwnershipTransferred)
-	if err := _OCR2Base.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCR2BaseTransmitedIterator is returned from FilterTransmited and is used to iterate over the raw logs and unpacked data for Transmited events raised by the OCR2Base contract.
-type OCR2BaseTransmitedIterator struct {
-	Event *OCR2BaseTransmited // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCR2BaseTransmitedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCR2BaseTransmited)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCR2BaseTransmited)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCR2BaseTransmitedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCR2BaseTransmitedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCR2BaseTransmited represents a Transmited event raised by the OCR2Base contract.
-type OCR2BaseTransmited struct {
-	ConfigDigest [32]byte
-	Epoch        uint32
-	Raw          types.Log // Blockchain specific contextual infos
-}
-
-// FilterTransmited is a free log retrieval operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
-//
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2Base *OCR2BaseFilterer) FilterTransmited(opts *bind.FilterOpts) (*OCR2BaseTransmitedIterator, error) {
-
-	logs, sub, err := _OCR2Base.contract.FilterLogs(opts, "Transmited")
-	if err != nil {
-		return nil, err
-	}
-	return &OCR2BaseTransmitedIterator{contract: _OCR2Base.contract, event: "Transmited", logs: logs, sub: sub}, nil
-}
-
-// WatchTransmited is a free log subscription operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
-//
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2Base *OCR2BaseFilterer) WatchTransmited(opts *bind.WatchOpts, sink chan<- *OCR2BaseTransmited) (event.Subscription, error) {
-
-	logs, sub, err := _OCR2Base.contract.WatchLogs(opts, "Transmited")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCR2BaseTransmited)
-				if err := _OCR2Base.contract.UnpackLog(event, "Transmited", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseTransmited is a log parse operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
-//
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_OCR2Base *OCR2BaseFilterer) ParseTransmited(log types.Log) (*OCR2BaseTransmited, error) {
-	event := new(OCR2BaseTransmited)
-	if err := _OCR2Base.contract.UnpackLog(event, "Transmited", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -18839,10 +16328,10 @@ func (_SimpleWriteAccessController *SimpleWriteAccessControllerFilterer) ParseRe
 }
 
 // TestOCR2AggregatorABI is the input ABI used to generate the binding from.
-const TestOCR2AggregatorABI = "[{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_link\",\"type\":\"address\"},{\"internalType\":\"int192\",\"name\":\"_minAnswer\",\"type\":\"int192\"},{\"internalType\":\"int192\",\"name\":\"_maxAnswer\",\"type\":\"int192\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAdminAccessController\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"AddedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessDisabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessEnabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"encodedConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"encoded\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"aggregatorRoundId\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"answer\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationsTimestamp\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192[]\",\"name\":\"observations\",\"type\":\"int192[]\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"observers\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint40\",\"name\":\"epochAndRound\",\"type\":\"uint40\"}],\"name\":\"NewTransmission\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"RemovedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"RequesterAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"}],\"name\":\"RoundRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"previousValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousGasLimit\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"currentValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"currentGasLimit\",\"type\":\"uint32\"}],\"name\":\"ValidatorConfigSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"addAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"billingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"billingData\",\"outputs\":[{\"internalType\":\"uint16[31]\",\"name\":\"observationsCounts\",\"type\":\"uint16[31]\"},{\"internalType\":\"uint256[31]\",\"name\":\"gasReimbursements\",\"type\":\"uint256[31]\"},{\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"enableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"linkGweiPerTransmission\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getConfigDigest\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"hasAccess\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTransmissionDetails\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"},{\"internalType\":\"int192\",\"name\":\"latestAnswer\",\"type\":\"int192\"},{\"internalType\":\"uint64\",\"name\":\"latestTimestamp\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_signerOrTransmitter\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"removeAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requesterAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_maximumGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_reasonableGasPrice\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_microLinkPerEth\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerObservation\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"_linkGweiPerTransmission\",\"type\":\"uint32\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"_f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"_onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAccessController\",\"type\":\"address\"}],\"name\":\"setRequesterAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"_newValidator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"_newGasLimit\",\"type\":\"uint32\"}],\"name\":\"setValidatorConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"testAccountingGasCost\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"testBurnLINK\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"}],\"name\":\"testDecodeReport\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"int192[]\",\"name\":\"\",\"type\":\"int192[]\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"txGasPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reasonableGasPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maximumGasPrice\",\"type\":\"uint256\"}],\"name\":\"testImpliedGasPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"testPayee\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"_x\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"_y\",\"type\":\"uint16\"}],\"name\":\"testSaturatingAddUint16\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitterOrSigner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amountLinkWei\",\"type\":\"uint256\"}],\"name\":\"testSetGasReimbursements\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_oracle\",\"type\":\"address\"},{\"internalType\":\"uint16\",\"name\":\"_amount\",\"type\":\"uint16\"}],\"name\":\"testSetOracleObservationCount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"testTotalLinkDue\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"linkDue\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"initialGas\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"gasPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"callDataCost\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"gasLeft\",\"type\":\"uint256\"}],\"name\":\"testTransmitterGasCostEthWei\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"transmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"validatorConfig\",\"outputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"validator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"gasLimit\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const TestOCR2AggregatorABI = "[{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"_link\",\"type\":\"address\"},{\"internalType\":\"int192\",\"name\":\"_minAnswer\",\"type\":\"int192\"},{\"internalType\":\"int192\",\"name\":\"_maxAnswer\",\"type\":\"int192\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"},{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_requesterAdminAccessController\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"AddedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"BillingAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"name\":\"BillingSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessDisabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"CheckAccessEnabled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"oldLinkToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"newLinkToken\",\"type\":\"address\"}],\"name\":\"LinkTokenSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"aggregatorRoundId\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"answer\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"observationsTimestamp\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"int192[]\",\"name\":\"observations\",\"type\":\"int192[]\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"observers\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"int192\",\"name\":\"juelsPerEth\",\"type\":\"int192\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint40\",\"name\":\"epochAndRound\",\"type\":\"uint40\"}],\"name\":\"NewTransmission\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"payee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"name\":\"OraclePaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"PayeeshipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"RemovedAccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"old\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"contractAccessControllerInterface\",\"name\":\"current\",\"type\":\"address\"}],\"name\":\"RequesterAccessControllerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"requester\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"}],\"name\":\"RoundRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmitted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"previousValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousGasLimit\",\"type\":\"uint32\"},{\"indexed\":true,\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"currentValidator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"currentGasLimit\",\"type\":\"uint32\"}],\"name\":\"ValidatorConfigSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"}],\"name\":\"acceptPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"addAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkEnabled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"enableAccessCheck\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBilling\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBillingAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getConfigDigest\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLinkToken\",\"outputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getRequesterAccessController\",\"outputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTransmitters\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getValidatorConfig\",\"outputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"validator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"gasLimit\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_calldata\",\"type\":\"bytes\"}],\"name\":\"hasAccess\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDigestAndEpoch\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"scanLogs\",\"type\":\"bool\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTransmissionDetails\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"round\",\"type\":\"uint8\"},{\"internalType\":\"int192\",\"name\":\"latestAnswer_\",\"type\":\"int192\"},{\"internalType\":\"uint64\",\"name\":\"latestTimestamp_\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"linkAvailableForPayment\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"availableBalance\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minAnswer\",\"outputs\":[{\"internalType\":\"int192\",\"name\":\"\",\"type\":\"int192\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitterAddress\",\"type\":\"address\"}],\"name\":\"oracleObservationCount\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitterAddress\",\"type\":\"address\"}],\"name\":\"owedPayment\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"removeAccess\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"requestNewRound\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"maximumGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"reasonableGasPriceGwei\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"observationPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"transmissionPaymentGjuels\",\"type\":\"uint32\"},{\"internalType\":\"uint24\",\"name\":\"accountingGas\",\"type\":\"uint24\"}],\"name\":\"setBilling\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"_billingAccessController\",\"type\":\"address\"}],\"name\":\"setBillingAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractLinkTokenInterface\",\"name\":\"linkToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"setLinkToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"payees\",\"type\":\"address[]\"}],\"name\":\"setPayees\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAccessControllerInterface\",\"name\":\"requesterAccessController\",\"type\":\"address\"}],\"name\":\"setRequesterAccessController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractAggregatorValidatorInterface\",\"name\":\"newValidator\",\"type\":\"address\"},{\"internalType\":\"uint32\",\"name\":\"newGasLimit\",\"type\":\"uint32\"}],\"name\":\"setValidatorConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"testBurnLink\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"}],\"name\":\"testDecodeReport\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"int192[]\",\"name\":\"\",\"type\":\"int192[]\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_transmitter\",\"type\":\"address\"}],\"name\":\"testPayee\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"txGasPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reasonableGasPrice\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maximumGasPrice\",\"type\":\"uint256\"}],\"name\":\"testReimbursementGasPriceGwei\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"internalType\":\"uint96\",\"name\":\"paymentJuels\",\"type\":\"uint96\"}],\"name\":\"testSetTransmitterPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"testTotalLinkDue\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"linkDue\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"initialGas\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"gasPriceGwei\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"callDataGas\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"accountingGas\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"leftGas\",\"type\":\"uint256\"}],\"name\":\"testTransmitterGasCostWei\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"transferPayeeship\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"transmitter\",\"type\":\"address\"}],\"name\":\"withdrawPayment\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // TestOCR2AggregatorBin is the compiled bytecode used for deploying new contracts.
-var TestOCR2AggregatorBin = "0x6101006040523480156200001257600080fd5b50604051620063453803806200634583398101604081905262000035916200071b565b8484848484600060405180604001604052806004815260200163151154d560e21b815250868686868686868684600033806000806001600160a01b0316826001600160a01b03161415620000d05760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615620001035762000103816200029e565b505050151560f81b608052600980546001600160a01b0319166001600160a01b0384169081179091556040516000907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a908290a362000162816200034a565b6200016c62000583565b6200017662000583565b60005b601f8160ff161015620001e2576001838260ff16601f8110620001a057620001a062000800565b61ffff909216602092909202015260018260ff8316601f8110620001c857620001c862000800565b602002015280620001d981620007d1565b91505062000179565b50620001f2600b83601f620005a2565b5062000202600f82601f6200063f565b5050507fff0000000000000000000000000000000000000000000000000000000000000060f885901b1660e052505080516200024690603290602084019062000670565b506200025283620003c3565b6200025f6000806200043e565b50505050601791820b820b604090811b60a05290820b90910b901b60c05250506033805460ff19166001179055506200082f9950505050505050505050565b6001600160a01b038116331415620002f95760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401620000c7565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b600a546001600160a01b039081169082168114620003bf57600a80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291015b60405180910390a15b5050565b620003cd62000525565b6031546001600160a01b039081169082168114620003bf57603180546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae6349101620003b6565b6200044862000525565b604080518082019091526030546001600160a01b03808216808452600160a01b90920463ffffffff16602084015284161415806200049657508163ffffffff16816020015163ffffffff1614155b1562000520576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052603080546001600160c01b0319168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6000546001600160a01b03163314620005815760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401620000c7565b565b604051806103e00160405280601f906020820280368337509192915050565b6002830191839082156200062d5791602002820160005b83821115620005fb57835183826101000a81548161ffff021916908361ffff1602179055509260200192600201602081600101049283019260010302620005b9565b80156200062b5782816101000a81549061ffff0219169055600201602081600101049283019260010302620005fb565b505b506200063b929150620006ec565b5090565b82601f81019282156200062d579160200282015b828111156200062d57825182559160200191906001019062000653565b8280546200067e9062000794565b90600052602060002090601f016020900481019282620006a257600085556200062d565b82601f10620006bd57805160ff19168380011785556200062d565b828001600101855582156200062d57918201828111156200062d57825182559160200191906001019062000653565b5b808211156200063b5760008155600101620006ed565b8051601781900b81146200071657600080fd5b919050565b600080600080600060a086880312156200073457600080fd5b8551620007418162000816565b9450620007516020870162000703565b9350620007616040870162000703565b92506060860151620007738162000816565b6080870151909250620007868162000816565b809150509295509295909350565b600181811c90821680620007a957607f821691505b60208210811415620007cb57634e487b7160e01b600052602260045260246000fd5b50919050565b600060ff821660ff811415620007f757634e487b7160e01b600052601160045260246000fd5b60010192915050565b634e487b7160e01b600052603260045260246000fd5b6001600160a01b03811681146200082c57600080fd5b50565b60805160f81c60a05160401c60c05160401c60e05160f81c615ac26200088360003960006104bf01526000818161058b01526141400152600081816103e9015261411301526000611b630152615ac26000f3fe608060405234801561001057600080fd5b506004361061038e5760003560e01c806398e5b12a116101de578063c10753291161010f578063e5fe4577116100ad578063f2fde38b1161007c578063f2fde38b14610953578063fa98a1c714610966578063fbffd2c114610979578063feaf968c1461098c57600080fd5b8063e5fe4577146108d2578063e76d51681461091c578063eb4571631461092d578063eb5dcd6c1461094057600080fd5b8063dc7f0124116100e9578063dc7f01241461088c578063e285191114610899578063e3d0e712146108ac578063e4902f82146108bf57600080fd5b8063c10753291461085e578063d09dc33914610871578063d18bf87e1461087957600080fd5b8063a118f2491161017c578063b1dc65a411610156578063b1dc65a414610812578063b5ab58dc14610825578063b633620c14610838578063bd8247061461084b57600080fd5b8063a118f249146107d9578063acfe7f9c146107ec578063b121e147146107ff57600080fd5b80639b764d97116101b85780639b764d97146107615780639c849b30146107875780639e3ceeab1461079a5780639eb6e060146107ad57600080fd5b806398e5b12a146106e3578063996e8298146107065780639a6fc8f51461071757600080fd5b806366cfeaf1116102c35780638038e4a1116102615780638823da6c116102305780638823da6c1461066b5780638ac28d5a1461067e5780638da5cb5b146106915780638e0566de146106a257600080fd5b80638038e4a114610616578063814118341461061e57806381ff7048146106335780638205bf6a1461066357600080fd5b806370efdf2d1161029d57806370efdf2d146105ad5780637284e416146105d257806377096177146105da57806379ba50971461060e57600080fd5b806366cfeaf11461055b5780636b14daf81461056357806370da2f671461058657600080fd5b8063313ce567116103305780634fb174701161030a5780634fb174701461053057806350d25bcd1461054357806354fd4d501461054b578063668a0f021461055357600080fd5b8063313ce567146104ba5780633b5cdfa2146104f35780633c04967b1461051557600080fd5b8063102a474b1161036c578063102a474b146103c7578063181f5a77146103cf57806322adbc78146103e4578063299372681461041e57600080fd5b80630a756983146103935780630b69df861461039d5780630eafb25b146103b4575b600080fd5b61039b610994565b005b6117935b6040519081526020015b60405180910390f35b6103a16103c2366004614e88565b6109dd565b6103a1610b28565b6103d7610b37565b6040516103ab919061568c565b61040b7f000000000000000000000000000000000000000000000000000000000000000081565b60405160179190910b81526020016103ab565b6104836040805160a08101825260085463ffffffff8082168084526401000000008304821660208501819052600160401b84048316958501869052600160601b8404831660608601819052600160801b90940490921660809094018490529490939290565b6040805163ffffffff968716815294861660208601529285169284019290925283166060830152909116608082015260a0016103ab565b6104e17f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff90911681526020016103ab565b6105066105013660046151d6565b610b57565b6040516103ab939291906157bd565b61051d610b81565b6040516103ab979695949392919061558a565b61039b61053e366004614eac565b610ca3565b6103a1610eed565b6103a1600681565b6103a1610f95565b6002546103a1565b610576610571366004614ee5565b611027565b60405190151581526020016103ab565b61040b7f000000000000000000000000000000000000000000000000000000000000000081565b6031546001600160a01b03165b6040516001600160a01b0390911681526020016103ab565b6103d761104f565b6105ed6105e83660046152b3565b6110d2565b6040516fffffffffffffffffffffffffffffffff90911681526020016103ab565b61039b6110e9565b61039b61119a565b6106266111e4565b6040516103ab9190615577565b6004546002546040805163ffffffff808516825264010000000090940490931660208401528201526060016103ab565b6103a1611246565b61039b610679366004614e88565b6112f0565b61039b61068c366004614e88565b611372565b6000546001600160a01b03166105ba565b6040805180820182526030546001600160a01b038116808352600160a01b90910463ffffffff166020928301819052835191825291810191909152016103ab565b6106eb6113e4565b60405169ffffffffffffffffffff90911681526020016103ab565b600a546001600160a01b03166105ba565b61072a61072536600461541c565b611563565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016103ab565b61077461076f366004615239565b6115ff565b60405161ffff90911681526020016103ab565b61039b610795366004614f96565b61160b565b61039b6107a8366004614e88565b6117e9565b6105ba6107bb366004614e88565b6001600160a01b039081166000908152600d60205260409020541690565b61039b6107e7366004614e88565b611868565b61039b6107fa366004615255565b6118e4565b61039b61080d366004614e88565b611969565b61039b6108203660046150cf565b611a45565b6103a1610833366004615255565b61201f565b6103a1610846366004615255565b6120ab565b61039b6108593660046153ab565b61212f565b61039b61086c366004614f6a565b612251565b6103a161250e565b61039b610887366004614f35565b6125a3565b6033546105769060ff1681565b61039b6108a7366004614f6a565b612606565b61039b6108ba366004615002565b6126c8565b6107746108cd366004614e88565b612e31565b6108da612ef5565b6040805195865263ffffffff909416602086015260ff9092169284019290925260179190910b606083015267ffffffffffffffff16608082015260a0016103ab565b6009546001600160a01b03166105ba565b61039b61093b36600461520b565b612f9c565b61039b61094e366004614eac565b613097565b61039b610961366004614e88565b6131d0565b6103a1610974366004615287565b6131e1565b61039b610987366004614e88565b6131f6565b61072a613207565b61099c6132f8565b60335460ff16156109db576033805460ff191690556040517f3be8a977a014527b50ae38adda80b56911c267328965c98ddc385d248f53963890600090a15b565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff808216845285948401916101009004166002811115610a2557610a25615a0c565b6002811115610a3657610a36615a0c565b9052509050600081602001516002811115610a5357610a53615a0c565b1415610a625750600092915050565b6040805160a08101825260085463ffffffff8082168352640100000000820481166020840152600160401b8204811693830193909352600160601b8104831660608301819052600160801b909104909216608082015282519091600091600190600b9060ff16601f8110610ad857610ad8615a38565b601091828204019190066002029054906101000a900461ffff160361ffff1602633b9aca000290506001600f846000015160ff16601f8110610b1c57610b1c615a38565b01540301949350505050565b6000610b32613352565b905090565b60606040518060600160405280602a8152602001615a8c602a9139905090565b60006060806000610b6785613513565b805160208201516040909201519097919650945092505050565b610b89614c1e565b610b91614c1e565b6040805160a08101825260085463ffffffff8082168084526401000000008304821660208501819052600160401b84048316858701819052600160601b8504841660608701819052600160801b9095049093166080860181905286516103e0810190975260009687968796879687969295600b95600f9591939187601f8282826020028201916000905b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411610c1b575050604080516103e0810191829052959c508b9450601f93509150839050845b815481526020019060010190808311610c71575050505050955097509750975097509750975097505090919293949596565b610cab6132f8565b6009546001600160a01b03908116908316811415610cc857505050565b6040516370a0823160e01b81523060048201526001600160a01b038416906370a082319060240160206040518083038186803b158015610d0757600080fd5b505afa158015610d1b573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d3f919061526e565b50610d486136e8565b6040516370a0823160e01b81523060048201526000906001600160a01b038316906370a082319060240160206040518083038186803b158015610d8a57600080fd5b505afa158015610d9e573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610dc2919061526e565b60405163a9059cbb60e01b81526001600160a01b038581166004830152602482018390529192509083169063a9059cbb90604401602060405180830381600087803b158015610e1057600080fd5b505af1158015610e24573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e4891906151b4565b610e995760405162461bcd60e51b815260206004820152601f60248201527f7472616e736665722072656d61696e696e672066756e6473206661696c65640060448201526064015b60405180910390fd5b600980546001600160a01b0319166001600160a01b0386811691821790925560405190918416907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a90600090a350505b5050565b6000610f30336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b610f685760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b602e5465010000000000900463ffffffff166000908152602f6020526040902054601790810b900b905090565b6000610fd8336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b6110105760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b602e5465010000000000900463ffffffff16905090565b60006110338383613a79565b8061104657506001600160a01b03831632145b90505b92915050565b6060611092336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b6110ca5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b610b32613aa9565b60006110e085858585613b32565b95945050505050565b6001546001600160a01b031633146111435760405162461bcd60e51b815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e6572000000000000000000006044820152606401610e90565b60008054336001600160a01b0319808316821784556001805490911690556040516001600160a01b0390921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b6111a26132f8565b60335460ff166109db576033805460ff191660011790556040517faebf329500988c6488a0074e5a0a9ff304561fc5c6fc877aeb1d59c8282c348090600090a1565b6060600780548060200260200160405190810160405280929190818152602001828054801561123c57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161121e575b5050505050905090565b6000611289336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b6112c15760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b50602e5463ffffffff6501000000000090910481166000908152602f6020526040902054600160e01b90041690565b6112f86132f8565b6001600160a01b03811660009081526034602052604090205460ff161561136f576001600160a01b038116600081815260346020908152604091829020805460ff1916905590519182527f3d68a6fce901d20453d1a7aa06bf3950302a735948037deb182a8db66df2a0d191015b60405180910390a15b50565b6001600160a01b038181166000908152600d60205260409020541633146113db5760405162461bcd60e51b815260206004820152601760248201527f4f6e6c792070617965652063616e2077697468647261770000000000000000006044820152606401610e90565b61136f81613bbf565b600080546001600160a01b031633148061147e5750603154604051630d629b5f60e31b81526001600160a01b0390911690636b14daf89061142e9033906000903690600401615538565b60206040518083038186803b15801561144657600080fd5b505afa15801561145a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061147e91906151b4565b6114ca5760405162461bcd60e51b815260206004820152601d60248201527f4f6e6c79206f776e6572267265717565737465722063616e2063616c6c0000006044820152606401610e90565b604080518082018252602e5464ffffffffff8116825265010000000000810463ffffffff9081166020808501919091526002548551908152600884901c9092169082015260ff909116818401529151909133917f41e3990591fd372502daa15842da15bc7f41c75309ab3ff4f56f1848c178825c9181900360600190a26020810151611557906001615881565b63ffffffff1691505090565b60008060008060006115ac336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b6115e45760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b6115ed86613dc1565b939a9299509097509550909350915050565b60006110468383613e97565b6116136132f8565b8281146116625760405162461bcd60e51b815260206004820181905260248201527f7472616e736d6974746572732e73697a6520213d207061796565732e73697a656044820152606401610e90565b60005b838110156117e257600085858381811061168157611681615a38565b90506020020160208101906116969190614e88565b905060008484848181106116ac576116ac615a38565b90506020020160208101906116c19190614e88565b6001600160a01b038084166000908152600d602052604090205491925016801580806116fe5750826001600160a01b0316826001600160a01b0316145b61174a5760405162461bcd60e51b815260206004820152601160248201527f706179656520616c7265616479207365740000000000000000000000000000006044820152606401610e90565b6001600160a01b038481166000908152600d6020526040902080546001600160a01b031916858316908117909155908316146117cb57826001600160a01b0316826001600160a01b0316856001600160a01b03167f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b360405160405180910390a45b5050505080806117da9061598b565b915050611665565b5050505050565b6117f16132f8565b6031546001600160a01b039081169082168114610ee957603180546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491015b60405180910390a15050565b6118706132f8565b6001600160a01b03811660009081526034602052604090205460ff1661136f576001600160a01b038116600081815260346020908152604091829020805460ff1916600117905590519182527f87286ad1f399c8e82bf0c4ef4fcdc570ea2e1e92176e5c848b6413545b885db49101611366565b60095460405163a9059cbb60e01b815260016004820152602481018390526001600160a01b039091169063a9059cbb90604401602060405180830381600087803b15801561193157600080fd5b505af1158015611945573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ee991906151b4565b6001600160a01b038181166000908152600e60205260409020541633146119d25760405162461bcd60e51b815260206004820152601f60248201527f6f6e6c792070726f706f736564207061796565732063616e20616363657074006044820152606401610e90565b6001600160a01b038181166000818152600d602090815260408083208054336001600160a01b03198083168217909355600e909452828520805490921690915590519416939092849290917f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b39190a45050565b60005a604080516020601f8b018190048102820181019092528981529192508a3591818c013591611a959184918491908e908e9081908401838280828437600092019190915250613eaf92505050565b6040805183815263ffffffff600884901c1660208201527fd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3910160405180910390a16040805160608101825260025480825260035460ff80821660208501526101009091041692820192909252908314611b515760405162461bcd60e51b815260206004820152601560248201527f636f6e666967446967657374206d69736d6174636800000000000000000000006044820152606401610e90565b611b5f8b8b8b8b8b8b6143cc565b60007f000000000000000000000000000000000000000000000000000000000000000015611bbc57600282602001518360400151611b9d91906158a0565b611ba791906158d9565b611bb29060016158a0565b60ff169050611bd2565b6020820151611bcc9060016158a0565b60ff1690505b888114611c215760405162461bcd60e51b815260206004820152601a60248201527f77726f6e67206e756d626572206f66207369676e6174757265730000000000006044820152606401610e90565b888714611c705760405162461bcd60e51b815260206004820152601e60248201527f7369676e617475726573206f7574206f6620726567697374726174696f6e00006044820152606401610e90565b3360009081526005602090815260408083208151808301909252805460ff80821684529293919291840191610100909104166002811115611cb357611cb3615a0c565b6002811115611cc457611cc4615a0c565b9052509050600281602001516002811115611ce157611ce1615a0c565b148015611d1b57506007816000015160ff1681548110611d0357611d03615a38565b6000918252602090912001546001600160a01b031633145b611d675760405162461bcd60e51b815260206004820152601860248201527f756e617574686f72697a6564207472616e736d697474657200000000000000006044820152606401610e90565b505050505060008888604051611d7e929190615528565b604051908190038120611d95918c9060200161550c565b604051602081830303815290604052805190602001209050611db5614c1e565b604080518082019091526000808252602082015260005b88811015611ff3576000600185888460208110611deb57611deb615a38565b611df891901a601b6158a0565b8d8d86818110611e0a57611e0a615a38565b905060200201358c8c87818110611e2357611e23615a38565b9050602002013560405160008152602001604052604051611e60949392919093845260ff9290921660208401526040830152606082015260800190565b6020604051602081039080840390855afa158015611e82573d6000803e3d6000fd5b505060408051601f198101516001600160a01b03811660009081526005602090815290849020838501909452835460ff80821685529296509294508401916101009004166002811115611ed757611ed7615a0c565b6002811115611ee857611ee8615a0c565b9052509250600183602001516002811115611f0557611f05615a0c565b14611f525760405162461bcd60e51b815260206004820152601e60248201527f61646472657373206e6f7420617574686f72697a656420746f207369676e00006044820152606401610e90565b8251849060ff16601f8110611f6957611f69615a38565b602002015115611fbb5760405162461bcd60e51b815260206004820152601460248201527f6e6f6e2d756e69717565207369676e61747572650000000000000000000000006044820152606401610e90565b600184846000015160ff16601f8110611fd657611fd6615a38565b911515602090920201525080611feb8161598b565b915050611dcc565b5050505063ffffffff811061200a5761200a6159ca565b6120148133614469565b505050505050505050565b6000612062336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b61209a5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b6120a382614605565b90505b919050565b60006120ee336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b6121265760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b6120a38261463b565b600a546001600160a01b031661214d6000546001600160a01b031690565b6001600160a01b0316336001600160a01b031614806121e85750604051630d629b5f60e31b81526001600160a01b03821690636b14daf8906121989033906000903690600401615538565b60206040518083038186803b1580156121b057600080fd5b505afa1580156121c4573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906121e891906151b4565b6122345760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610e90565b61223c6136e8565b6122498686868686614674565b505050505050565b6000546001600160a01b03163314806122ea5750600a54604051630d629b5f60e31b81526001600160a01b0390911690636b14daf89061229a9033906000903690600401615538565b60206040518083038186803b1580156122b257600080fd5b505afa1580156122c6573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906122ea91906151b4565b6123365760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610e90565b6000612340613352565b6009546040516370a0823160e01b81523060048201529192506000916001600160a01b03909116906370a082319060240160206040518083038186803b15801561238957600080fd5b505afa15801561239d573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906123c1919061526e565b9050818110156124135760405162461bcd60e51b815260206004820152601460248201527f696e73756666696369656e742062616c616e63650000000000000000000000006044820152606401610e90565b6009546001600160a01b031663a9059cbb85612431858503876147a1565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e085901b1681526001600160a01b0390921660048301526024820152604401602060405180830381600087803b15801561248f57600080fd5b505af11580156124a3573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906124c791906151b4565b6125085760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610e90565b50505050565b6009546040516370a0823160e01b815230600482015260009182916001600160a01b03909116906370a082319060240160206040518083038186803b15801561255657600080fd5b505afa15801561256a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061258e919061526e565b9050600061259a613352565b90910392915050565b6125ae816001615843565b6001600160a01b038316600090815260056020526040902054600b9060ff16601f81106125dd576125dd615a38565b601091828204019190066002026101000a81548161ffff021916908361ffff1602179055505050565b60006001600160a01b038316600090815260056020526040902054610100900460ff16600281111561263a5761263a615a0c565b14156126885760405162461bcd60e51b815260206004820152600f60248201527f6164647265737320756e6b6e6f776e00000000000000000000000000000000006044820152606401610e90565b612693816001615869565b6001600160a01b038316600090815260056020526040902054600f9060ff16601f81106126c2576126c2615a38565b01555050565b855185518560ff16601f8311156127215760405162461bcd60e51b815260206004820152601060248201527f746f6f206d616e79207369676e657273000000000000000000000000000000006044820152606401610e90565b600081116127715760405162461bcd60e51b815260206004820152601260248201527f66206d75737420626520706f73697469766500000000000000000000000000006044820152606401610e90565b8183146127e55760405162461bcd60e51b8152602060048201526024808201527f6f7261636c6520616464726573736573206f7574206f6620726567697374726160448201527f74696f6e000000000000000000000000000000000000000000000000000000006064820152608401610e90565b6127f08160036158fb565b831161283e5760405162461bcd60e51b815260206004820152601860248201527f6661756c74792d6f7261636c65206620746f6f206869676800000000000000006044820152606401610e90565b6128466132f8565b6040805160c0810182528a8152602081018a905260ff89169181018290526060810188905267ffffffffffffffff8716608082015260a081018690529061288d90886147b8565b6006541561299f576006546000906128a79060019061591a565b90506000600682815481106128be576128be615a38565b6000918252602082200154600780546001600160a01b03909216935090849081106128eb576128eb615a38565b60009182526020808320909101546001600160a01b03858116845260059092526040808420805461ffff199081169091559290911680845292208054909116905560068054919250908061294157612941615a22565b600082815260209020810160001990810180546001600160a01b0319169055019055600780548061297457612974615a22565b600082815260209020810160001990810180546001600160a01b03191690550190555061288d915050565b60005b815151811015612cde57600060056000846000015184815181106129c8576129c8615a38565b6020908102919091018101516001600160a01b0316825281019190915260400160002054610100900460ff166002811115612a0557612a05615a0c565b14612a525760405162461bcd60e51b815260206004820152601760248201527f7265706561746564207369676e657220616464726573730000000000000000006044820152606401610e90565b6040805180820190915260ff82168152600160208201528251805160059160009185908110612a8357612a83615a38565b6020908102919091018101516001600160a01b03168252818101929092526040016000208251815460ff90911660ff19821681178355928401519192839161ffff191617610100836002811115612adc57612adc615a0c565b021790555060009150612aec9050565b6005600084602001518481518110612b0657612b06615a38565b6020908102919091018101516001600160a01b0316825281019190915260400160002054610100900460ff166002811115612b4357612b43615a0c565b14612b905760405162461bcd60e51b815260206004820152601c60248201527f7265706561746564207472616e736d69747465722061646472657373000000006044820152606401610e90565b6040805180820190915260ff821681526020810160028152506005600084602001518481518110612bc357612bc3615a38565b6020908102919091018101516001600160a01b03168252818101929092526040016000208251815460ff90911660ff19821681178355928401519192839161ffff191617610100836002811115612c1c57612c1c615a0c565b021790555050825180516006925083908110612c3a57612c3a615a38565b602090810291909101810151825460018101845560009384529282902090920180546001600160a01b0319166001600160a01b039093169290921790915582015180516007919083908110612c9157612c91615a38565b60209081029190910181015182546001810184556000938452919092200180546001600160a01b0319166001600160a01b0390921691909117905580612cd68161598b565b9150506129a2565b5060408101516003805460ff191660ff9092169190911790556004805467ffffffff0000000019811664010000000063ffffffff438116820292831785559083048116936001939092600092612d3b928692908216911617615881565b92506101000a81548163ffffffff021916908363ffffffff160217905550612d9a4630600460009054906101000a900463ffffffff1663ffffffff16856000015186602001518760400151886060015189608001518a60a001516147d2565b6002819055825180516003805460ff9092166101000261ff001990921691909117905560045460208501516040808701516060880151608089015160a08a015193517f1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e0598612e1c988b98919763ffffffff909216969095919491939192615737565b60405180910390a15050505050505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff808216845285948401916101009004166002811115612e7957612e79615a0c565b6002811115612e8a57612e8a615a0c565b9052509050600081602001516002811115612ea757612ea7615a0c565b1415612eb65750600092915050565b6001600b826000015160ff16601f8110612ed257612ed2615a38565b601091828204019190066002029054906101000a900461ffff1603915050919050565b600080808080333214612f4a5760405162461bcd60e51b815260206004820152601460248201527f4f6e6c792063616c6c61626c6520627920454f410000000000000000000000006044820152606401610e90565b5050600254602e5463ffffffff65010000000000820481166000908152602f60205260409020549296600883901c8216965064ffffffffff9092169450601783900b9350600160e01b90920490911690565b612fa46132f8565b604080518082019091526030546001600160a01b03808216808452600160a01b90920463ffffffff1660208401528416141580612ff157508163ffffffff16816020015163ffffffff1614155b15613092576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052603080547fffffffffffffffff000000000000000000000000000000000000000000000000168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6001600160a01b038281166000908152600d60205260409020541633146131005760405162461bcd60e51b815260206004820152601d60248201527f6f6e6c792063757272656e742070617965652063616e207570646174650000006044820152606401610e90565b336001600160a01b03821614156131595760405162461bcd60e51b815260206004820152601760248201527f63616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610e90565b6001600160a01b038083166000908152600e6020526040902080548383166001600160a01b031982168117909255909116908114613092576040516001600160a01b038084169133918616907f84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e3836790600090a4505050565b6131d86132f8565b61136f8161485f565b60006131ee848484614909565b949350505050565b6131fe6132f8565b61136f81614926565b6000806000806000613250336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061102792505050565b6132885760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610e90565b5050602e5465010000000000900463ffffffff9081166000818152602f602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048816948401859052600160e01b9092049096169190930181905292979190930b955091935091508490565b6000546001600160a01b031633146109db5760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401610e90565b604080516103e0810191829052600091829190600b90601f908285855b82829054906101000a900461ffff1661ffff168152602001906002019060208260010104928301926001038202915080841161336f5790505050505050905060005b601f8110156133e55760018282601f81106133ce576133ce615a38565b60200201510361ffff1692909201916001016133b1565b506040805160a08101825260085463ffffffff808216835264010000000082048116602080850191909152600160401b8304821684860152600160601b8304821660608501819052600160801b90930490911660808401526007805485518184028101840190965280865296909202633b9aca000295929360009390929183018282801561349c57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161347e575b5050604080516103e08101918290529495506000949350600f9250601f915082845b8154815260200190600101908083116134be575050505050905060005b825181101561350b5760018282601f81106134f8576134f8615a38565b60200201510395909501946001016134db565b505050505090565b61353d6040518060600160405280600063ffffffff16815260200160608152602001606081525090565b60008060608480602001905181019061355691906152e5565b919450925090506135678582614995565b6000815167ffffffffffffffff81111561358357613583615a4e565b6040519080825280601f01601f1916602001820160405280156135ad576020820181803683370190505b5090506135b8614c1e565b60005b83518110156136c05760008582602081106135d8576135d8615a38565b1a90508281601f81106135ed576135ed615a38565b60200201511561363f5760405162461bcd60e51b815260206004820152601760248201527f6f6273657276657220696e6465782072657065617465640000000000000000006044820152606401610e90565b60018382601f811061365357613653615a38565b9115156020928302919091015286908390811061367257613672615a38565b1a60f81b84838151811061368857613688615a38565b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350506001016135bb565b50506040805160608101825263ffffffff909516855260208501919091528301525092915050565b6040805160a08101825260085463ffffffff8082168352640100000000820481166020840152600160401b8204811683850152600160601b820481166060840152600160801b90910416608082015260095482516103e081019384905291926001600160a01b0390911691600091600b90601f908285855b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411613760575050604080516103e08101918290529596506000959450600f9350601f9250905082845b8154815260200190600101908083116137ba57505050505090506000600780548060200260200160405190810160405280929190818152602001828054801561382c57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161380e575b5050505050905060005b8151811015613a5d57600060018483601f811061385557613855615a38565b6020020151039050600060018684601f811061387357613873615a38565b60200201510361ffff169050600082896060015163ffffffff168302633b9aca00020190506000811115613a52576000600d60008787815181106138b9576138b9615a38565b6020908102919091018101516001600160a01b03908116835290820192909252604090810160002054905163a9059cbb60e01b815290821660048201819052602482018590529250908a169063a9059cbb90604401602060405180830381600087803b15801561392857600080fd5b505af115801561393c573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061396091906151b4565b6139a15760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610e90565b60018886601f81106139b5576139b5615a38565b61ffff909216602092909202015260018786601f81106139d7576139d7615a38565b602002018181525050886001600160a01b0316816001600160a01b0316878781518110613a0657613a06615a38565b60200260200101516001600160a01b03167fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c85604051613a4891815260200190565b60405180910390a4505b505050600101613836565b50613a6b600b84601f614c3d565b50612249600f83601f614cd3565b6001600160a01b03821660009081526034602052604081205460ff168061104657505060335460ff161592915050565b606060328054613ab890615956565b80601f0160208091040260200160405190810160405280929190818152602001828054613ae490615956565b801561123c5780601f10613b065761010080835404028352916020019161123c565b820191906000526020600020905b815481529060010190602001808311613b1457509395945050505050565b600081851015613b845760405162461bcd60e51b815260206004820181905260248201527f6761734c6566742063616e6e6f742065786365656420696e697469616c4761736044820152606401610e90565b818503830161179301633b9aca00858202026fffffffffffffffffffffffffffffffff8110613bb557613bb56159ca565b9695505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff80821684529293919291840191610100909104166002811115613c0b57613c0b615a0c565b6002811115613c1c57613c1c615a0c565b90525090506000613c2c836109dd565b90508015613092576001600160a01b038381166000908152600d60205260409081902054600954915163a9059cbb60e01b8152908316600482018190526024820185905292919091169063a9059cbb90604401602060405180830381600087803b158015613c9957600080fd5b505af1158015613cad573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190613cd191906151b4565b613d125760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610e90565b6001600b846000015160ff16601f8110613d2e57613d2e615a38565b601091828204019190066002026101000a81548161ffff021916908361ffff1602179055506001600f846000015160ff16601f8110613d6f57613d6f615a38565b01556009546040518381526001600160a01b039182169183811691908716907fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c9060200160405180910390a450505050565b600080600080600063ffffffff8669ffffffffffffffffffff1611156040518060400160405280600f81526020017f4e6f20646174612070726573656e74000000000000000000000000000000000081525090613e315760405162461bcd60e51b8152600401610e90919061568c565b5050505063ffffffff8381166000908152602f602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048716948401859052600160e01b9092049095169190930181905295969190920b949193509091508490565b60006110468261ffff168461ffff160161ffff6147a1565b60408051808201909152602e5464ffffffffff8082168084526501000000000090920463ffffffff166020840152841611613f2c5760405162461bcd60e51b815260206004820152600c60248201527f7374616c65207265706f727400000000000000000000000000000000000000006044820152606401610e90565b6000613f3783613513565b60035460408201515191925060ff1690601f1015613f975760405162461bcd60e51b815260206004820152601e60248201527f6e756d206f62736572766174696f6e73206f7574206f6620626f756e647300006044820152606401610e90565b613fa28160026158fb565b82604001515111613ff55760405162461bcd60e51b815260206004820152601e60248201527f746f6f206665772076616c75657320746f207472757374206d656469616e00006044820152606401610e90565b6140028260200151614a0d565b64ffffffffff8516835260005b6001836040015151614021919061591a565b8110156140db57604083015160009061403b836001615869565b8151811061404b5761404b615a38565b602002602001015160170b8460400151838151811061406c5761406c615a38565b602002602001015160170b13159050806140c85760405162461bcd60e51b815260206004820152601760248201527f6f62736572766174696f6e73206e6f7420736f727465640000000000000000006044820152606401610e90565b50806140d38161598b565b91505061400f565b5060408201518051600091906140f3906002906158c5565b8151811061410357614103615a38565b602002602001015190508060170b7f000000000000000000000000000000000000000000000000000000000000000060170b1315801561416957507f000000000000000000000000000000000000000000000000000000000000000060170b8160170b13155b6141b55760405162461bcd60e51b815260206004820152601e60248201527f6d656469616e206973206f7574206f66206d696e2d6d61782072616e676500006044820152606401610e90565b602084018051906141c5826159a6565b63ffffffff90811690915260408051606081018252601785810b82528751841660208084019182524286168486019081528b8201805188166000908152602f845287902095518654945192518916600160e01b027bffffffffffffffffffffffffffffffffffffffffffffffffffffffff938a16600160c01b027fffffffff000000000000000000000000000000000000000000000000000000009096169190960b77ffffffffffffffffffffffffffffffffffffffffffffffff161793909317169290921790925590518751888401519289015193519190941694507face8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901936142d893879333939091908f908f90615621565b60405180910390a260006001600160a01b0316846020015163ffffffff167f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac602714260405161432791815260200190565b60405180910390a3836020015163ffffffff168160170b7f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f4260405161436f91815260200190565b60405180910390a361438884602001518260170b614a7c565b50508151602e805460209094015163ffffffff16650100000000000268ffffffffffffffffff1990941664ffffffffff909216919091179290921790915550505050565b60006143d98260206158fb565b6143e48560206158fb565b6143f088610144615869565b6143fa9190615869565b6144049190615869565b61440f906000615869565b90503681146144605760405162461bcd60e51b815260206004820152601860248201527f63616c6c64617461206c656e677468206d69736d6174636800000000000000006044820152606401610e90565b50505050505050565b6001600160a01b03811660009081526005602090815260408083208151808301909252805460ff808216845292939192918401916101009091041660028111156144b5576144b5615a0c565b60028111156144c6576144c6615a0c565b90525090506002816020015160028111156144e3576144e3615a0c565b146144ed57600080fd5b6040805160a08101825260085463ffffffff8082168084526401000000008304821660208501819052600160401b8404831695850195909552600160601b830482166060850152600160801b909204166080830152909160009161455891633b9aca003a0491614909565b90506010360260005a905060006145778863ffffffff16858585613b32565b6fffffffffffffffffffffffffffffffff1690506000620f4240866040015163ffffffff168302816145ab576145ab6159f6565b049050856080015163ffffffff16633b9aca000281600f896000015160ff16601f81106145da576145da615a38565b01540101600f886000015160ff16601f81106145f8576145f8615a38565b0155505050505050505050565b600063ffffffff82111561461b57506000919050565b5063ffffffff166000908152602f6020526040902054601790810b900b90565b600063ffffffff82111561465157506000919050565b5063ffffffff9081166000908152602f6020526040902054600160e01b90041690565b6040805160a0808201835263ffffffff88811680845288821660208086018290528984168688018190528985166060808901829052958a1660809889018190526008805467ffffffffffffffff191687176401000000008702177fffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffff16600160401b85027fffffffffffffffffffffffffffffffff00000000ffffffffffffffffffffffff1617600160601b8402177fffffffffffffffffffffffff00000000ffffffffffffffffffffffffffffffff16600160801b83021790558951958652928501939093529683019690965291810191909152918201929092527fd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6910160405180910390a15050505050565b6000818310156147b2575081611049565b50919050565b6147c06136e8565b5050602e805464ffffffffff19169055565b6000808a8a8a8a8a8a8a8a8a6040516020016147f69998979695949392919061569f565b60408051601f1981840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150509998505050505050505050565b6001600160a01b0381163314156148b85760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610e90565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6000838381101561491c57600285850304015b6110e081846147a1565b600a546001600160a01b039081169082168114610ee957600a80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d48912910161185c565b6000815160206149a591906158fb565b6149b0906080615869565b6149bb906000615869565b9050808351146130925760405162461bcd60e51b815260206004820152601660248201527f7265706f7274206c656e677468206d69736d61746368000000000000000000006044820152606401610e90565b604080516103e0810191829052614a6e91839190600b90601f90826000855b82829054906101000a900461ffff1661ffff1681526020019060020190602082600101049283019260010382029150808411614a2c5790505050505050614b97565b610ee990600b90601f614c3d565b604080518082019091526030546001600160a01b038116808352600160a01b90910463ffffffff166020830152614ab257505050565b6000614abf600185615931565b63ffffffff8181166000818152602f60209081526040918290205487519188015192517fbeed9b510000000000000000000000000000000000000000000000000000000081526004810194909452601790810b900b602484018190528985166044850152606484018990529495506001600160a01b03169263beed9b5192911690608401602060405180830381600088803b158015614b5d57600080fd5b5087f193505050508015614b8e575060408051601f3d908101601f19168201909252614b8b918101906151b4565b60015b612249576117e2565b614b9f614c1e565b60005b8351811015614c16576000848281518110614bbf57614bbf615a38565b016020015160f81c9050614bea8482601f8110614bde57614bde615a38565b60200201516001613e97565b848260ff16601f8110614bff57614bff615a38565b61ffff909216602092909202015250600101614ba2565b509092915050565b604051806103e00160405280601f906020820280368337509192915050565b600283019183908215614cc35791602002820160005b83821115614c9357835183826101000a81548161ffff021916908361ffff1602179055509260200192600201602081600101049283019260010302614c53565b8015614cc15782816101000a81549061ffff0219169055600201602081600101049283019260010302614c93565b505b50614ccf929150614d01565b5090565b82601f8101928215614cc3579160200282015b82811115614cc3578251825591602001919060010190614ce6565b5b80821115614ccf5760008155600101614d02565b60008083601f840112614d2857600080fd5b50813567ffffffffffffffff811115614d4057600080fd5b6020830191508360208260051b8501011115614d5b57600080fd5b9250929050565b600082601f830112614d7357600080fd5b81356020614d88614d838361581f565b6157ee565b80838252828201915082860187848660051b8901011115614da857600080fd5b60005b85811015614dd0578135614dbe81615a64565b84529284019290840190600101614dab565b5090979650505050505050565b600082601f830112614dee57600080fd5b813567ffffffffffffffff811115614e0857614e08615a4e565b614e1b601f8201601f19166020016157ee565b818152846020838601011115614e3057600080fd5b816020850160208301376000918101602001919091529392505050565b803561ffff811681146120a657600080fd5b803567ffffffffffffffff811681146120a657600080fd5b803560ff811681146120a657600080fd5b600060208284031215614e9a57600080fd5b8135614ea581615a64565b9392505050565b60008060408385031215614ebf57600080fd5b8235614eca81615a64565b91506020830135614eda81615a64565b809150509250929050565b60008060408385031215614ef857600080fd5b8235614f0381615a64565b9150602083013567ffffffffffffffff811115614f1f57600080fd5b614f2b85828601614ddd565b9150509250929050565b60008060408385031215614f4857600080fd5b8235614f5381615a64565b9150614f6160208401614e4d565b90509250929050565b60008060408385031215614f7d57600080fd5b8235614f8881615a64565b946020939093013593505050565b60008060008060408587031215614fac57600080fd5b843567ffffffffffffffff80821115614fc457600080fd5b614fd088838901614d16565b90965094506020870135915080821115614fe957600080fd5b50614ff687828801614d16565b95989497509550505050565b60008060008060008060c0878903121561501b57600080fd5b863567ffffffffffffffff8082111561503357600080fd5b61503f8a838b01614d62565b9750602089013591508082111561505557600080fd5b6150618a838b01614d62565b965061506f60408a01614e77565b9550606089013591508082111561508557600080fd5b6150918a838b01614ddd565b945061509f60808a01614e5f565b935060a08901359150808211156150b557600080fd5b506150c289828a01614ddd565b9150509295509295509295565b60008060008060008060008060e0898b0312156150eb57600080fd5b606089018a8111156150fc57600080fd5b8998503567ffffffffffffffff8082111561511657600080fd5b818b0191508b601f83011261512a57600080fd5b81358181111561513957600080fd5b8c602082850101111561514b57600080fd5b6020830199508098505060808b013591508082111561516957600080fd5b6151758c838d01614d16565b909750955060a08b013591508082111561518e57600080fd5b5061519b8b828c01614d16565b999c989b50969995989497949560c00135949350505050565b6000602082840312156151c657600080fd5b81518015158114614ea557600080fd5b6000602082840312156151e857600080fd5b813567ffffffffffffffff8111156151ff57600080fd5b6131ee84828501614ddd565b6000806040838503121561521e57600080fd5b823561522981615a64565b91506020830135614eda81615a79565b6000806040838503121561524c57600080fd5b614f5383614e4d565b60006020828403121561526757600080fd5b5035919050565b60006020828403121561528057600080fd5b5051919050565b60008060006060848603121561529c57600080fd5b505081359360208301359350604090920135919050565b600080600080608085870312156152c957600080fd5b5050823594602084013594506040840135936060013592509050565b6000806000606084860312156152fa57600080fd5b835161530581615a79565b809350506020808501519250604085015167ffffffffffffffff81111561532b57600080fd5b8501601f8101871361533c57600080fd5b805161534a614d838261581f565b8082825284820191508484018a868560051b870101111561536a57600080fd5b60009450845b8481101561539a5781518060170b8114615388578687fd5b84529286019290860190600101615370565b505080955050505050509250925092565b600080600080600060a086880312156153c357600080fd5b85356153ce81615a79565b945060208601356153de81615a79565b935060408601356153ee81615a79565b925060608601356153fe81615a79565b9150608086013561540e81615a79565b809150509295509295909350565b60006020828403121561542e57600080fd5b813569ffffffffffffffffffff81168114614ea557600080fd5b600081518084526020808501945080840160005b838110156154815781516001600160a01b03168752958201959082019060010161545c565b509495945050505050565b600081518084526020808501945080840160005b8381101561548157815160170b875295820195908201906001016154a0565b6000815180845260005b818110156154e5576020818501810151868301820152016154c9565b818111156154f7576000602083870101525b50601f01601f19169290920160200192915050565b8281526060826020830137600060809190910190815292915050565b8183823760009101908152919050565b6001600160a01b038416815260406020820152816040820152818360608301376000818301606090810191909152601f909201601f1916010192915050565b6020815260006110466020830184615448565b6108608101818960005b601f8110156155b757815161ffff16835260209283019290910190600101615594565b5050506103e082018860005b601f8110156155e25781518352602092830192909101906001016155c3565b50505063ffffffff9687166107c08301529486166107e08201529285166108008401529084166108208301529092166108409092019190915292915050565b8760170b81526001600160a01b038716602082015263ffffffff8616604082015260e06060820152600061565860e083018761548c565b828103608084015261566a81876154bf565b9150508360a083015264ffffffffff831660c083015298975050505050505050565b60208152600061104660208301846154bf565b60006101208b83526001600160a01b038b16602084015267ffffffffffffffff808b1660408501528160608501526156d98285018b615448565b915083820360808501526156ed828a615448565b915060ff881660a085015283820360c085015261570a82886154bf565b90861660e0850152838103610100850152905061572781856154bf565b9c9b505050505050505050505050565b600061012063ffffffff808d1684528b6020850152808b166040850152508060608401526157678184018a615448565b9050828103608084015261577b8189615448565b905060ff871660a084015282810360c084015261579881876154bf565b905067ffffffffffffffff851660e084015282810361010084015261572781856154bf565b63ffffffff841681526060602082015260006157dc60608301856154bf565b8281036040840152613bb5818561548c565b604051601f8201601f1916810167ffffffffffffffff8111828210171561581757615817615a4e565b604052919050565b600067ffffffffffffffff82111561583957615839615a4e565b5060051b60200190565b600061ffff808316818516808303821115615860576158606159e0565b01949350505050565b6000821982111561587c5761587c6159e0565b500190565b600063ffffffff808316818516808303821115615860576158606159e0565b600060ff821660ff84168060ff038211156158bd576158bd6159e0565b019392505050565b6000826158d4576158d46159f6565b500490565b600060ff8316806158ec576158ec6159f6565b8060ff84160491505092915050565b6000816000190483118215151615615915576159156159e0565b500290565b60008282101561592c5761592c6159e0565b500390565b600063ffffffff8381169083168181101561594e5761594e6159e0565b039392505050565b600181811c9082168061596a57607f821691505b602082108114156147b257634e487b7160e01b600052602260045260246000fd5b600060001982141561599f5761599f6159e0565b5060010190565b600063ffffffff808316818114156159c0576159c06159e0565b6001019392505050565b634e487b7160e01b600052600160045260246000fd5b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052601260045260246000fd5b634e487b7160e01b600052602160045260246000fd5b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b038116811461136f57600080fd5b63ffffffff8116811461136f57600080fdfe416363657373436f6e74726f6c6c65644f43523241676772656761746f7220312e302e302d616c706861a164736f6c6343000806000a"
+var TestOCR2AggregatorBin = "0x60e06040523480156200001157600080fd5b5060405162005c7038038062005c70833981016040819052620000349162000591565b8484848484600060405180604001604052806004815260200163151154d560e21b8152508686868686868633806000806001600160a01b0316826001600160a01b03161415620000cb5760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615620000fe57620000fe81620001ee565b5050601180546001600160a01b0319166001600160a01b038a169081179091556040519091506000907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a908290a362000157846200029a565b7fff0000000000000000000000000000000000000000000000000000000000000060f883901b1660c052805162000196906010906020840190620004d3565b50620001a28362000313565b620001af6000806200038e565b50505050601791820b820b604090811b60805290820b90910b901b60a05250506015805460ff1916600117905550620006609950505050505050505050565b6001600160a01b038116331415620002495760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401620000c2565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6012546001600160a01b0390811690821681146200030f57601280546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291015b60405180910390a15b5050565b6200031d62000475565b600f546001600160a01b0390811690821681146200030f57600f80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae634910162000306565b6200039862000475565b60408051808201909152600e546001600160a01b03808216808452600160a01b90920463ffffffff1660208401528416141580620003e657508163ffffffff16816020015163ffffffff1614155b1562000470576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052600e80546001600160c01b0319168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6000546001600160a01b03163314620004d15760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401620000c2565b565b828054620004e1906200060a565b90600052602060002090601f01602090048101928262000505576000855562000550565b82601f106200052057805160ff191683800117855562000550565b8280016001018555821562000550579182015b828111156200055057825182559160200191906001019062000533565b506200055e92915062000562565b5090565b5b808211156200055e576000815560010162000563565b8051601781900b81146200058c57600080fd5b919050565b600080600080600060a08688031215620005aa57600080fd5b8551620005b78162000647565b9450620005c76020870162000579565b9350620005d76040870162000579565b92506060860151620005e98162000647565b6080870151909250620005fc8162000647565b809150509295509295909350565b600181811c908216806200061f57607f821691505b602082108114156200064157634e487b7160e01b600052602260045260246000fd5b50919050565b6001600160a01b03811681146200065d57600080fd5b50565b60805160401c60a05160401c60c05160f81c6155bb620006b56000396000610484015260008181610596015281816127160152613e4b0152600081816103c4015281816126e90152613e1e01526155bb6000f3fe608060405234801561001057600080fd5b506004361061036d5760003560e01c80638da5cb5b116101d3578063c4c92b3711610104578063e5fe4577116100a2578063eb5dcd6c1161007c578063eb5dcd6c146108e9578063f2fde38b146108fc578063fbffd2c11461090f578063feaf968c1461092257600080fd5b8063e5fe45771461087b578063e76d5168146108c5578063eb457163146108d657600080fd5b8063dc7f0124116100de578063dc7f012414610820578063e259c1f61461082d578063e3d0e71214610840578063e4902f821461085357600080fd5b8063c4c92b37146107f6578063d09dc33914610807578063daffc4b51461080f57600080fd5b8063a118f24911610171578063b1dc65a41161014b578063b1dc65a4146107aa578063b5ab58dc146107bd578063b633620c146107d0578063c1075329146107e357600080fd5b8063a118f24914610753578063afcb95d714610766578063b121e1471461079757600080fd5b80639bd2c0b1116101ad5780639bd2c0b1146106c05780639c849b30146107015780639e3ceeab146107145780639eb6e0601461072757600080fd5b80638da5cb5b1461062e57806398e5b12a146106535780639a6fc8f51461067657600080fd5b8063643dc105116102ad5780637284e4161161024b57806381ff70481161022557806381ff7048146105d05780638205bf6a146106005780638823da6c146106085780638ac28d5a1461061b57600080fd5b80637284e416146105b857806379ba5097146105c05780638038e4a1146105c857600080fd5b806366cfeaf11161028757806366cfeaf1146105535780636b14daf81461055b578063700314681461057e57806370da2f671461059157600080fd5b8063643dc10514610523578063666cab8d14610536578063668a0f021461054b57600080fd5b8063313ce5671161031a5780634fb17470116102f45780634fb17470146104ed57806350d25bcd1461050057806354fd4d50146105085780635765b76a1461051057600080fd5b8063313ce5671461047f57806333e8f9f0146104b85780633b5cdfa2146104cb57600080fd5b8063181f5a771161034b578063181f5a77146103aa57806322adbc78146103bf57806329937268146103f957600080fd5b80630a756983146103725780630eafb25b1461037c578063102a474b146103a2575b600080fd5b61037a61092a565b005b61038f61038a3660046149e5565b610973565b6040519081526020015b60405180910390f35b61038f610a78565b6103b2610a87565b604051610399919061515b565b6103e67f000000000000000000000000000000000000000000000000000000000000000081565b60405160179190910b8152602001610399565b610443600b546a0100000000000000000000810463ffffffff90811692600160701b8304821692600160901b8104831692600160b01b82041691600160d01b90910462ffffff1690565b6040805163ffffffff9687168152948616602086015292851692840192909252909216606082015262ffffff909116608082015260a001610399565b6104a67f000000000000000000000000000000000000000000000000000000000000000081565b60405160ff9091168152602001610399565b61038f6104c6366004614df2565b610aa7565b6104de6104d9366004614d31565b610ac0565b6040516103999392919061528c565b61037a6104fb366004614a02565b610aea565b61038f610d34565b61038f600681565b61038f61051e366004614dc6565b610dda565b61037a610531366004614efd565b610de7565b61053e611054565b60405161039991906150d1565b61038f6110b6565b600a5461038f565b61056e610569366004614a3b565b611146565b6040519015158152602001610399565b61037a61058c366004614d94565b61116e565b6103e67f000000000000000000000000000000000000000000000000000000000000000081565b6103b2611242565b61037a6112c5565b61037a611376565b600d54600a546040805163ffffffff80851682526401000000009094049093166020840152820152606001610399565b61038f6113c0565b61037a6106163660046149e5565b611468565b61037a6106293660046149e5565b6114e9565b6000546001600160a01b03165b6040516001600160a01b039091168152602001610399565b61065b61155b565b60405169ffffffffffffffffffff9091168152602001610399565b610689610684366004614f76565b6116c5565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a001610399565b604080518082018252600e546001600160a01b038116808352600160a01b90910463ffffffff16602092830181905283519182529181019190915201610399565b61037a61070f366004614af1565b611763565b61037a6107223660046149e5565b611941565b61063b6107353660046149e5565b6001600160a01b039081166000908152601360205260409020541690565b61037a6107613660046149e5565b6119c0565b600a54600b546040805160008152602081019390935261010090910460081c63ffffffff1690820152606001610399565b61037a6107a53660046149e5565b611a3c565b61037a6107b8366004614c2a565b611b18565b61038f6107cb366004614d94565b61201c565b61038f6107de366004614d94565b6120a8565b61037a6107f1366004614a8b565b61212c565b6012546001600160a01b031661063b565b61038f6123f0565b600f546001600160a01b031661063b565b60155461056e9060ff1681565b61037a61083b366004614ab7565b61248f565b61037a61084e366004614b5d565b61253d565b6108666108613660046149e5565b612d72565b60405163ffffffff9091168152602001610399565b610883612e28565b6040805195865263ffffffff909416602086015260ff9092169284019290925260179190910b606083015267ffffffffffffffff16608082015260a001610399565b6011546001600160a01b031661063b565b61037a6108e4366004614d66565b612ed1565b61037a6108f7366004614a02565b612fcc565b61037a61090a3660046149e5565b613105565b61037a61091d3660046149e5565b613116565b610689613127565b610932613216565b60155460ff1615610971576015805460ff191690556040517f3be8a977a014527b50ae38adda80b56911c267328965c98ddc385d248f53963890600090a15b565b6001600160a01b03811660009081526002602090815260408083208151606081018352905460ff80821615158084526101008304909116948301949094526201000090046001600160601b031691810191909152906109d55750600092915050565b600b546020820151600091600160901b900463ffffffff169060069060ff16601f8110610a0457610a04615531565b600881049190910154600b54610a37926007166004026101000a90910463ffffffff90811691600160301b90041661546c565b63ffffffff16610a479190615399565b610a5590633b9aca00615399565b905081604001516001600160601b031681610a709190615312565b949350505050565b6000610a82613270565b905090565b60606040518060600160405280602a8152602001615585602a9139905090565b6000610ab6868686868661343a565b9695505050505050565b60006060806000610ad08561349e565b805160208201516040909201519097919650945092505050565b610af2613216565b6011546001600160a01b03908116908316811415610b0f57505050565b6040516370a0823160e01b81523060048201526001600160a01b038416906370a082319060240160206040518083038186803b158015610b4e57600080fd5b505afa158015610b62573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610b869190614dad565b50610b8f613543565b6040516370a0823160e01b81523060048201526000906001600160a01b038316906370a082319060240160206040518083038186803b158015610bd157600080fd5b505afa158015610be5573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c099190614dad565b60405163a9059cbb60e01b81526001600160a01b038581166004830152602482018390529192509083169063a9059cbb90604401602060405180830381600087803b158015610c5757600080fd5b505af1158015610c6b573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c8f9190614d0f565b610ce05760405162461bcd60e51b815260206004820152601f60248201527f7472616e736665722072656d61696e696e672066756e6473206661696c65640060448201526064015b60405180910390fd5b601180546001600160a01b0319166001600160a01b0386811691821790925560405190918416907f4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a90600090a350505b5050565b6000610d77336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b610daf5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b600b54600160301b900463ffffffff166000908152600c6020526040902054601790810b900b905090565b6000610a708484846138ec565b6012546001600160a01b0316610e056000546001600160a01b031690565b6001600160a01b0316336001600160a01b03161480610ea05750604051630d629b5f60e31b81526001600160a01b03821690636b14daf890610e509033906000903690600401615092565b60206040518083038186803b158015610e6857600080fd5b505afa158015610e7c573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ea09190614d0f565b610eec5760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610cd7565b610ef4613543565b600b80547fffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffff166a010000000000000000000063ffffffff8981169182027fffffffffffffffffffffffffffff00000000ffffffffffffffffffffffffffff1692909217600160701b898416908102919091177fffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffff16600160901b8985169081027fffffffffffff00000000ffffffffffffffffffffffffffffffffffffffffffff1691909117600160b01b948916948502177fffffff000000ffffffffffffffffffffffffffffffffffffffffffffffffffff16600160d01b62ffffff89169081029190911790955560408051938452602084019290925290820152606081019190915260808101919091527f0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f9060a00160405180910390a1505050505050565b606060058054806020026020016040519081016040528092919081815260200182805480156110ac57602002820191906000526020600020905b81546001600160a01b0316815260019091019060200180831161108e575b5050505050905090565b60006110f9336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b6111315760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b600b54600160301b900463ffffffff16905090565b60006111528383613912565b8061116557506001600160a01b03831632145b90505b92915050565b60115460405163a9059cbb60e01b815260016004820152602481018390526001600160a01b039091169063a9059cbb90604401602060405180830381600087803b1580156111bb57600080fd5b505af11580156111cf573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906111f39190614d0f565b61123f5760405162461bcd60e51b815260206004820152600f60248201527f7472616e73666572206661696c656400000000000000000000000000000000006044820152606401610cd7565b50565b6060611285336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b6112bd5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b610a82613942565b6001546001600160a01b0316331461131f5760405162461bcd60e51b815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e6572000000000000000000006044820152606401610cd7565b60008054336001600160a01b0319808316821784556001805490911690556040516001600160a01b0390921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b61137e613216565b60155460ff16610971576015805460ff191660011790556040517faebf329500988c6488a0074e5a0a9ff304561fc5c6fc877aeb1d59c8282c348090600090a1565b6000611403336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b61143b5760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b50600b5463ffffffff600160301b90910481166000908152600c6020526040902054600160e01b90041690565b611470613216565b6001600160a01b03811660009081526016602052604090205460ff161561123f576001600160a01b038116600081815260166020908152604091829020805460ff1916905590519182527f3d68a6fce901d20453d1a7aa06bf3950302a735948037deb182a8db66df2a0d191015b60405180910390a150565b6001600160a01b038181166000908152601360205260409020541633146115525760405162461bcd60e51b815260206004820152601760248201527f4f6e6c792070617965652063616e2077697468647261770000000000000000006044820152606401610cd7565b61123f816139cb565b600080546001600160a01b03163314806115f55750600f54604051630d629b5f60e31b81526001600160a01b0390911690636b14daf8906115a59033906000903690600401615092565b60206040518083038186803b1580156115bd57600080fd5b505afa1580156115d1573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906115f59190614d0f565b6116415760405162461bcd60e51b815260206004820152601d60248201527f4f6e6c79206f776e6572267265717565737465722063616e2063616c6c0000006044820152606401610cd7565b600b54600a546040805191825263ffffffff6101008404600881901c8216602085015260ff811684840152915164ffffffffff90921693600160301b9004169133917f41e3990591fd372502daa15842da15bc7f41c75309ab3ff4f56f1848c178825c9181900360600190a26116b881600161532a565b63ffffffff169250505090565b600080600080600061170e336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b6117465760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b61174f86613bec565b945094509450945094505b91939590929450565b61176b613216565b8281146117ba5760405162461bcd60e51b815260206004820181905260248201527f7472616e736d6974746572732e73697a6520213d207061796565732e73697a656044820152606401610cd7565b60005b8381101561193a5760008585838181106117d9576117d9615531565b90506020020160208101906117ee91906149e5565b9050600084848481811061180457611804615531565b905060200201602081019061181991906149e5565b6001600160a01b0380841660009081526013602052604090205491925016801580806118565750826001600160a01b0316826001600160a01b0316145b6118a25760405162461bcd60e51b815260206004820152601160248201527f706179656520616c7265616479207365740000000000000000000000000000006044820152606401610cd7565b6001600160a01b03848116600090815260136020526040902080546001600160a01b0319168583169081179091559083161461192357826001600160a01b0316826001600160a01b0316856001600160a01b03167f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b360405160405180910390a45b505050508080611932906154c6565b9150506117bd565b5050505050565b611949613216565b600f546001600160a01b039081169082168114610d3057600f80546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f27b89aede8b560578baaa25ee5ce3852c5eecad1e114b941bbd89e1eb4bae63491015b60405180910390a15050565b6119c8613216565b6001600160a01b03811660009081526016602052604090205460ff1661123f576001600160a01b038116600081815260166020908152604091829020805460ff1916600117905590519182527f87286ad1f399c8e82bf0c4ef4fcdc570ea2e1e92176e5c848b6413545b885db491016114de565b6001600160a01b03818116600090815260146020526040902054163314611aa55760405162461bcd60e51b815260206004820152601f60248201527f6f6e6c792070726f706f736564207061796565732063616e20616363657074006044820152606401610cd7565b6001600160a01b0381811660008181526013602090815260408083208054336001600160a01b031980831682179093556014909452828520805490921690915590519416939092849290917f78af32efdcad432315431e9b03d27e6cd98fb79c405fdc5af7c1714d9c0f75b39190a45050565b60005a604080516101008082018352600b5460ff8116835290810464ffffffffff9081166020808501829052600160301b840463ffffffff908116968601969096526a0100000000000000000000840486166060860152600160701b840486166080860152600160901b8404861660a0860152600160b01b840490951660c0850152600160d01b90920462ffffff1660e08401529394509092918c013591821611611c055760405162461bcd60e51b815260206004820152600c60248201527f7374616c65207265706f727400000000000000000000000000000000000000006044820152606401610cd7565b3360009081526002602052604090205460ff16611c645760405162461bcd60e51b815260206004820152601860248201527f756e617574686f72697a6564207472616e736d697474657200000000000000006044820152606401610cd7565b600a548b3514611cb65760405162461bcd60e51b815260206004820152601560248201527f636f6e666967446967657374206d69736d6174636800000000000000000000006044820152606401610cd7565b611cc48a8a8a8a8a8a613c81565b8151611cd1906001615352565b60ff168714611d225760405162461bcd60e51b815260206004820152601a60248201527f77726f6e67206e756d626572206f66207369676e6174757265730000000000006044820152606401610cd7565b868514611d715760405162461bcd60e51b815260206004820152601e60248201527f7369676e617475726573206f7574206f6620726567697374726174696f6e00006044820152606401610cd7565b60008a8a604051611d83929190615082565b604051908190038120611d9a918e90602001615066565b60408051601f19818403018152828252805160209182012083830190925260008084529083018190529092509060005b8a811015611f405760006001858a8460208110611de957611de9615531565b611df691901a601b615352565b8f8f86818110611e0857611e08615531565b905060200201358e8e87818110611e2157611e21615531565b9050602002013560405160008152602001604052604051611e5e949392919093845260ff9290921660208401526040830152606082015260800190565b6020604051602081039080840390855afa158015611e80573d6000803e3d6000fd5b505060408051601f198101516001600160a01b03811660009081526003602090815290849020838501909452925460ff8082161515808552610100909204169383019390935290955092509050611f195760405162461bcd60e51b815260206004820152600f60248201527f7369676e6174757265206572726f7200000000000000000000000000000000006044820152606401610cd7565b826020015160080260ff166001901b84019350508080611f38906154c6565b915050611dca565b5081827e010101010101010101010101010101010101010101010101010101010101011614611fb15760405162461bcd60e51b815260206004820152601060248201527f6475706c6963617465207369676e6572000000000000000000000000000000006044820152606401610cd7565b50600091506120009050838d836020020135848e8e8080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250613d1e92505050565b905061200e8382863361421b565b505050505050505050505050565b600061205f336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b6120975760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b6120a082614351565b90505b919050565b60006120eb336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b6121235760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b6120a082614387565b6000546001600160a01b03163314806121c55750601254604051630d629b5f60e31b81526001600160a01b0390911690636b14daf8906121759033906000903690600401615092565b60206040518083038186803b15801561218d57600080fd5b505afa1580156121a1573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906121c59190614d0f565b6122115760405162461bcd60e51b815260206004820181905260248201527f4f6e6c79206f776e65722662696c6c696e6741646d696e2063616e2063616c6c6044820152606401610cd7565b600061221b613270565b6011546040516370a0823160e01b81523060048201529192506000916001600160a01b03909116906370a082319060240160206040518083038186803b15801561226457600080fd5b505afa158015612278573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061229c9190614dad565b9050818110156122ee5760405162461bcd60e51b815260206004820152601460248201527f696e73756666696369656e742062616c616e63650000000000000000000000006044820152606401610cd7565b6011546001600160a01b031663a9059cbb8561231361230d8686615455565b876143c0565b6040517fffffffff0000000000000000000000000000000000000000000000000000000060e085901b1681526001600160a01b0390921660048301526024820152604401602060405180830381600087803b15801561237157600080fd5b505af1158015612385573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906123a99190614d0f565b6123ea5760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610cd7565b50505050565b6011546040516370a0823160e01b815230600482015260009182916001600160a01b03909116906370a082319060240160206040518083038186803b15801561243857600080fd5b505afa15801561244c573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906124709190614dad565b9050600061247c613270565b905061248881836153e1565b9250505090565b6001600160a01b03821660009081526002602052604090205460ff166124f75760405162461bcd60e51b815260206004820152601360248201527f696e76616c6964207472616e736d6974746572000000000000000000000000006044820152606401610cd7565b6001600160a01b03909116600090815260026020526040902080546001600160601b0390921662010000026dffffffffffffffffffffffff000019909216919091179055565b612545613216565b601f865111156125975760405162461bcd60e51b815260206004820152601060248201527f746f6f206d616e79206f7261636c6573000000000000000000000000000000006044820152606401610cd7565b84518651146125e85760405162461bcd60e51b815260206004820152601660248201527f6f7261636c65206c656e677468206d69736d61746368000000000000000000006044820152606401610cd7565b85516125f58560036153b8565b60ff16106126455760405162461bcd60e51b815260206004820152601860248201527f6661756c74792d6f7261636c65206620746f6f206869676800000000000000006044820152606401610cd7565b6126518460ff166143d7565b8251156126a05760405162461bcd60e51b815260206004820152601b60248201527f6f6e636861696e436f6e666967206d75737420626520656d70747900000000006044820152606401610cd7565b6040805160c081018252878152602080820188905260ff87168284015282517f0100000000000000000000000000000000000000000000000000000000000000918101919091527f0000000000000000000000000000000000000000000000000000000000000000601790810b841b60218301527f0000000000000000000000000000000000000000000000000000000000000000900b831b6039820152825160318183030181526051909101909252606081019190915267ffffffffffffffff8316608082015260a08101829052600b805465ffffffffff0019169055612786613543565b600454156128a6576004546000906127a090600190615455565b90506000600482815481106127b7576127b7615531565b6000918252602082200154600580546001600160a01b03909216935090849081106127e4576127e4615531565b60009182526020808320909101546001600160a01b038581168452600383526040808520805461ffff191690559116808452600290925290912080546dffffffffffffffffffffffffffff191690556004805491925090806128485761284861551b565b600082815260209020810160001990810180546001600160a01b0319169055019055600580548061287b5761287b61551b565b600082815260209020810160001990810180546001600160a01b031916905501905550612786915050565b60005b815151811015612bce5760036000836000015183815181106128cd576128cd615531565b6020908102919091018101516001600160a01b031682528101919091526040016000205460ff16156129415760405162461bcd60e51b815260206004820152601760248201527f7265706561746564207369676e657220616464726573730000000000000000006044820152606401610cd7565b604080518082019091526001815260ff82166020820152825180516003916000918590811061297257612972615531565b6020908102919091018101516001600160a01b03168252818101929092526040016000908120835181549484015161ffff1990951690151561ff0019161761010060ff909516949094029390931790925583015180516002929190849081106129dd576129dd615531565b6020908102919091018101516001600160a01b031682528101919091526040016000205460ff1615612a515760405162461bcd60e51b815260206004820152601c60248201527f7265706561746564207472616e736d69747465722061646472657373000000006044820152606401610cd7565b60405180606001604052806001151581526020018260ff16815260200160006001600160601b03168152506002600084602001518481518110612a9657612a96615531565b6020908102919091018101516001600160a01b03168252818101929092526040908101600020835181549385015194909201516001600160601b031662010000026dffffffffffffffffffffffff00001960ff959095166101000261ff00199315159390931661ffff19909416939093179190911792909216179055815180516004919083908110612b2a57612b2a615531565b602090810291909101810151825460018101845560009384529282902090920180546001600160a01b0319166001600160a01b039093169290921790915582015180516005919083908110612b8157612b81615531565b60209081029190910181015182546001810184556000938452919092200180546001600160a01b0319166001600160a01b0390921691909117905580612bc6816154c6565b9150506128a9565b506040810151600b805460ff191660ff909216919091179055600d805467ffffffff0000000019811664010000000063ffffffff438116820292831785559083048116936001939092600092612c2b92869290821691161761532a565b92506101000a81548163ffffffff021916908363ffffffff160217905550612c8a4630600d60009054906101000a900463ffffffff1663ffffffff16856000015186602001518760400151886060015189608001518a60a00151614427565b600a819055600d54835160208501516040808701516060880151608089015160a08a015193517f1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e0598612cf3988b98919763ffffffff909116969195909490939092909190615206565b60405180910390a160005b825151811015612d6757600b54600160301b900463ffffffff16600682601f8110612d2b57612d2b615531565b600891828204019190066004026101000a81548163ffffffff021916908363ffffffff1602179055508080612d5f906154c6565b915050612cfe565b505050505050505050565b6001600160a01b03811660009081526002602090815260408083208151606081018352905460ff80821615158084526101008304909116948301949094526201000090046001600160601b03169181019190915290612dd45750600092915050565b6006816020015160ff16601f8110612dee57612dee615531565b600881049190910154600b54612e21926007166004026101000a90910463ffffffff90811691600160301b90041661546c565b9392505050565b600080808080333214612e7d5760405162461bcd60e51b815260206004820152601460248201527f4f6e6c792063616c6c61626c6520627920454f410000000000000000000000006044820152606401610cd7565b5050600a54600b5463ffffffff600160301b820481166000908152600c60205260409020549296610100909204600881901c8216965064ffffffffff169450601783900b9350600160e01b90920490911690565b612ed9613216565b60408051808201909152600e546001600160a01b03808216808452600160a01b90920463ffffffff1660208401528416141580612f2657508163ffffffff16816020015163ffffffff1614155b15612fc7576040805180820182526001600160a01b0385811680835263ffffffff8681166020948501819052600e80547fffffffffffffffff000000000000000000000000000000000000000000000000168417600160a01b830217905586518786015187519316835294820152909392909116917fb04e3a37abe9c0fcdfebdeae019a8e2b12ddf53f5d55ffb0caccc1bedaca1541910160405180910390a35b505050565b6001600160a01b038281166000908152601360205260409020541633146130355760405162461bcd60e51b815260206004820152601d60248201527f6f6e6c792063757272656e742070617965652063616e207570646174650000006044820152606401610cd7565b336001600160a01b038216141561308e5760405162461bcd60e51b815260206004820152601760248201527f63616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610cd7565b6001600160a01b03808316600090815260146020526040902080548383166001600160a01b031982168117909255909116908114612fc7576040516001600160a01b038084169133918616907f84f7c7c80bb8ed2279b4aab5f61cd05e6374073d38f46d7f32de8c30e9e3836790600090a4505050565b61310d613216565b61123f816144b4565b61311e613216565b61123f8161455e565b6000806000806000613170336000368080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061114692505050565b6131a85760405162461bcd60e51b81526020600482015260096024820152684e6f2061636365737360b81b6044820152606401610cd7565b5050600b54600160301b900463ffffffff9081166000818152600c602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048816948401859052600160e01b9092049096169190930181905292979190930b955091935091508490565b6000546001600160a01b031633146109715760405162461bcd60e51b815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e6572000000000000000000006044820152606401610cd7565b60008060058054806020026020016040519081016040528092919081815260200182805480156132c957602002820191906000526020600020905b81546001600160a01b031681526001909101906020018083116132ab575b50508351600b54604080516103e08101918290529697509195600160301b90910463ffffffff169450600093509150600690601f908285855b82829054906101000a900463ffffffff1663ffffffff16815260200190600401906020826003010492830192600103820291508084116133025790505050505050905060005b83811015613395578181601f811061336257613362615531565b6020020151613371908461546c565b6133819063ffffffff1687615312565b95508061338d816154c6565b915050613348565b50600b546133b490600160901b900463ffffffff16633b9aca00615399565b6133be9086615399565b945060005b8381101561343257600260008683815181106133e1576133e1615531565b6020908102919091018101516001600160a01b031682528101919091526040016000205461341e906201000090046001600160601b031687615312565b95508061342a816154c6565b9150506133c3565b505050505090565b60008186101561348c5760405162461bcd60e51b815260206004820181905260248201527f6c6566744761732063616e6e6f742065786365656420696e697469616c4761736044820152606401610cd7565b50633b9aca0094039190910101020290565b6134d26040518060800160405280600063ffffffff1681526020016060815260200160608152602001600060170b81525090565b60008060606000858060200190518101906134ed9190614e2d565b9296509094509250905061350186836145cd565b81516040805160208082019690965281519082018252918252805160808101825263ffffffff969096168652938501529183015260170b606082015292915050565b601154600b54604080516103e08101918290526001600160a01b0390931692600160301b90920463ffffffff1691600091600690601f908285855b82829054906101000a900463ffffffff1663ffffffff168152602001906004019060208260030104928301926001038202915080841161357e579050505050505090506000600580548060200260200160405190810160405280929190818152602001828054801561361957602002820191906000526020600020905b81546001600160a01b031681526001909101906020018083116135fb575b5050505050905060005b81518110156138de5760006002600084848151811061364457613644615531565b60200260200101516001600160a01b03166001600160a01b0316815260200190815260200160002060000160029054906101000a90046001600160601b03166001600160601b031690506000600260008585815181106136a6576136a6615531565b60200260200101516001600160a01b03166001600160a01b0316815260200190815260200160002060000160026101000a8154816001600160601b0302191690836001600160601b0316021790555060008483601f811061370957613709615531565b6020020151600b5490870363ffffffff9081169250600160901b909104168102633b9aca0002820180156138d35760006013600087878151811061374f5761374f615531565b6020908102919091018101516001600160a01b03908116835290820192909252604090810160002054905163a9059cbb60e01b815290821660048201819052602482018590529250908a169063a9059cbb90604401602060405180830381600087803b1580156137be57600080fd5b505af11580156137d2573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906137f69190614d0f565b6138375760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610cd7565b878786601f811061384a5761384a615531565b602002019063ffffffff16908163ffffffff1681525050886001600160a01b0316816001600160a01b031687878151811061388757613887615531565b60200260200101516001600160a01b03167fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c856040516138c991815260200190565b60405180910390a4505b505050600101613623565b5061193a600683601f6147c2565b600083838110156138ff57600285850304015b61390981846143c0565b95945050505050565b6001600160a01b03821660009081526016602052604081205460ff168061116557505060155460ff161592915050565b60606010805461395190615491565b80601f016020809104026020016040519081016040528092919081815260200182805461397d90615491565b80156110ac5780601f1061399f576101008083540402835291602001916110ac565b820191906000526020600020905b8154815290600101906020018083116139ad57509395945050505050565b6001600160a01b0381166000908152600260209081526040918290208251606081018452905460ff80821615158084526101008304909116938301939093526201000090046001600160601b031692810192909252613a28575050565b6000613a3383610973565b90508015612fc7576001600160a01b038381166000908152601360205260409081902054601154915163a9059cbb60e01b8152908316600482018190526024820185905292919091169063a9059cbb90604401602060405180830381600087803b158015613aa057600080fd5b505af1158015613ab4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190613ad89190614d0f565b613b195760405162461bcd60e51b8152602060048201526012602482015271696e73756666696369656e742066756e647360701b6044820152606401610cd7565b600b60000160069054906101000a900463ffffffff166006846020015160ff16601f8110613b4957613b49615531565b6008810491909101805460079092166004026101000a63ffffffff8181021990931693909216919091029190911790556001600160a01b0384811660008181526002602090815260409182902080546dffffffffffffffffffffffff000019169055601154915186815291841693851692917fd0b1dac935d85bd54cf0a33b0d41d39f8cf53a968465fc7ea2377526b8ac712c910160405180910390a450505050565b60008080808063ffffffff69ffffffffffffffffffff87161115613c1e5750600093508392508291508190508061175a565b5050505063ffffffff8281166000908152600c602090815260409182902082516060810184529054601781810b810b810b808452600160c01b83048716948401859052600160e01b9092049095169190930181905294959190920b939192508490565b6000613c8e826020615399565b613c99856020615399565b613ca588610144615312565b613caf9190615312565b613cb99190615312565b613cc4906000615312565b9050368114613d155760405162461bcd60e51b815260206004820152601860248201527f63616c6c64617461206c656e677468206d69736d6174636800000000000000006044820152606401610cd7565b50505050505050565b600080613d2a8361349e565b9050601f8160400151511115613d825760405162461bcd60e51b815260206004820152601e60248201527f6e756d206f62736572766174696f6e73206f7574206f6620626f756e647300006044820152606401610cd7565b604081015151865160ff1610613dda5760405162461bcd60e51b815260206004820152601e60248201527f746f6f206665772076616c75657320746f207472757374206d656469616e00006044820152606401610cd7565b64ffffffffff841660208701526040810151805160009190613dfe90600290615377565b81518110613e0e57613e0e615531565b602002602001015190508060170b7f000000000000000000000000000000000000000000000000000000000000000060170b13158015613e7457507f000000000000000000000000000000000000000000000000000000000000000060170b8160170b13155b613ec05760405162461bcd60e51b815260206004820152601e60248201527f6d656469616e206973206f7574206f66206d696e2d6d61782072616e676500006044820152606401610cd7565b60408701805190613ed0826154e1565b63ffffffff1663ffffffff168152505060405180606001604052808260170b8152602001836000015163ffffffff1681526020014263ffffffff16815250600c6000896040015163ffffffff1663ffffffff16815260200190815260200160002060008201518160000160006101000a81548177ffffffffffffffffffffffffffffffffffffffffffffffff021916908360170b77ffffffffffffffffffffffffffffffffffffffffffffffff16021790555060208201518160000160186101000a81548163ffffffff021916908363ffffffff160217905550604082015181600001601c6101000a81548163ffffffff021916908363ffffffff16021790555090505086600b60008201518160000160006101000a81548160ff021916908360ff16021790555060208201518160000160016101000a81548164ffffffffff021916908364ffffffffff16021790555060408201518160000160066101000a81548163ffffffff021916908363ffffffff160217905550606082015181600001600a6101000a81548163ffffffff021916908363ffffffff160217905550608082015181600001600e6101000a81548163ffffffff021916908363ffffffff16021790555060a08201518160000160126101000a81548163ffffffff021916908363ffffffff16021790555060c08201518160000160166101000a81548163ffffffff021916908363ffffffff16021790555060e082015181600001601a6101000a81548162ffffff021916908362ffffff160217905550905050866040015163ffffffff167fc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a823385600001518660400151876020015188606001518d8d6040516141649897969594939291906150e4565b60405180910390a26040808801518351915163ffffffff9283168152600092909116907f0109fc6f55cf40689f02fbaad7af7fe7bbac8a3d2186600afc7d3e10cac602719060200160405180910390a3866040015163ffffffff168160170b7f0559884fd3a460db3073b7fc896cc77986f16e378210ded43186175bf646fc5f426040516141f491815260200190565b60405180910390a361420d87604001518260170b614645565b506060015195945050505050565b60008360170b121561422c576123ea565b6000614253633b9aca003a04866080015163ffffffff16876060015163ffffffff166138ec565b90506010360260005a9050600061427c8663ffffffff1685858b60e0015162ffffff168661343a565b90506000670de0b6b3a764000077ffffffffffffffffffffffffffffffffffffffffffffffff891683026001600160a01b03881660009081526002602052604090205460c08c01519290910492506201000090046001600160601b039081169163ffffffff16633b9aca00028284010190811682111561430257505050505050506123ea565b6001600160a01b038816600090815260026020526040902080546001600160601b0390921662010000026dffffffffffffffffffffffff00001990921691909117905550505050505050505050565b600063ffffffff82111561436757506000919050565b5063ffffffff166000908152600c6020526040902054601790810b900b90565b600063ffffffff82111561439d57506000919050565b5063ffffffff9081166000908152600c6020526040902054600160e01b90041690565b6000818310156143d1575081611168565b50919050565b8060001061123f5760405162461bcd60e51b815260206004820152601260248201527f66206d75737420626520706f73697469766500000000000000000000000000006044820152606401610cd7565b6000808a8a8a8a8a8a8a8a8a60405160200161444b9998979695949392919061516e565b60408051601f1981840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150509998505050505050505050565b6001600160a01b03811633141561450d5760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c660000000000000000006044820152606401610cd7565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b6012546001600160a01b039081169082168114610d3057601280546001600160a01b0319166001600160a01b0384811691821790925560408051928416835260208301919091527f793cb73064f3c8cde7e187ae515511e6e56d1ee89bf08b82fa60fb70f8d4891291016119b4565b6000815160206145dd9190615399565b6145e89060a0615312565b6145f3906000615312565b905080835114612fc75760405162461bcd60e51b815260206004820152601660248201527f7265706f7274206c656e677468206d69736d61746368000000000000000000006044820152606401610cd7565b60408051808201909152600e546001600160a01b038116808352600160a01b90910463ffffffff16602083015261467b57505050565b600061468860018561546c565b63ffffffff8181166000818152600c60209081526040918290205490870151875192516024810194909452601791820b90910b6044840181905289851660648501526084840189905294955061473a93169160a40160408051601f198184030181529190526020810180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fbeed9b5100000000000000000000000000000000000000000000000000000000179052614786565b61193a5760405162461bcd60e51b815260206004820152601060248201527f696e73756666696369656e7420676173000000000000000000000000000000006044820152606401610cd7565b60005a61138881106147ba57611388810390508460408204820311156147ba576000808451602086016000888af150600191505b509392505050565b60048301918390821561484e5791602002820160005b8382111561481c57835183826101000a81548163ffffffff021916908363ffffffff16021790555092602001926004016020816003010492830192600103026147d8565b801561484c5782816101000a81549063ffffffff021916905560040160208160030104928301926001030261481c565b505b5061485a92915061485e565b5090565b5b8082111561485a576000815560010161485f565b60008083601f84011261488557600080fd5b50813567ffffffffffffffff81111561489d57600080fd5b6020830191508360208260051b85010111156148b857600080fd5b9250929050565b600082601f8301126148d057600080fd5b813560206148e56148e0836152ee565b6152bd565b80838252828201915082860187848660051b890101111561490557600080fd5b60005b8581101561492d57813561491b8161555d565b84529284019290840190600101614908565b5090979650505050505050565b600082601f83011261494b57600080fd5b813567ffffffffffffffff81111561496557614965615547565b614978601f8201601f19166020016152bd565b81815284602083860101111561498d57600080fd5b816020850160208301376000918101602001919091529392505050565b8051601781900b81146120a357600080fd5b803567ffffffffffffffff811681146120a357600080fd5b803560ff811681146120a357600080fd5b6000602082840312156149f757600080fd5b8135612e218161555d565b60008060408385031215614a1557600080fd5b8235614a208161555d565b91506020830135614a308161555d565b809150509250929050565b60008060408385031215614a4e57600080fd5b8235614a598161555d565b9150602083013567ffffffffffffffff811115614a7557600080fd5b614a818582860161493a565b9150509250929050565b60008060408385031215614a9e57600080fd5b8235614aa98161555d565b946020939093013593505050565b60008060408385031215614aca57600080fd5b8235614ad58161555d565b915060208301356001600160601b0381168114614a3057600080fd5b60008060008060408587031215614b0757600080fd5b843567ffffffffffffffff80821115614b1f57600080fd5b614b2b88838901614873565b90965094506020870135915080821115614b4457600080fd5b50614b5187828801614873565b95989497509550505050565b60008060008060008060c08789031215614b7657600080fd5b863567ffffffffffffffff80821115614b8e57600080fd5b614b9a8a838b016148bf565b97506020890135915080821115614bb057600080fd5b614bbc8a838b016148bf565b9650614bca60408a016149d4565b95506060890135915080821115614be057600080fd5b614bec8a838b0161493a565b9450614bfa60808a016149bc565b935060a0890135915080821115614c1057600080fd5b50614c1d89828a0161493a565b9150509295509295509295565b60008060008060008060008060e0898b031215614c4657600080fd5b606089018a811115614c5757600080fd5b8998503567ffffffffffffffff80821115614c7157600080fd5b818b0191508b601f830112614c8557600080fd5b813581811115614c9457600080fd5b8c6020828501011115614ca657600080fd5b6020830199508098505060808b0135915080821115614cc457600080fd5b614cd08c838d01614873565b909750955060a08b0135915080821115614ce957600080fd5b50614cf68b828c01614873565b999c989b50969995989497949560c00135949350505050565b600060208284031215614d2157600080fd5b81518015158114612e2157600080fd5b600060208284031215614d4357600080fd5b813567ffffffffffffffff811115614d5a57600080fd5b610a708482850161493a565b60008060408385031215614d7957600080fd5b8235614d848161555d565b91506020830135614a3081615572565b600060208284031215614da657600080fd5b5035919050565b600060208284031215614dbf57600080fd5b5051919050565b600080600060608486031215614ddb57600080fd5b505081359360208301359350604090920135919050565b600080600080600060a08688031215614e0a57600080fd5b505083359560208501359550604085013594606081013594506080013592509050565b60008060008060808587031215614e4357600080fd5b8451614e4e81615572565b809450506020808601519350604086015167ffffffffffffffff811115614e7457600080fd5b8601601f81018813614e8557600080fd5b8051614e936148e0826152ee565b8082825284820191508484018b868560051b8701011115614eb357600080fd5b600094505b83851015614edd57614ec9816149aa565b835260019490940193918501918501614eb8565b508096505050505050614ef2606086016149aa565b905092959194509250565b600080600080600060a08688031215614f1557600080fd5b8535614f2081615572565b94506020860135614f3081615572565b93506040860135614f4081615572565b92506060860135614f5081615572565b9150608086013562ffffff81168114614f6857600080fd5b809150509295509295909350565b600060208284031215614f8857600080fd5b813569ffffffffffffffffffff81168114612e2157600080fd5b600081518084526020808501945080840160005b83811015614fdb5781516001600160a01b031687529582019590820190600101614fb6565b509495945050505050565b600081518084526020808501945080840160005b83811015614fdb57815160170b87529582019590820190600101614ffa565b6000815180845260005b8181101561503f57602081850181015186830182015201615023565b81811115615051576000602083870101525b50601f01601f19169290920160200192915050565b8281526060826020830137600060809190910190815292915050565b8183823760009101908152919050565b6001600160a01b038416815260406020820152816040820152818360608301376000818301606090810191909152601f909201601f1916010192915050565b6020815260006111656020830184614fa2565b60006101008a60170b83526001600160a01b038a16602084015263ffffffff8916604084015280606084015261511c81840189614fe6565b905082810360808401526151308188615019565b60179690960b60a0840152505060c081019290925264ffffffffff1660e09091015295945050505050565b6020815260006111656020830184615019565b60006101208b83526001600160a01b038b16602084015267ffffffffffffffff808b1660408501528160608501526151a88285018b614fa2565b915083820360808501526151bc828a614fa2565b915060ff881660a085015283820360c08501526151d98288615019565b90861660e085015283810361010085015290506151f68185615019565b9c9b505050505050505050505050565b600061012063ffffffff808d1684528b6020850152808b166040850152508060608401526152368184018a614fa2565b9050828103608084015261524a8189614fa2565b905060ff871660a084015282810360c08401526152678187615019565b905067ffffffffffffffff851660e08401528281036101008401526151f68185615019565b63ffffffff841681526060602082015260006152ab6060830185615019565b8281036040840152610ab68185614fe6565b604051601f8201601f1916810167ffffffffffffffff811182821017156152e6576152e6615547565b604052919050565b600067ffffffffffffffff82111561530857615308615547565b5060051b60200190565b6000821982111561532557615325615505565b500190565b600063ffffffff80831681851680830382111561534957615349615505565b01949350505050565b600060ff821660ff84168060ff0382111561536f5761536f615505565b019392505050565b60008261539457634e487b7160e01b600052601260045260246000fd5b500490565b60008160001904831182151516156153b3576153b3615505565b500290565b600060ff821660ff84168160ff04811182151516156153d9576153d9615505565b029392505050565b6000808312837f80000000000000000000000000000000000000000000000000000000000000000183128115161561541b5761541b615505565b837f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01831381161561544f5761544f615505565b50500390565b60008282101561546757615467615505565b500390565b600063ffffffff8381169083168181101561548957615489615505565b039392505050565b600181811c908216806154a557607f821691505b602082108114156143d157634e487b7160e01b600052602260045260246000fd5b60006000198214156154da576154da615505565b5060010190565b600063ffffffff808316818114156154fb576154fb615505565b6001019392505050565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052603160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b038116811461123f57600080fd5b63ffffffff8116811461123f57600080fdfe416363657373436f6e74726f6c6c65644f43523241676772656761746f7220312e302e302d616c706861a164736f6c6343000806000a"
 
 // DeployTestOCR2Aggregator deploys a new Ethereum contract, binding an instance of TestOCR2Aggregator to it.
 func DeployTestOCR2Aggregator(auth *bind.TransactOpts, backend bind.ContractBackend, _link common.Address, _minAnswer *big.Int, _maxAnswer *big.Int, _billingAccessController common.Address, _requesterAdminAccessController common.Address) (common.Address, *types.Transaction, *TestOCR2Aggregator, error) {
@@ -19000,107 +16489,6 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorRaw) Transact(opts *bind.
 	return _TestOCR2Aggregator.Contract.contract.Transact(opts, method, params...)
 }
 
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) BillingAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "billingAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) BillingAccessController() (common.Address, error) {
-	return _TestOCR2Aggregator.Contract.BillingAccessController(&_TestOCR2Aggregator.CallOpts)
-}
-
-// BillingAccessController is a free data retrieval call binding the contract method 0x996e8298.
-//
-// Solidity: function billingAccessController() view returns(address)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) BillingAccessController() (common.Address, error) {
-	return _TestOCR2Aggregator.Contract.BillingAccessController(&_TestOCR2Aggregator.CallOpts)
-}
-
-// BillingData is a free data retrieval call binding the contract method 0x3c04967b.
-//
-// Solidity: function billingData() view returns(uint16[31] observationsCounts, uint256[31] gasReimbursements, uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) BillingData(opts *bind.CallOpts) (struct {
-	ObservationsCounts      [31]uint16
-	GasReimbursements       [31]*big.Int
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-}, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "billingData")
-
-	outstruct := new(struct {
-		ObservationsCounts      [31]uint16
-		GasReimbursements       [31]*big.Int
-		MaximumGasPrice         uint32
-		ReasonableGasPrice      uint32
-		MicroLinkPerEth         uint32
-		LinkGweiPerObservation  uint32
-		LinkGweiPerTransmission uint32
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.ObservationsCounts = *abi.ConvertType(out[0], new([31]uint16)).(*[31]uint16)
-	outstruct.GasReimbursements = *abi.ConvertType(out[1], new([31]*big.Int)).(*[31]*big.Int)
-	outstruct.MaximumGasPrice = *abi.ConvertType(out[2], new(uint32)).(*uint32)
-	outstruct.ReasonableGasPrice = *abi.ConvertType(out[3], new(uint32)).(*uint32)
-	outstruct.MicroLinkPerEth = *abi.ConvertType(out[4], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerObservation = *abi.ConvertType(out[5], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerTransmission = *abi.ConvertType(out[6], new(uint32)).(*uint32)
-
-	return *outstruct, err
-
-}
-
-// BillingData is a free data retrieval call binding the contract method 0x3c04967b.
-//
-// Solidity: function billingData() view returns(uint16[31] observationsCounts, uint256[31] gasReimbursements, uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) BillingData() (struct {
-	ObservationsCounts      [31]uint16
-	GasReimbursements       [31]*big.Int
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-}, error) {
-	return _TestOCR2Aggregator.Contract.BillingData(&_TestOCR2Aggregator.CallOpts)
-}
-
-// BillingData is a free data retrieval call binding the contract method 0x3c04967b.
-//
-// Solidity: function billingData() view returns(uint16[31] observationsCounts, uint256[31] gasReimbursements, uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) BillingData() (struct {
-	ObservationsCounts      [31]uint16
-	GasReimbursements       [31]*big.Int
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-}, error) {
-	return _TestOCR2Aggregator.Contract.BillingData(&_TestOCR2Aggregator.CallOpts)
-}
-
 // CheckEnabled is a free data retrieval call binding the contract method 0xdc7f0124.
 //
 // Solidity: function checkEnabled() view returns(bool)
@@ -19227,33 +16615,33 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetAnswer(_roundId *
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) GetBilling(opts *bind.CallOpts) (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	var out []interface{}
 	err := _TestOCR2Aggregator.contract.Call(opts, &out, "getBilling")
 
 	outstruct := new(struct {
-		MaximumGasPrice         uint32
-		ReasonableGasPrice      uint32
-		MicroLinkPerEth         uint32
-		LinkGweiPerObservation  uint32
-		LinkGweiPerTransmission uint32
+		MaximumGasPriceGwei       uint32
+		ReasonableGasPriceGwei    uint32
+		ObservationPaymentGjuels  uint32
+		TransmissionPaymentGjuels uint32
+		AccountingGas             *big.Int
 	})
 	if err != nil {
 		return *outstruct, err
 	}
 
-	outstruct.MaximumGasPrice = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.ReasonableGasPrice = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.MicroLinkPerEth = *abi.ConvertType(out[2], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerObservation = *abi.ConvertType(out[3], new(uint32)).(*uint32)
-	outstruct.LinkGweiPerTransmission = *abi.ConvertType(out[4], new(uint32)).(*uint32)
+	outstruct.MaximumGasPriceGwei = *abi.ConvertType(out[0], new(uint32)).(*uint32)
+	outstruct.ReasonableGasPriceGwei = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+	outstruct.ObservationPaymentGjuels = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+	outstruct.TransmissionPaymentGjuels = *abi.ConvertType(out[3], new(uint32)).(*uint32)
+	outstruct.AccountingGas = *abi.ConvertType(out[4], new(*big.Int)).(**big.Int)
 
 	return *outstruct, err
 
@@ -19261,28 +16649,59 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) GetBilling(opts *bind.CallO
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	return _TestOCR2Aggregator.Contract.GetBilling(&_TestOCR2Aggregator.CallOpts)
 }
 
 // GetBilling is a free data retrieval call binding the contract method 0x29937268.
 //
-// Solidity: function getBilling() view returns(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: function getBilling() view returns(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetBilling() (struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
 }, error) {
 	return _TestOCR2Aggregator.Contract.GetBilling(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) GetBillingAccessController(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "getBillingAccessController")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetBillingAccessController() (common.Address, error) {
+	return _TestOCR2Aggregator.Contract.GetBillingAccessController(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetBillingAccessController is a free data retrieval call binding the contract method 0xc4c92b37.
+//
+// Solidity: function getBillingAccessController() view returns(address)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetBillingAccessController() (common.Address, error) {
+	return _TestOCR2Aggregator.Contract.GetBillingAccessController(&_TestOCR2Aggregator.CallOpts)
 }
 
 // GetConfigDigest is a free data retrieval call binding the contract method 0x66cfeaf1.
@@ -19345,6 +16764,37 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetLinkToken() (common.Add
 // Solidity: function getLinkToken() view returns(address linkToken)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetLinkToken() (common.Address, error) {
 	return _TestOCR2Aggregator.Contract.GetLinkToken(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) GetRequesterAccessController(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "getRequesterAccessController")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetRequesterAccessController() (common.Address, error) {
+	return _TestOCR2Aggregator.Contract.GetRequesterAccessController(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetRequesterAccessController is a free data retrieval call binding the contract method 0xdaffc4b5.
+//
+// Solidity: function getRequesterAccessController() view returns(address)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetRequesterAccessController() (common.Address, error) {
+	return _TestOCR2Aggregator.Contract.GetRequesterAccessController(&_TestOCR2Aggregator.CallOpts)
 }
 
 // GetRoundData is a free data retrieval call binding the contract method 0x9a6fc8f5.
@@ -19436,6 +16886,82 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetTimestamp(_roundId *big
 // Solidity: function getTimestamp(uint256 _roundId) view returns(uint256)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetTimestamp(_roundId *big.Int) (*big.Int, error) {
 	return _TestOCR2Aggregator.Contract.GetTimestamp(&_TestOCR2Aggregator.CallOpts, _roundId)
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) GetTransmitters(opts *bind.CallOpts) ([]common.Address, error) {
+	var out []interface{}
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "getTransmitters")
+
+	if err != nil {
+		return *new([]common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
+
+	return out0, err
+
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetTransmitters() ([]common.Address, error) {
+	return _TestOCR2Aggregator.Contract.GetTransmitters(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetTransmitters is a free data retrieval call binding the contract method 0x666cab8d.
+//
+// Solidity: function getTransmitters() view returns(address[])
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetTransmitters() ([]common.Address, error) {
+	return _TestOCR2Aggregator.Contract.GetTransmitters(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) GetValidatorConfig(opts *bind.CallOpts) (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	var out []interface{}
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "getValidatorConfig")
+
+	outstruct := new(struct {
+		Validator common.Address
+		GasLimit  uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	outstruct.GasLimit = *abi.ConvertType(out[1], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) GetValidatorConfig() (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	return _TestOCR2Aggregator.Contract.GetValidatorConfig(&_TestOCR2Aggregator.CallOpts)
+}
+
+// GetValidatorConfig is a free data retrieval call binding the contract method 0x9bd2c0b1.
+//
+// Solidity: function getValidatorConfig() view returns(address validator, uint32 gasLimit)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) GetValidatorConfig() (struct {
+	Validator common.Address
+	GasLimit  uint32
+}, error) {
+	return _TestOCR2Aggregator.Contract.GetValidatorConfig(&_TestOCR2Aggregator.CallOpts)
 }
 
 // HasAccess is a free data retrieval call binding the contract method 0x6b14daf8.
@@ -19548,6 +17074,56 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) LatestConfigDetails(
 	ConfigDigest [32]byte
 }, error) {
 	return _TestOCR2Aggregator.Contract.LatestConfigDetails(&_TestOCR2Aggregator.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) LatestConfigDigestAndEpoch(opts *bind.CallOpts) (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	var out []interface{}
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "latestConfigDigestAndEpoch")
+
+	outstruct := new(struct {
+		ScanLogs     bool
+		ConfigDigest [32]byte
+		Epoch        uint32
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.ScanLogs = *abi.ConvertType(out[0], new(bool)).(*bool)
+	outstruct.ConfigDigest = *abi.ConvertType(out[1], new([32]byte)).(*[32]byte)
+	outstruct.Epoch = *abi.ConvertType(out[2], new(uint32)).(*uint32)
+
+	return *outstruct, err
+
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _TestOCR2Aggregator.Contract.LatestConfigDigestAndEpoch(&_TestOCR2Aggregator.CallOpts)
+}
+
+// LatestConfigDigestAndEpoch is a free data retrieval call binding the contract method 0xafcb95d7.
+//
+// Solidity: function latestConfigDigestAndEpoch() view returns(bool scanLogs, bytes32 configDigest, uint32 epoch)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) LatestConfigDigestAndEpoch() (struct {
+	ScanLogs     bool
+	ConfigDigest [32]byte
+	Epoch        uint32
+}, error) {
+	return _TestOCR2Aggregator.Contract.LatestConfigDigestAndEpoch(&_TestOCR2Aggregator.CallOpts)
 }
 
 // LatestRound is a free data retrieval call binding the contract method 0x668a0f02.
@@ -19674,7 +17250,7 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) LatestTimestamp() (*
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) LatestTransmissionDetails(opts *bind.CallOpts) (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -19708,7 +17284,7 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) LatestTransmissionDetails(o
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_TestOCR2Aggregator *TestOCR2AggregatorSession) LatestTransmissionDetails() (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -19721,7 +17297,7 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorSession) LatestTransmissionDetails(
 
 // LatestTransmissionDetails is a free data retrieval call binding the contract method 0xe5fe4577.
 //
-// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer, uint64 latestTimestamp)
+// Solidity: function latestTransmissionDetails() view returns(bytes32 configDigest, uint32 epoch, uint8 round, int192 latestAnswer_, uint64 latestTimestamp_)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) LatestTransmissionDetails() (struct {
 	ConfigDigest    [32]byte
 	Epoch           uint32
@@ -19827,16 +17403,16 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) MinAnswer() (*big.In
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) OracleObservationCount(opts *bind.CallOpts, _signerOrTransmitter common.Address) (uint16, error) {
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) OracleObservationCount(opts *bind.CallOpts, transmitterAddress common.Address) (uint32, error) {
 	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "oracleObservationCount", _signerOrTransmitter)
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "oracleObservationCount", transmitterAddress)
 
 	if err != nil {
-		return *new(uint16), err
+		return *new(uint32), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint16)).(*uint16)
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
 
 	return out0, err
 
@@ -19844,24 +17420,24 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) OracleObservationCount(opts
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _TestOCR2Aggregator.Contract.OracleObservationCount(&_TestOCR2Aggregator.CallOpts, _signerOrTransmitter)
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) OracleObservationCount(transmitterAddress common.Address) (uint32, error) {
+	return _TestOCR2Aggregator.Contract.OracleObservationCount(&_TestOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OracleObservationCount is a free data retrieval call binding the contract method 0xe4902f82.
 //
-// Solidity: function oracleObservationCount(address _signerOrTransmitter) view returns(uint16)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) OracleObservationCount(_signerOrTransmitter common.Address) (uint16, error) {
-	return _TestOCR2Aggregator.Contract.OracleObservationCount(&_TestOCR2Aggregator.CallOpts, _signerOrTransmitter)
+// Solidity: function oracleObservationCount(address transmitterAddress) view returns(uint32)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) OracleObservationCount(transmitterAddress common.Address) (uint32, error) {
+	return _TestOCR2Aggregator.Contract.OracleObservationCount(&_TestOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, _transmitter common.Address) (*big.Int, error) {
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) OwedPayment(opts *bind.CallOpts, transmitterAddress common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "owedPayment", _transmitter)
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "owedPayment", transmitterAddress)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -19875,16 +17451,16 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) OwedPayment(opts *bind.Call
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.OwedPayment(&_TestOCR2Aggregator.CallOpts, _transmitter)
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) OwedPayment(transmitterAddress common.Address) (*big.Int, error) {
+	return _TestOCR2Aggregator.Contract.OwedPayment(&_TestOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // OwedPayment is a free data retrieval call binding the contract method 0x0eafb25b.
 //
-// Solidity: function owedPayment(address _transmitter) view returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) OwedPayment(_transmitter common.Address) (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.OwedPayment(&_TestOCR2Aggregator.CallOpts, _transmitter)
+// Solidity: function owedPayment(address transmitterAddress) view returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) OwedPayment(transmitterAddress common.Address) (*big.Int, error) {
+	return _TestOCR2Aggregator.Contract.OwedPayment(&_TestOCR2Aggregator.CallOpts, transmitterAddress)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
@@ -19916,68 +17492,6 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorSession) Owner() (common.Address, e
 // Solidity: function owner() view returns(address)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) Owner() (common.Address, error) {
 	return _TestOCR2Aggregator.Contract.Owner(&_TestOCR2Aggregator.CallOpts)
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) RequesterAccessController(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "requesterAccessController")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) RequesterAccessController() (common.Address, error) {
-	return _TestOCR2Aggregator.Contract.RequesterAccessController(&_TestOCR2Aggregator.CallOpts)
-}
-
-// RequesterAccessController is a free data retrieval call binding the contract method 0x70efdf2d.
-//
-// Solidity: function requesterAccessController() view returns(address)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) RequesterAccessController() (common.Address, error) {
-	return _TestOCR2Aggregator.Contract.RequesterAccessController(&_TestOCR2Aggregator.CallOpts)
-}
-
-// TestAccountingGasCost is a free data retrieval call binding the contract method 0x0b69df86.
-//
-// Solidity: function testAccountingGasCost() pure returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestAccountingGasCost(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "testAccountingGasCost")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// TestAccountingGasCost is a free data retrieval call binding the contract method 0x0b69df86.
-//
-// Solidity: function testAccountingGasCost() pure returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestAccountingGasCost() (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.TestAccountingGasCost(&_TestOCR2Aggregator.CallOpts)
-}
-
-// TestAccountingGasCost is a free data retrieval call binding the contract method 0x0b69df86.
-//
-// Solidity: function testAccountingGasCost() pure returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestAccountingGasCost() (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.TestAccountingGasCost(&_TestOCR2Aggregator.CallOpts)
 }
 
 // TestDecodeReport is a free data retrieval call binding the contract method 0x3b5cdfa2.
@@ -20013,37 +17527,6 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestDecodeReport(rep
 	return _TestOCR2Aggregator.Contract.TestDecodeReport(&_TestOCR2Aggregator.CallOpts, report)
 }
 
-// TestImpliedGasPrice is a free data retrieval call binding the contract method 0xfa98a1c7.
-//
-// Solidity: function testImpliedGasPrice(uint256 txGasPrice, uint256 reasonableGasPrice, uint256 maximumGasPrice) pure returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestImpliedGasPrice(opts *bind.CallOpts, txGasPrice *big.Int, reasonableGasPrice *big.Int, maximumGasPrice *big.Int) (*big.Int, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "testImpliedGasPrice", txGasPrice, reasonableGasPrice, maximumGasPrice)
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// TestImpliedGasPrice is a free data retrieval call binding the contract method 0xfa98a1c7.
-//
-// Solidity: function testImpliedGasPrice(uint256 txGasPrice, uint256 reasonableGasPrice, uint256 maximumGasPrice) pure returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestImpliedGasPrice(txGasPrice *big.Int, reasonableGasPrice *big.Int, maximumGasPrice *big.Int) (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.TestImpliedGasPrice(&_TestOCR2Aggregator.CallOpts, txGasPrice, reasonableGasPrice, maximumGasPrice)
-}
-
-// TestImpliedGasPrice is a free data retrieval call binding the contract method 0xfa98a1c7.
-//
-// Solidity: function testImpliedGasPrice(uint256 txGasPrice, uint256 reasonableGasPrice, uint256 maximumGasPrice) pure returns(uint256)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestImpliedGasPrice(txGasPrice *big.Int, reasonableGasPrice *big.Int, maximumGasPrice *big.Int) (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.TestImpliedGasPrice(&_TestOCR2Aggregator.CallOpts, txGasPrice, reasonableGasPrice, maximumGasPrice)
-}
-
 // TestPayee is a free data retrieval call binding the contract method 0x9eb6e060.
 //
 // Solidity: function testPayee(address _transmitter) view returns(address)
@@ -20075,35 +17558,35 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestPayee(_transmitt
 	return _TestOCR2Aggregator.Contract.TestPayee(&_TestOCR2Aggregator.CallOpts, _transmitter)
 }
 
-// TestSaturatingAddUint16 is a free data retrieval call binding the contract method 0x9b764d97.
+// TestReimbursementGasPriceGwei is a free data retrieval call binding the contract method 0x5765b76a.
 //
-// Solidity: function testSaturatingAddUint16(uint16 _x, uint16 _y) pure returns(uint16)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestSaturatingAddUint16(opts *bind.CallOpts, _x uint16, _y uint16) (uint16, error) {
+// Solidity: function testReimbursementGasPriceGwei(uint256 txGasPrice, uint256 reasonableGasPrice, uint256 maximumGasPrice) pure returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestReimbursementGasPriceGwei(opts *bind.CallOpts, txGasPrice *big.Int, reasonableGasPrice *big.Int, maximumGasPrice *big.Int) (*big.Int, error) {
 	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "testSaturatingAddUint16", _x, _y)
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "testReimbursementGasPriceGwei", txGasPrice, reasonableGasPrice, maximumGasPrice)
 
 	if err != nil {
-		return *new(uint16), err
+		return *new(*big.Int), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint16)).(*uint16)
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
 
 	return out0, err
 
 }
 
-// TestSaturatingAddUint16 is a free data retrieval call binding the contract method 0x9b764d97.
+// TestReimbursementGasPriceGwei is a free data retrieval call binding the contract method 0x5765b76a.
 //
-// Solidity: function testSaturatingAddUint16(uint16 _x, uint16 _y) pure returns(uint16)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestSaturatingAddUint16(_x uint16, _y uint16) (uint16, error) {
-	return _TestOCR2Aggregator.Contract.TestSaturatingAddUint16(&_TestOCR2Aggregator.CallOpts, _x, _y)
+// Solidity: function testReimbursementGasPriceGwei(uint256 txGasPrice, uint256 reasonableGasPrice, uint256 maximumGasPrice) pure returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestReimbursementGasPriceGwei(txGasPrice *big.Int, reasonableGasPrice *big.Int, maximumGasPrice *big.Int) (*big.Int, error) {
+	return _TestOCR2Aggregator.Contract.TestReimbursementGasPriceGwei(&_TestOCR2Aggregator.CallOpts, txGasPrice, reasonableGasPrice, maximumGasPrice)
 }
 
-// TestSaturatingAddUint16 is a free data retrieval call binding the contract method 0x9b764d97.
+// TestReimbursementGasPriceGwei is a free data retrieval call binding the contract method 0x5765b76a.
 //
-// Solidity: function testSaturatingAddUint16(uint16 _x, uint16 _y) pure returns(uint16)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestSaturatingAddUint16(_x uint16, _y uint16) (uint16, error) {
-	return _TestOCR2Aggregator.Contract.TestSaturatingAddUint16(&_TestOCR2Aggregator.CallOpts, _x, _y)
+// Solidity: function testReimbursementGasPriceGwei(uint256 txGasPrice, uint256 reasonableGasPrice, uint256 maximumGasPrice) pure returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestReimbursementGasPriceGwei(txGasPrice *big.Int, reasonableGasPrice *big.Int, maximumGasPrice *big.Int) (*big.Int, error) {
+	return _TestOCR2Aggregator.Contract.TestReimbursementGasPriceGwei(&_TestOCR2Aggregator.CallOpts, txGasPrice, reasonableGasPrice, maximumGasPrice)
 }
 
 // TestTotalLinkDue is a free data retrieval call binding the contract method 0x102a474b.
@@ -20137,12 +17620,12 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestTotalLinkDue() (
 	return _TestOCR2Aggregator.Contract.TestTotalLinkDue(&_TestOCR2Aggregator.CallOpts)
 }
 
-// TestTransmitterGasCostEthWei is a free data retrieval call binding the contract method 0x77096177.
+// TestTransmitterGasCostWei is a free data retrieval call binding the contract method 0x33e8f9f0.
 //
-// Solidity: function testTransmitterGasCostEthWei(uint256 initialGas, uint256 gasPrice, uint256 callDataCost, uint256 gasLeft) pure returns(uint128)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestTransmitterGasCostEthWei(opts *bind.CallOpts, initialGas *big.Int, gasPrice *big.Int, callDataCost *big.Int, gasLeft *big.Int) (*big.Int, error) {
+// Solidity: function testTransmitterGasCostWei(uint256 initialGas, uint256 gasPriceGwei, uint256 callDataGas, uint256 accountingGas, uint256 leftGas) pure returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestTransmitterGasCostWei(opts *bind.CallOpts, initialGas *big.Int, gasPriceGwei *big.Int, callDataGas *big.Int, accountingGas *big.Int, leftGas *big.Int) (*big.Int, error) {
 	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "testTransmitterGasCostEthWei", initialGas, gasPrice, callDataCost, gasLeft)
+	err := _TestOCR2Aggregator.contract.Call(opts, &out, "testTransmitterGasCostWei", initialGas, gasPriceGwei, callDataGas, accountingGas, leftGas)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -20154,49 +17637,18 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) TestTransmitterGasCostEthWe
 
 }
 
-// TestTransmitterGasCostEthWei is a free data retrieval call binding the contract method 0x77096177.
+// TestTransmitterGasCostWei is a free data retrieval call binding the contract method 0x33e8f9f0.
 //
-// Solidity: function testTransmitterGasCostEthWei(uint256 initialGas, uint256 gasPrice, uint256 callDataCost, uint256 gasLeft) pure returns(uint128)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestTransmitterGasCostEthWei(initialGas *big.Int, gasPrice *big.Int, callDataCost *big.Int, gasLeft *big.Int) (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.TestTransmitterGasCostEthWei(&_TestOCR2Aggregator.CallOpts, initialGas, gasPrice, callDataCost, gasLeft)
+// Solidity: function testTransmitterGasCostWei(uint256 initialGas, uint256 gasPriceGwei, uint256 callDataGas, uint256 accountingGas, uint256 leftGas) pure returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestTransmitterGasCostWei(initialGas *big.Int, gasPriceGwei *big.Int, callDataGas *big.Int, accountingGas *big.Int, leftGas *big.Int) (*big.Int, error) {
+	return _TestOCR2Aggregator.Contract.TestTransmitterGasCostWei(&_TestOCR2Aggregator.CallOpts, initialGas, gasPriceGwei, callDataGas, accountingGas, leftGas)
 }
 
-// TestTransmitterGasCostEthWei is a free data retrieval call binding the contract method 0x77096177.
+// TestTransmitterGasCostWei is a free data retrieval call binding the contract method 0x33e8f9f0.
 //
-// Solidity: function testTransmitterGasCostEthWei(uint256 initialGas, uint256 gasPrice, uint256 callDataCost, uint256 gasLeft) pure returns(uint128)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestTransmitterGasCostEthWei(initialGas *big.Int, gasPrice *big.Int, callDataCost *big.Int, gasLeft *big.Int) (*big.Int, error) {
-	return _TestOCR2Aggregator.Contract.TestTransmitterGasCostEthWei(&_TestOCR2Aggregator.CallOpts, initialGas, gasPrice, callDataCost, gasLeft)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) Transmitters(opts *bind.CallOpts) ([]common.Address, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "transmitters")
-
-	if err != nil {
-		return *new([]common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
-
-	return out0, err
-
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) Transmitters() ([]common.Address, error) {
-	return _TestOCR2Aggregator.Contract.Transmitters(&_TestOCR2Aggregator.CallOpts)
-}
-
-// Transmitters is a free data retrieval call binding the contract method 0x81411834.
-//
-// Solidity: function transmitters() view returns(address[])
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) Transmitters() ([]common.Address, error) {
-	return _TestOCR2Aggregator.Contract.Transmitters(&_TestOCR2Aggregator.CallOpts)
+// Solidity: function testTransmitterGasCostWei(uint256 initialGas, uint256 gasPriceGwei, uint256 callDataGas, uint256 accountingGas, uint256 leftGas) pure returns(uint256)
+func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TestTransmitterGasCostWei(initialGas *big.Int, gasPriceGwei *big.Int, callDataGas *big.Int, accountingGas *big.Int, leftGas *big.Int) (*big.Int, error) {
+	return _TestOCR2Aggregator.Contract.TestTransmitterGasCostWei(&_TestOCR2Aggregator.CallOpts, initialGas, gasPriceGwei, callDataGas, accountingGas, leftGas)
 }
 
 // TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
@@ -20228,51 +17680,6 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TypeAndVersion() (string, 
 // Solidity: function typeAndVersion() pure returns(string)
 func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) TypeAndVersion() (string, error) {
 	return _TestOCR2Aggregator.Contract.TypeAndVersion(&_TestOCR2Aggregator.CallOpts)
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCaller) ValidatorConfig(opts *bind.CallOpts) (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	var out []interface{}
-	err := _TestOCR2Aggregator.contract.Call(opts, &out, "validatorConfig")
-
-	outstruct := new(struct {
-		Validator common.Address
-		GasLimit  uint32
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.Validator = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-	outstruct.GasLimit = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-
-	return *outstruct, err
-
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) ValidatorConfig() (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	return _TestOCR2Aggregator.Contract.ValidatorConfig(&_TestOCR2Aggregator.CallOpts)
-}
-
-// ValidatorConfig is a free data retrieval call binding the contract method 0x8e0566de.
-//
-// Solidity: function validatorConfig() view returns(address validator, uint32 gasLimit)
-func (_TestOCR2Aggregator *TestOCR2AggregatorCallerSession) ValidatorConfig() (struct {
-	Validator common.Address
-	GasLimit  uint32
-}, error) {
-	return _TestOCR2Aggregator.Contract.ValidatorConfig(&_TestOCR2Aggregator.CallOpts)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
@@ -20329,23 +17736,23 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) AcceptOwnership(
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) AcceptPayeeship(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "acceptPayeeship", _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) AcceptPayeeship(opts *bind.TransactOpts, transmitter common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "acceptPayeeship", transmitter)
 }
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.AcceptPayeeship(&_TestOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) AcceptPayeeship(transmitter common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.AcceptPayeeship(&_TestOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // AcceptPayeeship is a paid mutator transaction binding the contract method 0xb121e147.
 //
-// Solidity: function acceptPayeeship(address _transmitter) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) AcceptPayeeship(_transmitter common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.AcceptPayeeship(&_TestOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function acceptPayeeship(address transmitter) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) AcceptPayeeship(transmitter common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.AcceptPayeeship(&_TestOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // AddAccess is a paid mutator transaction binding the contract method 0xa118f249.
@@ -20453,25 +17860,25 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) RequestNewRound(
 	return _TestOCR2Aggregator.Contract.RequestNewRound(&_TestOCR2Aggregator.TransactOpts)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetBilling(opts *bind.TransactOpts, _maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "setBilling", _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetBilling(opts *bind.TransactOpts, maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "setBilling", maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetBilling(&_TestOCR2Aggregator.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetBilling(maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetBilling(&_TestOCR2Aggregator.TransactOpts, maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
-// SetBilling is a paid mutator transaction binding the contract method 0xbd824706.
+// SetBilling is a paid mutator transaction binding the contract method 0x643dc105.
 //
-// Solidity: function setBilling(uint32 _maximumGasPrice, uint32 _reasonableGasPrice, uint32 _microLinkPerEth, uint32 _linkGweiPerObservation, uint32 _linkGweiPerTransmission) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetBilling(_maximumGasPrice uint32, _reasonableGasPrice uint32, _microLinkPerEth uint32, _linkGweiPerObservation uint32, _linkGweiPerTransmission uint32) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetBilling(&_TestOCR2Aggregator.TransactOpts, _maximumGasPrice, _reasonableGasPrice, _microLinkPerEth, _linkGweiPerObservation, _linkGweiPerTransmission)
+// Solidity: function setBilling(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetBilling(maximumGasPriceGwei uint32, reasonableGasPriceGwei uint32, observationPaymentGjuels uint32, transmissionPaymentGjuels uint32, accountingGas *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetBilling(&_TestOCR2Aggregator.TransactOpts, maximumGasPriceGwei, reasonableGasPriceGwei, observationPaymentGjuels, transmissionPaymentGjuels, accountingGas)
 }
 
 // SetBillingAccessController is a paid mutator transaction binding the contract method 0xfbffd2c1.
@@ -20497,170 +17904,149 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetBillingAccess
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetConfig(opts *bind.TransactOpts, _signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "setConfig", _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetConfig(opts *bind.TransactOpts, signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "setConfig", signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetConfig(&_TestOCR2Aggregator.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetConfig(&_TestOCR2Aggregator.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetConfig is a paid mutator transaction binding the contract method 0xe3d0e712.
 //
-// Solidity: function setConfig(address[] _signers, address[] _transmitters, uint8 _f, bytes _onchainConfig, uint64 _offchainConfigVersion, bytes _offchainConfig) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetConfig(_signers []common.Address, _transmitters []common.Address, _f uint8, _onchainConfig []byte, _offchainConfigVersion uint64, _offchainConfig []byte) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetConfig(&_TestOCR2Aggregator.TransactOpts, _signers, _transmitters, _f, _onchainConfig, _offchainConfigVersion, _offchainConfig)
+// Solidity: function setConfig(address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetConfig(signers []common.Address, transmitters []common.Address, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetConfig(&_TestOCR2Aggregator.TransactOpts, signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetLinkToken(opts *bind.TransactOpts, _linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "setLinkToken", _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetLinkToken(opts *bind.TransactOpts, linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "setLinkToken", linkToken, recipient)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetLinkToken(&_TestOCR2Aggregator.TransactOpts, _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetLinkToken(linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetLinkToken(&_TestOCR2Aggregator.TransactOpts, linkToken, recipient)
 }
 
 // SetLinkToken is a paid mutator transaction binding the contract method 0x4fb17470.
 //
-// Solidity: function setLinkToken(address _linkToken, address _recipient) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetLinkToken(_linkToken common.Address, _recipient common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetLinkToken(&_TestOCR2Aggregator.TransactOpts, _linkToken, _recipient)
+// Solidity: function setLinkToken(address linkToken, address recipient) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetLinkToken(linkToken common.Address, recipient common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetLinkToken(&_TestOCR2Aggregator.TransactOpts, linkToken, recipient)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetPayees(opts *bind.TransactOpts, _transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "setPayees", _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetPayees(opts *bind.TransactOpts, transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "setPayees", transmitters, payees)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetPayees(&_TestOCR2Aggregator.TransactOpts, _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetPayees(transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetPayees(&_TestOCR2Aggregator.TransactOpts, transmitters, payees)
 }
 
 // SetPayees is a paid mutator transaction binding the contract method 0x9c849b30.
 //
-// Solidity: function setPayees(address[] _transmitters, address[] _payees) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetPayees(_transmitters []common.Address, _payees []common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetPayees(&_TestOCR2Aggregator.TransactOpts, _transmitters, _payees)
+// Solidity: function setPayees(address[] transmitters, address[] payees) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetPayees(transmitters []common.Address, payees []common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetPayees(&_TestOCR2Aggregator.TransactOpts, transmitters, payees)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetRequesterAccessController(opts *bind.TransactOpts, _requesterAccessController common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "setRequesterAccessController", _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetRequesterAccessController(opts *bind.TransactOpts, requesterAccessController common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "setRequesterAccessController", requesterAccessController)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetRequesterAccessController(_requesterAccessController common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetRequesterAccessController(&_TestOCR2Aggregator.TransactOpts, _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetRequesterAccessController(requesterAccessController common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetRequesterAccessController(&_TestOCR2Aggregator.TransactOpts, requesterAccessController)
 }
 
 // SetRequesterAccessController is a paid mutator transaction binding the contract method 0x9e3ceeab.
 //
-// Solidity: function setRequesterAccessController(address _requesterAccessController) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetRequesterAccessController(_requesterAccessController common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetRequesterAccessController(&_TestOCR2Aggregator.TransactOpts, _requesterAccessController)
+// Solidity: function setRequesterAccessController(address requesterAccessController) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetRequesterAccessController(requesterAccessController common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetRequesterAccessController(&_TestOCR2Aggregator.TransactOpts, requesterAccessController)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetValidatorConfig(opts *bind.TransactOpts, _newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "setValidatorConfig", _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) SetValidatorConfig(opts *bind.TransactOpts, newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "setValidatorConfig", newValidator, newGasLimit)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetValidatorConfig(_newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetValidatorConfig(&_TestOCR2Aggregator.TransactOpts, _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) SetValidatorConfig(newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetValidatorConfig(&_TestOCR2Aggregator.TransactOpts, newValidator, newGasLimit)
 }
 
 // SetValidatorConfig is a paid mutator transaction binding the contract method 0xeb457163.
 //
-// Solidity: function setValidatorConfig(address _newValidator, uint32 _newGasLimit) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetValidatorConfig(_newValidator common.Address, _newGasLimit uint32) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.SetValidatorConfig(&_TestOCR2Aggregator.TransactOpts, _newValidator, _newGasLimit)
+// Solidity: function setValidatorConfig(address newValidator, uint32 newGasLimit) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) SetValidatorConfig(newValidator common.Address, newGasLimit uint32) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.SetValidatorConfig(&_TestOCR2Aggregator.TransactOpts, newValidator, newGasLimit)
 }
 
-// TestBurnLINK is a paid mutator transaction binding the contract method 0xacfe7f9c.
+// TestBurnLink is a paid mutator transaction binding the contract method 0x70031468.
 //
-// Solidity: function testBurnLINK(uint256 amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TestBurnLINK(opts *bind.TransactOpts, amount *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "testBurnLINK", amount)
+// Solidity: function testBurnLink(uint256 amount) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TestBurnLink(opts *bind.TransactOpts, amount *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "testBurnLink", amount)
 }
 
-// TestBurnLINK is a paid mutator transaction binding the contract method 0xacfe7f9c.
+// TestBurnLink is a paid mutator transaction binding the contract method 0x70031468.
 //
-// Solidity: function testBurnLINK(uint256 amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestBurnLINK(amount *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TestBurnLINK(&_TestOCR2Aggregator.TransactOpts, amount)
+// Solidity: function testBurnLink(uint256 amount) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestBurnLink(amount *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.TestBurnLink(&_TestOCR2Aggregator.TransactOpts, amount)
 }
 
-// TestBurnLINK is a paid mutator transaction binding the contract method 0xacfe7f9c.
+// TestBurnLink is a paid mutator transaction binding the contract method 0x70031468.
 //
-// Solidity: function testBurnLINK(uint256 amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TestBurnLINK(amount *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TestBurnLINK(&_TestOCR2Aggregator.TransactOpts, amount)
+// Solidity: function testBurnLink(uint256 amount) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TestBurnLink(amount *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.TestBurnLink(&_TestOCR2Aggregator.TransactOpts, amount)
 }
 
-// TestSetGasReimbursements is a paid mutator transaction binding the contract method 0xe2851911.
+// TestSetTransmitterPayment is a paid mutator transaction binding the contract method 0xe259c1f6.
 //
-// Solidity: function testSetGasReimbursements(address _transmitterOrSigner, uint256 _amountLinkWei) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TestSetGasReimbursements(opts *bind.TransactOpts, _transmitterOrSigner common.Address, _amountLinkWei *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "testSetGasReimbursements", _transmitterOrSigner, _amountLinkWei)
+// Solidity: function testSetTransmitterPayment(address transmitter, uint96 paymentJuels) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TestSetTransmitterPayment(opts *bind.TransactOpts, transmitter common.Address, paymentJuels *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "testSetTransmitterPayment", transmitter, paymentJuels)
 }
 
-// TestSetGasReimbursements is a paid mutator transaction binding the contract method 0xe2851911.
+// TestSetTransmitterPayment is a paid mutator transaction binding the contract method 0xe259c1f6.
 //
-// Solidity: function testSetGasReimbursements(address _transmitterOrSigner, uint256 _amountLinkWei) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestSetGasReimbursements(_transmitterOrSigner common.Address, _amountLinkWei *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TestSetGasReimbursements(&_TestOCR2Aggregator.TransactOpts, _transmitterOrSigner, _amountLinkWei)
+// Solidity: function testSetTransmitterPayment(address transmitter, uint96 paymentJuels) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestSetTransmitterPayment(transmitter common.Address, paymentJuels *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.TestSetTransmitterPayment(&_TestOCR2Aggregator.TransactOpts, transmitter, paymentJuels)
 }
 
-// TestSetGasReimbursements is a paid mutator transaction binding the contract method 0xe2851911.
+// TestSetTransmitterPayment is a paid mutator transaction binding the contract method 0xe259c1f6.
 //
-// Solidity: function testSetGasReimbursements(address _transmitterOrSigner, uint256 _amountLinkWei) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TestSetGasReimbursements(_transmitterOrSigner common.Address, _amountLinkWei *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TestSetGasReimbursements(&_TestOCR2Aggregator.TransactOpts, _transmitterOrSigner, _amountLinkWei)
-}
-
-// TestSetOracleObservationCount is a paid mutator transaction binding the contract method 0xd18bf87e.
-//
-// Solidity: function testSetOracleObservationCount(address _oracle, uint16 _amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TestSetOracleObservationCount(opts *bind.TransactOpts, _oracle common.Address, _amount uint16) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "testSetOracleObservationCount", _oracle, _amount)
-}
-
-// TestSetOracleObservationCount is a paid mutator transaction binding the contract method 0xd18bf87e.
-//
-// Solidity: function testSetOracleObservationCount(address _oracle, uint16 _amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TestSetOracleObservationCount(_oracle common.Address, _amount uint16) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TestSetOracleObservationCount(&_TestOCR2Aggregator.TransactOpts, _oracle, _amount)
-}
-
-// TestSetOracleObservationCount is a paid mutator transaction binding the contract method 0xd18bf87e.
-//
-// Solidity: function testSetOracleObservationCount(address _oracle, uint16 _amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TestSetOracleObservationCount(_oracle common.Address, _amount uint16) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TestSetOracleObservationCount(&_TestOCR2Aggregator.TransactOpts, _oracle, _amount)
+// Solidity: function testSetTransmitterPayment(address transmitter, uint96 paymentJuels) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TestSetTransmitterPayment(transmitter common.Address, paymentJuels *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.TestSetTransmitterPayment(&_TestOCR2Aggregator.TransactOpts, transmitter, paymentJuels)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
@@ -20686,23 +18072,23 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TransferOwnershi
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TransferPayeeship(opts *bind.TransactOpts, _transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "transferPayeeship", _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) TransferPayeeship(opts *bind.TransactOpts, transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "transferPayeeship", transmitter, proposed)
 }
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TransferPayeeship(&_TestOCR2Aggregator.TransactOpts, _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) TransferPayeeship(transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.TransferPayeeship(&_TestOCR2Aggregator.TransactOpts, transmitter, proposed)
 }
 
 // TransferPayeeship is a paid mutator transaction binding the contract method 0xeb5dcd6c.
 //
-// Solidity: function transferPayeeship(address _transmitter, address _proposed) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TransferPayeeship(_transmitter common.Address, _proposed common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.TransferPayeeship(&_TestOCR2Aggregator.TransactOpts, _transmitter, _proposed)
+// Solidity: function transferPayeeship(address transmitter, address proposed) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) TransferPayeeship(transmitter common.Address, proposed common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.TransferPayeeship(&_TestOCR2Aggregator.TransactOpts, transmitter, proposed)
 }
 
 // Transmit is a paid mutator transaction binding the contract method 0xb1dc65a4.
@@ -20728,44 +18114,44 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) Transmit(reportC
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) WithdrawFunds(opts *bind.TransactOpts, _recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "withdrawFunds", _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) WithdrawFunds(opts *bind.TransactOpts, recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "withdrawFunds", recipient, amount)
 }
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.WithdrawFunds(&_TestOCR2Aggregator.TransactOpts, _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) WithdrawFunds(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.WithdrawFunds(&_TestOCR2Aggregator.TransactOpts, recipient, amount)
 }
 
 // WithdrawFunds is a paid mutator transaction binding the contract method 0xc1075329.
 //
-// Solidity: function withdrawFunds(address _recipient, uint256 _amount) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) WithdrawFunds(_recipient common.Address, _amount *big.Int) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.WithdrawFunds(&_TestOCR2Aggregator.TransactOpts, _recipient, _amount)
+// Solidity: function withdrawFunds(address recipient, uint256 amount) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) WithdrawFunds(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.WithdrawFunds(&_TestOCR2Aggregator.TransactOpts, recipient, amount)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) WithdrawPayment(opts *bind.TransactOpts, _transmitter common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.contract.Transact(opts, "withdrawPayment", _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactor) WithdrawPayment(opts *bind.TransactOpts, transmitter common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.contract.Transact(opts, "withdrawPayment", transmitter)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.WithdrawPayment(&_TestOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorSession) WithdrawPayment(transmitter common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.WithdrawPayment(&_TestOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // WithdrawPayment is a paid mutator transaction binding the contract method 0x8ac28d5a.
 //
-// Solidity: function withdrawPayment(address _transmitter) returns()
-func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) WithdrawPayment(_transmitter common.Address) (*types.Transaction, error) {
-	return _TestOCR2Aggregator.Contract.WithdrawPayment(&_TestOCR2Aggregator.TransactOpts, _transmitter)
+// Solidity: function withdrawPayment(address transmitter) returns()
+func (_TestOCR2Aggregator *TestOCR2AggregatorTransactorSession) WithdrawPayment(transmitter common.Address) (*types.Transaction, error) {
+	return _TestOCR2Aggregator.Contract.WithdrawPayment(&_TestOCR2Aggregator.TransactOpts, transmitter)
 }
 
 // TestOCR2AggregatorAddedAccessIterator is returned from FilterAddedAccess and is used to iterate over the raw logs and unpacked data for AddedAccess events raised by the TestOCR2Aggregator contract.
@@ -21260,17 +18646,17 @@ func (it *TestOCR2AggregatorBillingSetIterator) Close() error {
 
 // TestOCR2AggregatorBillingSet represents a BillingSet event raised by the TestOCR2Aggregator contract.
 type TestOCR2AggregatorBillingSet struct {
-	MaximumGasPrice         uint32
-	ReasonableGasPrice      uint32
-	MicroLinkPerEth         uint32
-	LinkGweiPerObservation  uint32
-	LinkGweiPerTransmission uint32
-	Raw                     types.Log // Blockchain specific contextual infos
+	MaximumGasPriceGwei       uint32
+	ReasonableGasPriceGwei    uint32
+	ObservationPaymentGjuels  uint32
+	TransmissionPaymentGjuels uint32
+	AccountingGas             *big.Int
+	Raw                       types.Log // Blockchain specific contextual infos
 }
 
-// FilterBillingSet is a free log retrieval operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// FilterBillingSet is a free log retrieval operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterBillingSet(opts *bind.FilterOpts) (*TestOCR2AggregatorBillingSetIterator, error) {
 
 	logs, sub, err := _TestOCR2Aggregator.contract.FilterLogs(opts, "BillingSet")
@@ -21280,9 +18666,9 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterBillingSet(opts *bi
 	return &TestOCR2AggregatorBillingSetIterator{contract: _TestOCR2Aggregator.contract, event: "BillingSet", logs: logs, sub: sub}, nil
 }
 
-// WatchBillingSet is a free log subscription operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// WatchBillingSet is a free log subscription operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchBillingSet(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorBillingSet) (event.Subscription, error) {
 
 	logs, sub, err := _TestOCR2Aggregator.contract.WatchLogs(opts, "BillingSet")
@@ -21317,9 +18703,9 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchBillingSet(opts *bin
 	}), nil
 }
 
-// ParseBillingSet is a log parse operation binding the contract event 0xd0d9486a2c673e2a4b57fc82e4c8a556b3e2b82dd5db07e2c04a920ca0f469b6.
+// ParseBillingSet is a log parse operation binding the contract event 0x0bf184bf1bba9699114bdceddaf338a1b364252c5e497cc01918dde92031713f.
 //
-// Solidity: event BillingSet(uint32 maximumGasPrice, uint32 reasonableGasPrice, uint32 microLinkPerEth, uint32 linkGweiPerObservation, uint32 linkGweiPerTransmission)
+// Solidity: event BillingSet(uint32 maximumGasPriceGwei, uint32 reasonableGasPriceGwei, uint32 observationPaymentGjuels, uint32 transmissionPaymentGjuels, uint24 accountingGas)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseBillingSet(log types.Log) (*TestOCR2AggregatorBillingSet, error) {
 	event := new(TestOCR2AggregatorBillingSet)
 	if err := _TestOCR2Aggregator.contract.UnpackLog(event, "BillingSet", log); err != nil {
@@ -21671,14 +19057,14 @@ type TestOCR2AggregatorConfigSet struct {
 	Transmitters              []common.Address
 	F                         uint8
 	OnchainConfig             []byte
-	EncodedConfigVersion      uint64
-	Encoded                   []byte
+	OffchainConfigVersion     uint64
+	OffchainConfig            []byte
 	Raw                       types.Log // Blockchain specific contextual infos
 }
 
 // FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterConfigSet(opts *bind.FilterOpts) (*TestOCR2AggregatorConfigSetIterator, error) {
 
 	logs, sub, err := _TestOCR2Aggregator.contract.FilterLogs(opts, "ConfigSet")
@@ -21690,7 +19076,7 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterConfigSet(opts *bin
 
 // WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorConfigSet) (event.Subscription, error) {
 
 	logs, sub, err := _TestOCR2Aggregator.contract.WatchLogs(opts, "ConfigSet")
@@ -21727,7 +19113,7 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchConfigSet(opts *bind
 
 // ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 encodedConfigVersion, bytes encoded)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseConfigSet(log types.Log) (*TestOCR2AggregatorConfigSet, error) {
 	event := new(TestOCR2AggregatorConfigSet)
 	if err := _TestOCR2Aggregator.contract.UnpackLog(event, "ConfigSet", log); err != nil {
@@ -21813,19 +19199,19 @@ type TestOCR2AggregatorLinkTokenSet struct {
 
 // FilterLinkTokenSet is a free log retrieval operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, _oldLinkToken []common.Address, _newLinkToken []common.Address) (*TestOCR2AggregatorLinkTokenSetIterator, error) {
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
+func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterLinkTokenSet(opts *bind.FilterOpts, oldLinkToken []common.Address, newLinkToken []common.Address) (*TestOCR2AggregatorLinkTokenSetIterator, error) {
 
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
+	var oldLinkTokenRule []interface{}
+	for _, oldLinkTokenItem := range oldLinkToken {
+		oldLinkTokenRule = append(oldLinkTokenRule, oldLinkTokenItem)
 	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
+	var newLinkTokenRule []interface{}
+	for _, newLinkTokenItem := range newLinkToken {
+		newLinkTokenRule = append(newLinkTokenRule, newLinkTokenItem)
 	}
 
-	logs, sub, err := _TestOCR2Aggregator.contract.FilterLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
+	logs, sub, err := _TestOCR2Aggregator.contract.FilterLogs(opts, "LinkTokenSet", oldLinkTokenRule, newLinkTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -21834,19 +19220,19 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterLinkTokenSet(opts *
 
 // WatchLinkTokenSet is a free log subscription operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
-func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorLinkTokenSet, _oldLinkToken []common.Address, _newLinkToken []common.Address) (event.Subscription, error) {
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
+func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchLinkTokenSet(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorLinkTokenSet, oldLinkToken []common.Address, newLinkToken []common.Address) (event.Subscription, error) {
 
-	var _oldLinkTokenRule []interface{}
-	for _, _oldLinkTokenItem := range _oldLinkToken {
-		_oldLinkTokenRule = append(_oldLinkTokenRule, _oldLinkTokenItem)
+	var oldLinkTokenRule []interface{}
+	for _, oldLinkTokenItem := range oldLinkToken {
+		oldLinkTokenRule = append(oldLinkTokenRule, oldLinkTokenItem)
 	}
-	var _newLinkTokenRule []interface{}
-	for _, _newLinkTokenItem := range _newLinkToken {
-		_newLinkTokenRule = append(_newLinkTokenRule, _newLinkTokenItem)
+	var newLinkTokenRule []interface{}
+	for _, newLinkTokenItem := range newLinkToken {
+		newLinkTokenRule = append(newLinkTokenRule, newLinkTokenItem)
 	}
 
-	logs, sub, err := _TestOCR2Aggregator.contract.WatchLogs(opts, "LinkTokenSet", _oldLinkTokenRule, _newLinkTokenRule)
+	logs, sub, err := _TestOCR2Aggregator.contract.WatchLogs(opts, "LinkTokenSet", oldLinkTokenRule, newLinkTokenRule)
 	if err != nil {
 		return nil, err
 	}
@@ -21880,7 +19266,7 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchLinkTokenSet(opts *b
 
 // ParseLinkTokenSet is a log parse operation binding the contract event 0x4966a50c93f855342ccf6c5c0d358b85b91335b2acedc7da0932f691f351711a.
 //
-// Solidity: event LinkTokenSet(address indexed _oldLinkToken, address indexed _newLinkToken)
+// Solidity: event LinkTokenSet(address indexed oldLinkToken, address indexed newLinkToken)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseLinkTokenSet(log types.Log) (*TestOCR2AggregatorLinkTokenSet, error) {
 	event := new(TestOCR2AggregatorLinkTokenSet)
 	if err := _TestOCR2Aggregator.contract.UnpackLog(event, "LinkTokenSet", log); err != nil {
@@ -22119,14 +19505,15 @@ type TestOCR2AggregatorNewTransmission struct {
 	ObservationsTimestamp uint32
 	Observations          []*big.Int
 	Observers             []byte
+	JuelsPerEth           *big.Int
 	ConfigDigest          [32]byte
 	EpochAndRound         *big.Int
 	Raw                   types.Log // Blockchain specific contextual infos
 }
 
-// FilterNewTransmission is a free log retrieval operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// FilterNewTransmission is a free log retrieval operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterNewTransmission(opts *bind.FilterOpts, aggregatorRoundId []uint32) (*TestOCR2AggregatorNewTransmissionIterator, error) {
 
 	var aggregatorRoundIdRule []interface{}
@@ -22141,9 +19528,9 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterNewTransmission(opt
 	return &TestOCR2AggregatorNewTransmissionIterator{contract: _TestOCR2Aggregator.contract, event: "NewTransmission", logs: logs, sub: sub}, nil
 }
 
-// WatchNewTransmission is a free log subscription operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// WatchNewTransmission is a free log subscription operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchNewTransmission(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorNewTransmission, aggregatorRoundId []uint32) (event.Subscription, error) {
 
 	var aggregatorRoundIdRule []interface{}
@@ -22183,9 +19570,9 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchNewTransmission(opts
 	}), nil
 }
 
-// ParseNewTransmission is a log parse operation binding the contract event 0xace8e92dff94db070dc028ed2c5be959533b518ee5653fe688d2b7939023c901.
+// ParseNewTransmission is a log parse operation binding the contract event 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
 //
-// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, bytes32 configDigest, uint40 epochAndRound)
+// Solidity: event NewTransmission(uint32 indexed aggregatorRoundId, int192 answer, address transmitter, uint32 observationsTimestamp, int192[] observations, bytes observers, int192 juelsPerEth, bytes32 configDigest, uint40 epochAndRound)
 func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseNewTransmission(log types.Log) (*TestOCR2AggregatorNewTransmission, error) {
 	event := new(TestOCR2AggregatorNewTransmission)
 	if err := _TestOCR2Aggregator.contract.UnpackLog(event, "NewTransmission", log); err != nil {
@@ -23406,9 +20793,9 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseRoundRequested(log t
 	return event, nil
 }
 
-// TestOCR2AggregatorTransmitedIterator is returned from FilterTransmited and is used to iterate over the raw logs and unpacked data for Transmited events raised by the TestOCR2Aggregator contract.
-type TestOCR2AggregatorTransmitedIterator struct {
-	Event *TestOCR2AggregatorTransmited // Event containing the contract specifics and raw log
+// TestOCR2AggregatorTransmittedIterator is returned from FilterTransmitted and is used to iterate over the raw logs and unpacked data for Transmitted events raised by the TestOCR2Aggregator contract.
+type TestOCR2AggregatorTransmittedIterator struct {
+	Event *TestOCR2AggregatorTransmitted // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -23422,7 +20809,7 @@ type TestOCR2AggregatorTransmitedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *TestOCR2AggregatorTransmitedIterator) Next() bool {
+func (it *TestOCR2AggregatorTransmittedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -23431,7 +20818,7 @@ func (it *TestOCR2AggregatorTransmitedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(TestOCR2AggregatorTransmited)
+			it.Event = new(TestOCR2AggregatorTransmitted)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -23446,7 +20833,7 @@ func (it *TestOCR2AggregatorTransmitedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(TestOCR2AggregatorTransmited)
+		it.Event = new(TestOCR2AggregatorTransmitted)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -23462,42 +20849,42 @@ func (it *TestOCR2AggregatorTransmitedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *TestOCR2AggregatorTransmitedIterator) Error() error {
+func (it *TestOCR2AggregatorTransmittedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *TestOCR2AggregatorTransmitedIterator) Close() error {
+func (it *TestOCR2AggregatorTransmittedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// TestOCR2AggregatorTransmited represents a Transmited event raised by the TestOCR2Aggregator contract.
-type TestOCR2AggregatorTransmited struct {
+// TestOCR2AggregatorTransmitted represents a Transmitted event raised by the TestOCR2Aggregator contract.
+type TestOCR2AggregatorTransmitted struct {
 	ConfigDigest [32]byte
 	Epoch        uint32
 	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterTransmited is a free log retrieval operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// FilterTransmitted is a free log retrieval operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterTransmited(opts *bind.FilterOpts) (*TestOCR2AggregatorTransmitedIterator, error) {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) FilterTransmitted(opts *bind.FilterOpts) (*TestOCR2AggregatorTransmittedIterator, error) {
 
-	logs, sub, err := _TestOCR2Aggregator.contract.FilterLogs(opts, "Transmited")
+	logs, sub, err := _TestOCR2Aggregator.contract.FilterLogs(opts, "Transmitted")
 	if err != nil {
 		return nil, err
 	}
-	return &TestOCR2AggregatorTransmitedIterator{contract: _TestOCR2Aggregator.contract, event: "Transmited", logs: logs, sub: sub}, nil
+	return &TestOCR2AggregatorTransmittedIterator{contract: _TestOCR2Aggregator.contract, event: "Transmitted", logs: logs, sub: sub}, nil
 }
 
-// WatchTransmited is a free log subscription operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// WatchTransmitted is a free log subscription operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchTransmited(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorTransmited) (event.Subscription, error) {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchTransmitted(opts *bind.WatchOpts, sink chan<- *TestOCR2AggregatorTransmitted) (event.Subscription, error) {
 
-	logs, sub, err := _TestOCR2Aggregator.contract.WatchLogs(opts, "Transmited")
+	logs, sub, err := _TestOCR2Aggregator.contract.WatchLogs(opts, "Transmitted")
 	if err != nil {
 		return nil, err
 	}
@@ -23507,8 +20894,8 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchTransmited(opts *bin
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(TestOCR2AggregatorTransmited)
-				if err := _TestOCR2Aggregator.contract.UnpackLog(event, "Transmited", log); err != nil {
+				event := new(TestOCR2AggregatorTransmitted)
+				if err := _TestOCR2Aggregator.contract.UnpackLog(event, "Transmitted", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -23529,12 +20916,12 @@ func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) WatchTransmited(opts *bin
 	}), nil
 }
 
-// ParseTransmited is a log parse operation binding the contract event 0xd78f2a94a6a9ba96eb1197c7833ce19ec0fef80881049b0bd8ced9ee533739e3.
+// ParseTransmitted is a log parse operation binding the contract event 0xb04e63db38c49950639fa09d29872f21f5d49d614f3a969d8adf3d4b52e41a62.
 //
-// Solidity: event Transmited(bytes32 configDigest, uint32 epoch)
-func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseTransmited(log types.Log) (*TestOCR2AggregatorTransmited, error) {
-	event := new(TestOCR2AggregatorTransmited)
-	if err := _TestOCR2Aggregator.contract.UnpackLog(event, "Transmited", log); err != nil {
+// Solidity: event Transmitted(bytes32 configDigest, uint32 epoch)
+func (_TestOCR2Aggregator *TestOCR2AggregatorFilterer) ParseTransmitted(log types.Log) (*TestOCR2AggregatorTransmitted, error) {
+	event := new(TestOCR2AggregatorTransmitted)
+	if err := _TestOCR2Aggregator.contract.UnpackLog(event, "Transmitted", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

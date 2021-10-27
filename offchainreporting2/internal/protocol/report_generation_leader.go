@@ -48,6 +48,11 @@ func (repgen *reportGenerationState) eventTRoundTimeout() {
 // It broadcasts an observe-req message to all participants, and restarts the
 // round timer.
 func (repgen *reportGenerationState) startRound() {
+	if !repgen.leaderState.readyToStartRound {
+		repgen.leaderState.readyToStartRound = true
+		return
+	}
+
 	if repgen.leaderState.r > repgen.config.RMax {
 		repgen.logger.Warn("ReportGeneration: new round number would be larger than RMax + 1. Looks like your connection to more than f other nodes is not working.", commontypes.LogFields{
 			"round": repgen.leaderState.r,
@@ -66,6 +71,9 @@ func (repgen *reportGenerationState) startRound() {
 	repgen.leaderState.r = rPlusOne
 	repgen.leaderState.observe = make([]*SignedObservation, repgen.config.N())
 	repgen.leaderState.report = make([]*AttestedReportOne, repgen.config.N())
+	repgen.leaderState.tRound = time.After(repgen.config.DeltaRound)
+	repgen.leaderState.readyToStartRound = false
+	var query types.Query
 	{
 		ctx, cancel := context.WithTimeout(repgen.ctx, repgen.config.MaxDurationQuery)
 		defer cancel()
@@ -79,7 +87,8 @@ func (repgen *reportGenerationState) startRound() {
 			},
 		)
 
-		query, err := repgen.reportingPlugin.Query(ctx, repgen.leaderReportTimestamp())
+		var err error
+		query, err = repgen.reportingPlugin.Query(ctx, repgen.leaderReportTimestamp())
 
 		ins.Stop()
 
@@ -91,10 +100,15 @@ func (repgen *reportGenerationState) startRound() {
 			return
 		}
 
-		repgen.leaderState.q = query
 	}
+	repgen.leaderState.q = query
+	repgen.leaderState.h = [32]byte{} // Not strictly necessary, but makes testing cleaner
 	repgen.leaderState.phase = phaseObserve
-	repgen.netSender.Broadcast(MessageObserveReq{Epoch: repgen.e, Round: repgen.leaderState.r})
+	repgen.netSender.Broadcast(MessageObserveReq{
+		repgen.e,
+		repgen.leaderState.r,
+		query,
+	})
 }
 
 // messageObserve is called when the current leader has received an "observe"
@@ -190,6 +204,11 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender c
 		}
 	case phaseGrace:
 		repgen.logger.Debug("accepted extra observation during grace period", nil)
+	default:
+		repgen.logger.Error("unexpected phase", commontypes.LogFields{
+			"round": repgen.leaderState.r,
+			"phase": repgen.leaderState.phase,
+		})
 	}
 }
 
@@ -259,9 +278,9 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 		return
 	}
 
-	err := msg.Report.Verify(
+	err := msg.AttestedReport.Verify(
 		repgen.onchainKeyring,
-		repgen.config.OracleIdentities[sender].OnChainPublicKey,
+		repgen.config.OracleIdentities[sender].OnchainPublicKey,
 		types.ReportContext{
 			repgen.leaderReportTimestamp(),
 			repgen.leaderState.h,
@@ -276,17 +295,17 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 		return
 	}
 
-	repgen.leaderState.report[sender] = &msg.Report
+	repgen.leaderState.report[sender] = &msg.AttestedReport
 
 	// upon exists R s.t. |{p_j ∈ P | report[j]=(R,·)}| > f ∧ phase = REPORT
 	{ // FUTUREWORK: make it non-quadratic time
-		ass := []types.AttributedOnChainSignature{}
+		ass := []types.AttributedOnchainSignature{}
 		for id, report := range repgen.leaderState.report {
 			if report == nil {
 				continue
 			}
-			if report.EqualExceptSignature(msg.Report) {
-				ass = append(ass, types.AttributedOnChainSignature{
+			if report.EqualExceptSignature(msg.AttestedReport) {
+				ass = append(ass, types.AttributedOnchainSignature{
 					report.Signature,
 					commontypes.OracleID(id),
 				})
@@ -300,19 +319,19 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 		}
 
 		if repgen.reportQuorum <= len(ass) {
-			if !msg.Report.Skip {
+			if !msg.AttestedReport.Skip {
 				repgen.netSender.Broadcast(MessageFinal{
 					repgen.e,
 					repgen.leaderState.r,
 					repgen.leaderState.h,
 					AttestedReportMany{
-						msg.Report.Report,
+						msg.AttestedReport.Report,
 						ass,
 					},
 				})
 			}
 			repgen.leaderState.phase = phaseFinal
-			repgen.leaderState.tRound = time.After(repgen.config.DeltaRound)
+			repgen.startRound()
 		}
 	}
 }

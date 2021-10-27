@@ -11,32 +11,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AttributedObservation succinctly atrributes a value reported to an oracle
 type AttributedObservation struct {
 	Observation types.Observation
 	Observer    commontypes.OracleID
 }
 
-func (o AttributedObservation) Equal(o2 AttributedObservation) bool {
-	return (o.Observer == o2.Observer) && bytes.Equal(o.Observation, o2.Observation)
-}
-
-type AttributedObservations []AttributedObservation
-
-func (aos AttributedObservations) Equal(aos2 AttributedObservations) bool {
-	if len(aos) != len(aos2) {
-		return false
-	}
-	for i := range aos {
-		if !aos[i].Equal(aos2[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// AttestedReportOne is the collated report oracles sign off on, after they've
-// verified the individual signatures in a report-req sent by the current leader
 type AttestedReportOne struct {
 	Skip      bool
 	Report    types.Report
@@ -60,10 +39,6 @@ func MakeAttestedReportOneNoskip(
 	return AttestedReportOne{false, report, sig}, nil
 }
 
-func (rep AttestedReportOne) Equal(rep2 AttestedReportOne) bool {
-	return rep.Skip == rep2.Skip && bytes.Equal(rep.Report, rep2.Report) && bytes.Equal(rep.Signature, rep2.Signature)
-}
-
 func (rep AttestedReportOne) EqualExceptSignature(rep2 AttestedReportOne) bool {
 	return rep.Skip == rep2.Skip && bytes.Equal(rep.Report, rep2.Report)
 }
@@ -84,40 +59,14 @@ func (aro *AttestedReportOne) Verify(contractSigner types.OnchainKeyring, public
 	return nil
 }
 
-// AttestedReportMany consists of attributed observations with aggregated
-// signatures from the oracles which have sent this report to the current epoch
-// leader.
-//
-
 type AttestedReportMany struct {
-	ReportData           []byte
-	AttributedSignatures []types.AttributedOnChainSignature
+	Report               types.Report
+	AttributedSignatures []types.AttributedOnchainSignature
 }
 
-func (rep AttestedReportMany) Equal(c2 AttestedReportMany) bool {
-	if !bytes.Equal(rep.ReportData, c2.ReportData) {
-		return false
-	}
-
-	if len(rep.AttributedSignatures) != len(c2.AttributedSignatures) {
-		return false
-	}
-
-	for i := range rep.AttributedSignatures {
-		if !rep.AttributedSignatures[i].Equal(c2.AttributedSignatures[i]) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// VerifySignatures checks that all the signatures (c.Signatures) come from the
-// addresses in the map "as", and returns a list of which oracles they came
-// from.
 func (rep *AttestedReportMany) VerifySignatures(
 	numSignatures int,
-	contractSigner types.OnchainKeyring,
+	onchainKeyring types.OnchainKeyring,
 	oracleIdentities []config.OracleIdentity,
 	repctx types.ReportContext,
 ) error {
@@ -130,11 +79,11 @@ func (rep *AttestedReportMany) VerifySignatures(
 			return fmt.Errorf("duplicate Signature by %v", sig.Signer)
 		}
 		seen[sig.Signer] = true
-		if len(oracleIdentities) <= int(sig.Signer) {
+		if !(0 <= int(sig.Signer) && int(sig.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", sig.Signer)
 		}
-		if !contractSigner.Verify(oracleIdentities[sig.Signer].OnChainPublicKey, repctx, rep.ReportData, sig.Signature) {
-			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify", i, sig.Signer, oracleIdentities[sig.Signer].OnChainPublicKey)
+		if !onchainKeyring.Verify(oracleIdentities[sig.Signer].OnchainPublicKey, repctx, rep.Report, sig.Signature) {
+			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify", i, sig.Signer, oracleIdentities[sig.Signer].OnchainPublicKey)
 		}
 	}
 	return nil

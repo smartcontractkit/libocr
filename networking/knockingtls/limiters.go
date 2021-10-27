@@ -75,7 +75,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 		newLimit := rcLimiter.refillRate + deltaTokenBucketRefillRate
 		newSize := rcLimiter.limiter.Burst() + deltaTokenBucketSize
 		if newLimit < 0 || newSize < 0 {
-			ls.logger.Error("incorrect new bandwith limiter params", commontypes.LogFields{
+			ls.logger.Error("incorrect new bandwidth limiter params", commontypes.LogFields{
 				"peerID":         peerID.Pretty(),
 				"newLimit":       newLimit,
 				"newSize":        newSize,
@@ -101,7 +101,7 @@ func (ls *Limiters) IncreaseLimits(peerIDs []p2ppeer.ID, deltaTokenBucketRefillR
 
 		if rcLimiter.refCount == 0 {
 			delete(ls.limiters, peerID)
-			ls.logger.Info("removed bandwith limiter for peer connection as it's no longer used", commontypes.LogFields{
+			ls.logger.Info("removed bandwidth limiter for peer connection as it's no longer used", commontypes.LogFields{
 				"peerID":         peerID.Pretty(),
 				"referenceCount": rcLimiter.refCount,
 				"currentLimit":   rcLimiter.limiter.Limit(),

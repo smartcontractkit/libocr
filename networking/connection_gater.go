@@ -162,7 +162,7 @@ func (c *connectionGater) InterceptPeerDial(id p2ppeer.ID) (allow bool) {
 // function that can prevent unknown incoming peers because any peer can lie about its
 // peer ID until after a secure connection has been established.
 //
-// Bandwith rate limiting kicks in here for inbound traffic coming from any other peer.
+// Bandwidth rate limiting kicks in here for inbound traffic coming from any other peer.
 func (c *connectionGater) InterceptSecured(d p2pnetwork.Direction, id p2ppeer.ID, _ p2pnetwork.ConnMultiaddrs) (allow bool) {
 	return c.isAllowed(id, d == p2pnetwork.DirInbound)
 }

@@ -461,7 +461,7 @@ func (o *ocrEndpointV1) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte
 		}
 	}
 
-	defer stream.Reset()
+	defer stream.Reset() //nolint:errcheck
 
 	o.logger.Debug("Opened stream", commontypes.LogFields{
 		"remotePeerID": destPeerID,
@@ -554,7 +554,7 @@ func (o *ocrEndpointV1) streamReceiver(s p2pnetwork.Stream) {
 
 	// Force stream reset on our side if close signal is received or if this function exits
 	go func() {
-		defer s.Reset()
+		defer s.Reset() //nolint:errcheck
 		select {
 		case <-o.chClose:
 		case <-exit:

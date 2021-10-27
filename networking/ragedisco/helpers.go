@@ -1,4 +1,4 @@
-package inhousedisco
+package ragedisco
 
 import (
 	"github.com/smartcontractkit/libocr/commontypes"

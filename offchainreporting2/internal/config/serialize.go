@@ -96,8 +96,8 @@ func deprotoOffchainConfig(
 		uint8(offchainConfigProto.GetRMax()),
 		S,
 		offchainPublicKeys,
-		append([]string{}, offchainConfigProto.GetPeerIds()...),
-		append([]byte{}, offchainConfigProto.GetReportingPluginConfig()...),
+		offchainConfigProto.GetPeerIds(),
+		offchainConfigProto.GetReportingPluginConfig(),
 		time.Duration(offchainConfigProto.GetMaxDurationQuery()),
 		time.Duration(offchainConfigProto.GetMaxDurationObservation()),
 		time.Duration(offchainConfigProto.GetMaxDurationReport()),
@@ -145,9 +145,6 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 	offchainPublicKeys := make([][]byte, 0, len(o.OffchainPublicKeys))
 	for _, k := range o.OffchainPublicKeys {
 		offchainPublicKeys = append(offchainPublicKeys, k[:])
-	}
-	if o.RMax < 0 {
-		panic(fmt.Sprintf("rMax must be non-negative, got %d", o.RMax))
 	}
 	sharedSecretEncryptions := enprotoSharedSecretEncryptions(o.SharedSecretEncryptions)
 	return OffchainConfigProto{

@@ -50,7 +50,6 @@ type ocrEndpointV2 struct {
 	ownOracleID         commontypes.OracleID
 
 	// internal and state management
-	chRecvs      map[commontypes.OracleID](<-chan []byte)
 	chSendToSelf chan commontypes.BinaryMessageWithSender
 	chClose      chan struct{}
 	streams      map[commontypes.OracleID]*ragep2p.Stream
@@ -96,8 +95,6 @@ func newOCREndpointV2(
 		return nil, errors.Errorf("host peer ID 0x%x is not present in given peerMapping", peer.ID())
 	}
 
-	chRecvs := make(map[commontypes.OracleID]<-chan []byte)
-
 	chSendToSelf := make(chan commontypes.BinaryMessageWithSender, sendToSelfBufferSize)
 
 	logger = logger.MakeChild(commontypes.LogFields{
@@ -119,11 +116,9 @@ func newOCREndpointV2(
 		v2bootstrappers,
 		failureThreshold,
 		ownOracleID,
-		chRecvs,
 		chSendToSelf,
 		make(chan struct{}),
-		// Will be set in Start()
-		nil,
+		make(map[commontypes.OracleID]*ragep2p.Stream),
 		ocrEndpointUnstarted,
 		new(sync.RWMutex),
 		new(sync.WaitGroup),
@@ -137,6 +132,13 @@ func newOCREndpointV2(
 
 // Start the ocrEndpointV2. Should only be called once. Even in case of error Close() _should_ be called afterwards for cleanup.
 func (o *ocrEndpointV2) Start() error {
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			o.Close()
+		}
+	}()
+
 	o.stateMu.Lock()
 	defer o.stateMu.Unlock()
 
@@ -149,13 +151,11 @@ func (o *ocrEndpointV2) Start() error {
 		return err
 	}
 
-	o.streams = make(map[commontypes.OracleID]*ragep2p.Stream)
 	for oid, pid := range o.peerMapping {
 		if oid == o.ownOracleID {
 			continue
 		}
-		var err error
-		o.streams[oid], err = o.host.NewStream(
+		stream, err := o.host.NewStream(
 			pid,
 			fmt.Sprintf("ocr/%x", o.configDigest),
 			o.config.OutgoingMessageBufferSize,
@@ -173,11 +173,11 @@ func (o *ocrEndpointV2) Start() error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to create stream for oracle %v (peer id: %s)", oid, pid)
 		}
-		o.chRecvs[oid] = o.streams[oid].ReceiveMessages()
+		o.streams[oid] = stream
 	}
 
-	o.wg.Add(len(o.chRecvs))
-	for oid := range o.chRecvs {
+	o.wg.Add(len(o.streams))
+	for oid := range o.streams {
 		go o.runRecv(oid)
 	}
 	o.wg.Add(1)
@@ -185,6 +185,7 @@ func (o *ocrEndpointV2) Start() error {
 
 	o.logger.Info("OCREndpointV2: Started listening", nil)
 
+	succeeded = true
 	return nil
 }
 
@@ -194,7 +195,7 @@ func (o *ocrEndpointV2) Start() error {
 // messages from good remotes
 func (o *ocrEndpointV2) runRecv(oid commontypes.OracleID) {
 	defer o.wg.Done()
-	chRecv := o.chRecvs[oid]
+	chRecv := o.streams[oid].ReceiveMessages()
 	for {
 		select {
 		case payload := <-chRecv:

@@ -45,7 +45,7 @@ func ContractConfigFromConfigSetEvent(changed ocr2aggregator.OCR2AggregatorConfi
 		transmitAccounts,
 		changed.F,
 		changed.OnchainConfig,
-		changed.EncodedConfigVersion,
-		changed.Encoded,
+		changed.OffchainConfigVersion,
+		changed.OffchainConfig,
 	}
 }

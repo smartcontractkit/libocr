@@ -6,7 +6,6 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -86,7 +85,8 @@ func (state *trackConfigState) run() {
 }
 
 func (state *trackConfigState) checkLatestConfigDetails() (
-	latestConfigDetails *types.ContractConfig, awaitingConfirmation bool,
+	latestConfigDetails *types.ContractConfig,
+	awaitingConfirmation bool,
 ) {
 	bhCtx, bhCancel := context.WithTimeout(state.ctx, state.localConfig.BlockchainTimeout)
 	defer bhCancel()
@@ -129,11 +129,17 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, true
 	}
 
-	if contractConfig.OffchainConfigVersion != config.OffchainConfigVersion {
-		state.logger.Error("TrackConfig: received config change with unknown OffchainConfigVersion",
-			commontypes.LogFields{"versionReceived": contractConfig.OffchainConfigVersion})
+	if latestConfigDigest != contractConfig.ConfigDigest {
+		state.logger.Error("TrackConfig: received config change with ConfigDigest mismatch", commontypes.LogFields{
+			"error":              err,
+			"contractConfig":     contractConfig,
+			"latestConfigDigest": latestConfigDigest,
+		})
 		return nil, false
 	}
+
+	// Ignore configs where the configDigest doesn't match, they might have
+	// been corrupted somehow.
 	if err := state.configDigester.CheckContractConfig(contractConfig); err != nil {
 		state.logger.Error("TrackConfig: received config change with ConfigDigest mismatch", commontypes.LogFields{
 			"error":          err,

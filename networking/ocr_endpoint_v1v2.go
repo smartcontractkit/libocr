@@ -126,12 +126,20 @@ func (o *ocrEndpointV1V2) mergeRecvs() {
 }
 
 func (o *ocrEndpointV1V2) Start() error {
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			o.Close()
+		}
+	}()
+
 	for _, e := range o.endpoints {
 		if err := e.Start(); err != nil {
 			return err
 		}
 	}
 	o.processes.Go(o.mergeRecvs)
+	succeeded = true
 	return nil
 }
 

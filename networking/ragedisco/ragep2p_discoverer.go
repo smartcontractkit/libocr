@@ -1,9 +1,10 @@
-package inhousedisco
+package ragedisco
 
 import (
 	"context"
 	"crypto/ed25519"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,15 +19,28 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
+type ragep2pDiscovererState int
+
+const (
+	_ ragep2pDiscovererState = iota
+	ragep2pDiscovererUnstarted
+	ragep2pDiscovererStarted
+	ragep2pDiscovererClosed
+)
+
 type Ragep2pDiscoverer struct {
-	logger         loghelper.LoggerWithContext
-	proc           subprocesses.Subprocesses
-	ctx            context.Context
-	ctxCancel      context.CancelFunc
-	deltaReconcile time.Duration
-	db             nettypes.DiscovererDatabase
-	host           *ragep2p.Host
-	proto          *discoveryProtocol
+	logger            loghelper.LoggerWithContext
+	proc              subprocesses.Subprocesses
+	ctx               context.Context
+	ctxCancel         context.CancelFunc
+	deltaReconcile    time.Duration
+	announceAddresses []string
+	db                nettypes.DiscovererDatabase
+	host              *ragep2p.Host
+	proto             *discoveryProtocol
+
+	stateMu sync.Mutex
+	state   ragep2pDiscovererState
 
 	streamsMu sync.Mutex
 	streams   map[ragetypes.PeerID]*ragep2p.Stream
@@ -36,17 +50,24 @@ type Ragep2pDiscoverer struct {
 	chConnectivity     chan connectivityMsg
 }
 
-func NewRagep2pDiscoverer(deltaReconcile time.Duration, db nettypes.DiscovererDatabase) *Ragep2pDiscoverer {
+func NewRagep2pDiscoverer(
+	deltaReconcile time.Duration,
+	announceAddresses []string,
+	db nettypes.DiscovererDatabase,
+) *Ragep2pDiscoverer {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &Ragep2pDiscoverer{
-		nil, // filled on Start()
+		nil, // logger, filled on Start()
 		subprocesses.Subprocesses{},
 		ctx,
 		ctxCancel,
 		deltaReconcile,
+		announceAddresses,
 		db,
-		nil, // filled on Start()
-		nil, // filled on Start()
+		nil, // ragep2p host, filled on Start()
+		nil, // discovery protocol, filled on Start()
+		sync.Mutex{},
+		ragep2pDiscovererUnstarted,
 		sync.Mutex{},
 		make(map[ragetypes.PeerID]*ragep2p.Stream),
 		make(chan incomingMessage),
@@ -55,16 +76,33 @@ func NewRagep2pDiscoverer(deltaReconcile time.Duration, db nettypes.DiscovererDa
 	}
 }
 
-func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, ownAddrs []ragetypes.Address, logger loghelper.LoggerWithContext) error {
+func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, logger loghelper.LoggerWithContext) error {
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			r.Close()
+		}
+	}()
+
+	r.stateMu.Lock()
+	defer r.stateMu.Unlock()
+	if r.state != ragep2pDiscovererUnstarted {
+		return fmt.Errorf("cannot start Ragep2pDiscoverer that is not unstarted, state was: %v", r.state)
+	}
+	r.state = ragep2pDiscovererStarted
 	r.host = h
 	r.logger = loghelper.MakeRootLoggerWithContext(logger)
+	announceAddresses, err := combinedAnnounceAddrs(r.announceAddresses)
+	if err != nil {
+		return err
+	}
 	proto, err := newDiscoveryProtocol(
 		r.deltaReconcile,
 		r.chIncomingMessages,
 		r.chOutgoingMessages,
 		r.chConnectivity,
 		privKey,
-		ownAddrs,
+		announceAddresses,
 		r.db,
 		logger,
 	)
@@ -78,6 +116,8 @@ func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, o
 	}
 	r.proc.Go(r.connectivityLoop)
 	r.proc.Go(r.writeLoop)
+
+	succeeded = true
 	return nil
 }
 
@@ -198,10 +238,20 @@ func (r *Ragep2pDiscoverer) writeLoop() {
 	}
 }
 
-func (r *Ragep2pDiscoverer) Close() {
-	r.proto.Close()
+func (r *Ragep2pDiscoverer) Close() error {
+	r.stateMu.Lock()
+	defer r.stateMu.Unlock()
+	if r.state != ragep2pDiscovererStarted {
+		return fmt.Errorf("cannot close Ragep2pDiscoverer that is not started, state was: %v", r.state)
+	}
+	r.state = ragep2pDiscovererClosed
+
 	r.ctxCancel()
 	r.proc.Wait()
+	if r.proto != nil {
+		return r.proto.Close()
+	}
+	return nil
 }
 
 func (r *Ragep2pDiscoverer) AddGroup(digest types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error {

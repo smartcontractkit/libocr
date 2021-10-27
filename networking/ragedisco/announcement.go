@@ -1,6 +1,6 @@
 //go:generate protoc -I. --go_out=./serialization  ./serialization/peer_discovery_announcement.proto
 
-package inhousedisco
+package ragedisco
 
 import (
 	"crypto/ed25519"
@@ -10,12 +10,11 @@ import (
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
-	rageaddress "github.com/smartcontractkit/libocr/ragep2p/address"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
 	"github.com/pkg/errors"
 
-	"github.com/smartcontractkit/libocr/networking/inhouse-disco/serialization"
+	"github.com/smartcontractkit/libocr/networking/ragedisco/serialization"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -24,6 +23,9 @@ type unsignedAnnouncement struct {
 	Counter uint64              // counter
 }
 
+// Announcement is a signed message in which a peer attests to their network addresses.
+// An Announcement needs to adhere to some validity rules, found in validate(),
+// which are enforced on calls to sign() and verify().
 type Announcement struct {
 	unsignedAnnouncement
 	PublicKey ed25519.PublicKey // PublicKey used to verify Sig
@@ -48,10 +50,6 @@ const (
 	maxMessageLength = 110000
 )
 
-func serdeError(field string) error {
-	return fmt.Errorf("invalid pm: %s", field)
-}
-
 // Validate and serialize an Announcement. Return error on invalid announcements.
 func (ann Announcement) serialize() ([]byte, error) {
 	pm, err := ann.toProto()
@@ -62,17 +60,6 @@ func (ann Announcement) serialize() ([]byte, error) {
 }
 
 func (ann Announcement) toProto() (*serialization.SignedAnnouncement, error) {
-	// Require all fields to be non-nil and addrs shorter than maxAddrInAnnouncements
-	if ann.Addrs == nil || ann.PublicKey == nil || ann.Sig == nil || len(ann.Addrs) > maxAddrInAnnouncements {
-		return nil, errors.New("invalid announcement")
-	}
-
-	// verify the signature
-	err := ann.verify()
-	if err != nil {
-		return nil, err
-	}
-
 	// addr
 	var addrs [][]byte
 	for _, a := range ann.Addrs {
@@ -88,39 +75,47 @@ func (ann Announcement) toProto() (*serialization.SignedAnnouncement, error) {
 	return &pm, nil
 }
 
-func signedAnnouncementFromProto(pm *serialization.SignedAnnouncement) (Announcement, error) {
-	// public key
-	const expectedPublicKeySize = ed25519.PublicKeySize
-	if len(pm.PublicKey) != expectedPublicKeySize {
-		return Announcement{}, fmt.Errorf("unknown key size detected (expected %d, actual %d)", expectedPublicKeySize, len(pm.PublicKey))
+func (uann unsignedAnnouncement) validate() error {
+	if len(uann.Addrs) == 0 || len(uann.Addrs) > maxAddrInAnnouncements {
+		return fmt.Errorf("invalid length of addresses (was %d, min is 1, max is %d)", len(uann.Addrs), maxAddrInAnnouncements)
 	}
-
-	// addrs
-	if len(pm.Addrs) == 0 {
-		return Announcement{}, serdeError("addrs is empty array")
-	}
-
-	if len(pm.Addrs) > maxAddrInAnnouncements {
-		return Announcement{}, serdeError("more addr than maxAddrInAnnouncements")
-	}
-
-	var addrs []ragetypes.Address
-	for _, addr := range pm.Addrs {
-		raddr := ragetypes.Address(addr)
-		if !rageaddress.IsValid(raddr) {
-			return Announcement{}, fmt.Errorf("contained invalid address (%s)", addr)
+	for _, addr := range uann.Addrs {
+		if !isValidForAnnouncement(addr) {
+			return fmt.Errorf("invalid address (%s)", addr)
 		}
-		addrs = append(addrs, raddr)
+	}
+	return nil
+}
+
+func (ann Announcement) validate() error {
+	if err := ann.unsignedAnnouncement.validate(); err != nil {
+		return err
+	}
+	const expectedPublicKeySize = ed25519.PublicKeySize
+	if len(ann.PublicKey) != expectedPublicKeySize {
+		return fmt.Errorf("unknown key size detected (expected %d, actual %d)", expectedPublicKeySize, len(ann.PublicKey))
+	}
+	if ann.Sig == nil {
+		return fmt.Errorf("nil sig")
+	}
+	return nil
+}
+
+func signedAnnouncementFromProto(pm *serialization.SignedAnnouncement) (Announcement, error) {
+	addrs := make([]ragetypes.Address, len(pm.Addrs))
+	for i, addr := range pm.Addrs {
+		addrs[i] = ragetypes.Address(addr)
 	}
 
-	return Announcement{
+	ann := Announcement{
 		unsignedAnnouncement{
 			addrs,
 			pm.Counter,
 		},
 		pm.PublicKey,
 		pm.Sig,
-	}, nil
+	}
+	return ann, nil
 }
 
 func deserializeSignedAnnouncement(binary []byte) (Announcement, error) {
@@ -132,10 +127,10 @@ func deserializeSignedAnnouncement(binary []byte) (Announcement, error) {
 	return signedAnnouncementFromProto(&pm)
 }
 
-func (ann unsignedAnnouncement) String() string {
+func (uann unsignedAnnouncement) String() string {
 	return fmt.Sprintf("<counter=%d, addrs=%s>",
-		ann.Counter,
-		ann.Addrs)
+		uann.Counter,
+		uann.Addrs)
 }
 
 func (ann Announcement) PeerID() (ragetypes.PeerID, error) {
@@ -152,22 +147,23 @@ func (ann Announcement) String() string {
 }
 
 // digest returns a deterministic digest used for signing
-func (ann unsignedAnnouncement) digest() ([]byte, error) {
+// will return an error for an invalid unsignedAnnouncement
+func (uann unsignedAnnouncement) digest() ([]byte, error) {
 	// serialize only addrs and the counter
-	if ann.Addrs == nil || len(ann.Addrs) > maxAddrInAnnouncements {
-		return nil, errors.New("invalid announcement")
+	if err := uann.validate(); err != nil {
+		return nil, err
 	}
 
 	hasher := sha256.New()
 	hasher.Write([]byte(announcementDomainSeparator))
 
 	// encode addr length
-	err := binary.Write(hasher, binary.LittleEndian, uint32(len(ann.Addrs)))
+	err := binary.Write(hasher, binary.LittleEndian, uint32(len(uann.Addrs)))
 	if err != nil {
 		return nil, err
 	}
 	// encode addr
-	for _, a := range ann.Addrs {
+	for _, a := range uann.Addrs {
 		ab := []byte(a)
 		err = binary.Write(hasher, binary.LittleEndian, uint32(len(ab)))
 		if err != nil {
@@ -177,7 +173,7 @@ func (ann unsignedAnnouncement) digest() ([]byte, error) {
 	}
 
 	// counter
-	err = binary.Write(hasher, binary.LittleEndian, ann.Counter)
+	err = binary.Write(hasher, binary.LittleEndian, uann.Counter)
 	if err != nil {
 		return nil, err
 	}
@@ -185,8 +181,8 @@ func (ann unsignedAnnouncement) digest() ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (ann *unsignedAnnouncement) sign(sk ed25519.PrivateKey) (Announcement, error) {
-	digest, err := ann.digest()
+func (uann unsignedAnnouncement) sign(sk ed25519.PrivateKey) (Announcement, error) {
+	digest, err := uann.digest()
 	if err != nil {
 		return Announcement{}, err
 	}
@@ -199,24 +195,22 @@ func (ann *unsignedAnnouncement) sign(sk ed25519.PrivateKey) (Announcement, erro
 	}
 
 	return Announcement{
-		*ann,
+		uann,
 		epk,
 		sig,
 	}, nil
 }
 
 func (ann Announcement) verify() error {
-	if ann.Sig == nil {
-		return errors.New("nil sig")
+	if err := ann.validate(); err != nil {
+		return err
 	}
-
 	msg, err := ann.digest()
 	if err != nil {
 		return err
 	}
 
-	verified := ed25519.Verify(ann.PublicKey, msg, ann.Sig)
-	if !verified {
+	if !ed25519.Verify(ann.PublicKey, msg, ann.Sig) {
 		return errors.New("invalid signature")
 	}
 

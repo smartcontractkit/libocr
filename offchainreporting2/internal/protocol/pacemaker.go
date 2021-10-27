@@ -19,7 +19,7 @@ import (
 
 // The capacity of the channel we use for persisting states. If more than this
 // many state updates are pending, we will begin to drop updates.
-const chPersistCapacity = 256
+const chPersistCapacityPacemaker = 256
 
 // Pacemaker keeps track of the state and message handling for an oracle
 // participating in the off-chain reporting protocol
@@ -53,7 +53,8 @@ func RunPacemaker(
 	pace.run()
 }
 
-func makePacemakerState(ctx context.Context,
+func makePacemakerState(
+	ctx context.Context,
 	subprocesses *subprocesses.Subprocesses,
 	chNetToPacemaker <-chan MessageToPacemakerWithSender,
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
@@ -157,10 +158,10 @@ func (pace *pacemakerState) run() {
 	// Initialization
 
 	{
-		chPersist := make(chan types.PersistentState, chPersistCapacity)
+		chPersist := make(chan types.PersistentState, chPersistCapacityPacemaker)
 		pace.chPersist = chPersist
 		pace.subprocesses.Go(func() {
-			persist.Persist(
+			persist.PersistPacemaker(
 				pace.ctx,
 				chPersist,
 				pace.config.ConfigDigest,
@@ -361,7 +362,7 @@ func (pace *pacemakerState) persist() {
 	default:
 		pace.logger.Warn("Pacemaker: chPersist is backed up, discarding state", commontypes.LogFields{
 			"state":    state,
-			"capacity": chPersistCapacity,
+			"capacity": chPersistCapacityPacemaker,
 		})
 	}
 }
@@ -467,36 +468,69 @@ func (pace *pacemakerState) spawnReportGeneration() {
 
 	ctxReportGeneration, cancelReportGeneration := context.WithCancel(pace.ctx)
 
-	// Take a copy of the pacemaker, to avoid a race condition between the
-	// following go func and the agreement section of messageNewepoch, which
-	// assigns new values to some pace attributes. This race condition will never
-	// happen, given a reasonable value for DeltaProgress, but
-	// TestPacemakerNodesEventuallyReachEpochConsensus has an unreasonable value.
-	p := *pace
-	pace.reportGenerationSubprocess.Go(func() {
-		defer cancelReportGeneration()
-		RunReportGeneration(
-			ctxReportGeneration,
-			p.subprocesses,
+	{
+		// Take a copy of the pacemaker, to avoid a race condition between the
+		// following go func and the agreement section of messageNewepoch, which
+		// assigns new values to some pace attributes. This race condition will never
+		// happen, given a reasonable value for DeltaProgress, but
+		// TestPacemakerNodesEventuallyReachEpochConsensus has an unreasonable value.
+		subprocesses,
+			chNetToReportGeneration,
+			chReportGenerationToReportFinalization,
+			config,
+			contractTransmitter,
+			e,
+			id,
+			l,
+			localConfig,
+			logger,
+			netSender,
+			offchainKeyring,
+			onchainKeyring,
+			reportingPlugin,
+			reportQuorum,
+			telemetrySender := pace.subprocesses,
+			pace.chNetToReportGeneration,
+			pace.chReportGenerationToReportFinalization,
+			pace.config,
+			pace.contractTransmitter,
+			pace.e,
+			pace.id,
+			pace.l,
+			pace.localConfig,
+			pace.logger,
+			pace.netSender,
+			pace.offchainKeyring,
+			pace.onchainKeyring,
+			pace.reportingPlugin,
+			pace.reportQuorum,
+			pace.telemetrySender
 
-			p.chNetToReportGeneration,
-			chReportGenerationToPacemaker,
-			p.chReportGenerationToReportFinalization,
-			p.config,
-			p.contractTransmitter,
-			p.e,
-			p.id,
-			p.l,
-			p.localConfig,
-			p.logger,
-			p.netSender,
-			p.offchainKeyring,
-			p.onchainKeyring,
-			p.reportingPlugin,
-			p.reportQuorum,
-			p.telemetrySender,
-		)
-	})
+		pace.reportGenerationSubprocess.Go(func() {
+			defer cancelReportGeneration()
+			RunReportGeneration(
+				ctxReportGeneration,
+				subprocesses,
+
+				chNetToReportGeneration,
+				chReportGenerationToPacemaker,
+				chReportGenerationToReportFinalization,
+				config,
+				contractTransmitter,
+				e,
+				id,
+				l,
+				localConfig,
+				logger,
+				netSender,
+				offchainKeyring,
+				onchainKeyring,
+				reportingPlugin,
+				reportQuorum,
+				telemetrySender,
+			)
+		})
+	}
 	pace.cancelReportGeneration = cancelReportGeneration
 }
 

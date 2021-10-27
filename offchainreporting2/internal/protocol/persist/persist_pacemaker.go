@@ -9,7 +9,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 )
 
-type persistState struct {
+type persistPacemakerState struct {
 	ctx context.Context
 
 	chPersist       <-chan types.PersistentState
@@ -21,9 +21,9 @@ type persistState struct {
 	writtenState *types.PersistentState
 }
 
-// Persist receives states it should persist to the db through chPersist and
-// writes them to database.
-func Persist(
+// PersistPacemaker receives states from the pacemaker protocol it should
+// persist to the db through chPersist and writes them to database.
+func PersistPacemaker(
 	ctx context.Context,
 	chPersist <-chan types.PersistentState,
 	configDigest types.ConfigDigest,
@@ -31,7 +31,7 @@ func Persist(
 	databaseTimeout time.Duration,
 	logger loghelper.LoggerWithContext,
 ) {
-	ps := persistState{
+	ps := persistPacemakerState{
 		ctx,
 
 		chPersist,
@@ -49,7 +49,7 @@ func Persist(
 // chPersist so that it can ignore all but the latest state, and writes the
 // latest state to the database if it's new, i.e. differs from the previously
 // written state.
-func (ps *persistState) run() {
+func (ps *persistPacemakerState) run() {
 	for {
 		select {
 		case state, ok := <-ps.chPersist:
@@ -84,7 +84,7 @@ func (ps *persistState) run() {
 
 // writeIfNew writes pendingState to the database, iff pendingState differs from
 // the last written state.
-func (ps *persistState) writeIfNew(pendingState types.PersistentState) {
+func (ps *persistPacemakerState) writeIfNew(pendingState types.PersistentState) {
 	if ps.writtenState != nil && pendingState.Equal(*ps.writtenState) {
 		return
 	}

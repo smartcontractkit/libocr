@@ -2,6 +2,7 @@
 package shim
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -86,7 +87,7 @@ func (n *SerializingEndpoint) Start() error {
 	defer n.mutex.Unlock()
 
 	if n.started {
-		panic("Cannot start already started SerializingEndpoint")
+		return fmt.Errorf("cannot start already started SerializingEndpoint")
 	}
 	n.started = true
 

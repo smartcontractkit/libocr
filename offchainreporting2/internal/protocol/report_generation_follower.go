@@ -14,20 +14,23 @@ import (
 func reportContextHash(query types.Query, aos []types.AttributedObservation) [32]byte {
 	h := sha256.New()
 
-	binary.Write(h, binary.BigEndian, uint64(len(query)))
-	h.Write(query)
+	_ = binary.Write(h, binary.BigEndian, uint64(len(query)))
+	_, _ = h.Write(query)
 
-	binary.Write(h, binary.BigEndian, uint64(len(aos)))
+	_ = binary.Write(h, binary.BigEndian, uint64(len(aos)))
 	for _, ao := range aos {
-		binary.Write(h, binary.BigEndian, uint64(len(ao.Observation)))
-		h.Write(ao.Observation)
-		h.Write([]byte{byte(ao.Observer)})
+		_ = binary.Write(h, binary.BigEndian, uint64(len(ao.Observation)))
+		_, _ = h.Write(ao.Observation)
+		_, _ = h.Write([]byte{byte(ao.Observer)})
 	}
 
+	hash := h.Sum(nil)
 	var output [32]byte
-	if copy(output[:], h.Sum(nil)[:]) != len(output) {
-		panic("")
+	if len(hash) != len(output) {
+		// assertion
+		panic("sha256 size mismatch")
 	}
+	copy(output[:], hash)
 	return output
 }
 
@@ -110,10 +113,8 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	// without influencing the transmitted report in any way. (A valid observeReq
 	// after the report has been passed to the transmission machinery is expected,
 	// and has no impact on the transmission process.)
-	repgen.followerState.sentEcho = nil
 	repgen.followerState.sentReport = false
 	repgen.followerState.completedRound = false
-	repgen.followerState.receivedEcho = make([]bool, repgen.config.N())
 
 	repgen.telemetrySender.RoundStarted(
 		repgen.config.ConfigDigest,
@@ -131,7 +132,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 			repgen.config.MaxDurationObservation+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				repgen.logger.Error("ReportGeneration: ReportingPlugin.Observation is taking too long", commontypes.LogFields{
-					"round": repgen.leaderState.r, "maxDuration": repgen.config.MaxDurationObservation,
+					"round": repgen.followerState.r, "maxDuration": repgen.config.MaxDurationObservation,
 				})
 			},
 		)
@@ -242,7 +243,7 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			repgen.config.MaxDurationReport+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				repgen.logger.Error("ReportGeneration: ReportingPlugin.Report is taking too long", commontypes.LogFields{
-					"round": repgen.leaderState.r, "maxDuration": repgen.config.MaxDurationReport,
+					"round": repgen.followerState.r, "maxDuration": repgen.config.MaxDurationReport,
 				})
 			},
 		)
@@ -350,13 +351,21 @@ func (repgen *reportGenerationState) messageFinal(
 			"round": repgen.followerState.r, "msgRound": msg.Round})
 		return
 	}
-	if repgen.followerState.sentEcho != nil {
-		repgen.logger.Debug("MessageFinal after already sent MessageFinalEcho", nil)
+	if err := msg.AttestedReport.VerifySignatures(
+		repgen.reportQuorum,
+		repgen.onchainKeyring,
+		repgen.config.OracleIdentities,
+		types.ReportContext{repgen.followerReportTimestamp(), msg.H},
+	); err != nil {
+		repgen.logger.Error("could not validate signatures on attested report in MessageFinal",
+			commontypes.LogFields{
+				"error":  err,
+				"msg":    msg,
+				"sender": sender,
+			})
 		return
 	}
-	if !repgen.verifyAttestedReport(msg.H, msg.Report, sender) {
-		return
-	}
+
 	select {
 	case repgen.chReportGenerationToReportFinalization <- EventFinal{msg}:
 	case <-repgen.ctx.Done():
@@ -380,9 +389,9 @@ func (repgen *reportGenerationState) completeRound() {
 	}
 }
 
-// verifyReportReq errors unless the reports observations are sorted, its
-// signatures are all correct given the current round/epoch/config, and from
-// distinct oracles, and there are more than 2f observations.
+// verifyReportReq errors unless its signatures are all correct given the
+// current round/epoch/config, and from distinct oracles, and there are more
+// than 2f observations.
 func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error {
 	// check signatures and signature distinctness
 	{
@@ -411,26 +420,4 @@ func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error
 		}
 	}
 	return nil
-}
-
-func (repgen *reportGenerationState) verifyAttestedReport(
-	h [32]byte, report AttestedReportMany, sender commontypes.OracleID,
-) bool {
-	err := report.VerifySignatures(
-		repgen.reportQuorum,
-		repgen.onchainKeyring,
-		repgen.config.OracleIdentities,
-		types.ReportContext{repgen.followerReportTimestamp(), h},
-	)
-	if err != nil {
-		repgen.logger.Error("could not validate signatures on final report",
-			commontypes.LogFields{
-				"round":  repgen.followerState.r,
-				"error":  err,
-				"report": report,
-				"sender": sender,
-			})
-		return false
-	}
-	return true
 }

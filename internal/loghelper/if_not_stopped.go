@@ -12,7 +12,9 @@ type IfNotStopped struct {
 }
 
 // If Stop is called prior to expiry of d, f won't be executed. Otherwise, f
-// will be executed and Stop will block until f returns.
+// will be executed and Stop will block until f returns. That makes it different
+// from the standard library's time.AfterFunc() whose Stop() function will
+// return while f is still running.
 func NewIfNotStopped(d time.Duration, f func()) *IfNotStopped {
 	ins := IfNotStopped{
 		make(chan struct{}, 1),

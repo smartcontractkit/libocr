@@ -33,8 +33,8 @@ func configDigest(
 	transmitters []common.Address,
 	f uint8,
 	onchainConfig []byte,
-	encodedConfigVersion uint64,
-	config []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
 ) types.ConfigDigest {
 	chainIDBig := new(big.Int)
 	chainIDBig.SetUint64(chainID)
@@ -46,8 +46,8 @@ func configDigest(
 		transmitters,
 		f,
 		onchainConfig,
-		encodedConfigVersion,
-		config,
+		offchainConfigVersion,
+		offchainConfig,
 	)
 	if err != nil {
 		// assertion

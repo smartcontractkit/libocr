@@ -22,7 +22,7 @@ func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 	configDigest := ConfigDigest{}
 
 	if len(b) != len(configDigest) {
-		return ConfigDigest{}, fmt.Errorf("Cannot convert bytes to ConfigDigest. bytes have wrong length %v", len(b))
+		return ConfigDigest{}, fmt.Errorf("cannot convert bytes to ConfigDigest. bytes have wrong length %v", len(b))
 	}
 
 	if n := copy(configDigest[:], b); n != len(configDigest) {
@@ -102,13 +102,12 @@ type ReportContext struct {
 
 type Report []byte
 
-// TODO: Rename to AttributedOnchainSignature
-type AttributedOnChainSignature struct {
+type AttributedOnchainSignature struct {
 	Signature []byte
 	Signer    commontypes.OracleID
 }
 
-func (as AttributedOnChainSignature) Equal(other AttributedOnChainSignature) bool {
+func (as AttributedOnchainSignature) Equal(other AttributedOnchainSignature) bool {
 	return bytes.Equal(as.Signature, other.Signature) && as.Signer == other.Signer
 }
 
@@ -118,6 +117,9 @@ type ReportingPluginFactory interface {
 
 type ReportingPluginConfig struct {
 	ConfigDigest ConfigDigest
+
+	// OracleID (index) of the oracle executing this ReportingPlugin instance
+	OracleID commontypes.OracleID
 
 	// N is the total number of nodes
 	N int
@@ -270,7 +272,7 @@ type ReportingPlugin interface {
 	ShouldTransmitAcceptedReport(context.Context, ReportTimestamp, Report) (bool, error)
 
 	// Start is called before any of the other functions defined by this
-	// interface.
+	// interface. If Start returns an error, Close may not be called.
 	Start() error
 
 	// If Close is called a second time, it may return an error but most not
@@ -306,7 +308,7 @@ type ContractTransmitter interface {
 		context.Context,
 		ReportContext,
 		Report,
-		[]AttributedOnChainSignature,
+		[]AttributedOnchainSignature,
 	) error
 
 	LatestConfigDigestAndEpoch(

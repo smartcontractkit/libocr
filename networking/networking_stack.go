@@ -13,10 +13,12 @@ const (
 	NetworkingStackV1V2
 )
 
+//nolint:unused
 func (n NetworkingStack) needsv2() bool {
 	return n == NetworkingStackV2 || n == NetworkingStackV1V2
 }
 
+//nolint:unused
 func (n NetworkingStack) needsv1() bool {
 	return n == NetworkingStackV1 || n == NetworkingStackV1V2
 }

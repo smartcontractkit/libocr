@@ -169,12 +169,6 @@ func (msg MessageObserve) epoch() uint32 {
 	return msg.Epoch
 }
 
-func (msg MessageObserve) Equal(msg2 MessageObserve) bool {
-	return msg.Epoch == msg2.Epoch &&
-		msg.Round == msg2.Round &&
-		msg.SignedObservation.Equal(msg2.SignedObservation)
-}
-
 // MessageReportReq corresponds to the "report-req" message from alg. 2. It is
 // sent by the epoch leader with collated observations for the participating
 // oracles to sign.
@@ -203,12 +197,10 @@ var _ MessageToReportGeneration = (*MessageReportReq)(nil)
 // participating oracles in response to a MessageReportReq, and contains the
 // final form of the report, based on the collated observations, and the sending
 // oracle's signature.
-//
-
 type MessageReport struct {
-	Epoch  uint32
-	Round  uint8
-	Report AttestedReportOne
+	Epoch          uint32
+	Round          uint8
+	AttestedReport AttestedReportOne
 }
 
 var _ MessageToReportGeneration = (*MessageReport)(nil)
@@ -225,21 +217,15 @@ func (msg MessageReport) epoch() uint32 {
 	return msg.Epoch
 }
 
-func (msg MessageReport) Equal(m2 MessageReport) bool {
-	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.Report.Equal(m2.Report)
-}
-
 // MessageFinal corresponds to the "final" message in alg. 2. It is sent by the
 // current leader with the aggregated signature(s) to all participating oracles,
 // for them to participate in the subsequent transmission of the report to the
 // on-chain contract.
-//
-
 type MessageFinal struct {
-	Epoch  uint32
-	Round  uint8
-	H      [32]byte
-	Report AttestedReportMany
+	Epoch          uint32
+	Round          uint8
+	H              [32]byte
+	AttestedReport AttestedReportMany
 }
 
 var _ MessageToReportGeneration = (*MessageFinal)(nil)
@@ -254,10 +240,6 @@ func (msg MessageFinal) processReportGeneration(repgen *reportGenerationState, s
 
 func (msg MessageFinal) epoch() uint32 {
 	return msg.Epoch
-}
-
-func (msg MessageFinal) Equal(m2 MessageFinal) bool {
-	return msg.Epoch == m2.Epoch && msg.Round == m2.Round && msg.Report.Equal(m2.Report)
 }
 
 var _ MessageToReportFinalization = MessageFinalEcho{}
@@ -277,10 +259,6 @@ func (msg MessageFinalEcho) processReportFinalization(repfin *reportFinalization
 	repfin.messageFinalEcho(msg, sender)
 }
 
-func (msg MessageFinalEcho) Equal(m2 MessageFinalEcho) bool {
-	return msg.MessageFinal.Equal(m2.MessageFinal)
-}
-
 type EventFinal struct {
 	MessageFinal
 }
@@ -295,10 +273,10 @@ func (ev EventFinal) processReportFinalization(repfin *reportFinalizationState) 
 // reporting protocol to to the local transmit-to-the-onchain-smart-contract
 // protocol.
 type EventTransmit struct {
-	Epoch  uint32
-	Round  uint8
-	H      [32]byte
-	Report AttestedReportMany
+	Epoch          uint32
+	Round          uint8
+	H              [32]byte
+	AttestedReport AttestedReportMany
 }
 
 var _ EventToTransmission = (*EventTransmit)(nil) // implements EventToTransmission

@@ -3,6 +3,7 @@ package signature
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"math"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -35,14 +36,14 @@ func VerifyOnChain(msg []byte, signature []byte, signers EthAddresses,
 ) (commontypes.OracleID, error) {
 	author, err := crypto.SigToPub(onChainHash(msg), signature)
 	if err != nil {
-		return commontypes.OracleID(-1), errors.Wrapf(err, "while trying to recover "+
+		return commontypes.OracleID(math.MaxUint8), errors.Wrapf(err, "while trying to recover "+
 			"sender from sig %x on msg %+v", signature, msg)
 	}
 	oid, ok := signers[(*OnChainPublicKey)(author).Address()]
 	if ok {
 		return oid, nil
 	} else {
-		return commontypes.OracleID(-1), errors.Errorf("signer is not on whitelist")
+		return commontypes.OracleID(math.MaxUint8), errors.Errorf("signer is not on whitelist")
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 // OracleID is an index over the oracles, used as a succinct attribution to an
 // oracle in communication with the on-chain contract. It is not a cryptographic
 // commitment to the oracle's private key, like a public key is.
-type OracleID int
+type OracleID uint8
 
 // BootstrapperLocator contains information for locating a bootstrapper on the network.
 type BootstrapperLocator struct {

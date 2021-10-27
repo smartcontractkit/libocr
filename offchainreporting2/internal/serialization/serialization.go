@@ -105,7 +105,7 @@ func toProtoMessage(m protocol.Message) (*MessageWrapper, error) {
 			// fields
 			uint64(v.Epoch),
 			uint32(v.Round),
-			attestedReportOneToProtoMessage(v.Report),
+			attestedReportOneToProtoMessage(v.AttestedReport),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageReport{pm}
 	case protocol.MessageFinal:
@@ -195,7 +195,7 @@ func attestedReportManyToProtoMessage(arm protocol.AttestedReportMany) *Attested
 		0,
 		nil,
 		// fields
-		arm.ReportData,
+		arm.Report,
 		pbass,
 	}
 }
@@ -210,7 +210,7 @@ func finalToProtoMessage(v protocol.MessageFinal) *MessageFinal {
 		uint64(v.Epoch),
 		uint32(v.Round),
 		v.H[:],
-		attestedReportManyToProtoMessage(v.Report),
+		attestedReportManyToProtoMessage(v.AttestedReport),
 	}
 }
 
@@ -331,12 +331,12 @@ func attestedReportManyFromProtoMessage(m *AttestedReportMany) (protocol.Atteste
 		return protocol.AttestedReportMany{}, fmt.Errorf("unable to extract a AttestedReportMany value")
 	}
 
-	ass := make([]types.AttributedOnChainSignature, 0, len(m.AttributedSignatures))
+	ass := make([]types.AttributedOnchainSignature, 0, len(m.AttributedSignatures))
 	for i, as := range m.AttributedSignatures {
 		if as == nil {
 			return protocol.AttestedReportMany{}, fmt.Errorf("unable to extract a AttestedReportMany value because AttributedSignatures[%v] is nil", i)
 		}
-		ass = append(ass, types.AttributedOnChainSignature{
+		ass = append(ass, types.AttributedOnchainSignature{
 			as.Signature,
 			commontypes.OracleID(as.Signer),
 		})

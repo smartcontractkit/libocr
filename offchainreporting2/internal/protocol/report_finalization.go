@@ -9,12 +9,10 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
-	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 func RunReportFinalization(
 	ctx context.Context,
-	subprocesses *subprocesses.Subprocesses,
 
 	chNetToReportFinalization <-chan MessageToReportFinalizationWithSender,
 	chReportFinalizationToTransmission chan<- EventToTransmission,
@@ -25,35 +23,17 @@ func RunReportFinalization(
 	netSender NetworkSender,
 	reportQuorum int,
 ) {
-	repfin := reportFinalizationState{
-		ctx,
-		subprocesses,
-
-		chNetToReportFinalization,
-		chReportFinalizationToTransmission,
-		chReportGenerationToReportFinalization,
-		config,
-		contractSigner,
-		logger,
-		netSender,
-		reportQuorum,
-
-		map[EpochRound]struct{}{},
-		EpochRound{},
-	}
-	repfin.run()
+	newReportFinalizationState(ctx, chNetToReportFinalization,
+		chReportFinalizationToTransmission, chReportGenerationToReportFinalization,
+		config, contractSigner, logger, netSender, reportQuorum).run()
 }
 
 const minExpirationAgeRounds int = 10
 const expirationAgeDuration = 10 * time.Minute
 const maxExpirationAgeRounds int = 1_000
 
-const maxRoundAge = 512
-const finalizedGarbageCollectionThreshold = 2 * maxRoundAge
-
 type reportFinalizationState struct {
-	ctx          context.Context
-	subprocesses *subprocesses.Subprocesses
+	ctx context.Context
 
 	chNetToReportFinalization              <-chan MessageToReportFinalizationWithSender
 	chReportFinalizationToTransmission     chan<- EventToTransmission
@@ -90,11 +70,7 @@ func (repfin *reportFinalizationState) run() {
 }
 
 // messageFinalEcho is called when the local oracle process receives a
-// "final-echo" message. If the report it contains is valid and the round is not
-// yet complete, it keeps track of how many such echos have been received, and
-// invokes the "transmit" event when enough echos have been seen to ensure that
-// at least one (other?) honest node is broadcasting this report. This completes
-// the round, from the local oracle's perspective.
+// "final-echo" message.
 func (repfin *reportFinalizationState) messageFinalEcho(
 	msg MessageFinalEcho,
 	sender commontypes.OracleID,
@@ -117,7 +93,7 @@ func (repfin *reportFinalizationState) messageFinalEcho(
 		return
 	}
 
-	err := msg.Report.VerifySignatures(
+	err := msg.AttestedReport.VerifySignatures(
 		repfin.reportQuorum,
 		repfin.contractSigner,
 		repfin.config.OracleIdentities,
@@ -159,6 +135,7 @@ func (repfin *reportFinalizationState) finalize(msg MessageFinal) {
 		"epoch": msg.Epoch,
 		"round": msg.Round,
 	})
+
 	epochRound := EpochRound{msg.Epoch, msg.Round}
 
 	repfin.finalized[epochRound] = struct{}{}
@@ -169,12 +146,7 @@ func (repfin *reportFinalizationState) finalize(msg MessageFinal) {
 	repfin.netSender.Broadcast(MessageFinalEcho{msg}) // send [ FINALECHO, e, r, O] to all p_j ∈ P
 
 	select {
-	case repfin.chReportFinalizationToTransmission <- EventTransmit{
-		msg.Epoch,
-		msg.Round,
-		msg.H,
-		msg.Report,
-	}:
+	case repfin.chReportFinalizationToTransmission <- EventTransmit(msg):
 	case <-repfin.ctx.Done():
 	}
 
@@ -224,4 +196,33 @@ func (repfin *reportFinalizationState) epochRoundIndex(er EpochRound) int64 {
 	// safe from overflow. Epoch is a uint32 and Round is a uint8, so this will
 	// always fit in a uint40
 	return int64(repfin.config.RMax)*int64(er.Epoch) + int64(er.Round)
+}
+
+func newReportFinalizationState(
+	ctx context.Context,
+
+	chNetToReportFinalization <-chan MessageToReportFinalizationWithSender,
+	chReportFinalizationToTransmission chan<- EventToTransmission,
+	chReportGenerationToReportFinalization <-chan EventToReportFinalization,
+	config config.SharedConfig,
+	contractSigner types.OnchainKeyring,
+	logger loghelper.LoggerWithContext,
+	netSender NetworkSender,
+	reportQuorum int,
+) *reportFinalizationState {
+	return &reportFinalizationState{
+		ctx,
+
+		chNetToReportFinalization,
+		chReportFinalizationToTransmission,
+		chReportGenerationToReportFinalization,
+		config,
+		contractSigner,
+		logger,
+		netSender,
+		reportQuorum,
+
+		map[EpochRound]struct{}{},
+		EpochRound{},
+	}
 }

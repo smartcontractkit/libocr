@@ -86,7 +86,9 @@ func (trp *TitleRequestPlugin) Observation(ctx context.Context, _ types.ReportTi
 	}
 	confirmedBlocknumer := blocknumber - confirmationDepth
 
-	trp.updateFulfilled(ctx, blocknumber)
+	if err := trp.updateFulfilled(ctx, blocknumber); err != nil {
+		return types.Observation{}, err
+	}
 
 	var request *ocr2titlerequest.OCR2TitleRequestTitleRequest
 	{

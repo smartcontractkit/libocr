@@ -6,11 +6,11 @@ import (
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 )
 
-type ocrBinaryNetworkEndpointFactory struct {
+type ocr1BinaryNetworkEndpointFactory struct {
 	*concretePeer
 }
 
-var _ ocr1types.BinaryNetworkEndpointFactory = (*ocrBinaryNetworkEndpointFactory)(nil)
+var _ ocr1types.BinaryNetworkEndpointFactory = (*ocr1BinaryNetworkEndpointFactory)(nil)
 
 const (
 	// MaxOCRMsgLength is the maximum allowed length for a data payload in bytes
@@ -20,7 +20,7 @@ const (
 	MaxOCRMsgLength = 10000
 )
 
-func (o *ocrBinaryNetworkEndpointFactory) NewEndpoint(
+func (o *ocr1BinaryNetworkEndpointFactory) NewEndpoint(
 	configDigest ocr1types.ConfigDigest,
 	pids []string,
 	v1bootstrappers []string,
@@ -49,11 +49,11 @@ func (o *ocrBinaryNetworkEndpointFactory) NewEndpoint(
 	)
 }
 
-type ocrBootstrapperFactory struct {
+type ocr1BootstrapperFactory struct {
 	*concretePeer
 }
 
-func (o *ocrBootstrapperFactory) NewBootstrapper(
+func (o *ocr1BootstrapperFactory) NewBootstrapper(
 	configDigest ocr1types.ConfigDigest,
 	peerIDs []string,
 	v1bootstrappers []string,

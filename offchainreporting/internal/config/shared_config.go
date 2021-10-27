@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	cryptorand "crypto/rand"
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -53,7 +54,7 @@ func SharedConfigFromContractConfig(
 		return SharedConfig{}, 0, err
 	}
 
-	oracleID := commontypes.OracleID(-1)
+	oracleID := commontypes.OracleID(math.MaxUint8)
 	{
 		var found bool
 		for i, identity := range publicConfig.OracleIdentities {

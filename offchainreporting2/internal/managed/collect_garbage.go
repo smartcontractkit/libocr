@@ -36,10 +36,14 @@ func collectGarbage(
 				defer childCancel()
 				err := database.DeletePendingTransmissionsOlderThan(childCtx, time.Now().Add(-olderThan))
 				if err != nil {
-					logger.Info("collectGarbage: error in DeletePendingTransmissionsOlderThan", commontypes.LogFields{
-						"error":     err,
-						"olderThan": olderThan,
-					})
+					logger.ErrorIfNotCanceled(
+						"collectGarbage: error in DeletePendingTransmissionsOlderThan",
+						childCtx,
+						commontypes.LogFields{
+							"error":     err,
+							"olderThan": olderThan,
+						},
+					)
 				} else {
 					logger.Info("collectGarbage: finished collection", nil)
 				}

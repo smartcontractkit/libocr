@@ -1,4 +1,4 @@
-package observationhelper
+package median
 
 import (
 	"bytes"
@@ -8,22 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+var i = big.NewInt
+
 // Bounds on an ethereum int192
 const byteWidth = 24
 const bitWidth = byteWidth * 8
 
-var i = big.NewInt
-
 var MaxObservation = i(0).Sub(i(0).Lsh(i(1), bitWidth-1), i(1)) // 2**191 - 1
 var MinObservation = i(0).Sub(i(0).Neg(MaxObservation), i(1))   // -2**191
 
-func tooLarge(o *big.Int) error {
-	return errors.Errorf("value won't fit in int%v: 0x%x", bitWidth, o)
-}
-
-func ToBytes(o *big.Int) []byte {
+func ToBytes(o *big.Int) ([]byte, error) {
 	if o.Cmp(MaxObservation) > 0 || o.Cmp(MinObservation) < 0 {
-		panic(tooLarge(o))
+		return nil, fmt.Errorf("value won't fit in int%v: 0x%x", bitWidth, o)
 	}
 	negative := o.Sign() < 0
 	val := (&big.Int{})
@@ -37,13 +33,13 @@ func ToBytes(o *big.Int) []byte {
 	}
 	b := val.Bytes() // big-endian representation of abs(val)
 	if len(b) > byteWidth {
-		panic(fmt.Sprintf("b must fit in %v bytes", byteWidth))
+		return nil, fmt.Errorf("b must fit in %v bytes", byteWidth)
 	}
 	b = bytes.Join([][]byte{bytes.Repeat([]byte{0}, byteWidth-len(b)), b}, []byte{})
 	if len(b) != byteWidth {
-		panic("wrong length; there must be an error in the padding of b")
+		return nil, fmt.Errorf("wrong length; there must be an error in the padding of b: %v", b)
 	}
-	return b
+	return b, nil
 }
 
 func ToBigInt(s []byte) (*big.Int, error) {

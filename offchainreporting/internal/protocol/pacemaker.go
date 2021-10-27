@@ -469,35 +469,66 @@ func (pace *pacemakerState) spawnReportGeneration() {
 
 	ctxReportGeneration, cancelReportGeneration := context.WithCancel(pace.ctx)
 
-	// Take a copy of the pacemaker, to avoid a race condition between the
-	// following go func and the agreement section of messageNewepoch, which
-	// assigns new values to some pace attributes. This race condition will never
-	// happen, given a reasonable value for DeltaProgress, but
-	// TestPacemakerNodesEventuallyReachEpochConsensus has an unreasonable value.
-	p := *pace
-	pace.reportGenerationSubprocess.Go(func() {
-		defer cancelReportGeneration()
-		RunReportGeneration(
-			ctxReportGeneration,
-			p.subprocesses,
+	{
+		// Take a copy of the relevant pacemaker fields, to avoid a race condition between the
+		// following go func and the agreement section of messageNewepoch, which
+		// assigns new values to some pace attributes. This race condition will never
+		// happen, given a reasonable value for DeltaProgress, but
+		// TestPacemakerNodesEventuallyReachEpochConsensus has an unreasonable value.
+		subprocesses,
+			chNetToReportGeneration,
+			chReportGenerationToTransmission,
+			config,
+			configOverrider,
+			contractTransmitter,
+			datasource,
+			e,
+			id,
+			l,
+			localConfig,
+			logger,
+			netSender,
+			privateKeys,
+			telemetrySender := pace.subprocesses,
+			pace.chNetToReportGeneration,
+			pace.chReportGenerationToTransmission,
+			pace.config,
+			pace.configOverrider,
+			pace.contractTransmitter,
+			pace.datasource,
+			pace.e,
+			pace.id,
+			pace.l,
+			pace.localConfig,
+			pace.logger,
+			pace.netSender,
+			pace.privateKeys,
+			pace.telemetrySender
 
-			p.chNetToReportGeneration,
-			chReportGenerationToPacemaker,
-			p.chReportGenerationToTransmission,
-			p.config,
-			p.configOverrider,
-			p.contractTransmitter,
-			p.datasource,
-			p.e,
-			p.id,
-			p.l,
-			p.localConfig,
-			p.logger,
-			p.netSender,
-			p.privateKeys,
-			p.telemetrySender,
-		)
-	})
+		pace.reportGenerationSubprocess.Go(func() {
+			defer cancelReportGeneration()
+			RunReportGeneration(
+				ctxReportGeneration,
+				subprocesses,
+
+				chNetToReportGeneration,
+				chReportGenerationToPacemaker,
+				chReportGenerationToTransmission,
+				config,
+				configOverrider,
+				contractTransmitter,
+				datasource,
+				e,
+				id,
+				l,
+				localConfig,
+				logger,
+				netSender,
+				privateKeys,
+				telemetrySender,
+			)
+		})
+	}
 	pace.cancelReportGeneration = cancelReportGeneration
 }
 
