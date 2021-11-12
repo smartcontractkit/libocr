@@ -148,7 +148,7 @@ func RunManagedOracle(
 				return
 			}
 			defer loghelper.CloseLogError(
-				reportingPlugin,
+				netEndpoint,
 				logger,
 				"ManagedOracle: error during netEndpoint.Close()",
 			)
@@ -156,7 +156,7 @@ func RunManagedOracle(
 			var reportQuorum int
 			if reportingPluginInfo.UniqueReports {
 				// We require greater than (n+f)/2 signatures to reach a byzantine
-				// quroum. This ensures unique reports since each honest node will sign
+				// quorum. This ensures unique reports since each honest node will sign
 				// at most one report for any given (epoch, round).
 				//
 				// Argument:

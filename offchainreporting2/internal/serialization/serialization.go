@@ -128,17 +128,6 @@ func toProtoMessage(m protocol.Message) (*MessageWrapper, error) {
 	return &msgWrapper, nil
 }
 
-func observationToProtoMessage(o types.Observation) *Observation {
-	return &Observation{
-		// zero-initialize protobuf built-ins
-		protoimpl.MessageState{},
-		0,
-		nil,
-		// fields
-		o,
-	}
-}
-
 func signedObservationToProtoMessage(o protocol.SignedObservation) *SignedObservation {
 	return &SignedObservation{
 		// zero-initialize protobuf built-ins
@@ -146,7 +135,7 @@ func signedObservationToProtoMessage(o protocol.SignedObservation) *SignedObserv
 		0,
 		nil,
 		// fields
-		observationToProtoMessage(o.Observation),
+		o.Observation,
 		o.Signature,
 	}
 }
@@ -290,13 +279,6 @@ func messageReportReqFromProtoMessage(m *MessageReportReq) (protocol.MessageRepo
 	}, nil
 }
 
-func observationFromProtoMessage(o *Observation) (types.Observation, error) {
-	if o == nil {
-		return types.Observation{}, fmt.Errorf("unable to extract a Observation value")
-	}
-	return o.Value, nil
-}
-
 func attestedReportOneFromProtoMessage(m *AttestedReportOne) (protocol.AttestedReportOne, error) {
 	if m == nil {
 		return protocol.AttestedReportOne{}, fmt.Errorf("unable to extract a AttestedReportOne value")
@@ -413,13 +395,8 @@ func signedObservationFromProtoMessage(m *SignedObservation) (protocol.SignedObs
 		return protocol.SignedObservation{}, fmt.Errorf("unable to extract an SignedObservation value")
 	}
 
-	obs, err := observationFromProtoMessage(m.Observation)
-	if err != nil {
-		return protocol.SignedObservation{}, err
-	}
-
 	return protocol.SignedObservation{
-		obs,
+		m.Observation,
 		m.Signature,
 	}, nil
 }

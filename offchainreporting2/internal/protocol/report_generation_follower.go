@@ -398,10 +398,9 @@ func (repgen *reportGenerationState) verifyReportReq(msg MessageReportReq) error
 		counted := map[commontypes.OracleID]bool{}
 		for _, obs := range msg.AttributedSignedObservations {
 			// NOTE: OracleID is untrusted, therefore we _must_ bounds check it first
-			numOracles := len(repgen.config.OracleIdentities)
-			if int(obs.Observer) < 0 || numOracles <= int(obs.Observer) {
+			if int(obs.Observer) < 0 || repgen.config.N() <= int(obs.Observer) {
 				return errors.Errorf("given oracle ID of %v is out of bounds (only "+
-					"have %v public keys)", obs.Observer, numOracles)
+					"have %v public keys)", obs.Observer, repgen.config.N())
 			}
 			if counted[obs.Observer] {
 				return errors.Errorf("duplicate observation by oracle id %v", obs.Observer)

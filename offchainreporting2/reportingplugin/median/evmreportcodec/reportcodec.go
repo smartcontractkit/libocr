@@ -24,7 +24,7 @@ func getReportTypes() abi.Arguments {
 		{Name: "observationsTimestamp", Type: mustNewType("uint32")},
 		{Name: "rawObservers", Type: mustNewType("bytes32")},
 		{Name: "observations", Type: mustNewType("int192[]")},
-		{Name: "juelsPerEth", Type: mustNewType("int192")},
+		{Name: "juelsPerFeeCoin", Type: mustNewType("int192")},
 	})
 }
 
@@ -46,11 +46,11 @@ func (ReportCodec) BuildReport(paos []median.ParsedAttributedObservation) (types
 	})
 	timestamp := paos[len(paos)/2].Timestamp
 
-	// get median juelsPerEth
+	// get median juelsPerFeeCoin
 	sort.Slice(paos, func(i, j int) bool {
-		return paos[i].JuelsPerEth.Cmp(paos[j].JuelsPerEth) < 0
+		return paos[i].JuelsPerFeeCoin.Cmp(paos[j].JuelsPerFeeCoin) < 0
 	})
-	juelsPerEth := paos[len(paos)/2].JuelsPerEth
+	juelsPerFeeCoin := paos[len(paos)/2].JuelsPerFeeCoin
 
 	// sort by values
 	sort.Slice(paos, func(i, j int) bool {
@@ -65,7 +65,7 @@ func (ReportCodec) BuildReport(paos []median.ParsedAttributedObservation) (types
 		observations = append(observations, pao.Value)
 	}
 
-	reportBytes, err := reportTypes.Pack(timestamp, observers, observations, juelsPerEth)
+	reportBytes, err := reportTypes.Pack(timestamp, observers, observations, juelsPerFeeCoin)
 	return types.Report(reportBytes), err
 }
 
@@ -95,4 +95,23 @@ func (ReportCodec) MedianFromReport(report types.Report) (*big.Int, error) {
 	}
 
 	return median, nil
+}
+
+func (ReportCodec) XXXJuelsPerFeeCoinFromReport(report types.Report) (*big.Int, error) {
+	reportElems := map[string]interface{}{}
+	if err := reportTypes.UnpackIntoMap(reportElems, report); err != nil {
+		return nil, fmt.Errorf("error during unpack: %w", err)
+	}
+
+	juelsPerFeeCoinInterface, ok := reportElems["juelsPerFeeCoin"]
+	if !ok {
+		return nil, fmt.Errorf("unpacked report has no 'juelsPerFeeCoin'")
+	}
+
+	juelsPerFeeCoin, ok := juelsPerFeeCoinInterface.(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("cannot cast juelsPerFeeCoin to *big.Int, type is %T", juelsPerFeeCoinInterface)
+	}
+
+	return juelsPerFeeCoin, nil
 }

@@ -174,7 +174,7 @@ type DataSource interface {
 	// should *not* make any assumptions about context timeout behavior. Once
 	// the context times out, Observe should prioritize returning as quickly as
 	// possible, but may still perform fast computations to return a result
-	// rather than errror. For example, if Observe medianizes a number of data
+	// rather than error. For example, if Observe medianizes a number of data
 	// sources, some of which already returned a result to Observe prior to the
 	// context's expiry, Observe might still compute their median, and return it
 	// instead of an error.
@@ -203,11 +203,11 @@ type ReportCodec interface {
 var _ types.ReportingPluginFactory = NumericalMedianFactory{}
 
 type NumericalMedianFactory struct {
-	ContractTransmitter   MedianContract
-	DataSource            DataSource
-	JuelsPerEthDataSource DataSource
-	Logger                commontypes.Logger
-	ReportCodec           ReportCodec
+	ContractTransmitter       MedianContract
+	DataSource                DataSource
+	JuelsPerFeeCoinDataSource DataSource
+	Logger                    commontypes.Logger
+	ReportCodec               ReportCodec
 }
 
 func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
@@ -232,7 +232,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 			onchainConfig,
 			fac.ContractTransmitter,
 			fac.DataSource,
-			fac.JuelsPerEthDataSource,
+			fac.JuelsPerFeeCoinDataSource,
 			logger,
 			fac.ReportCodec,
 
@@ -244,8 +244,8 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 			"NumericalMedian",
 			false,
 			0,
-			4 /* timestamp */ + byteWidth /* observation */ + byteWidth /* juelsPerEth */ + 32, /* overhead */
-			32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + configuration.N*32) /*observations*/ + 32 /* juelsPerEth */ + 32, /* overhead */
+			4 /* timestamp */ + byteWidth /* observation */ + byteWidth /* juelsPerFeeCoin */ + 32, /* overhead */
+			32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + configuration.N*32) /*observations*/ + 32 /* juelsPerFeeCoin */ + 32, /* overhead */
 		}, nil
 }
 
@@ -271,13 +271,13 @@ func Deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
 
 type numericalMedian struct {
-	offchainConfig        OffchainConfig
-	onchainConfig         OnchainConfig
-	contractTransmitter   MedianContract
-	dataSource            DataSource
-	juelsPerEthDataSource DataSource
-	logger                loghelper.LoggerWithContext
-	reportCodec           ReportCodec
+	offchainConfig            OffchainConfig
+	onchainConfig             OnchainConfig
+	contractTransmitter       MedianContract
+	dataSource                DataSource
+	juelsPerFeeCoinDataSource DataSource
+	logger                    loghelper.LoggerWithContext
+	reportCodec               ReportCodec
 
 	configDigest             types.ConfigDigest
 	f                        int
@@ -309,17 +309,17 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 		return encoded, nil
 	}
 	var subs subprocesses.Subprocesses
-	var value, juelsPerEth []byte
-	var valueErr, juelsPerEthErr error
+	var value, juelsPerFeeCoin []byte
+	var valueErr, juelsPerFeeCoinErr error
 	subs.Go(func() {
 		value, valueErr = observe(nm.dataSource, "DataSource")
 	})
 	subs.Go(func() {
-		juelsPerEth, juelsPerEthErr = observe(nm.juelsPerEthDataSource, "JuelsPerEthDataSource")
+		juelsPerFeeCoin, juelsPerFeeCoinErr = observe(nm.juelsPerFeeCoinDataSource, "JuelsPerFeeCoinDataSource")
 	})
 	subs.Wait()
 
-	err := multierr.Combine(valueErr, juelsPerEthErr)
+	err := multierr.Combine(valueErr, juelsPerFeeCoinErr)
 	if err != nil {
 		return nil, fmt.Errorf("error in Observation: %w", err)
 	}
@@ -332,15 +332,15 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 		// fields
 		uint32(time.Now().Unix()),
 		value,
-		juelsPerEth,
+		juelsPerFeeCoin,
 	})
 }
 
 type ParsedAttributedObservation struct {
-	Timestamp   uint32
-	Value       *big.Int
-	JuelsPerEth *big.Int
-	Observer    commontypes.OracleID
+	Timestamp       uint32
+	Value           *big.Int
+	JuelsPerFeeCoin *big.Int
+	Observer        commontypes.OracleID
 }
 
 func parseAttributedObservations(logger loghelper.LoggerWithContext, aos []types.AttributedObservation) []ParsedAttributedObservation {
@@ -364,9 +364,9 @@ func parseAttributedObservations(logger loghelper.LoggerWithContext, aos []types
 			})
 			continue
 		}
-		juelsPerEth, err := ToBigInt(observationProto.JuelsPerEth)
+		juelsPerFeeCoin, err := ToBigInt(observationProto.JuelsPerFeeCoin)
 		if err != nil {
-			logger.Warn("parseAttributedObservations: dropping attributed observation with juelsPerEth that cannot be converted to big.Int", commontypes.LogFields{
+			logger.Warn("parseAttributedObservations: dropping attributed observation with juelsPerFeeCoin that cannot be converted to big.Int", commontypes.LogFields{
 				"observer": ao.Observer,
 				"error":    err,
 				"i":        i,
@@ -376,7 +376,7 @@ func parseAttributedObservations(logger loghelper.LoggerWithContext, aos []types
 		paos = append(paos, ParsedAttributedObservation{
 			observationProto.Timestamp,
 			value,
-			juelsPerEth,
+			juelsPerFeeCoin,
 			ao.Observer,
 		})
 	}
