@@ -178,6 +178,10 @@ func NewHost(
 	discoverer Discoverer,
 	logger commontypes.Logger,
 ) (*Host, error) {
+	if len(listenAddresses) == 0 {
+		return nil, fmt.Errorf("no listen addresses provided")
+	}
+
 	id, err := mtls.StaticallySizedEd25519PublicKey(secretKey.Public())
 	if err != nil {
 		return nil, err
@@ -538,7 +542,7 @@ func (ho *Host) ID() types.PeerID {
 
 func (ho *Host) dialLoop() {
 	type dialState struct {
-		next int
+		next uint
 	}
 	dialStates := make(map[types.PeerID]*dialState)
 	for {
@@ -547,13 +551,13 @@ func (ho *Host) dialLoop() {
 		peers := make([]*peer, 0, len(ho.peers))
 		for pid, p := range ho.peers {
 			peers = append(peers, p)
-			if _, exists := dialStates[pid]; !exists {
+			if dialStates[pid] == nil {
 				dialStates[pid] = &dialState{0}
 			}
 		}
 		// Some peers may have been discarded, garbage collect dial states
 		for pid := range dialStates {
-			if _, exists := ho.peers[pid]; !exists {
+			if ho.peers[pid] == nil {
 				delete(dialStates, pid)
 			}
 		}
@@ -586,16 +590,18 @@ func (ho *Host) dialLoop() {
 				dialer := net.Dialer{
 					Timeout: ho.config.DurationBetweenDials,
 				}
-				conn, err := dialer.DialContext(ho.ctx, "tcp", string(addresses[ds.next%len(addresses)]))
+				address := string(addresses[ds.next%uint(len(addresses))])
+				logger := p.logger.MakeChild(commontypes.LogFields{"direction": "out", "remoteAddr": address})
+				conn, err := dialer.DialContext(ho.ctx, "tcp", address)
 				if err != nil {
-					p.logger.Warn("Dial error", commontypes.LogFields{"error": err})
+					logger.Warn("Dial error", commontypes.LogFields{"error": err})
 					ds.next++
 					return
 				}
 
-				p.logger.Trace("Dial succeeded", nil)
+				logger.Trace("Dial succeeded", nil)
 				ho.subprocesses.Go(func() {
-					ho.handleOutgoingConnection(conn, p.other, p.logger)
+					ho.handleOutgoingConnection(conn, p.other, logger)
 				})
 			})
 
@@ -663,18 +669,19 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 
 	shouldClose = false
 
-	rlConn := ratelimitedconn.NewRateLimitedConn(conn, peer.connRateLimiter, ho.logger)
+	rlConn := ratelimitedconn.NewRateLimitedConn(conn, peer.connRateLimiter, logger)
 
 	tlsConfig := newTLSConfig(
 		ho.tlsCert,
-		mtls.VerifyCertMatchesPubKey(ho.logger, other),
+		mtls.VerifyCertMatchesPubKey(logger, other),
 	)
 	tlsConn := tls.Client(rlConn, tlsConfig)
-	ho.handleConnection(false, rlConn, tlsConn, peer)
+	ho.handleConnection(false, rlConn, tlsConn, peer, logger)
 }
 
 func (ho *Host) handleIncomingConnection(conn net.Conn) {
-	logger := ho.logger.MakeChild(commontypes.LogFields{"remoteAddr": conn.RemoteAddr()})
+	remoteAddrLogFields := commontypes.LogFields{"direction": "in", "remoteAddr": conn.RemoteAddr()}
+	logger := ho.logger.MakeChild(remoteAddrLogFields)
 	shouldClose := true
 	defer func() {
 		if shouldClose {
@@ -712,53 +719,54 @@ func (ho *Host) handleIncomingConnection(conn net.Conn) {
 		logger.Warn("Received incoming connection from an unknown peer, closing", remotePeerIDField(*other))
 		return
 	}
+	logger = peer.logger.MakeChild(remoteAddrLogFields) // introduce remotePeerID in our logs since we now know it
 	rl := peer.connRateLimiter
-	rlConn := ratelimitedconn.NewRateLimitedConn(conn, rl, ho.logger)
+	rlConn := ratelimitedconn.NewRateLimitedConn(conn, rl, logger)
 
 	shouldClose = false
 
 	tlsConfig := newTLSConfig(
 		ho.tlsCert,
-		mtls.VerifyCertMatchesPubKey(ho.logger, *other),
+		mtls.VerifyCertMatchesPubKey(logger, *other),
 	)
 	tlsConn := tls.Server(rlConn, tlsConfig)
-	ho.handleConnection(true, rlConn, tlsConn, peer)
+	ho.handleConnection(true, rlConn, tlsConn, peer, logger)
 }
 
-func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimitedConn, tlsConn *tls.Conn, peer *peer) {
+func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimitedConn, tlsConn *tls.Conn, peer *peer, logger loghelper.LoggerWithContext) {
 	shouldClose := true
 	defer func() {
 		if shouldClose {
 			if err := safeClose(tlsConn); err != nil {
-				peer.logger.Warn("Failed to close connection", commontypes.LogFields{"error": err})
+				logger.Warn("Failed to close connection", commontypes.LogFields{"error": err})
 			}
 		}
 	}()
 
 	// Handshake reads and write to the connection. Set a deadline to prevent tarpitting
 	if err := tlsConn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
-		peer.logger.Warn("Closing connection, error during SetDeadline", commontypes.LogFields{"error": err})
+		logger.Warn("Closing connection, error during SetDeadline", commontypes.LogFields{"error": err})
 		return
 	}
 	// Perform handshake so that we know the public key
 	if err := tlsConn.Handshake(); err != nil {
-		peer.logger.Warn("Closing connection, error during Handshake", commontypes.LogFields{"error": err})
+		logger.Warn("Closing connection, error during Handshake", commontypes.LogFields{"error": err})
 		return
 	}
 	// Disable deadline. Whoever uses the connection next will have to set their own timeouts.
 	if err := tlsConn.SetDeadline(time.Time{}); err != nil {
-		peer.logger.Warn("Closing connection, error during SetDeadline", commontypes.LogFields{"error": err})
+		logger.Warn("Closing connection, error during SetDeadline", commontypes.LogFields{"error": err})
 		return
 	}
 
 	// get public key
 	pubKey, err := mtls.PubKeyFromCert(tlsConn.ConnectionState().PeerCertificates[0])
 	if err != nil {
-		peer.logger.Warn("Closing connection, error getting public key", commontypes.LogFields{"error": err})
+		logger.Warn("Closing connection, error getting public key", commontypes.LogFields{"error": err})
 		return
 	}
 	if peer.other != pubKey {
-		peer.logger.Warn("TLS handshake PeerID mismatch", commontypes.LogFields{
+		logger.Warn("TLS handshake PeerID mismatch", commontypes.LogFields{
 			"expected": peer.other,
 			"actual":   types.PeerID(pubKey),
 		})
@@ -770,14 +778,14 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 		allowed := peer.incomingConnsLimiter.RemoveTokens(1)
 		peer.incomingConnsLimiterMu.Unlock()
 		if !allowed {
-			peer.logger.Warn("Incoming connection rate limited", nil)
+			logger.Warn("Incoming connection rate limited", nil)
 			return
 		}
 	}
 
 	rlConn.EnableRateLimiting()
 
-	peer.logger.Info("Connection established", nil)
+	logger.Info("Connection established", nil)
 
 	// the lock here ensures there is at most one active connection at any time.
 	// it also prevents races on connLifeCycle.connSubs.
@@ -798,7 +806,7 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 			peer.demuxer,
 			peer.chStreamToConn,
 			chConnTerminated,
-			peer.logger,
+			logger,
 		)
 	})
 	peer.connLifeCycleMu.Unlock()

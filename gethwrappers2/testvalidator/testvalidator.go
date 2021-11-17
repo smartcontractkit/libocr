@@ -4,6 +4,7 @@
 package testvalidator
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 
 // Reference imports to suppress errors if they are not otherwise used.
 var (
+	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
@@ -26,8 +28,14 @@ var (
 	_ = event.NewSubscription
 )
 
+// AggregatorValidatorInterfaceMetaData contains all meta data concerning the AggregatorValidatorInterface contract.
+var AggregatorValidatorInterfaceMetaData = &bind.MetaData{
+	ABI: "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+}
+
 // AggregatorValidatorInterfaceABI is the input ABI used to generate the binding from.
-const AggregatorValidatorInterfaceABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+// Deprecated: Use AggregatorValidatorInterfaceMetaData.ABI instead.
+var AggregatorValidatorInterfaceABI = AggregatorValidatorInterfaceMetaData.ABI
 
 // AggregatorValidatorInterface is an auto generated Go binding around an Ethereum contract.
 type AggregatorValidatorInterface struct {
@@ -192,20 +200,31 @@ func (_AggregatorValidatorInterface *AggregatorValidatorInterfaceTransactorSessi
 	return _AggregatorValidatorInterface.Contract.Validate(&_AggregatorValidatorInterface.TransactOpts, previousRoundId, previousAnswer, currentRoundId, currentAnswer)
 }
 
+// TestValidatorMetaData contains all meta data concerning the TestValidator contract.
+var TestValidatorMetaData = &bind.MetaData{
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"initialGas\",\"type\":\"uint256\"}],\"name\":\"Validated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"latestRoundId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"minGasUse\",\"type\":\"uint32\"}],\"name\":\"setMinGasUse\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b506101de806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c806311a8f41314610046578063beed9b511461005c578063c4792df41461007f575b600080fd5b6001546040519081526020015b60405180910390f35b61006f61006a366004610134565b6100ab565b6040519015158152602001610053565b6100a961008d366004610166565b6000805463ffffffff191663ffffffff92909216919091179055565b005b6000805a604080518881526020810188905290810186905260608101859052608081018290529091507fdb623f4f39d41e75ae1cbe50460c3d1496b6cf9a0db391b7197f82cab2744d219060a00160405180910390a1600184905560005463ffffffff165b805a61011c9084610193565b101561012757610110565b5060019695505050505050565b6000806000806080858703121561014a57600080fd5b5050823594602084013594506040840135936060013592509050565b60006020828403121561017857600080fd5b813563ffffffff8116811461018c57600080fd5b9392505050565b6000828210156101cc577f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b50039056fea164736f6c6343000806000a",
+}
+
 // TestValidatorABI is the input ABI used to generate the binding from.
-const TestValidatorABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"initialGas\",\"type\":\"uint256\"}],\"name\":\"Validated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"latestRoundId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"minGasUse\",\"type\":\"uint32\"}],\"name\":\"setMinGasUse\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"previousRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"previousAnswer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"currentRoundId\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"currentAnswer\",\"type\":\"int256\"}],\"name\":\"validate\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+// Deprecated: Use TestValidatorMetaData.ABI instead.
+var TestValidatorABI = TestValidatorMetaData.ABI
 
 // TestValidatorBin is the compiled bytecode used for deploying new contracts.
-var TestValidatorBin = "0x608060405234801561001057600080fd5b506101de806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c806311a8f41314610046578063beed9b511461005c578063c4792df41461007f575b600080fd5b6001546040519081526020015b60405180910390f35b61006f61006a366004610134565b6100ab565b6040519015158152602001610053565b6100a961008d366004610166565b6000805463ffffffff191663ffffffff92909216919091179055565b005b6000805a604080518881526020810188905290810186905260608101859052608081018290529091507fdb623f4f39d41e75ae1cbe50460c3d1496b6cf9a0db391b7197f82cab2744d219060a00160405180910390a1600184905560005463ffffffff165b805a61011c9084610193565b101561012757610110565b5060019695505050505050565b6000806000806080858703121561014a57600080fd5b5050823594602084013594506040840135936060013592509050565b60006020828403121561017857600080fd5b813563ffffffff8116811461018c57600080fd5b9392505050565b6000828210156101cc577f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b50039056fea164736f6c6343000806000a"
+// Deprecated: Use TestValidatorMetaData.Bin instead.
+var TestValidatorBin = TestValidatorMetaData.Bin
 
 // DeployTestValidator deploys a new Ethereum contract, binding an instance of TestValidator to it.
 func DeployTestValidator(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *TestValidator, error) {
-	parsed, err := abi.JSON(strings.NewReader(TestValidatorABI))
+	parsed, err := TestValidatorMetaData.GetAbi()
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+	if parsed == nil {
+		return common.Address{}, nil, nil, errors.New("GetABI returned nil")
+	}
 
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(TestValidatorBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(TestValidatorBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
