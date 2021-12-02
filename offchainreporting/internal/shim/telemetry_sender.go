@@ -3,18 +3,19 @@ package shim
 import (
 	"time"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 type TelemetrySender struct {
 	chTelemetry chan<- *protobuf.TelemetryWrapper
-	logger      types.Logger
+	logger      commontypes.Logger
 	taper       loghelper.LogarithmicTaper
 }
 
-func MakeTelemetrySender(chTelemetry chan<- *protobuf.TelemetryWrapper, logger types.Logger) TelemetrySender {
+func MakeTelemetrySender(chTelemetry chan<- *protobuf.TelemetryWrapper, logger commontypes.Logger) TelemetrySender {
 	return TelemetrySender{chTelemetry, logger, loghelper.LogarithmicTaper{}}
 }
 
@@ -22,13 +23,13 @@ func (ts TelemetrySender) send(t *protobuf.TelemetryWrapper) {
 	select {
 	case ts.chTelemetry <- t:
 		ts.taper.Reset(func(oldCount uint64) {
-			ts.logger.Info("TelemetrySender: stopped dropping telemetry", types.LogFields{
+			ts.logger.Info("TelemetrySender: stopped dropping telemetry", commontypes.LogFields{
 				"droppedCount": oldCount,
 			})
 		})
 	default:
 		ts.taper.Trigger(func(newCount uint64) {
-			ts.logger.Warn("TelemetrySender: dropping telemetry", types.LogFields{
+			ts.logger.Warn("TelemetrySender: dropping telemetry", commontypes.LogFields{
 				"droppedCount": newCount,
 			})
 		})
@@ -39,7 +40,7 @@ func (ts TelemetrySender) RoundStarted(
 	configDigest types.ConfigDigest,
 	epoch uint32,
 	round uint8,
-	leader types.OracleID,
+	leader commontypes.OracleID,
 ) {
 	ts.send(&protobuf.TelemetryWrapper{
 		Wrapped: &protobuf.TelemetryWrapper_RoundStarted{&protobuf.TelemetryRoundStarted{

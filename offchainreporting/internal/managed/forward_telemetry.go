@@ -3,9 +3,9 @@ package managed
 import (
 	"context"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,7 +15,7 @@ func forwardTelemetry(
 	ctx context.Context,
 
 	logger loghelper.LoggerWithContext,
-	monitoringEndpoint types.MonitoringEndpoint,
+	monitoringEndpoint commontypes.MonitoringEndpoint,
 
 	chTelemetry <-chan *protobuf.TelemetryWrapper,
 ) {
@@ -30,7 +30,7 @@ func forwardTelemetry(
 			}
 			bin, err := proto.Marshal(t)
 			if err != nil {
-				logger.Error("forwardTelemetry: failed to Marshal protobuf", types.LogFields{
+				logger.Error("forwardTelemetry: failed to Marshal protobuf", commontypes.LogFields{
 					"proto": t,
 					"error": err,
 				})

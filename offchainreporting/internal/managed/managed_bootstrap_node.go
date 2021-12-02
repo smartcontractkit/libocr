@@ -3,8 +3,9 @@ package managed
 import (
 	"context"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -16,7 +17,7 @@ func RunManagedBootstrapNode(
 
 	bootstrapperFactory types.BootstrapperFactory,
 	v1bootstrappers []string,
-	v2bootstrappers []types.BootstrapperLocator,
+	v2bootstrappers []commontypes.BootstrapperLocator,
 	contractConfigTracker types.ContractConfigTracker,
 	database types.Database,
 	localConfig types.LocalConfig,
@@ -40,14 +41,14 @@ type managedBootstrapNodeState struct {
 	ctx context.Context
 
 	v1bootstrappers     []string
-	v2bootstrappers     []types.BootstrapperLocator
+	v2bootstrappers     []commontypes.BootstrapperLocator
 	bootstrapperFactory types.BootstrapperFactory
 	configTracker       types.ContractConfigTracker
 	database            types.Database
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
 
-	bootstrapper types.Bootstrapper
+	bootstrapper commontypes.Bootstrapper
 	config       config.PublicConfig
 }
 
@@ -66,7 +67,7 @@ func (mb *managedBootstrapNodeState) run() {
 			},
 		)
 		if !ok {
-			mb.logger.Error("ManagedBootstrapNode: database timed out while attempting to restore configuration", types.LogFields{
+			mb.logger.Error("ManagedBootstrapNode: database timed out while attempting to restore configuration", commontypes.LogFields{
 				"timeout": mb.localConfig.DatabaseTimeout,
 			})
 		} else if cc != nil {
@@ -82,7 +83,7 @@ func (mb *managedBootstrapNodeState) run() {
 	for {
 		select {
 		case cc := <-chNewConfig:
-			mb.logger.Info("ManagedBootstrapNode: Switching between configs", types.LogFields{
+			mb.logger.Info("ManagedBootstrapNode: Switching between configs", commontypes.LogFields{
 				"oldConfigDigest": mb.config.ConfigDigest.Hex(),
 				"newConfigDigest": cc.ConfigDigest.Hex(),
 			})
@@ -102,7 +103,7 @@ func (mb *managedBootstrapNodeState) closeBootstrapper() {
 		err := mb.bootstrapper.Close()
 		// there's not much we can do apart from logging the error and praying
 		if err != nil {
-			mb.logger.Error("ManagedBootstrapNode: error while closing bootstrapper", types.LogFields{
+			mb.logger.Error("ManagedBootstrapNode: error while closing bootstrapper", commontypes.LogFields{
 				"error": err,
 			})
 		}
@@ -121,7 +122,7 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 	// nodes find each other.
 	mb.config, err = config.PublicConfigFromContractConfig(nil, true, cc)
 	if err != nil {
-		mb.logger.Error("ManagedBootstrapNode: error while decoding ContractConfig", types.LogFields{
+		mb.logger.Error("ManagedBootstrapNode: error while decoding ContractConfig", commontypes.LogFields{
 			"error": err,
 		})
 		return
@@ -134,7 +135,7 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 
 	bootstrapper, err := mb.bootstrapperFactory.NewBootstrapper(mb.config.ConfigDigest, peerIDs, mb.v1bootstrappers, mb.v2bootstrappers, mb.config.F)
 	if err != nil {
-		mb.logger.Error("ManagedBootstrapNode: error during NewBootstrapper", types.LogFields{
+		mb.logger.Error("ManagedBootstrapNode: error during NewBootstrapper", commontypes.LogFields{
 			"error":           err,
 			"configDigest":    mb.config.ConfigDigest,
 			"peerIDs":         peerIDs,
@@ -144,7 +145,7 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 	}
 	err = bootstrapper.Start()
 	if err != nil {
-		mb.logger.Error("ManagedBootstrapNode: error during bootstrapper.Start()", types.LogFields{
+		mb.logger.Error("ManagedBootstrapNode: error during bootstrapper.Start()", commontypes.LogFields{
 			"error":        err,
 			"configDigest": mb.config.ConfigDigest,
 		})
@@ -156,7 +157,7 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 	childCtx, childCancel := context.WithTimeout(mb.ctx, mb.localConfig.DatabaseTimeout)
 	defer childCancel()
 	if err := mb.database.WriteConfig(childCtx, cc); err != nil {
-		mb.logger.ErrorIfNotCanceled("ManagedBootstrapNode: error writing new config to database", childCtx, types.LogFields{
+		mb.logger.ErrorIfNotCanceled("ManagedBootstrapNode: error writing new config to database", childCtx, commontypes.LogFields{
 			"config": cc,
 			"error":  err,
 		})

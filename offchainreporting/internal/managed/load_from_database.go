@@ -3,14 +3,15 @@ package managed
 import (
 	"context"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 func loadConfigFromDatabase(ctx context.Context, database types.Database, logger loghelper.LoggerWithContext) *types.ContractConfig {
 	cc, err := database.ReadConfig(ctx)
 	if err != nil {
-		logger.ErrorIfNotCanceled("loadConfigFromDatabase: Error during Database.ReadConfig", ctx, types.LogFields{
+		logger.ErrorIfNotCanceled("loadConfigFromDatabase: Error during Database.ReadConfig", ctx, commontypes.LogFields{
 			"error": err,
 		})
 		return nil

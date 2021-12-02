@@ -6,8 +6,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
+	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 )
 
 type DHTNodeConfig struct {
@@ -26,14 +27,14 @@ type DHTNodeConfig struct {
 func BuildConfig(
 	bootstrapNodes []peer.AddrInfo,
 	prefix protocol.ID,
-	configDigest types.ConfigDigest,
+	configDigest ocr2types.ConfigDigest,
 	logger loghelper.LoggerWithContext,
 	bootstrapConnectionCheckInterval time.Duration,
 	failureThreshold int,
 	extendedDHTLogging bool,
 	announcementUserPrefix uint32,
 ) DHTNodeConfig {
-	extension := protocol.ID(fmt.Sprintf("/%x", configDigest))
+	extension := protocol.ID(fmt.Sprintf("/%x", configDigest.Truncate()))
 
 	c := DHTNodeConfig{
 		bootstrapNodes:         bootstrapNodes,
@@ -45,7 +46,7 @@ func BuildConfig(
 		announcementUserPrefix: announcementUserPrefix,
 	}
 
-	c.logger = logger.MakeChild(types.LogFields{
+	c.logger = logger.MakeChild(commontypes.LogFields{
 		"id":              "DHT",
 		"protocolID":      c.ProtocolID(),
 		"F":               failureThreshold,

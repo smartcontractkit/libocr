@@ -1,8 +1,6 @@
 package protocol //
 
-import (
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
-)
+import "github.com/smartcontractkit/libocr/commontypes"
 
 // EventToPacemaker is the interface used to pass in-process events to the
 // leader-election protocol.
@@ -46,13 +44,13 @@ type Message interface {
 
 	// process passes this Message instance to the oracle o, as a message from
 	// oracle with the given sender index
-	process(o *oracleState, sender types.OracleID)
+	process(o *oracleState, sender commontypes.OracleID)
 }
 
 // MessageWithSender records a msg with the index of the sender oracle
 type MessageWithSender struct {
 	Msg    Message
-	Sender types.OracleID
+	Sender commontypes.OracleID
 }
 
 // MessageToPacemaker is the interface used to pass a message to the local
@@ -62,13 +60,13 @@ type MessageToPacemaker interface {
 
 	// process passes this MessageToPacemaker instance to the oracle o, as a
 	// message from oracle with the given sender index
-	processPacemaker(pace *pacemakerState, sender types.OracleID)
+	processPacemaker(pace *pacemakerState, sender commontypes.OracleID)
 }
 
 // MessageToPacemakerWithSender records a msg with the idx of the sender oracle
 type MessageToPacemakerWithSender struct {
 	msg    MessageToPacemaker
-	sender types.OracleID
+	sender commontypes.OracleID
 }
 
 // MessageToReportGeneration is the interface used to pass an inter-oracle message
@@ -78,7 +76,7 @@ type MessageToReportGeneration interface {
 
 	// processReportGeneration is called to send this message to the local oracle
 	// reporting process.
-	processReportGeneration(repgen *reportGenerationState, sender types.OracleID)
+	processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID)
 
 	epoch() uint32
 }
@@ -87,7 +85,7 @@ type MessageToReportGeneration interface {
 // reporting
 type MessageToReportGenerationWithSender struct {
 	msg    MessageToReportGeneration
-	sender types.OracleID
+	sender commontypes.OracleID
 }
 
 // MessageNewEpoch corresponds to the "newepoch(epoch_number)" message from alg.
@@ -99,11 +97,11 @@ type MessageNewEpoch struct {
 
 var _ MessageToPacemaker = (*MessageNewEpoch)(nil)
 
-func (msg MessageNewEpoch) process(o *oracleState, sender types.OracleID) {
+func (msg MessageNewEpoch) process(o *oracleState, sender commontypes.OracleID) {
 	o.chNetToPacemaker <- MessageToPacemakerWithSender{msg, sender}
 }
 
-func (msg MessageNewEpoch) processPacemaker(pace *pacemakerState, sender types.OracleID) {
+func (msg MessageNewEpoch) processPacemaker(pace *pacemakerState, sender commontypes.OracleID) {
 	pace.messageNewepoch(msg, sender)
 }
 
@@ -117,11 +115,11 @@ type MessageObserveReq struct {
 
 var _ MessageToReportGeneration = (*MessageObserveReq)(nil)
 
-func (msg MessageObserveReq) process(o *oracleState, sender types.OracleID) {
+func (msg MessageObserveReq) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
 
-func (msg MessageObserveReq) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
+func (msg MessageObserveReq) processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID) {
 	repgen.messageObserveReq(msg, sender)
 }
 
@@ -140,11 +138,11 @@ type MessageObserve struct {
 
 var _ MessageToReportGeneration = (*MessageObserve)(nil)
 
-func (msg MessageObserve) process(o *oracleState, sender types.OracleID) {
+func (msg MessageObserve) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
 
-func (msg MessageObserve) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
+func (msg MessageObserve) processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID) {
 	repgen.messageObserve(msg, sender)
 }
 
@@ -167,11 +165,11 @@ type MessageReportReq struct {
 	AttributedSignedObservations []AttributedSignedObservation
 }
 
-func (msg MessageReportReq) process(o *oracleState, sender types.OracleID) {
+func (msg MessageReportReq) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
 
-func (msg MessageReportReq) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
+func (msg MessageReportReq) processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID) {
 	repgen.messageReportReq(msg, sender)
 }
 
@@ -193,11 +191,11 @@ type MessageReport struct {
 
 var _ MessageToReportGeneration = (*MessageReport)(nil)
 
-func (msg MessageReport) process(o *oracleState, sender types.OracleID) {
+func (msg MessageReport) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
 
-func (msg MessageReport) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
+func (msg MessageReport) processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID) {
 	repgen.messageReport(msg, sender)
 }
 
@@ -221,11 +219,11 @@ type MessageFinal struct {
 
 var _ MessageToReportGeneration = (*MessageFinal)(nil)
 
-func (msg MessageFinal) process(o *oracleState, sender types.OracleID) {
+func (msg MessageFinal) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
 
-func (msg MessageFinal) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
+func (msg MessageFinal) processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID) {
 	repgen.messageFinal(msg, sender)
 }
 
@@ -244,11 +242,11 @@ type MessageFinalEcho struct {
 	MessageFinal
 }
 
-func (msg MessageFinalEcho) process(o *oracleState, sender types.OracleID) {
+func (msg MessageFinalEcho) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
 
-func (msg MessageFinalEcho) processReportGeneration(repgen *reportGenerationState, sender types.OracleID) {
+func (msg MessageFinalEcho) processReportGeneration(repgen *reportGenerationState, sender commontypes.OracleID) {
 	repgen.messageFinalEcho(msg, sender)
 }
 

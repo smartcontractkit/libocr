@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/permutation"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -31,7 +32,7 @@ func RunTransmission(
 	configOverrider types.ConfigOverrider,
 	chReportGenerationToTransmission <-chan EventToTransmission,
 	database types.Database,
-	id types.OracleID,
+	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	transmitter types.ContractTransmitter,
@@ -60,7 +61,7 @@ type transmissionState struct {
 	config                           config.SharedConfig
 	configOverrider                  types.ConfigOverrider
 	database                         types.Database
-	id                               types.OracleID
+	id                               commontypes.OracleID
 	localConfig                      types.LocalConfig
 	logger                           loghelper.LoggerWithContext
 	transmitter                      types.ContractTransmitter
@@ -100,7 +101,7 @@ func (t *transmissionState) restoreFromDatabase() {
 	defer childCancel()
 	pending, err := t.database.PendingTransmissionsWithConfigDigest(childCtx, t.config.ConfigDigest)
 	if err != nil {
-		t.logger.ErrorIfNotCanceled("Transmission: error fetching pending transmissions from database", childCtx, types.LogFields{"error": err})
+		t.logger.ErrorIfNotCanceled("Transmission: error fetching pending transmissions from database", childCtx, commontypes.LogFields{"error": err})
 		return
 	}
 
@@ -141,19 +142,19 @@ func (t *transmissionState) restoreFromDatabase() {
 
 // eventTransmit is called when the local process sends a transmit event
 func (t *transmissionState) eventTransmit(ev EventTransmit) {
-	t.logger.Debug("Received transmit event", types.LogFields{
+	t.logger.Debug("Received transmit event", commontypes.LogFields{
 		"event": ev,
 	})
 
 	{
 		contractConfigDigest, contractEpochRound, err := t.contractState()
 		if err != nil {
-			t.logger.Error("contractEpoch() failed during eventTransmit", types.LogFields{"error": err})
+			t.logger.Error("contractEpoch() failed during eventTransmit", commontypes.LogFields{"error": err})
 			return
 		}
 
 		if contractConfigDigest != t.config.ConfigDigest {
-			t.logger.Info("eventTransmit(ev): discarding ev because contractConfigDigest != configDigest", types.LogFields{
+			t.logger.Info("eventTransmit(ev): discarding ev because contractConfigDigest != configDigest", commontypes.LogFields{
 				"ev":                   ev,
 				"contractConfigDigest": contractConfigDigest,
 				"configDigest":         t.config.ConfigDigest,
@@ -162,7 +163,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 		}
 
 		if !t.shouldTransmit(ev, contractEpochRound) {
-			t.logger.Info("eventTransmit(ev): discarding ev because shouldTransmit returned false", types.LogFields{
+			t.logger.Info("eventTransmit(ev): discarding ev because shouldTransmit returned false", commontypes.LogFields{
 				"ev":                   ev,
 				"contractConfigDigest": contractConfigDigest,
 				"contractEpochRound":   contractEpochRound,
@@ -175,7 +176,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 	t.latestEpochRound = EpochRound{ev.Epoch, ev.Round}
 	t.latestMedian, err = ev.Report.AttributedObservations.Median()
 	if err != nil {
-		t.logger.Error("could not compute median", types.LogFields{"error": err})
+		t.logger.Error("could not compute median", commontypes.LogFields{"error": err})
 	}
 
 	now := time.Now()
@@ -190,7 +191,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 		ev.Round,
 	})
 	if err != nil {
-		t.logger.Error("Failed to serialize contract report", types.LogFields{"error": err})
+		t.logger.Error("Failed to serialize contract report", commontypes.LogFields{"error": err})
 		return
 	}
 
@@ -202,7 +203,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 	median, err := ev.Report.AttributedObservations.Median()
 	if err != nil {
 		t.logger.Error("could not take median of observations",
-			types.LogFields{"error": err})
+			commontypes.LogFields{"error": err})
 	}
 	transmission := types.PendingTransmission{
 		Time:             now.Add(delay),
@@ -216,12 +217,12 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 		t.localConfig.DatabaseTimeout,
 		func(ctx context.Context) {
 			if err := t.database.StorePendingTransmission(ctx, key, transmission); err != nil {
-				t.logger.Error("Error while persisting pending transmission to database", types.LogFields{"error": err})
+				t.logger.Error("Error while persisting pending transmission to database", commontypes.LogFields{"error": err})
 			}
 		},
 	)
 	if !ok {
-		t.logger.Error("Database.StorePendingTransmission timed out", types.LogFields{
+		t.logger.Error("Database.StorePendingTransmission timed out", commontypes.LogFields{
 			"timeout": t.localConfig.DatabaseTimeout,
 		})
 	}
@@ -257,12 +258,12 @@ func (t *transmissionState) eventTTransmitTimeout() {
 				Epoch:        item.Epoch,
 				Round:        item.Round,
 			}); err != nil {
-				t.logger.Error("eventTTransmitTimeout: Error while deleting pending transmission from database", types.LogFields{"error": err})
+				t.logger.Error("eventTTransmitTimeout: Error while deleting pending transmission from database", commontypes.LogFields{"error": err})
 			}
 		},
 	)
 	if !ok {
-		t.logger.Error("Database.DeletePendingTransmission timed out", types.LogFields{
+		t.logger.Error("Database.DeletePendingTransmission timed out", commontypes.LogFields{
 			"timeout": t.localConfig.DatabaseTimeout,
 		})
 		// carry on
@@ -270,12 +271,12 @@ func (t *transmissionState) eventTTransmitTimeout() {
 
 	contractConfigDigest, contractEpochRound, err := t.contractState()
 	if err != nil {
-		t.logger.Error("eventTTransmitTimeout: contractState() failed", types.LogFields{"error": err})
+		t.logger.Error("eventTTransmitTimeout: contractState() failed", commontypes.LogFields{"error": err})
 		return
 	}
 
 	if item.ConfigDigest != contractConfigDigest {
-		t.logger.Info("eventTTransmitTimeout: configDigest doesn't match, discarding transmission", types.LogFields{
+		t.logger.Info("eventTTransmitTimeout: configDigest doesn't match, discarding transmission", commontypes.LogFields{
 			"contractConfigDigest": contractConfigDigest,
 			"configDigest":         item.ConfigDigest,
 			"median":               item.Median,
@@ -286,7 +287,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 	}
 
 	if !contractEpochRound.Less(itemEpochRound) {
-		t.logger.Info("eventTTransmitTimeout: Skipping transmission because report is stale", types.LogFields{
+		t.logger.Info("eventTTransmitTimeout: Skipping transmission because report is stale", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"median":             item.Median,
 			"epoch":              item.Epoch,
@@ -295,7 +296,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 		return
 	}
 
-	t.logger.Info("eventTTransmitTimeout: Transmitting with median", types.LogFields{
+	t.logger.Info("eventTTransmitTimeout: Transmitting with median", commontypes.LogFields{
 		"median": item.Median,
 		"epoch":  item.Epoch,
 		"round":  item.Round,
@@ -309,17 +310,17 @@ func (t *transmissionState) eventTTransmitTimeout() {
 		},
 	)
 	if !ok {
-		t.logger.Error("eventTTransmitTimeout: Transmit timed out", types.LogFields{
+		t.logger.Error("eventTTransmitTimeout: Transmit timed out", commontypes.LogFields{
 			"timeout": t.localConfig.ContractTransmitterTransmitTimeout,
 		})
 		return
 	}
 	if err != nil {
-		t.logger.Error("eventTTransmitTimeout: Error while transmitting report on-chain", types.LogFields{"error": err})
+		t.logger.Error("eventTTransmitTimeout: Error while transmitting report on-chain", commontypes.LogFields{"error": err})
 		return
 	}
 
-	t.logger.Info("eventTTransmitTimeout:❗️successfully transmitted report on-chain", types.LogFields{
+	t.logger.Info("eventTTransmitTimeout:❗️successfully transmitted report on-chain", commontypes.LogFields{
 		"median": item.Median,
 		"epoch":  item.Epoch,
 		"round":  item.Round,
@@ -329,14 +330,14 @@ func (t *transmissionState) eventTTransmitTimeout() {
 func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound EpochRound) bool {
 	reportEpochRound := EpochRound{ev.Epoch, ev.Round}
 	if !contractEpochRound.Less(reportEpochRound) {
-		t.logger.Debug("shouldTransmit() = false, report is stale", types.LogFields{
+		t.logger.Debug("shouldTransmit() = false, report is stale", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"epochRound":         reportEpochRound,
 		})
 		return false
 	}
 	if t.latestEpochRound == (EpochRound{}) {
-		t.logger.Debug("shouldTransmit() = true, latestEpochRound is empty", types.LogFields{
+		t.logger.Debug("shouldTransmit() = true, latestEpochRound is empty", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"epochRound":         reportEpochRound,
 			"latestEpochRound":   t.latestEpochRound,
@@ -344,7 +345,7 @@ func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound 
 		return true
 	}
 	if reportEpochRound.Less(t.latestEpochRound) || reportEpochRound == t.latestEpochRound {
-		t.logger.Debug("shouldTransmit() = false, report is older than latest report", types.LogFields{
+		t.logger.Debug("shouldTransmit() = false, report is older than latest report", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"epochRound":         reportEpochRound,
 			"latestEpochRound":   t.latestEpochRound,
@@ -354,7 +355,7 @@ func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound 
 
 	reportMedian, err := ev.Report.AttributedObservations.Median()
 	if err != nil {
-		t.logger.Error("could not compute median", types.LogFields{
+		t.logger.Error("could not compute median", commontypes.LogFields{
 			"error": err,
 		})
 		return false
@@ -362,7 +363,7 @@ func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound 
 
 	alphaPPB := t.config.AlphaPPB
 	if override := t.configOverrider.ConfigOverride(); override != nil {
-		t.logger.Debug("shouldTransmit: using override for alphaPPB", types.LogFields{
+		t.logger.Debug("shouldTransmit: using override for alphaPPB", commontypes.LogFields{
 			"epochRound":        reportEpochRound,
 			"alphaPPB":          alphaPPB,
 			"overridenAlphaPPB": override.AlphaPPB,
@@ -374,7 +375,7 @@ func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound 
 	nothingPending := t.latestEpochRound.Less(contractEpochRound) || t.latestEpochRound == contractEpochRound
 	result := deviates || nothingPending
 
-	t.logger.Debug("shouldTransmit() = result", types.LogFields{
+	t.logger.Debug("shouldTransmit() = result", commontypes.LogFields{
 		"contractEpochRound": contractEpochRound,
 		"epochRound":         reportEpochRound,
 		"latestEpochRound":   t.latestEpochRound,

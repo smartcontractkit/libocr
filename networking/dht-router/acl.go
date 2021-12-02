@@ -6,8 +6,8 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 )
 
 type PermitListACL interface {
@@ -49,7 +49,7 @@ func (acl permitList) Activate(protocol protocol.ID, permitted ...peer.ID) {
 	acl.allowed[protocol] = make([]peer.ID, len(permitted))
 	copy(acl.allowed[protocol], permitted)
 
-	acl.logger.Debug("New ACL activated", types.LogFields{
+	acl.logger.Debug("New ACL activated", commontypes.LogFields{
 		"id":         "DHT_ACL",
 		"protocolID": protocol,
 		"acl":        acl.allowed,
@@ -88,7 +88,7 @@ func (acl permitList) IsAllowed(id peer.ID, protocol protocol.ID) bool {
 			return true
 		}
 	}
-	acl.logger.Debug("ACL: denied access", types.LogFields{
+	acl.logger.Debug("ACL: denied access", commontypes.LogFields{
 		"id":         "DHT_ACL",
 		"peerID":     id,
 		"protocolID": protocol,

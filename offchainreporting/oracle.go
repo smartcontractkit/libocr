@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 
@@ -22,11 +23,11 @@ type OracleArgs struct {
 	// communicate with other participating nodes.
 	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
 
-	// V1Bootstrappers is the list of bootstrap node addresses and IDs for the v1 stack
+	// V1Bootstrappers is the list of bootstrap node addresses & IDs in the multiaddr format for the v1 networking stack
 	V1Bootstrappers []string
 
 	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack
-	V2Bootstrappers []types.BootstrapperLocator
+	V2Bootstrappers []commontypes.BootstrapperLocator
 
 	// Enables locally overriding certain configuration parameters. This is
 	// useful for e.g. hibernation mode. This may be nil.
@@ -49,10 +50,10 @@ type OracleArgs struct {
 	LocalConfig types.LocalConfig
 
 	// Logger logs stuff
-	Logger types.Logger
+	Logger commontypes.Logger
 
 	// Used to send logs to a monitor. This may be nil.
-	MonitoringEndpoint types.MonitoringEndpoint
+	MonitoringEndpoint commontypes.MonitoringEndpoint
 
 	// PrivateKeys contains the secret keys needed for the OCR protocol, and methods
 	// which use those keys without exposing them to the rest of the application.

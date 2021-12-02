@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"golang.org/x/crypto/curve25519"
 )
@@ -78,8 +79,8 @@ func aesDecryptBlock(key, ciphertext []byte) [16]byte {
 }
 
 // Decrypt returns the sharedSecret
-func (e SharedSecretEncryptions) Decrypt(oid types.OracleID, k types.PrivateKeys) (*[SharedSecretSize]byte, error) {
-	if oid < 0 || len(e.Encryptions) <= int(oid) {
+func (e SharedSecretEncryptions) Decrypt(oid commontypes.OracleID, k types.PrivateKeys) (*[SharedSecretSize]byte, error) {
+	if len(e.Encryptions) <= int(oid) {
 		return nil, errors.New("oid out of range of SharedSecretEncryptions.Encryptions")
 	}
 

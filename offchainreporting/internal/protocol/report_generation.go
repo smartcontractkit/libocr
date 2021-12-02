@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -23,8 +24,8 @@ func RunReportGeneration(
 	contractTransmitter types.ContractTransmitter,
 	datasource types.DataSource,
 	e uint32,
-	id types.OracleID,
-	l types.OracleID,
+	id commontypes.OracleID,
+	l commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender,
@@ -46,7 +47,7 @@ func RunReportGeneration(
 		id:                               id,
 		l:                                l,
 		localConfig:                      localConfig,
-		logger:                           logger.MakeChild(types.LogFields{"epoch": e, "leader": l}),
+		logger:                           logger.MakeChild(commontypes.LogFields{"epoch": e, "leader": l}),
 		netSender:                        netSender,
 		privateKeys:                      privateKeys,
 		telemetrySender:                  telemetrySender,
@@ -66,8 +67,8 @@ type reportGenerationState struct {
 	contractTransmitter              types.ContractTransmitter
 	datasource                       types.DataSource
 	e                                uint32 // Current epoch number
-	id                               types.OracleID
-	l                                types.OracleID // Current leader number
+	id                               commontypes.OracleID
+	l                                commontypes.OracleID // Current leader number
 	localConfig                      types.LocalConfig
 	logger                           loghelper.LoggerWithContext
 	netSender                        NetworkSender
@@ -154,7 +155,7 @@ func (repgen *reportGenerationState) run() {
 		// ensure prompt exit
 		select {
 		case <-chDone:
-			repgen.logger.Info("ReportGeneration: exiting", types.LogFields{
+			repgen.logger.Info("ReportGeneration: exiting", commontypes.LogFields{
 				"e": repgen.e,
 				"l": repgen.l,
 			})

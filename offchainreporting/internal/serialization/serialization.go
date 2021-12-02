@@ -1,10 +1,10 @@
 package serialization
 
 import (
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
@@ -221,7 +221,7 @@ func attributedObservationFromProtoMessage(ao *protobuf.AttributedObservation) (
 
 	return protocol.AttributedObservation{
 		o,
-		types.OracleID(ao.Observer),
+		commontypes.OracleID(ao.Observer),
 	}, nil
 }
 
@@ -325,7 +325,7 @@ func attributedSignedObservationFromProtoMessage(m *protobuf.AttributedSignedObs
 	}
 	return protocol.AttributedSignedObservation{
 		signedObservation,
-		types.OracleID(m.Observer),
+		commontypes.OracleID(m.Observer),
 	}, nil
 }
 
