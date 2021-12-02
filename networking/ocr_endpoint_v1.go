@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/smartcontractkit/libocr/commontypes"
+	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"golang.org/x/time/rate"
 
 	p2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -18,14 +20,15 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	dhtrouter "github.com/smartcontractkit/libocr/networking/dht-router"
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
+	"github.com/smartcontractkit/libocr/networking/wire"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 var (
-	_ types.BinaryNetworkEndpoint = &ocrEndpoint{}
+	_ commontypes.BinaryNetworkEndpoint = &ocrEndpointV1{}
 )
 
 type EndpointConfig struct {
@@ -65,27 +68,27 @@ type EndpointConfig struct {
 
 type ocrEndpointState int
 
-// ocrEndpoint represents a member of a particular feed oracle group
-type ocrEndpoint struct {
+// ocrEndpointV1 represents a member of a particular feed oracle group
+type ocrEndpointV1 struct {
 	// configuration and settings
 	config              EndpointConfig
-	peerMapping         map[types.OracleID]p2ppeer.ID
-	reversedPeerMapping map[p2ppeer.ID]types.OracleID
+	peerMapping         map[commontypes.OracleID]p2ppeer.ID
+	reversedPeerMapping map[p2ppeer.ID]commontypes.OracleID
 	peerAllowlist       map[p2ppeer.ID]struct{}
 	peer                *concretePeer
 	rhost               *rhost.RoutedHost
 	routing             dhtrouter.PeerDiscoveryRouter
-	configDigest        types.ConfigDigest
+	configDigest        ocr2types.ConfigDigest
 	protocolID          p2pprotocol.ID
 	bootstrapperAddrs   []p2ppeer.AddrInfo
 	failureThreshold    int
-	ownOracleID         types.OracleID
+	ownOracleID         commontypes.OracleID
 
 	// internal and state management
-	chRecvs      map[types.OracleID](chan []byte)
-	chSends      map[types.OracleID](chan []byte)
-	muSends      map[types.OracleID]*sync.Mutex
-	chSendToSelf chan types.BinaryMessageWithSender
+	chRecvs      map[commontypes.OracleID](chan []byte)
+	chSends      map[commontypes.OracleID](chan []byte)
+	muSends      map[commontypes.OracleID]*sync.Mutex
+	chSendToSelf chan commontypes.BinaryMessageWithSender
 	chClose      chan struct{}
 	state        ocrEndpointState
 	stateMu      *sync.RWMutex
@@ -94,16 +97,21 @@ type ocrEndpoint struct {
 	ctxCancel    context.CancelFunc
 
 	// recv is exposed to clients of this network endpoint
-	recv chan types.BinaryMessageWithSender
+	recv chan commontypes.BinaryMessageWithSender
 
 	logger loghelper.LoggerWithContext
 
 	// a map of rate limiters for incoming messages. One limiter for each remote peer.
-	recvMessageRateLimiters map[types.OracleID]*rate.Limiter
+	recvMessageRateLimiters map[commontypes.OracleID]*rate.Limiter
 
 	// when this endpoint terminates, the all the peers' bandwidth rate limiters needs to
 	// be updated to lower the allowed limits.
 	lowerBandwidthLimits func()
+
+	// responsible for communicating bytes to and from the network
+	wire *wire.Wire
+
+	limits BinaryNetworkEndpointLimits
 }
 
 const (
@@ -119,25 +127,22 @@ const (
 	protocolVersion  = "1.0.0"
 )
 
-func newOCREndpoint(
+func newOCREndpointV1(
 	logger loghelper.LoggerWithContext,
-	configDigest types.ConfigDigest,
+	configDigest ocr2types.ConfigDigest,
 	peer *concretePeer,
 	peerIDs []p2ppeer.ID,
 	bootstrappers []p2ppeer.AddrInfo,
 	config EndpointConfig,
-
 	failureThreshold int,
-	tokenBucketRefillRate float64,
-	tokenBucketSize int,
-) (*ocrEndpoint, error) {
-
+	limits BinaryNetworkEndpointLimits,
+) (*ocrEndpointV1, error) {
 	lowerBandwidthLimits := increaseBandwidthLimits(peer.bandwidthLimiters, peerIDs,
-		bootstrappers, tokenBucketRefillRate, tokenBucketSize, logger)
+		bootstrappers, limits.BytesRatePerOracle, limits.BytesCapacityPerOracle, logger)
 
-	peerMapping := make(map[types.OracleID]p2ppeer.ID)
+	peerMapping := make(map[commontypes.OracleID]p2ppeer.ID)
 	for i, peerID := range peerIDs {
-		peerMapping[types.OracleID(i)] = peerID
+		peerMapping[commontypes.OracleID(i)] = peerID
 	}
 	reversedPeerMapping := reverseMapping(peerMapping)
 	ownOracleID, ok := reversedPeerMapping[peer.ID()]
@@ -145,28 +150,28 @@ func newOCREndpoint(
 		return nil, errors.Errorf("host peer ID 0x%x is not present in given peerMapping", peer.ID())
 	}
 
-	chRecvs := make(map[types.OracleID]chan []byte)
-	chSends := make(map[types.OracleID]chan []byte)
-	muSends := make(map[types.OracleID]*sync.Mutex)
-	recvMessageRateLimiters := make(map[types.OracleID]*rate.Limiter)
+	chRecvs := make(map[commontypes.OracleID]chan []byte)
+	chSends := make(map[commontypes.OracleID]chan []byte)
+	muSends := make(map[commontypes.OracleID]*sync.Mutex)
+	recvMessageRateLimiters := make(map[commontypes.OracleID]*rate.Limiter)
 	for oid := range peerMapping {
 		if oid != ownOracleID {
 			chRecvs[oid] = make(chan []byte, config.IncomingMessageBufferSize)
 			chSends[oid] = make(chan []byte, config.OutgoingMessageBufferSize)
 			muSends[oid] = new(sync.Mutex)
-			recvMessageRateLimiters[oid] = rate.NewLimiter(rate.Limit(tokenBucketRefillRate), tokenBucketSize)
+			recvMessageRateLimiters[oid] = rate.NewLimiter(rate.Limit(limits.MessagesRatePerOracle), limits.MessagesCapacityPerOracle)
 		}
 	}
 
-	chSendToSelf := make(chan types.BinaryMessageWithSender, sendToSelfBufferSize)
+	chSendToSelf := make(chan commontypes.BinaryMessageWithSender, sendToSelfBufferSize)
 
-	protocolID := genProtocolID(configDigest)
+	protocolID := genProtocolID(configDigest.Truncate())
 
-	logger = logger.MakeChild(types.LogFields{
+	logger = logger.MakeChild(commontypes.LogFields{
 		"protocolID":   protocolID,
 		"configDigest": configDigest.Hex(),
 		"oracleID":     ownOracleID,
-		"id":           "OCREndpoint",
+		"id":           "OCREndpointV1",
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -179,7 +184,7 @@ func newOCREndpoint(
 		allowlist[b.ID] = struct{}{}
 	}
 
-	return &ocrEndpoint{
+	return &ocrEndpointV1{
 		config,
 		peerMapping,
 		reversedPeerMapping,
@@ -204,20 +209,21 @@ func newOCREndpoint(
 		new(sync.WaitGroup),
 		ctx,
 		cancel,
-		make(chan types.BinaryMessageWithSender),
+		make(chan commontypes.BinaryMessageWithSender),
 		logger,
 		recvMessageRateLimiters,
 		lowerBandwidthLimits,
+		wire.NewWire(uint32(limits.MaxMessageLength)),
+		limits,
 	}, nil
 }
 
 func increaseBandwidthLimits(
 	bandwidthLimiters *knockingtls.Limiters, peerIDs []p2ppeer.ID, bootstrappers []p2ppeer.AddrInfo,
-	tokenBucketRefillRate float64, tokenBucketSize int, logger types.Logger,
+	bytesRate float64, bytesCapacity int, logger commontypes.Logger,
 ) func() {
 	// When a new endpoint is created, update the rate limiters for all the peers in the current feed.
-	refillRate := int64(math.Ceil(tokenBucketRefillRate * MaxMsgLength))
-	size := tokenBucketSize * MaxMsgLength
+	refillRate, size := int64(math.Ceil(bytesRate)), bytesCapacity
 
 	bootstrapperIDs := make([]p2ppeer.ID, len(bootstrappers))
 	for idx, addr := range bootstrappers {
@@ -225,7 +231,7 @@ func increaseBandwidthLimits(
 	}
 	bandwidthLimiters.IncreaseLimits(peerIDs, refillRate, size)
 	bandwidthLimiters.IncreaseLimits(bootstrapperIDs, refillRate, size)
-	logger.Info("bandwidthLimiters limits increased for peers", types.LogFields{
+	logger.Info("bandwidthLimiters limits increased for peers", commontypes.LogFields{
 		"remotePeerIDs":              peerIDs,
 		"bootstrapPeerIDs":           bootstrapperIDs,
 		"tokenBucketRefillRateDelta": refillRate,
@@ -235,7 +241,7 @@ func increaseBandwidthLimits(
 		// When the endpoint is deleted, update the rate limiters for all the peers in the current feed.
 		bandwidthLimiters.IncreaseLimits(peerIDs, -refillRate, -size)
 		bandwidthLimiters.IncreaseLimits(bootstrapperIDs, -refillRate, -size)
-		logger.Info("bandwidthLimiters limits decreased for peers", types.LogFields{
+		logger.Info("bandwidthLimiters limits decreased for peers", commontypes.LogFields{
 			"remotePeerIDs":              peerIDs,
 			"bootstrapPeerIDs":           bootstrapperIDs,
 			"tokenBucketRefillRateDelta": -refillRate,
@@ -244,8 +250,8 @@ func increaseBandwidthLimits(
 	}
 }
 
-func reverseMapping(m map[types.OracleID]p2ppeer.ID) map[p2ppeer.ID]types.OracleID {
-	n := make(map[p2ppeer.ID]types.OracleID)
+func reverseMapping(m map[commontypes.OracleID]p2ppeer.ID) map[p2ppeer.ID]commontypes.OracleID {
+	n := make(map[p2ppeer.ID]commontypes.OracleID)
 	for k, v := range m {
 		n[v] = k
 	}
@@ -258,17 +264,17 @@ func genProtocolID(configDigest types.ConfigDigest) p2pprotocol.ID {
 	return p2pprotocol.ID(fmt.Sprintf("/%s/%s/%x/1.0.0", protocolBaseName, protocolVersion, configDigest))
 }
 
-// Start the ocrEndpoint. Should only be called once.
-func (o *ocrEndpoint) Start() (err error) {
+// Start the ocrEndpointV1. Should only be called once.
+func (o *ocrEndpointV1) Start() (err error) {
 	o.stateMu.Lock()
 	defer o.stateMu.Unlock()
 
 	if o.state != ocrEndpointUnstarted {
-		panic(fmt.Sprintf("cannot start ocrEndpoint that is not unstarted, state was: %d", o.state))
+		panic(fmt.Sprintf("cannot start ocrEndpointV1 that is not unstarted, state was: %d", o.state))
 	}
 	o.state = ocrEndpointStarted
 
-	if err := o.peer.register(o); err != nil {
+	if err := o.peer.registerV1(o); err != nil {
 		return err
 	}
 
@@ -289,12 +295,12 @@ func (o *ocrEndpoint) Start() (err error) {
 	o.wg.Add(1)
 	go o.runSendToSelf()
 
-	o.logger.Info("OCREndpoint: Started listening", nil)
+	o.logger.Info("OCREndpointV1: Started listening", nil)
 
 	return nil
 }
 
-func (o *ocrEndpoint) setupDHT() (err error) {
+func (o *ocrEndpointV1) setupDHT() (err error) {
 	config := dhtrouter.BuildConfig(
 		o.bootstrapperAddrs,
 		dhtPrefix,
@@ -309,7 +315,7 @@ func (o *ocrEndpoint) setupDHT() (err error) {
 	acl := dhtrouter.NewPermitListACL(o.logger)
 
 	acl.Activate(config.ProtocolID(), o.allowlist()...)
-	aclHost := dhtrouter.WrapACL(o.peer, acl, o.logger)
+	aclHost := dhtrouter.WrapACL(o.peer.libp2pHost, acl, o.logger)
 
 	o.routing, err = dhtrouter.NewDHTRouter(
 		o.ctx,
@@ -323,7 +329,7 @@ func (o *ocrEndpoint) setupDHT() (err error) {
 	// Async
 	o.routing.Start()
 
-	o.rhost = rhost.Wrap(o.peer, o.routing)
+	o.rhost = rhost.Wrap(o.peer.libp2pHost, o.routing)
 
 	return nil
 }
@@ -332,13 +338,14 @@ func (o *ocrEndpoint) setupDHT() (err error) {
 // This means that each remote gets its own buffered channel, so even if one
 // remote goes mad and sends us thousands of messages, we don't drop any
 // messages from good remotes
-func (o *ocrEndpoint) runRecv(oid types.OracleID) {
+func (o *ocrEndpointV1) runRecv(oid commontypes.OracleID) {
 	defer o.wg.Done()
 	var chRecv <-chan []byte = o.chRecvs[oid]
+
 	for {
 		select {
 		case payload := <-chRecv:
-			msg := types.BinaryMessageWithSender{
+			msg := commontypes.BinaryMessageWithSender{
 				Msg:    payload,
 				Sender: oid,
 			}
@@ -354,7 +361,7 @@ func (o *ocrEndpoint) runRecv(oid types.OracleID) {
 	}
 }
 
-func (o *ocrEndpoint) runSend(oid types.OracleID) {
+func (o *ocrEndpointV1) runSend(oid commontypes.OracleID) {
 	defer o.wg.Done()
 
 	var chSend <-chan []byte = o.chSends[oid]
@@ -371,7 +378,7 @@ func (o *ocrEndpoint) runSend(oid types.OracleID) {
 	}
 }
 
-func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) (shouldRetry bool) {
+func (o *ocrEndpointV1) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) (shouldRetry bool) {
 	// Open a new stream to the destination peer
 	var stream p2pnetwork.Stream
 
@@ -389,7 +396,7 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 				ctx, cancel = context.WithTimeout(o.ctx, o.config.NewStreamTimeout)
 				defer cancel()
 			}
-			return o.peer.NewStream(ctx, destPeerID, o.protocolID)
+			return o.peer.libp2pHost.NewStream(ctx, destPeerID, o.protocolID)
 		}()
 
 		if err == nil {
@@ -407,7 +414,7 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 
 		// Libp2p automatically handles dial backoff for us, just ignore this error
 		if !errors.Is(err, swarm.ErrDialBackoff) {
-			o.logger.Debug("Peer unreachable", types.LogFields{
+			o.logger.Debug("Peer unreachable", commontypes.LogFields{
 				"err":            err,
 				"remotePeerID":   destPeerID,
 				"nRetry":         nRetry,
@@ -420,16 +427,16 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 			pAddr, err := o.routing.FindPeer(o.ctx, destPeerID)
 			switch {
 			case err == nil:
-				o.logger.Debug("DHT lookup finished", types.LogFields{
+				o.logger.Debug("DHT lookup finished", commontypes.LogFields{
 					"result": pAddr,
 					"nRetry": nRetry,
 				})
-				o.peer.Peerstore().AddAddrs(destPeerID, pAddr.Addrs, peerstore.TempAddrTTL)
+				o.peer.libp2pHost.Peerstore().AddAddrs(destPeerID, pAddr.Addrs, peerstore.TempAddrTTL)
 			case errors.Is(err, context.Canceled):
 				// Exit early if the context was canceled by the Close function
 				return false
 			default:
-				o.logger.Warn("DHT lookup failed", types.LogFields{
+				o.logger.Warn("DHT lookup failed", commontypes.LogFields{
 					"err":            err,
 					"remoteOracleId": o.reversedPeerMapping[destPeerID],
 					"nRetry":         nRetry,
@@ -454,9 +461,9 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 		}
 	}
 
-	defer stream.Reset()
+	defer stream.Reset() //nolint:errcheck
 
-	o.logger.Debug("Opened stream", types.LogFields{
+	o.logger.Debug("Opened stream", commontypes.LogFields{
 		"remotePeerID": destPeerID,
 	})
 
@@ -466,7 +473,7 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 			// All necessary cleanup has already been deferred by this point
 			return false
 		case payload := <-chSend:
-			b := wireEncode(payload)
+			b := o.wire.WireEncode(payload)
 			_, err := stream.Write(b)
 			if err != nil {
 				// NOTE: We do the safest thing which is to exit.
@@ -474,7 +481,7 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 				// function from the top.
 				// Probably the connection got broken. No point in even trying
 				// to resend the message.
-				o.logger.Debug("Could not write to stream", types.LogFields{
+				o.logger.Debug("Could not write to stream", commontypes.LogFields{
 					"err":          err,
 					"remotePeerID": destPeerID,
 				})
@@ -485,7 +492,7 @@ func (o *ocrEndpoint) sendOnStream(destPeerID p2ppeer.ID, chSend <-chan []byte) 
 	}
 }
 
-func (o *ocrEndpoint) runSendToSelf() {
+func (o *ocrEndpointV1) runSendToSelf() {
 	defer o.wg.Done()
 	for {
 		select {
@@ -501,53 +508,53 @@ func (o *ocrEndpoint) runSendToSelf() {
 	}
 }
 
-func (o *ocrEndpoint) Close() error {
+func (o *ocrEndpointV1) Close() error {
 	o.stateMu.Lock()
 	if o.state != ocrEndpointStarted {
 		defer o.stateMu.Unlock()
-		panic(fmt.Sprintf("cannot close ocrEndpoint that is not started, state was: %d", o.state))
+		panic(fmt.Sprintf("cannot close ocrEndpointV1 that is not started, state was: %d", o.state))
 	}
 	o.state = ocrEndpointClosed
 	o.stateMu.Unlock()
 
-	o.logger.Debug("OCREndpoint: Closing", nil)
+	o.logger.Debug("OCREndpointV1: Closing", nil)
 
-	o.logger.Debug("OCREndpoint: Removing stream handler", nil)
-	o.peer.RemoveStreamHandler(o.protocolID)
+	o.logger.Debug("OCREndpointV1: Removing stream handler", nil)
+	o.peer.libp2pHost.RemoveStreamHandler(o.protocolID)
 
-	o.logger.Debug("OCREndpoint: Closing streams", nil)
+	o.logger.Debug("OCREndpointV1: Closing streams", nil)
 	close(o.chClose)
 	o.ctxCancel()
 	o.wg.Wait()
 
-	o.logger.Debug("OCREndpoint: Closing dht", nil)
+	o.logger.Debug("OCREndpointV1: Closing dht", nil)
 	err := o.routing.Close()
 	if err != nil {
-		return errors.Wrap(err, "error closing OCREndpoint: could not close dht")
+		return errors.Wrap(err, "error closing OCREndpointV1: could not close dht")
 	}
 
-	o.logger.Debug("OCREndpoint: Deregister", nil)
-	if err := o.peer.deregister(o); err != nil {
-		return errors.Wrap(err, "error closing OCREndpoint: could not deregister")
+	o.logger.Debug("OCREndpointV1: Deregister", nil)
+	if err := o.peer.deregisterV1(o); err != nil {
+		return errors.Wrap(err, "error closing OCREndpointV1: could not deregister")
 	}
 
-	o.logger.Debug("OCREndpoint: Closing o.recv", nil)
+	o.logger.Debug("OCREndpointV1: Closing o.recv", nil)
 	close(o.recv)
 
-	o.logger.Debug("OCREndpoint: lowering bandwidth limits when closing the endpoint", nil)
+	o.logger.Debug("OCREndpointV1: lowering bandwidth limits when closing the endpoint", nil)
 	o.lowerBandwidthLimits()
 
-	o.logger.Info("OCREndpoint: Closed", nil)
+	o.logger.Info("OCREndpointV1: Closed", nil)
 	return nil
 }
 
-func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
+func (o *ocrEndpointV1) streamReceiver(s p2pnetwork.Stream) {
 	exit := make(chan struct{})
 	defer close(exit)
 
 	// Force stream reset on our side if close signal is received or if this function exits
 	go func() {
-		defer s.Reset()
+		defer s.Reset() //nolint:errcheck
 		select {
 		case <-o.chClose:
 		case <-exit:
@@ -556,14 +563,14 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 
 	remotePeerID := s.Conn().RemotePeer()
 
-	o.logger.Debug("Got incoming stream", types.LogFields{
+	o.logger.Debug("Got incoming stream", commontypes.LogFields{
 		"remotePeerID":    remotePeerID,
 		"remoteMultiaddr": s.Conn().RemoteMultiaddr(),
 	})
 
 	sender, err := o.peerID2OracleID(remotePeerID)
 	if err != nil {
-		o.logger.Error("Error getting sender", types.LogFields{
+		o.logger.Error("Error getting sender", commontypes.LogFields{
 			"err":             err,
 			"remotePeerID":    remotePeerID,
 			"remoteMultiaddr": s.Conn().RemoteMultiaddr(),
@@ -575,9 +582,9 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 	var countDropped uint64
 	for {
 		// Apply the rate limiter.
-		isAllowed, err := isNextMessageAllowed(r, l)
+		isAllowed, err := o.wire.IsNextMessageAllowed(r, l)
 		if err != nil {
-			o.logger.Debug("Unable to peek at the next message from peer", types.LogFields{
+			o.logger.Debug("Unable to peek at the next message from peer", commontypes.LogFields{
 				"err":             err,
 				"remotePeerID":    remotePeerID,
 				"remoteOracleID":  sender,
@@ -588,7 +595,7 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 		if !isAllowed {
 			countDropped += 1
 			if isPowerOfTwo(countDropped) {
-				o.logger.Info("Messages were dropped by the rate limiter", types.LogFields{
+				o.logger.Info("Messages were dropped by the rate limiter", commontypes.LogFields{
 					"remotePeerID":         remotePeerID,
 					"remoteOracleID":       sender,
 					"remoteMultiaddr":      s.Conn().RemoteMultiaddr(),
@@ -598,7 +605,7 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 			continue
 		}
 		if countDropped != 0 {
-			o.logger.Info("Rate limiter is allowing messages to pass through again. Resetting dropped counter to zero.", types.LogFields{
+			o.logger.Info("Rate limiter is allowing messages to pass through again. Resetting dropped counter to zero.", commontypes.LogFields{
 				"remotePeerID":         remotePeerID,
 				"remoteOracleID":       sender,
 				"remoteMultiaddr":      s.Conn().RemoteMultiaddr(),
@@ -606,9 +613,9 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 			})
 			countDropped = 0
 		}
-		payload, err := readOneFromWire(r)
+		payload, err := o.wire.ReadOneFromWire(r)
 		if err != nil {
-			o.logger.Debug("Lost connection to peer", types.LogFields{
+			o.logger.Debug("Lost connection to peer", commontypes.LogFields{
 				"err":             err,
 				"remotePeerID":    remotePeerID,
 				"remoteOracleID":  sender,
@@ -624,7 +631,7 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 		case chRecv <- payload:
 			continue
 		default:
-			o.logger.Warn("Incoming buffer is full, dropping message", types.LogFields{
+			o.logger.Warn("Incoming buffer is full, dropping message", commontypes.LogFields{
 				"remotePeerID":    remotePeerID,
 				"remoteOracleID":  sender,
 				"remoteMultiaddr": s.Conn().RemoteMultiaddr(),
@@ -633,7 +640,7 @@ func (o *ocrEndpoint) streamReceiver(s p2pnetwork.Stream) {
 	}
 }
 
-func (o *ocrEndpoint) peerID2OracleID(peerID p2ppeer.ID) (types.OracleID, error) {
+func (o *ocrEndpointV1) peerID2OracleID(peerID p2ppeer.ID) (commontypes.OracleID, error) {
 	oracleID, ok := o.reversedPeerMapping[peerID]
 	if !ok {
 		return 0, errors.New("peer ID not found")
@@ -641,7 +648,7 @@ func (o *ocrEndpoint) peerID2OracleID(peerID p2ppeer.ID) (types.OracleID, error)
 	return oracleID, nil
 }
 
-func (o *ocrEndpoint) oracleID2PeerID(oracleID types.OracleID) (p2ppeer.ID, error) {
+func (o *ocrEndpointV1) oracleID2PeerID(oracleID commontypes.OracleID) (p2ppeer.ID, error) {
 	peerID, ok := o.peerMapping[oracleID]
 	if !ok {
 		return "", errors.New("oracle ID not found")
@@ -656,12 +663,12 @@ func (o *ocrEndpoint) oracleID2PeerID(oracleID types.OracleID) (p2ppeer.ID, erro
 //
 // NOTE: If a stream connection is lost, the buffer will keep only the newest
 // messages and drop older ones until the stream opens again.
-func (o *ocrEndpoint) SendTo(payload []byte, to types.OracleID) {
+func (o *ocrEndpointV1) SendTo(payload []byte, to commontypes.OracleID) {
 	o.stateMu.RLock()
 	state := o.state
 	o.stateMu.RUnlock()
 	if state != ocrEndpointStarted {
-		panic(fmt.Sprintf("send on non-running ocrEndpoint, state was: %d", state))
+		panic(fmt.Sprintf("send on non-running ocrEndpointV1, state was: %d", state))
 	}
 
 	if to == o.ownOracleID {
@@ -669,7 +676,7 @@ func (o *ocrEndpoint) SendTo(payload []byte, to types.OracleID) {
 		return
 	}
 
-	var chSend chan []byte = o.chSends[to]
+	chSend := o.chSends[to]
 
 	// Must not allow concurrent sends on the same channel since it could cause
 	// the simple ringbuffer below to block
@@ -682,8 +689,8 @@ func (o *ocrEndpoint) SendTo(payload []byte, to types.OracleID) {
 	default:
 		select {
 		case <-chSend:
-			peerID, _ := o.peerMapping[to]
-			o.logger.Warn("Send buffer full, dropping oldest message", types.LogFields{
+			peerID := o.peerMapping[to]
+			o.logger.Warn("Send buffer full, dropping oldest message", commontypes.LogFields{
 				"remoteOracleID": to,
 				"remotePeerID":   peerID,
 			})
@@ -694,8 +701,8 @@ func (o *ocrEndpoint) SendTo(payload []byte, to types.OracleID) {
 	}
 }
 
-func (o *ocrEndpoint) sendToSelf(payload []byte) {
-	m := types.BinaryMessageWithSender{
+func (o *ocrEndpointV1) sendToSelf(payload []byte) {
+	m := commontypes.BinaryMessageWithSender{
 		Msg:    payload,
 		Sender: o.ownOracleID,
 	}
@@ -703,18 +710,18 @@ func (o *ocrEndpoint) sendToSelf(payload []byte) {
 	select {
 	case o.chSendToSelf <- m:
 	default:
-		o.logger.Error("Send-to-self buffer is full, dropping message", types.LogFields{
+		o.logger.Error("Send-to-self buffer is full, dropping message", commontypes.LogFields{
 			"remoteOracleID": o.ownOracleID,
 		})
 	}
 }
 
 // Broadcast sends a msg to all oracles in the peer mapping
-func (o *ocrEndpoint) Broadcast(payload []byte) {
+func (o *ocrEndpointV1) Broadcast(payload []byte) {
 	var wg sync.WaitGroup
 	for oracleID := range o.peerMapping {
 		wg.Add(1)
-		go func(oid types.OracleID) {
+		go func(oid commontypes.OracleID) {
 			o.SendTo(payload, oid)
 			wg.Done()
 		}(oracleID)
@@ -723,25 +730,25 @@ func (o *ocrEndpoint) Broadcast(payload []byte) {
 }
 
 // Receive gives the channel to receive messages
-func (o *ocrEndpoint) Receive() <-chan types.BinaryMessageWithSender {
+func (o *ocrEndpointV1) Receive() <-chan commontypes.BinaryMessageWithSender {
 	return o.recv
 }
 
 // Conform to allower interface
-func (o *ocrEndpoint) isAllowed(id p2ppeer.ID) bool {
+func (o *ocrEndpointV1) isAllowed(id p2ppeer.ID) bool {
 	_, ok := o.peerAllowlist[id]
 	return ok
 }
 
 // Conform to allower interface
-func (o *ocrEndpoint) allowlist() (allowlist []p2ppeer.ID) {
+func (o *ocrEndpointV1) allowlist() (allowlist []p2ppeer.ID) {
 	for k := range o.peerAllowlist {
 		allowlist = append(allowlist, k)
 	}
 	return
 }
 
-func (o *ocrEndpoint) getConfigDigest() types.ConfigDigest {
+func (o *ocrEndpointV1) getConfigDigest() ocr2types.ConfigDigest {
 	return o.configDigest
 }
 

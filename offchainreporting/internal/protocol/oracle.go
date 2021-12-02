@@ -3,8 +3,9 @@ package protocol
 import (
 	"context"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -24,7 +25,7 @@ func RunOracle(
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
 	datasource types.DataSource,
-	id types.OracleID,
+	id commontypes.OracleID,
 	keys types.PrivateKeys,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
@@ -57,7 +58,7 @@ type oracleState struct {
 	contractTransmitter types.ContractTransmitter
 	database            types.Database
 	datasource          types.DataSource
-	id                  types.OracleID
+	id                  commontypes.OracleID
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
 	netEndpoint         NetworkEndpoint
@@ -190,7 +191,7 @@ func (o *oracleState) run() {
 
 func (o *oracleState) epochChanged(e uint32) {
 	o.epoch = e
-	o.logger.Trace("epochChanged: getting messages for new epoch", types.LogFields{
+	o.logger.Trace("epochChanged: getting messages for new epoch", commontypes.LogFields{
 		"epoch": e,
 	})
 	for id, buffer := range o.bufferedMessages {
@@ -204,7 +205,7 @@ func (o *oracleState) epochChanged(e uint32) {
 			if msgEpoch < e {
 				// remove from buffer
 				buffer.Pop()
-				o.logger.Debug("epochChanged: unbuffered and dropped message", types.LogFields{
+				o.logger.Debug("epochChanged: unbuffered and dropped message", commontypes.LogFields{
 					"remoteOracleID": id,
 					"epoch":          e,
 					"message":        *msg,
@@ -213,14 +214,14 @@ func (o *oracleState) epochChanged(e uint32) {
 				// remove from buffer
 				buffer.Pop()
 
-				o.logger.Trace("epochChanged: unbuffered messages for new epoch", types.LogFields{
+				o.logger.Trace("epochChanged: unbuffered messages for new epoch", commontypes.LogFields{
 					"remoteOracleID": id,
 					"epoch":          e,
 					"message":        *msg,
 				})
 				o.chNetToReportGeneration <- MessageToReportGenerationWithSender{
 					*msg,
-					types.OracleID(id),
+					commontypes.OracleID(id),
 				}
 			} else { // msgEpoch > e
 				// this and all subsequent messages are for future epochs
@@ -229,16 +230,16 @@ func (o *oracleState) epochChanged(e uint32) {
 			}
 		}
 	}
-	o.logger.Trace("epochChanged: done getting messages for new epoch", types.LogFields{
+	o.logger.Trace("epochChanged: done getting messages for new epoch", commontypes.LogFields{
 		"epoch": e,
 	})
 }
 
-func (o *oracleState) reportGenerationMessage(msg MessageToReportGeneration, sender types.OracleID) {
+func (o *oracleState) reportGenerationMessage(msg MessageToReportGeneration, sender commontypes.OracleID) {
 	msgEpoch := msg.epoch()
 	if msgEpoch < o.epoch {
 		// drop
-		o.logger.Debug("oracle: dropping message for past epoch", types.LogFields{
+		o.logger.Debug("oracle: dropping message for past epoch", commontypes.LogFields{
 			"epoch":  o.epoch,
 			"sender": sender,
 			"msg":    msg,
@@ -247,7 +248,7 @@ func (o *oracleState) reportGenerationMessage(msg MessageToReportGeneration, sen
 		o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
 	} else {
 		o.bufferedMessages[sender].Push(msg)
-		o.logger.Trace("oracle: buffering message for future epoch", types.LogFields{
+		o.logger.Trace("oracle: buffering message for future epoch", commontypes.LogFields{
 			"epoch":  o.epoch,
 			"sender": sender,
 			"msg":    msg,

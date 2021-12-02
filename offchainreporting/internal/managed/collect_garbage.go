@@ -5,7 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -21,12 +22,12 @@ func collectGarbage(
 ) {
 	for {
 		wait := collectInterval + time.Duration(rand.Float64()*5.0*60.0)*time.Second
-		logger.Info("collectGarbage: going to sleep", types.LogFields{
+		logger.Info("collectGarbage: going to sleep", commontypes.LogFields{
 			"duration": wait,
 		})
 		select {
 		case <-time.After(wait):
-			logger.Info("collectGarbage: starting collection of old transmissions", types.LogFields{
+			logger.Info("collectGarbage: starting collection of old transmissions", commontypes.LogFields{
 				"olderThan": olderThan,
 			})
 			// To make sure the context is not leaked we are wrapping the database query.
@@ -35,7 +36,7 @@ func collectGarbage(
 				defer childCancel()
 				err := database.DeletePendingTransmissionsOlderThan(childCtx, time.Now().Add(-olderThan))
 				if err != nil {
-					logger.Info("collectGarbage: error in DeletePendingTransmissionsOlderThan", types.LogFields{
+					logger.Info("collectGarbage: error in DeletePendingTransmissionsOlderThan", commontypes.LogFields{
 						"error":     err,
 						"olderThan": olderThan,
 					})

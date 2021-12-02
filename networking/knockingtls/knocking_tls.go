@@ -14,8 +14,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/sec"
 	p2ptls "github.com/libp2p/go-libp2p-tls"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -65,7 +65,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 
 	knock := make([]byte, knockSize)
 
-	logger := c.logger.MakeChild(types.LogFields{
+	logger := c.logger.MakeChild(commontypes.LogFields{
 		"remoteAddr": insecure.RemoteAddr(),
 		"localAddr":  insecure.LocalAddr(),
 	})
@@ -109,7 +109,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 		c.allowlistMutex.RLock()
 		defer c.allowlistMutex.RUnlock()
 
-		logger.Trace("verifying a knock", types.LogFields{
+		logger.Trace("verifying a knock", commontypes.LogFields{
 			"allowlist": c.allowlist,
 			"fromId":    peerId.Pretty(),
 			"knock":     hex.EncodeToString(knock),
@@ -150,14 +150,14 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	// Wrap insecure connection with a bandwidth rate limiter.
 	bandwidthLimiter, found := c.bandwidthLimiters.Find(peerId)
 	if !found {
-		c.logger.Error("Failed to find a rate limiter for inbound connection", types.LogFields{
+		c.logger.Error("Failed to find a rate limiter for inbound connection", commontypes.LogFields{
 			"forPeerID":         peerId.Pretty(),
 			"availableLimiters": c.bandwidthLimiters.limiters,
 		})
 		return nil, fmt.Errorf("Failed to find a rate limiter for peerID=%s in SecureInbound", peerId.Pretty())
 	}
 
-	insecureButLimited := NewRateLimitedConn(insecure, bandwidthLimiter, c.logger.MakeChild(types.LogFields{
+	insecureButLimited := NewRateLimitedConn(insecure, bandwidthLimiter, c.logger.MakeChild(commontypes.LogFields{
 		"remotePeerID": peerId.Pretty(),
 	}))
 
@@ -215,13 +215,13 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 	// Wrap insecure connection with a bandwidth rate limiter.
 	bandwidthLimiter, found := c.bandwidthLimiters.Find(p)
 	if !found {
-		c.logger.Error("Failed to find a rate limiter for outbound connection", types.LogFields{
+		c.logger.Error("Failed to find a rate limiter for outbound connection", commontypes.LogFields{
 			"forPeerID":         p.Pretty(),
 			"availableLimiters": c.bandwidthLimiters.limiters,
 		})
 		return nil, fmt.Errorf("Failed to find a rate limiter for peerID=%s in SecureOutbound", p.Pretty())
 	}
-	insecureButLimited := NewRateLimitedConn(insecure, bandwidthLimiter, c.logger.MakeChild(types.LogFields{
+	insecureButLimited := NewRateLimitedConn(insecure, bandwidthLimiter, c.logger.MakeChild(commontypes.LogFields{
 		"remotePeerID": p.Pretty(),
 	}))
 
@@ -243,7 +243,7 @@ func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
 	c.allowlistMutex.Lock()
 	defer c.allowlistMutex.Unlock()
 
-	c.logger.Debug("allowlist updated", types.LogFields{
+	c.logger.Debug("allowlist updated", commontypes.LogFields{
 		"old": c.allowlist,
 		"new": allowlist,
 	})
@@ -251,7 +251,7 @@ func (c *KnockingTLSTransport) UpdateAllowlist(allowlist []peer.ID) {
 }
 
 // NewKnockingTLS creates a TLS transport. Allowlist is a list of peer IDs that this transport should accept handshake from.
-func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, bandwidthLimiters *Limiters, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
+func NewKnockingTLS(logger commontypes.Logger, myPrivKey p2pcrypto.PrivKey, bandwidthLimiters *Limiters, allowlist ...peer.ID) (*KnockingTLSTransport, error) {
 	ed25515Key, ok := myPrivKey.(*p2pcrypto.Ed25519PrivateKey)
 	if !ok {
 		return nil, errors.New("only support ed25519 key")
@@ -276,7 +276,7 @@ func NewKnockingTLS(logger types.Logger, myPrivKey p2pcrypto.PrivKey, bandwidthL
 		allowlist:      allowlist,
 		privateKey:     ed25515Key,
 		myId:           id,
-		logger: loghelper.MakeRootLoggerWithContext(logger).MakeChild(types.LogFields{
+		logger: loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{
 			"id": "KnockingTLS",
 		}),
 		readTimeout:       readTimeout,

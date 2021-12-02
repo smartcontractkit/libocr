@@ -8,6 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 
 	"github.com/pkg/errors"
@@ -37,8 +38,7 @@ func tryConnectToBootstrappers(ctx context.Context, ph host.Host, peers []peer.A
 		wg.Add(1)
 		go func(p peer.AddrInfo) {
 			defer wg.Done()
-			var err error
-			err = ph.Connect(ctx, p)
+			err := ph.Connect(ctx, p)
 			errs <- err
 		}(p)
 	}
@@ -90,7 +90,7 @@ func newDHT(ctx context.Context, config DHTNodeConfig, aclHost ACLHost) (*dht.Ip
 		return nil, errors.Wrap(err, "error bootstrapping dht")
 	}
 
-	config.logger.Info("DHT initialized", types.LogFields{
+	config.logger.Info("DHT initialized", commontypes.LogFields{
 		"id":             "DHT",
 		"protocolID":     protocolID,
 		"bootstrapNodes": config.bootstrapNodes,

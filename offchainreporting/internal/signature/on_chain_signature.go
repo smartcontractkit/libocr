@@ -3,11 +3,13 @@ package signature
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"math"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -26,22 +28,22 @@ func (k OnChainPublicKey) Equal(k2 OnChainPublicKey) bool {
 	)
 }
 
-type EthAddresses = map[types.OnChainSigningAddress]types.OracleID
+type EthAddresses = map[types.OnChainSigningAddress]commontypes.OracleID
 
 // VerifyOnChain returns an error unless signature is a valid signature by one
 // of the signers, in which case it returns the ID of the signer
 func VerifyOnChain(msg []byte, signature []byte, signers EthAddresses,
-) (types.OracleID, error) {
+) (commontypes.OracleID, error) {
 	author, err := crypto.SigToPub(onChainHash(msg), signature)
 	if err != nil {
-		return types.OracleID(-1), errors.Wrapf(err, "while trying to recover "+
+		return commontypes.OracleID(math.MaxUint8), errors.Wrapf(err, "while trying to recover "+
 			"sender from sig %x on msg %+v", signature, msg)
 	}
 	oid, ok := signers[(*OnChainPublicKey)(author).Address()]
 	if ok {
 		return oid, nil
 	} else {
-		return types.OracleID(-1), errors.Errorf("signer is not on whitelist")
+		return commontypes.OracleID(math.MaxUint8), errors.Errorf("signer is not on whitelist")
 	}
 }
 

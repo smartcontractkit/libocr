@@ -103,9 +103,6 @@ func (o setConfigEncodedComponents) serializationRepresentation() setConfigSeria
 	for i, k := range o.OffchainPublicKeys {
 		publicKeys[i] = common.BytesToHash(k)
 	}
-	if o.RMax < 0 {
-		panic(fmt.Sprintf("rMax must be non-negative, got %d", o.RMax))
-	}
 	return setConfigSerializationTypes{
 		int64(o.DeltaProgress),
 		int64(o.DeltaResend),

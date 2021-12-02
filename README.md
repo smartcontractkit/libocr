@@ -18,9 +18,11 @@ The nodes then attempt to transmit the final report to the smart contract accord
 ```
 .
 ├── contract: Ethereum smart contracts
-├── gethwrappers: go-ethereum bindings for the contracts, generated with abigen
-├── networking: libp2p-based p2p networking layer
-├── offchainreporting: offchain reporting protocol
+├── gethwrappers: go-ethereum bindings for the OCR1 contracts, generated with abigen
+├── gethwrappers2: go-ethereum bindings for the OCR2 contracts, generated with abigen
+├── networking: p2p networking layer
+├── offchainreporting: offchain reporting protocol version 1
+├── offchainreporting2: offchain reporting protocol version 2
 ├── permutation: helper package for generating permutations
 └── subprocesses: helper package for managing go routines
 ```

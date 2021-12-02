@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -53,7 +54,7 @@ func (ps *persistState) run() {
 		select {
 		case state, ok := <-ps.chPersist:
 			if !ok {
-				ps.logger.Error("Persist: chPersist closed unexpectedly, can no longer persist state. This should *not* happen.", types.LogFields{
+				ps.logger.Error("Persist: chPersist closed unexpectedly, can no longer persist state. This should *not* happen.", commontypes.LogFields{
 					"lastWrittenState": ps.writtenState,
 				})
 				return
@@ -63,7 +64,7 @@ func (ps *persistState) run() {
 				select {
 				case state, ok = <-ps.chPersist:
 					if !ok {
-						ps.logger.Error("Persist: chPersist closed unexpectedly, can no longer persist state. This should *not* happen.", types.LogFields{
+						ps.logger.Error("Persist: chPersist closed unexpectedly, can no longer persist state. This should *not* happen.", commontypes.LogFields{
 							"lastWrittenState": ps.writtenState,
 						})
 						return
@@ -96,7 +97,7 @@ func (ps *persistState) writeIfNew(pendingState types.PersistentState) {
 		pendingState,
 	)
 	if err != nil {
-		ps.logger.ErrorIfNotCanceled("Persist: unexpected error while persisting state to database", writeCtx, types.LogFields{
+		ps.logger.ErrorIfNotCanceled("Persist: unexpected error while persisting state to database", writeCtx, commontypes.LogFields{
 			"error": err,
 		})
 		return

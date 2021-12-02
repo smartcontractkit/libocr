@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"golang.org/x/sync/semaphore"
@@ -14,12 +15,12 @@ import (
 type BootstrapNodeArgs struct {
 	BootstrapperFactory   types.BootstrapperFactory
 	V1Bootstrappers       []string
-	V2Bootstrappers       []types.BootstrapperLocator
+	V2Bootstrappers       []commontypes.BootstrapperLocator
 	ContractConfigTracker types.ContractConfigTracker
 	Database              types.Database
 	LocalConfig           types.LocalConfig
-	Logger                types.Logger
-	MonitoringEndpoint    types.MonitoringEndpoint
+	Logger                commontypes.Logger
+	MonitoringEndpoint    commontypes.MonitoringEndpoint
 }
 
 // BootstrapNode connects to a particular feed and listens for config changes,

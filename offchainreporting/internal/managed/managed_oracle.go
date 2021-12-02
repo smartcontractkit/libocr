@@ -5,23 +5,24 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/serialization/protobuf"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/shim"
-	"github.com/smartcontractkit/libocr/offchainreporting/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 // RunManagedOracle runs a "managed" version of protocol.RunOracle. It handles
-// configuration updates and translating from types.BinaryNetworkEndpoint to
+// configuration updates and translating from commontypes.BinaryNetworkEndpoint to
 // protocol.NetworkEndpoint.
 func RunManagedOracle(
 	ctx context.Context,
 
 	v1bootstrappers []string,
-	v2bootstrappers []types.BootstrapperLocator,
+	v2bootstrappers []commontypes.BootstrapperLocator,
 	configOverrider types.ConfigOverrider,
 	configTracker types.ContractConfigTracker,
 	contractTransmitter types.ContractTransmitter,
@@ -29,7 +30,7 @@ func RunManagedOracle(
 	datasource types.DataSource,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
-	monitoringEndpoint types.MonitoringEndpoint,
+	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	privateKeys types.PrivateKeys,
 ) {
@@ -56,7 +57,7 @@ type managedOracleState struct {
 	ctx context.Context
 
 	v1bootstrappers     []string
-	v2bootstrappers     []types.BootstrapperLocator
+	v2bootstrappers     []commontypes.BootstrapperLocator
 	config              config.SharedConfig
 	configOverrider     types.ConfigOverrider
 	configTracker       types.ContractConfigTracker
@@ -65,7 +66,7 @@ type managedOracleState struct {
 	datasource          types.DataSource
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
-	monitoringEndpoint  types.MonitoringEndpoint
+	monitoringEndpoint  commontypes.MonitoringEndpoint
 	netEndpointFactory  types.BinaryNetworkEndpointFactory
 	privateKeys         types.PrivateKeys
 
@@ -101,7 +102,7 @@ func (mo *managedOracleState) run() {
 			},
 		)
 		if !ok {
-			mo.logger.Error("ManagedOracle: database timed out while attempting to restore configuration", types.LogFields{
+			mo.logger.Error("ManagedOracle: database timed out while attempting to restore configuration", commontypes.LogFields{
 				"timeout": mo.localConfig.DatabaseTimeout,
 			})
 		} else if cc != nil {
@@ -118,7 +119,7 @@ func (mo *managedOracleState) run() {
 	for {
 		select {
 		case change := <-chNewConfig:
-			mo.logger.Info("ManagedOracle: switching between configs", types.LogFields{
+			mo.logger.Info("ManagedOracle: switching between configs", commontypes.LogFields{
 				"oldConfigDigest": mo.config.ConfigDigest.Hex(),
 				"newConfigDigest": change.ConfigDigest.Hex(),
 			})
@@ -139,7 +140,7 @@ func (mo *managedOracleState) closeOracle() {
 		mo.oracleSubprocesses.Wait()
 		err := mo.netEndpoint.Close()
 		if err != nil {
-			mo.logger.Error("ManagedOracle: error while closing BinaryNetworkEndpoint", types.LogFields{
+			mo.logger.Error("ManagedOracle: error while closing BinaryNetworkEndpoint", commontypes.LogFields{
 				"error": err,
 			})
 			// nothing to be done about it, let's try to carry on.
@@ -156,7 +157,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 	// Decode contractConfig
 	skipChainSpecificChecks := mo.localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 	var err error
-	var oid types.OracleID
+	var oid commontypes.OracleID
 	mo.config, oid, err = config.SharedConfigFromContractConfig(
 		mo.contractTransmitter.ChainID(),
 		skipChainSpecificChecks,
@@ -166,7 +167,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		mo.contractTransmitter.FromAddress(),
 	)
 	if err != nil {
-		mo.logger.Error("ManagedOracle: error while updating config", types.LogFields{
+		mo.logger.Error("ManagedOracle: error while updating config", commontypes.LogFields{
 			"error": err,
 		})
 		return
@@ -178,7 +179,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		peerIDs = append(peerIDs, identity.PeerID)
 	}
 
-	childLogger := mo.logger.MakeChild(types.LogFields{
+	childLogger := mo.logger.MakeChild(commontypes.LogFields{
 		"configDigest": fmt.Sprintf("%x", mo.config.ConfigDigest),
 		"oid":          oid,
 	})
@@ -187,7 +188,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 		mo.v1bootstrappers, mo.v2bootstrappers, mo.config.F, computeTokenBucketRefillRate(mo.config.PublicConfig),
 		computeTokenBucketSize())
 	if err != nil {
-		mo.logger.Error("ManagedOracle: error during NewEndpoint", types.LogFields{
+		mo.logger.Error("ManagedOracle: error during NewEndpoint", commontypes.LogFields{
 			"error":           err,
 			"configDigest":    mo.config.ConfigDigest,
 			"peerIDs":         peerIDs,
@@ -204,7 +205,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 	)
 
 	if err := netEndpoint.Start(); err != nil {
-		mo.logger.Error("ManagedOracle: error during netEndpoint.Start()", types.LogFields{
+		mo.logger.Error("ManagedOracle: error during netEndpoint.Start()", commontypes.LogFields{
 			"error":        err,
 			"configDigest": mo.config.ConfigDigest,
 		})
@@ -235,7 +236,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 	childCtx, childCancel := context.WithTimeout(mo.ctx, mo.localConfig.DatabaseTimeout)
 	defer childCancel()
 	if err := mo.database.WriteConfig(childCtx, contractConfig); err != nil {
-		mo.logger.ErrorIfNotCanceled("ManagedOracle: error writing new config to database", childCtx, types.LogFields{
+		mo.logger.ErrorIfNotCanceled("ManagedOracle: error writing new config to database", childCtx, commontypes.LogFields{
 			"configDigest": mo.config.ConfigDigest,
 			"config":       contractConfig,
 			"error":        err,

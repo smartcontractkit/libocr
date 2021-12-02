@@ -5,20 +5,20 @@ import (
 	"net"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/smartcontractkit/libocr/commontypes"
 	"golang.org/x/time/rate"
 )
 
 type RateLimitedConn struct {
 	net.Conn
 	bandwidthLimiter    *rate.Limiter
-	logger              types.Logger
+	logger              commontypes.Logger
 	rateLimitingEnabled bool
 }
 
 var _ net.Conn = (*RateLimitedConn)(nil)
 
-func NewRateLimitedConn(conn net.Conn, bandwidthLimiter *rate.Limiter, logger types.Logger) *RateLimitedConn {
+func NewRateLimitedConn(conn net.Conn, bandwidthLimiter *rate.Limiter, logger commontypes.Logger) *RateLimitedConn {
 	return &RateLimitedConn{
 		conn,
 		bandwidthLimiter,
@@ -43,7 +43,7 @@ func (r *RateLimitedConn) Read(b []byte) (n int, err error) {
 	}
 	// kill the conn: close it and emit an error
 	_ = r.Conn.Close() // ignore error, there's not much we can with it here
-	r.logger.Error("inbound data exceeded rate limit, connection closed", types.LogFields{
+	r.logger.Error("inbound data exceeded rate limit, connection closed", commontypes.LogFields{
 		"tokenBucketRefillRate": r.bandwidthLimiter.Limit(),
 		"tokenBucketSize":       r.bandwidthLimiter.Burst(),
 		"bytesRead":             n,
