@@ -107,8 +107,8 @@ func XXXContractSetConfigArgsFromSharedConfig(
 	c SharedConfig,
 	sharedSecretEncryptionPublicKeys []types.ConfigEncryptionPublicKey,
 ) (
-	signers []common.Address,
-	transmitters []common.Address,
+	signers []types.OnchainPublicKey,
+	transmitters []types.Account,
 	f uint8,
 	onchainConfig []byte,
 	offchainConfigVersion uint64,
@@ -118,14 +118,8 @@ func XXXContractSetConfigArgsFromSharedConfig(
 	offChainPublicKeys := []types.OffchainPublicKey{}
 	peerIDs := []string{}
 	for _, identity := range c.OracleIdentities {
-		if len(identity.OnchainPublicKey) != 20 {
-			return nil, nil, 0, nil, 0, nil, fmt.Errorf("OnChainPublicKey has wrong length for address")
-		}
-		if !common.IsHexAddress(string(identity.TransmitAccount)) {
-			return nil, nil, 0, nil, 0, nil, fmt.Errorf("TransmitAccount is not a valid Ethereum address")
-		}
-		signers = append(signers, common.BytesToAddress(identity.OnchainPublicKey))
-		transmitters = append(transmitters, common.HexToAddress(string(identity.TransmitAccount)))
+		signers = append(signers, identity.OnchainPublicKey)
+		transmitters = append(transmitters, identity.TransmitAccount)
 		offChainPublicKeys = append(offChainPublicKeys, identity.OffchainPublicKey)
 		peerIDs = append(peerIDs, identity.PeerID)
 	}
@@ -156,4 +150,40 @@ func XXXContractSetConfigArgsFromSharedConfig(
 	}).serialize()
 	err = nil
 	return
+}
+
+func XXXContractSetConfigArgsFromSharedConfigEthereum(
+	c SharedConfig,
+	sharedSecretEncryptionPublicKeys []types.ConfigEncryptionPublicKey,
+) (
+	signers []common.Address,
+	transmitters []common.Address,
+	f uint8,
+	onchainConfig []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
+	err error,
+) {
+	signerOnchainPublicKeys, transmitterAccounts, f, onchainConfig, offchainConfigVersion, offchainConfig, err :=
+		XXXContractSetConfigArgsFromSharedConfig(c, sharedSecretEncryptionPublicKeys)
+	if err != nil {
+		return nil, nil, 0, nil, 0, nil, err
+
+	}
+
+	for _, signer := range signerOnchainPublicKeys {
+		if len(signer) != 20 {
+			return nil, nil, 0, nil, 0, nil, fmt.Errorf("OnChainPublicKey has wrong length for address")
+		}
+		signers = append(signers, common.BytesToAddress(signer))
+	}
+
+	for _, transmitter := range transmitterAccounts {
+		if !common.IsHexAddress(string(transmitter)) {
+			return nil, nil, 0, nil, 0, nil, fmt.Errorf("TransmitAccount is not a valid Ethereum address")
+		}
+		transmitters = append(transmitters, common.HexToAddress(string(transmitter)))
+	}
+
+	return signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig, err
 }

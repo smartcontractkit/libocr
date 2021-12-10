@@ -152,7 +152,7 @@ func (c *KnockingTLSTransport) SecureInbound(ctx context.Context, insecure net.C
 	if !found {
 		c.logger.Error("Failed to find a rate limiter for inbound connection", commontypes.LogFields{
 			"forPeerID":         peerId.Pretty(),
-			"availableLimiters": c.bandwidthLimiters.limiters,
+			"availableLimiters": c.bandwidthLimiters.Get(),
 		})
 		return nil, fmt.Errorf("Failed to find a rate limiter for peerID=%s in SecureInbound", peerId.Pretty())
 	}
@@ -217,7 +217,7 @@ func (c *KnockingTLSTransport) SecureOutbound(ctx context.Context, insecure net.
 	if !found {
 		c.logger.Error("Failed to find a rate limiter for outbound connection", commontypes.LogFields{
 			"forPeerID":         p.Pretty(),
-			"availableLimiters": c.bandwidthLimiters.limiters,
+			"availableLimiters": c.bandwidthLimiters.Get(),
 		})
 		return nil, fmt.Errorf("Failed to find a rate limiter for peerID=%s in SecureOutbound", p.Pretty())
 	}

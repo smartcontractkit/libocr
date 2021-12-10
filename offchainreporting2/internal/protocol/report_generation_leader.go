@@ -204,11 +204,10 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender c
 		}
 	case phaseGrace:
 		repgen.logger.Debug("accepted extra observation during grace period", nil)
-	default:
-		repgen.logger.Error("unexpected phase", commontypes.LogFields{
-			"round": repgen.leaderState.r,
-			"phase": repgen.leaderState.phase,
-		})
+	case phaseFinal:
+		repgen.logger.Error("unexpected phase phaseFinal", commontypes.LogFields{"round": repgen.leaderState.r})
+	case phaseReport:
+		repgen.logger.Error("unexpected phase phaseReport", commontypes.LogFields{"round": repgen.leaderState.r})
 	}
 }
 

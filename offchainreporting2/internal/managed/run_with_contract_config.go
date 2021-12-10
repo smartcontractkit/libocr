@@ -124,7 +124,7 @@ func (rwcc *runWithContractConfigState) configChanged(contractConfig types.Contr
 
 	// note that there is an analogous check in TrackConfig, so this should never trigger.
 	if err := rwcc.configDigester.CheckContractConfig(contractConfig); err != nil {
-		rwcc.logger.Error("runWithContractConfig: error checking ConfigDigest while attempting to change configuration", commontypes.LogFields{
+		rwcc.logger.Error("runWithContractConfig: detected corruption while attempting to change configuration", commontypes.LogFields{
 			"err":            err,
 			"contractConfig": contractConfig,
 		})

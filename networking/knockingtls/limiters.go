@@ -122,7 +122,25 @@ func (ls *Limiters) Find(peerID p2ppeer.ID) (*rate.Limiter, bool) {
 	return l.limiter, true
 }
 
+type refCountLimiterArgs struct {
+	refCount   int
+	refillRate int64
+}
+
+func (ls *Limiters) Get() map[p2ppeer.ID]refCountLimiterArgs {
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+	cp := make(map[p2ppeer.ID]refCountLimiterArgs)
+	for pid, limiter := range ls.limiters {
+		// avoid having to copy the actual limiter, only keep the parameters
+		cp[pid] = refCountLimiterArgs{limiter.refCount, limiter.refillRate}
+	}
+	return cp
+}
+
 func (ls *Limiters) String() string {
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
 	var b strings.Builder
 	b.WriteString("Limiters {")
 	for key, l := range ls.limiters {

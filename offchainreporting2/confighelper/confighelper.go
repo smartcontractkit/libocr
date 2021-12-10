@@ -92,8 +92,9 @@ type OracleIdentityExtra struct {
 	ConfigEncryptionPublicKey types.ConfigEncryptionPublicKey
 }
 
-// ContractSetConfigArgsForIntegrationTest generates setConfig args for integration tests in core
-func ContractSetConfigArgsForIntegrationTest(
+// ContractSetConfigArgsForIntegrationTest generates setConfig args for integration tests in core.
+// Only use this for testing, *not* for production.
+func ContractSetConfigArgsForEthereumIntegrationTest(
 	oracles []OracleIdentityExtra,
 	f int,
 	alphaPPB uint64,
@@ -147,12 +148,12 @@ func ContractSetConfigArgsForIntegrationTest(
 		},
 		&[config.SharedSecretSize]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8},
 	}
-	return config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, sharedSecretEncryptionPublicKeys)
+	return config.XXXContractSetConfigArgsFromSharedConfigEthereum(sharedConfig, sharedSecretEncryptionPublicKeys)
 }
 
 // ContractSetConfigArgs generates setConfig args from the relevant parameters.
 // Only use this for testing, *not* for production.
-func ContractSetConfigArgs(
+func ContractSetConfigArgsForTests(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
 	deltaRound time.Duration,
@@ -171,8 +172,8 @@ func ContractSetConfigArgs(
 	f int,
 	onchainConfig []byte,
 ) (
-	signers []common.Address,
-	transmitters []common.Address,
+	signers []types.OnchainPublicKey,
+	transmitters []types.Account,
 	f_ uint8,
 	onchainConfig_ []byte,
 	offchainConfigVersion uint64,

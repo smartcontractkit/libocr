@@ -93,7 +93,7 @@ func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 		return OffchainConfig{}, err
 	}
 
-	deltaC := time.Duration(configProto.GetDeltaC())
+	deltaC := time.Duration(configProto.GetDeltaCNanoseconds())
 	if !(0 <= deltaC) {
 		return OffchainConfig{}, fmt.Errorf("DeltaC (%v) must be non-negative", deltaC)
 	}
@@ -103,7 +103,7 @@ func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 		configProto.GetAlphaReportPpb(),
 		configProto.GetAlphaAcceptInfinite(),
 		configProto.GetAlphaAcceptPpb(),
-		time.Duration(configProto.GetDeltaC()),
+		time.Duration(configProto.GetDeltaCNanoseconds()),
 	}, nil
 }
 
