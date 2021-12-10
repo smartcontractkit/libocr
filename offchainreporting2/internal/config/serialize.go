@@ -88,21 +88,21 @@ func deprotoOffchainConfig(
 	}
 
 	return offchainConfig{
-		time.Duration(offchainConfigProto.GetDeltaProgress()),
-		time.Duration(offchainConfigProto.GetDeltaResend()),
-		time.Duration(offchainConfigProto.GetDeltaRound()),
-		time.Duration(offchainConfigProto.GetDeltaGrace()),
-		time.Duration(offchainConfigProto.GetDeltaStage()),
+		time.Duration(offchainConfigProto.GetDeltaProgressNanoseconds()),
+		time.Duration(offchainConfigProto.GetDeltaResendNanoseconds()),
+		time.Duration(offchainConfigProto.GetDeltaRoundNanoseconds()),
+		time.Duration(offchainConfigProto.GetDeltaGraceNanoseconds()),
+		time.Duration(offchainConfigProto.GetDeltaStageNanoseconds()),
 		uint8(offchainConfigProto.GetRMax()),
 		S,
 		offchainPublicKeys,
 		offchainConfigProto.GetPeerIds(),
 		offchainConfigProto.GetReportingPluginConfig(),
-		time.Duration(offchainConfigProto.GetMaxDurationQuery()),
-		time.Duration(offchainConfigProto.GetMaxDurationObservation()),
-		time.Duration(offchainConfigProto.GetMaxDurationReport()),
-		time.Duration(offchainConfigProto.GetMaxDurationShouldAcceptFinalizedReport()),
-		time.Duration(offchainConfigProto.GetMaxDurationShouldTransmitAcceptedReport()),
+		time.Duration(offchainConfigProto.GetMaxDurationQueryNanoseconds()),
+		time.Duration(offchainConfigProto.GetMaxDurationObservationNanoseconds()),
+		time.Duration(offchainConfigProto.GetMaxDurationReportNanoseconds()),
+		time.Duration(offchainConfigProto.GetMaxDurationShouldAcceptFinalizedReportNanoseconds()),
+		time.Duration(offchainConfigProto.GetMaxDurationShouldTransmitAcceptedReportNanoseconds()),
 		sharedSecretEncryptions,
 	}, nil
 }

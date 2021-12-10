@@ -141,7 +141,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	// Ignore configs where the configDigest doesn't match, they might have
 	// been corrupted somehow.
 	if err := state.configDigester.CheckContractConfig(contractConfig); err != nil {
-		state.logger.Error("TrackConfig: received config change with ConfigDigest mismatch", commontypes.LogFields{
+		state.logger.Error("TrackConfig: received corrupted config change", commontypes.LogFields{
 			"error":          err,
 			"contractConfig": contractConfig,
 		})
