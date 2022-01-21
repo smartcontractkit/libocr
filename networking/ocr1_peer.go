@@ -24,17 +24,17 @@ func (o *ocr1BinaryNetworkEndpointFactory) NewEndpoint(
 	pids []string,
 	v1bootstrappers []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
-	failureThreshold int,
+	f int,
 	messagesRatePerOracle float64,
 	messagesCapacityPerOracle int,
 ) (commontypes.BinaryNetworkEndpoint, error) {
-	return o.concretePeer.newEndpoint(
-		o.concretePeer.networkingStack,
+	return o.newEndpoint(
+		o.networkingStack,
 		configDigest.Expand(),
 		pids,
 		v1bootstrappers,
 		v2bootstrappers,
-		failureThreshold,
+		f,
 		BinaryNetworkEndpointLimits{
 			MaxOCRMsgLength,
 			messagesRatePerOracle,
@@ -54,14 +54,14 @@ func (o *ocr1BootstrapperFactory) NewBootstrapper(
 	peerIDs []string,
 	v1bootstrappers []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
-	failureThreshold int,
+	f int,
 ) (commontypes.Bootstrapper, error) {
-	return o.concretePeer.newBootstrapper(
-		o.concretePeer.networkingStack,
+	return o.newBootstrapper(
+		o.networkingStack,
 		configDigest.Expand(),
 		peerIDs,
 		v1bootstrappers,
 		v2bootstrappers,
-		failureThreshold,
+		f,
 	)
 }

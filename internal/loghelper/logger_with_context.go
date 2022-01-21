@@ -2,6 +2,7 @@ package loghelper
 
 import (
 	"context"
+	"errors"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 )
@@ -48,7 +49,7 @@ func (l loggerWithContextImpl) Critical(msg string, fields commontypes.LogFields
 }
 
 func (l loggerWithContextImpl) ErrorIfNotCanceled(msg string, ctx context.Context, fields commontypes.LogFields) {
-	if ctx.Err() != context.Canceled {
+	if !errors.Is(ctx.Err(), context.Canceled) {
 		l.logger.Error(msg, Merge(l.context, fields))
 	} else {
 		l.logger.Debug("logging as debug due to context cancelation: "+msg, Merge(l.context, fields))

@@ -1,15 +1,15 @@
 package networking
 
 import (
-	"go.uber.org/multierr"
+	"fmt"
+	"sync"
 	"time"
 
-	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
+	"go.uber.org/multierr"
+
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
@@ -21,25 +21,52 @@ const (
 	lastHeardReportInterval = 5 * time.Minute
 )
 
+type ocrEndpointV1V2State int
+
+const (
+	_ ocrEndpointV1V2State = iota
+	ocrEndpointV1V2Unstarted
+	ocrEndpointV1V2Started
+	ocrEndpointV1V2Closed
+)
+
 type ocrEndpointV1V2 struct {
-	logger     commontypes.Logger
-	v2peerIDs  []ragetypes.PeerID // only useful for logging
-	numOracles int
-	endpoints  []commontypes.BinaryNetworkEndpoint
-	chRecv     chan commontypes.BinaryMessageWithSender
-	processes  subprocesses.Subprocesses
-	chClose    chan struct{}
+	stateMu   sync.RWMutex
+	state     ocrEndpointV1V2State
+	v2Started bool // we operate even if v2 won't properly start
+
+	logger    commontypes.Logger
+	peerIDs   []string
+	v1        commontypes.BinaryNetworkEndpoint
+	v2        commontypes.BinaryNetworkEndpoint
+	chRecv    chan commontypes.BinaryMessageWithSender
+	processes subprocesses.Subprocesses
+	chClose   chan struct{}
 }
 
 func (o *ocrEndpointV1V2) SendTo(payload []byte, to commontypes.OracleID) {
-	for _, e := range o.endpoints {
-		e.SendTo(payload, to)
+	o.stateMu.RLock()
+	defer o.stateMu.RUnlock()
+	if o.state != ocrEndpointV1V2Started {
+		o.logger.Error("ocrEndpointV1V2 asked to SentTo while not in started state", commontypes.LogFields{"state": o.state})
+		return
+	}
+	o.v1.SendTo(payload, to)
+	if o.v2Started {
+		o.v2.SendTo(payload, to)
 	}
 }
 
 func (o *ocrEndpointV1V2) Broadcast(payload []byte) {
-	for _, e := range o.endpoints {
-		e.Broadcast(payload)
+	o.stateMu.RLock()
+	defer o.stateMu.RUnlock()
+	if o.state != ocrEndpointV1V2Started {
+		o.logger.Error("ocrEndpointV1V2 asked to Broadcast while not in started state", commontypes.LogFields{"state": o.state})
+		return
+	}
+	o.v1.Broadcast(payload)
+	if o.v2Started {
+		o.v2.Broadcast(payload)
 	}
 }
 
@@ -48,17 +75,24 @@ func (o *ocrEndpointV1V2) Receive() <-chan commontypes.BinaryMessageWithSender {
 }
 
 func (o *ocrEndpointV1V2) mergeRecvs() {
-	chRecvs := make([]<-chan commontypes.BinaryMessageWithSender, 2)
-	for i, e := range o.endpoints {
-		chRecvs[i] = e.Receive()
-	}
 	const V1, V2 = 0, 1
-	lastHeardV2 := make([]time.Time, o.numOracles)
-	messagesSinceLastReportV1, messagesSinceLastReportV2 := make([]int, o.numOracles), make([]int, o.numOracles)
-	messagesSinceStartupV1, messagesSinceStartupV2 := make([]int, o.numOracles), make([]int, o.numOracles)
-	lastMessageWasV1OrV2 := make([]string, o.numOracles)
-	switchesSinceLastReport, switchesSinceStartup := make([]int, o.numOracles), make([]int, o.numOracles)
-	for i := 0; i < o.numOracles; i++ {
+	chRecvs := make([]<-chan commontypes.BinaryMessageWithSender, 2)
+	o.stateMu.RLock()
+	if o.state != ocrEndpointV1V2Started {
+		o.stateMu.RUnlock()
+		return
+	}
+	chRecvs[V1] = o.v1.Receive()
+	if o.v2Started {
+		chRecvs[V2] = o.v2.Receive()
+	}
+	o.stateMu.RUnlock()
+	lastHeardV2 := make([]time.Time, len(o.peerIDs))
+	messagesSinceLastReportV1, messagesSinceLastReportV2 := make([]int, len(o.peerIDs)), make([]int, len(o.peerIDs))
+	messagesSinceStartupV1, messagesSinceStartupV2 := make([]int, len(o.peerIDs)), make([]int, len(o.peerIDs))
+	lastMessageWasV1OrV2 := make([]string, len(o.peerIDs))
+	switchesSinceLastReport, switchesSinceStartup := make([]int, len(o.peerIDs)), make([]int, len(o.peerIDs))
+	for i := 0; i < len(o.peerIDs); i++ {
 		lastHeardV2[i] = time.Now().Add(-v2InactivityTimeout + v2Headstart)
 		lastMessageWasV1OrV2[i] = "none"
 	}
@@ -104,7 +138,7 @@ func (o *ocrEndpointV1V2) mergeRecvs() {
 				durationSinceLastHeardV2[i] = now.Sub(lastTime)
 			}
 			o.logger.Info("OCR endpoint v1v2 status report", commontypes.LogFields{
-				"peerIDs":                   o.v2peerIDs,
+				"peerIDs":                   o.peerIDs,
 				"durationSinceLastHeardV2":  durationSinceLastHeardV2,
 				"messagesSinceLastReportV2": messagesSinceLastReportV2,
 				"messagesSinceStartupV2":    messagesSinceStartupV2,
@@ -114,7 +148,7 @@ func (o *ocrEndpointV1V2) mergeRecvs() {
 				"switchesSinceStartup":      switchesSinceStartup,
 				"lastMessageWasV1OrV2":      lastMessageWasV1OrV2,
 			})
-			for i := 0; i < o.numOracles; i++ {
+			for i := 0; i < len(o.peerIDs); i++ {
 				messagesSinceLastReportV1[i] = 0
 				messagesSinceLastReportV2[i] = 0
 				switchesSinceLastReport[i] = 0
@@ -125,6 +159,10 @@ func (o *ocrEndpointV1V2) mergeRecvs() {
 	}
 }
 
+// Start starts the underlying v1 and v2 OCR endpoints. In case the v2 endpoint
+// fails, we log an error but do not return it. ocrEndpointV1V2 is designed to
+// be resilient against v2 failing to Start and will operate using only v1 if
+// needed.
 func (o *ocrEndpointV1V2) Start() error {
 	succeeded := false
 	defer func() {
@@ -133,10 +171,20 @@ func (o *ocrEndpointV1V2) Start() error {
 		}
 	}()
 
-	for _, e := range o.endpoints {
-		if err := e.Start(); err != nil {
-			return err
-		}
+	o.stateMu.Lock()
+	defer o.stateMu.Unlock()
+	if o.state != ocrEndpointV1V2Unstarted {
+		return fmt.Errorf("cannot Start ocrEndpointV1V2 that is in state %v", o.state)
+	}
+	o.state = ocrEndpointV1V2Started
+
+	if err := o.v1.Start(); err != nil {
+		return err
+	}
+	if err := o.v2.Start(); err != nil {
+		o.logger.Error("Failed to start v2 OCR endpoint as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
+	} else {
+		o.v2Started = true
 	}
 	o.processes.Go(o.mergeRecvs)
 	succeeded = true
@@ -144,61 +192,38 @@ func (o *ocrEndpointV1V2) Start() error {
 }
 
 func (o *ocrEndpointV1V2) Close() error {
+	o.stateMu.Lock()
+	defer o.stateMu.Unlock()
+	if o.state != ocrEndpointV1V2Started {
+		return fmt.Errorf("cannot Close ocrEndpointV1V2 that is in state %v", o.state)
+	}
+	o.state = ocrEndpointV1V2Closed
+
 	close(o.chClose)
 	o.processes.Wait()
 	var allErrors error
-	for _, e := range o.endpoints {
-		allErrors = multierr.Append(allErrors, e.Close())
-	}
+	allErrors = multierr.Append(allErrors, o.v1.Close())
+	allErrors = multierr.Append(allErrors, o.v2.Close())
 	return allErrors
 }
 
 func newOCREndpointV1V2(
 	logger loghelper.LoggerWithContext,
-	configDigest ocr2types.ConfigDigest,
-	peer *concretePeer,
-	v1peerIDs []p2ppeer.ID,
-	v2peerIDs []ragetypes.PeerID,
-	v1bootstrappers []p2ppeer.AddrInfo,
-	v2bootstrappers []ragetypes.PeerInfo,
-	config EndpointConfig,
-	failureThreshold int,
-	limits BinaryNetworkEndpointLimits,
+	peerIDs []string,
+	ocrV1 commontypes.BinaryNetworkEndpoint,
+	ocrV2 commontypes.BinaryNetworkEndpoint,
 ) (*ocrEndpointV1V2, error) {
-	ocrV1, err := newOCREndpointV1(
-		logger,
-		configDigest,
-		peer,
-		v1peerIDs,
-		v1bootstrappers,
-		config,
-		failureThreshold,
-		limits,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create v1 ocr endpoint")
-	}
-	ocrV2, err := newOCREndpointV2(
-		logger,
-		configDigest,
-		peer,
-		v2peerIDs,
-		v2bootstrappers,
-		EndpointConfigV2{
-			config.IncomingMessageBufferSize,
-			config.OutgoingMessageBufferSize,
-		},
-		failureThreshold,
-		limits,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create v2 ocr endpoint")
+	if ocrV1 == nil || ocrV2 == nil {
+		return nil, errors.New("cannot accept nil ocr endpoints")
 	}
 	return &ocrEndpointV1V2{
+		sync.RWMutex{},
+		ocrEndpointV1V2Unstarted,
+		false,
 		logger,
-		v2peerIDs,
-		len(v2peerIDs),
-		[]commontypes.BinaryNetworkEndpoint{ocrV1, ocrV2},
+		peerIDs,
+		ocrV1,
+		ocrV2,
 		make(chan commontypes.BinaryMessageWithSender),
 		subprocesses.Subprocesses{},
 		make(chan struct{}),

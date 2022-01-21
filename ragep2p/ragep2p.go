@@ -654,7 +654,7 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 		return
 	}
 	if _, err := conn.Write(knck); err != nil {
-		logger.Error("Error while sending knock", commontypes.LogFields{"error": err})
+		logger.Warn("Error while sending knock", commontypes.LogFields{"error": err})
 		return
 	}
 
@@ -698,17 +698,17 @@ func (ho *Host) handleIncomingConnection(conn net.Conn) {
 	}
 	n, err := conn.Read(knck)
 	if err != nil {
-		logger.Error("Error while reading knock", commontypes.LogFields{"error": err})
+		logger.Warn("Error while reading knock", commontypes.LogFields{"error": err})
 		return
 	}
 	if n != knock.KnockSize {
-		logger.Error("Knock too short", nil)
+		logger.Warn("Knock too short", nil)
 		return
 	}
 
 	other, err := knock.VerifyKnock(ho.id, knck)
 	if err != nil {
-		logger.Error("Invalid knock", commontypes.LogFields{"error": err})
+		logger.Warn("Invalid knock", commontypes.LogFields{"error": err})
 		return
 	}
 

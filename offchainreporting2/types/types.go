@@ -5,39 +5,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
-	"fmt"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"golang.org/x/crypto/curve25519"
 )
-
-type ConfigDigest [32]byte
-
-func (c ConfigDigest) Hex() string {
-	return fmt.Sprintf("%x", c[:])
-}
-
-func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
-	configDigest := ConfigDigest{}
-
-	if len(b) != len(configDigest) {
-		return ConfigDigest{}, fmt.Errorf("cannot convert bytes to ConfigDigest. bytes have wrong length %v", len(b))
-	}
-
-	if n := copy(configDigest[:], b); n != len(configDigest) {
-		panic("copy returned wrong length")
-	}
-
-	return configDigest, nil
-}
-
-// Truncate ConfigDigest to 16 bytes like in OCR1
-func (c ConfigDigest) Truncate() [16]byte {
-	var result [16]byte
-	copy(result[:], c[:])
-	return result
-}
 
 type BinaryNetworkEndpointLimits struct {
 	MaxMessageLength          int
@@ -113,19 +85,22 @@ func (as AttributedOnchainSignature) Equal(other AttributedOnchainSignature) boo
 }
 
 type ReportingPluginFactory interface {
+	// Creates a new reporting plugin instance. The instance may have
+	// associated goroutines or hold system resources, which should be
+	// released when its Close() function is called.
 	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
 	ConfigDigest ConfigDigest
 
-	// OracleID (index) of the oracle executing this ReportingPlugin instance
+	// OracleID (index) of the oracle executing this ReportingPlugin instance.
 	OracleID commontypes.OracleID
 
-	// N is the total number of nodes
+	// N is the total number of nodes.
 	N int
 
-	// F is an upper bound on the number of faulty nodes
+	// F is an upper bound on the number of faulty nodes.
 	F int
 
 	// Encoded configuration for the contract
@@ -272,14 +247,19 @@ type ReportingPlugin interface {
 	// is called.
 	ShouldTransmitAcceptedReport(context.Context, ReportTimestamp, Report) (bool, error)
 
-	// Start is called before any of the other functions defined by this
-	// interface. If Start returns an error, Close may not be called.
-	Start() error
-
-	// If Close is called a second time, it may return an error but most not
-	// panic.
+	// If Close is called a second time, it may return an error but must not
+	// panic. This will always be called when a ReportingPlugin is no longer
+	// needed. This will only be called after any calls to other functions
+	// of the ReportingPlugin will have completed.
 	Close() error
 }
+
+const (
+	twoHundredFiftySixMiB = 256 * 1024 * 1024     // 256 MiB
+	MaxMaxQueryLen        = twoHundredFiftySixMiB // 256 MiB
+	MaxMaxObservationLen  = twoHundredFiftySixMiB // 256 MiB
+	MaxMaxReportLen       = twoHundredFiftySixMiB // 256 MiB
+)
 
 type ReportingPluginInfo struct {
 	// Used for debugging purposes.
@@ -372,28 +352,28 @@ type ConfigEncryptionPublicKey [curve25519.PointSize]byte // X25519
 
 // OffchainKeyring contains the secret keys needed for the OCR protocol, and methods
 // which use those keys without exposing them to the rest of the application.
-// There are three key pairs to track, here:
+// There are two key pairs to track, here:
 //
-// - The off-chain key signing key pair (Ed25519), used to sign observations
+// First, the off-chain key signing key pair (Ed25519), used to sign observations.
 //
-// - The config encryption key (X25519), used to decrypt the symmetric
+// Second, the config encryption key (X25519), used to decrypt the symmetric
 // key which encrypts the offchain configuration data passed through the OCR2Aggregator
 // smart contract.
 //
 // All its functions should be thread-safe.
 type OffchainKeyring interface {
 	// OffchainSign returns an EdDSA-Ed25519 signature on msg produced using the
-	// standard library's ed25519.Sign function
+	// standard library's ed25519.Sign function.
 	OffchainSign(msg []byte) (signature []byte, err error)
 
 	// ConfigDiffieHellman multiplies point with the secret key (i.e. scalar)
 	// that ConfigEncryptionPublicKey corresponds to.
 	ConfigDiffieHellman(point [curve25519.PointSize]byte) (sharedPoint [curve25519.PointSize]byte, err error)
 
-	// OffchainPublicKey returns the public component of the keypair used in SignOffchain
+	// OffchainPublicKey returns the public component of the keypair used in SignOffchain.
 	OffchainPublicKey() OffchainPublicKey
 
-	// ConfigEncryptionPublicKey returns the public component of the keypair used in ConfigDiffieHellman
+	// ConfigEncryptionPublicKey returns the public component of the keypair used in ConfigDiffieHellman.
 	ConfigEncryptionPublicKey() ConfigEncryptionPublicKey
 
 	// OffchainKeyring has no Verify method because we always use ed25519 and

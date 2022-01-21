@@ -2,6 +2,8 @@ package offchainreporting
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -9,8 +11,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-
-	"golang.org/x/sync/semaphore"
 )
 
 // OracleArgs contains the configuration and services a caller must provide, in
@@ -60,11 +60,20 @@ type OracleArgs struct {
 	PrivateKeys types.PrivateKeys
 }
 
-type Oracle struct {
-	oracleArgs OracleArgs
+type oracleState int
 
-	// Indicates whether the Oracle has been started, in a thread-safe way
-	started *semaphore.Weighted
+const (
+	oracleStateUnstarted oracleState = iota
+	oracleStateStarted
+	oracleStateClosed
+)
+
+type Oracle struct {
+	lock sync.Mutex
+
+	state oracleState
+
+	oracleArgs OracleArgs
 
 	// subprocesses tracks completion of all go routines on Oracle.Close()
 	subprocesses subprocesses.Subprocesses
@@ -80,14 +89,23 @@ func NewOracle(args OracleArgs) (*Oracle, error) {
 		return nil, errors.Wrapf(err, "bad local config while creating new oracle")
 	}
 	return &Oracle{
-		oracleArgs: args,
-		started:    semaphore.NewWeighted(1),
+		sync.Mutex{},
+		oracleStateUnstarted,
+		args,
+		subprocesses.Subprocesses{},
+		nil,
 	}, nil
 }
 
-// Start spins up a Oracle. Panics if called more than once.
+// Start spins up a Oracle.
 func (o *Oracle) Start() error {
-	o.failIfAlreadyStarted()
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	if o.state != oracleStateUnstarted {
+		return fmt.Errorf("can only start Oracle once")
+	}
+	o.state = oracleStateStarted
 
 	logger := loghelper.MakeRootLoggerWithContext(o.oracleArgs.Logger)
 
@@ -117,6 +135,14 @@ func (o *Oracle) Start() error {
 
 // Close shuts down an oracle. Can safely be called multiple times.
 func (o *Oracle) Close() error {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	if o.state != oracleStateStarted {
+		return fmt.Errorf("can only close a started Oracle")
+	}
+	o.state = oracleStateClosed
+
 	if o.cancel != nil {
 		o.cancel()
 	}
@@ -124,10 +150,4 @@ func (o *Oracle) Close() error {
 	// (Wouldn't want anything to panic from attempting to use a closed resource.)
 	o.subprocesses.Wait()
 	return nil
-}
-
-func (o *Oracle) failIfAlreadyStarted() {
-	if !o.started.TryAcquire(1) {
-		panic("can only start an Oracle once")
-	}
 }

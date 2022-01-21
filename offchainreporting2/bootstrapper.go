@@ -3,6 +3,7 @@ package offchainreporting
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -10,7 +11,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"golang.org/x/sync/semaphore"
 )
 
 type BootstrapperArgs struct {
@@ -24,14 +24,23 @@ type BootstrapperArgs struct {
 	OffchainConfigDigester types.OffchainConfigDigester
 }
 
+type bootstrapperState int
+
+const (
+	bootstrapperStateUnstarted bootstrapperState = iota
+	bootstrapperStateStarted
+	bootstrapperStateClosed
+)
+
 // Bootstrapper connects to a particular feed and listens for config changes,
 // but does not participate in the protocol. It merely acts as a bootstrap node
-// for the DHT
+// for peer discovery.
 type Bootstrapper struct {
-	bootstrapArgs BootstrapperArgs
+	lock sync.Mutex
 
-	// Indicates whether the Bootstrapper has been started, in a thread-safe way
-	started *semaphore.Weighted
+	state bootstrapperState
+
+	bootstrapArgs BootstrapperArgs
 
 	// subprocesses tracks completion of all go routines on Bootstrapper.Close()
 	subprocesses subprocesses.Subprocesses
@@ -43,20 +52,26 @@ type Bootstrapper struct {
 func NewBootstrapper(args BootstrapperArgs) (*Bootstrapper, error) {
 	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
 		return nil, errors.Wrapf(err,
-			"bad local config while creating bootstrap node")
+			"bad local config while creating Bootstrapper")
 	}
 	return &Bootstrapper{
-		bootstrapArgs: args,
-		started:       semaphore.NewWeighted(1),
+		sync.Mutex{},
+		bootstrapperStateUnstarted,
+		args,
+		subprocesses.Subprocesses{},
+		nil,
 	}, nil
 }
 
-// Start spins up a Bootstrapper. Panics if called more than once.
+// Start spins up a Bootstrapper.
 func (b *Bootstrapper) Start() error {
-	if !b.started.TryAcquire(1) {
-		defer b.Close()
-		return fmt.Errorf("can only start a Bootstrapper once")
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.state != bootstrapperStateUnstarted {
+		return fmt.Errorf("can only start Bootstrapper once")
 	}
+	b.state = bootstrapperStateStarted
 
 	ctx, cancel := context.WithCancel(context.Background())
 	b.cancel = cancel
@@ -80,6 +95,14 @@ func (b *Bootstrapper) Start() error {
 
 // Close shuts down a Bootstrapper. Can safely be called multiple times.
 func (b *Bootstrapper) Close() error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.state != bootstrapperStateStarted {
+		return fmt.Errorf("can only close a started Bootstrapper")
+	}
+	b.state = bootstrapperStateClosed
+
 	if b.cancel != nil {
 		b.cancel()
 	}

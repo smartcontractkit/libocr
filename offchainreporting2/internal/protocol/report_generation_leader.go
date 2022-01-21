@@ -308,7 +308,7 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 					report.Signature,
 					commontypes.OracleID(id),
 				})
-			} else {
+			} else if !report.Skip && !msg.AttestedReport.Skip { // oracles may commonly disagree on whether to skip, no need to warn about that
 				repgen.logger.Warn("received disparate reports messages", commontypes.LogFields{
 					"round":          repgen.leaderState.r,
 					"previousReport": report,

@@ -22,10 +22,10 @@ func (o *ocr2BinaryNetworkEndpointFactory) NewEndpoint(
 	f int,
 	limits types.BinaryNetworkEndpointLimits,
 ) (commontypes.BinaryNetworkEndpoint, error) {
-	if !o.concretePeer.networkingStack.needsv2() {
-		return nil, fmt.Errorf("OCR2 requires v2 networking, but current NetworkingStack is %v", o.concretePeer.networkingStack)
+	if !o.networkingStack.needsv2() {
+		return nil, fmt.Errorf("OCR2 requires v2 networking, but current NetworkingStack is %v", o.networkingStack)
 	}
-	return o.concretePeer.newEndpoint(
+	return o.newEndpoint(
 		NetworkingStackV2,
 		configDigest,
 		pids,
@@ -40,17 +40,17 @@ func (o *ocr2BootstrapperFactory) NewBootstrapper(
 	configDigest types.ConfigDigest,
 	peerIDs []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
-	failureThreshold int,
+	f int,
 ) (commontypes.Bootstrapper, error) {
-	if !o.concretePeer.networkingStack.needsv2() {
-		return nil, fmt.Errorf("OCR2 requires v2 networking, but current NetworkingStack is %v", o.concretePeer.networkingStack)
+	if !o.networkingStack.needsv2() {
+		return nil, fmt.Errorf("OCR2 requires v2 networking, but current NetworkingStack is %v", o.networkingStack)
 	}
-	return o.concretePeer.newBootstrapper(
+	return o.newBootstrapper(
 		NetworkingStackV2,
 		configDigest,
 		peerIDs,
 		nil,
 		v2bootstrappers,
-		failureThreshold,
+		f,
 	)
 }

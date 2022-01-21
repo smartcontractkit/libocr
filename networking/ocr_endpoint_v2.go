@@ -1,7 +1,6 @@
 package networking
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -11,6 +10,7 @@ import (
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/smartcontractkit/libocr/subprocesses"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -42,11 +42,11 @@ type ocrEndpointV2 struct {
 	peerIDs             []ragetypes.PeerID
 	peerMapping         map[commontypes.OracleID]ragetypes.PeerID
 	reversedPeerMapping map[ragetypes.PeerID]commontypes.OracleID
-	peer                *concretePeer
+	peer                *concretePeerV2
 	host                *ragep2p.Host
 	configDigest        ocr2types.ConfigDigest
 	bootstrappers       []ragetypes.PeerInfo
-	failureThreshold    int
+	f                   int
 	ownOracleID         commontypes.OracleID
 
 	// internal and state management
@@ -54,10 +54,8 @@ type ocrEndpointV2 struct {
 	chClose      chan struct{}
 	streams      map[commontypes.OracleID]*ragep2p.Stream
 	state        ocrEndpointState
-	stateMu      *sync.RWMutex
-	wg           *sync.WaitGroup
-	ctx          context.Context
-	ctxCancel    context.CancelFunc
+	stateMu      sync.RWMutex
+	subs         subprocesses.Subprocesses
 
 	// recv is exposed to clients of this network endpoint
 	recv chan commontypes.BinaryMessageWithSender
@@ -78,11 +76,11 @@ func reverseMappingV2(m map[commontypes.OracleID]ragetypes.PeerID) map[ragetypes
 func newOCREndpointV2(
 	logger loghelper.LoggerWithContext,
 	configDigest ocr2types.ConfigDigest,
-	peer *concretePeer,
+	peer *concretePeerV2,
 	peerIDs []ragetypes.PeerID,
 	v2bootstrappers []ragetypes.PeerInfo,
 	config EndpointConfigV2,
-	failureThreshold int,
+	f int,
 	limits BinaryNetworkEndpointLimits,
 ) (*ocrEndpointV2, error) {
 	peerMapping := make(map[commontypes.OracleID]ragetypes.PeerID)
@@ -90,9 +88,9 @@ func newOCREndpointV2(
 		peerMapping[commontypes.OracleID(i)] = peerID
 	}
 	reversedPeerMapping := reverseMappingV2(peerMapping)
-	ownOracleID, ok := reversedPeerMapping[peer.ragep2pHost.ID()]
+	ownOracleID, ok := reversedPeerMapping[peer.peerID]
 	if !ok {
-		return nil, errors.Errorf("host peer ID 0x%x is not present in given peerMapping", peer.ID())
+		return nil, fmt.Errorf("host peer ID %s is not present in given peerMapping", peer.PeerID())
 	}
 
 	chSendToSelf := make(chan commontypes.BinaryMessageWithSender, sendToSelfBufferSize)
@@ -103,27 +101,23 @@ func newOCREndpointV2(
 		"id":           "OCREndpointV2",
 	})
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &ocrEndpointV2{
 		config,
 		peerIDs,
 		peerMapping,
 		reversedPeerMapping,
 		peer,
-		peer.ragep2pHost,
+		peer.host,
 		configDigest,
 		v2bootstrappers,
-		failureThreshold,
+		f,
 		ownOracleID,
 		chSendToSelf,
 		make(chan struct{}),
 		make(map[commontypes.OracleID]*ragep2p.Stream),
 		ocrEndpointUnstarted,
-		new(sync.RWMutex),
-		new(sync.WaitGroup),
-		ctx,
-		cancel,
+		sync.RWMutex{},
+		subprocesses.Subprocesses{},
 		make(chan commontypes.BinaryMessageWithSender),
 		logger,
 		limits,
@@ -147,7 +141,7 @@ func (o *ocrEndpointV2) Start() error {
 	}
 	o.state = ocrEndpointStarted
 
-	if err := o.peer.registerV2(o); err != nil {
+	if err := o.peer.register(o); err != nil {
 		return err
 	}
 
@@ -176,12 +170,15 @@ func (o *ocrEndpointV2) Start() error {
 		o.streams[oid] = stream
 	}
 
-	o.wg.Add(len(o.streams))
 	for oid := range o.streams {
-		go o.runRecv(oid)
+		oid := oid
+		o.subs.Go(func() {
+			o.runRecv(oid)
+		})
 	}
-	o.wg.Add(1)
-	go o.runSendToSelf()
+	o.subs.Go(func() {
+		o.runSendToSelf()
+	})
 
 	o.logger.Info("OCREndpointV2: Started listening", nil)
 
@@ -194,7 +191,6 @@ func (o *ocrEndpointV2) Start() error {
 // remote goes mad and sends us thousands of messages, we don't drop any
 // messages from good remotes
 func (o *ocrEndpointV2) runRecv(oid commontypes.OracleID) {
-	defer o.wg.Done()
 	chRecv := o.streams[oid].ReceiveMessages()
 	for {
 		select {
@@ -216,7 +212,6 @@ func (o *ocrEndpointV2) runRecv(oid commontypes.OracleID) {
 }
 
 func (o *ocrEndpointV2) runSendToSelf() {
-	defer o.wg.Done()
 	for {
 		select {
 		case <-o.chClose:
@@ -233,19 +228,17 @@ func (o *ocrEndpointV2) runSendToSelf() {
 
 func (o *ocrEndpointV2) Close() error {
 	o.stateMu.Lock()
+	defer o.stateMu.Unlock()
 	if o.state != ocrEndpointStarted {
-		defer o.stateMu.Unlock()
 		return fmt.Errorf("cannot close ocrEndpointV2 that is not started, state was: %d", o.state)
 	}
 	o.state = ocrEndpointClosed
-	o.stateMu.Unlock()
 
 	o.logger.Debug("OCREndpointV2: Closing", nil)
 
 	o.logger.Debug("OCREndpointV2: Closing streams", nil)
 	close(o.chClose)
-	o.ctxCancel()
-	o.wg.Wait()
+	o.subs.Wait()
 
 	var allErrors error
 	for oid, stream := range o.streams {
@@ -253,7 +246,7 @@ func (o *ocrEndpointV2) Close() error {
 	}
 
 	o.logger.Debug("OCREndpointV2: Deregister", nil)
-	allErrors = multierr.Append(allErrors, errors.Wrap(o.peer.deregisterV2(o), "error closing OCREndpointV2: could not deregister"))
+	allErrors = multierr.Append(allErrors, errors.Wrap(o.peer.deregister(o), "error closing OCREndpointV2: could not deregister"))
 
 	o.logger.Debug("OCREndpointV2: Closing o.recv", nil)
 	close(o.recv)
@@ -274,7 +267,8 @@ func (o *ocrEndpointV2) SendTo(payload []byte, to commontypes.OracleID) {
 	state := o.state
 	o.stateMu.RUnlock()
 	if state != ocrEndpointStarted {
-		panic(fmt.Sprintf("send on non-running ocrEndpointV2, state was: %d", state))
+		o.logger.Error("Send on non-started ocrEndpointV2", commontypes.LogFields{"state": state})
+		return
 	}
 
 	if to == o.ownOracleID {
@@ -287,8 +281,8 @@ func (o *ocrEndpointV2) SendTo(payload []byte, to commontypes.OracleID) {
 
 func (o *ocrEndpointV2) sendToSelf(payload []byte) {
 	m := commontypes.BinaryMessageWithSender{
-		Msg:    payload,
-		Sender: o.ownOracleID,
+		payload,
+		o.ownOracleID,
 	}
 
 	select {
@@ -302,15 +296,14 @@ func (o *ocrEndpointV2) sendToSelf(payload []byte) {
 
 // Broadcast sends a msg to all oracles in the peer mapping
 func (o *ocrEndpointV2) Broadcast(payload []byte) {
-	var wg sync.WaitGroup
+	var subs subprocesses.Subprocesses
+	defer subs.Wait()
 	for oracleID := range o.peerMapping {
-		wg.Add(1)
-		go func(oid commontypes.OracleID) {
-			o.SendTo(payload, oid)
-			wg.Done()
-		}(oracleID)
+		oracleID := oracleID
+		subs.Go(func() {
+			o.SendTo(payload, oracleID)
+		})
 	}
-	wg.Wait()
 }
 
 // Receive gives the channel to receive messages
