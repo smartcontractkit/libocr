@@ -265,7 +265,7 @@ func Deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 		(&big.Int{}).SetUint64(thresholdPPB),
 		(&big.Int{}).SetUint64(1e9),
 	)
-	return change.Cmp(threshold) > 0
+	return change.Cmp(threshold) >= 0
 }
 
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
@@ -620,10 +620,6 @@ func (nm *numericalMedian) ShouldTransmitAcceptedReport(ctx context.Context, rep
 	}
 
 	return true, nil
-}
-
-func (nm *numericalMedian) Start() error {
-	return nil
 }
 
 func (nm *numericalMedian) Close() error {

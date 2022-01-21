@@ -2,10 +2,11 @@ package ragedisco
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"net"
 	"strconv"
+
+	"github.com/pkg/errors"
+	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
 func announceAddrs(a ragetypes.Address) ([]ragetypes.Address, error) {
@@ -64,7 +65,7 @@ func splitAddress(a ragetypes.Address) (string, uint16, error) {
 	if err != nil {
 		return "", 0, err
 	}
-	port, err := strconv.Atoi(portString)
+	port, err := strconv.ParseUint(portString, 10, 16)
 	return host, uint16(port), err
 }
 

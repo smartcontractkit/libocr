@@ -39,11 +39,10 @@ const (
 	discoveryProtocolClosed
 )
 
-// discoveryProtocolLocked contains the subset of a discoveryProtocol's state
+// discoveryProtocolLocked contains a subset of a discoveryProtocol's state
 // that requires the discoveryProtocol lock to be held in order to access or
 // modify
 type discoveryProtocolLocked struct {
-	state                   discoveryProtocolState
 	bestAnnouncement        map[ragetypes.PeerID]Announcement
 	groups                  map[types.ConfigDigest]*group
 	bootstrappers           map[ragetypes.PeerID]map[ragetypes.Address]int
@@ -52,6 +51,9 @@ type discoveryProtocolLocked struct {
 }
 
 type discoveryProtocol struct {
+	stateMu sync.Mutex
+	state   discoveryProtocolState
+
 	deltaReconcile     time.Duration
 	chIncomingMessages <-chan incomingMessage
 	chOutgoingMessages chan<- outgoingMessage
@@ -97,6 +99,8 @@ func newDiscoveryProtocol(
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &discoveryProtocol{
+		sync.Mutex{},
+		discoveryProtocolUnstarted,
 		deltaReconcile,
 		chIncomingMessages,
 		chOutgoingMessages,
@@ -107,7 +111,6 @@ func newDiscoveryProtocol(
 		ownAddrs,
 		sync.RWMutex{},
 		discoveryProtocolLocked{
-			discoveryProtocolUnstarted,
 			make(map[ragetypes.PeerID]Announcement),
 			make(map[types.ConfigDigest]*group),
 			make(map[ragetypes.PeerID]map[ragetypes.Address]int),
@@ -130,12 +133,15 @@ func (p *discoveryProtocol) Start() error {
 		}
 	}()
 
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
+	if p.state != discoveryProtocolUnstarted {
+		return fmt.Errorf("cannot start discoveryProtocol that is not unstarted, state was: %v", p.state)
+	}
+	p.state = discoveryProtocolStarted
+
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if p.locked.state != discoveryProtocolUnstarted {
-		return fmt.Errorf("cannot start discoveryProtocol that is not unstarted, state was: %v", p.locked.state)
-	}
-	p.locked.state = discoveryProtocolStarted
 	_, _, err := p.lockedBumpOwnAnnouncement()
 	if err != nil {
 		return errors.Wrap(err, "failed to bump own announcement")
@@ -612,13 +618,12 @@ func (p *discoveryProtocol) lockedBumpOwnAnnouncement() (*Announcement, bool, er
 
 func (p *discoveryProtocol) Close() error {
 	logger := p.logger.MakeChild(commontypes.LogFields{"in": "Close"})
-	p.lock.Lock()
-	if p.locked.state != discoveryProtocolStarted {
-		defer p.lock.Unlock()
-		return fmt.Errorf("cannot close discoveryProtocol that is not started, state was: %v", p.locked.state)
+	p.stateMu.Lock()
+	defer p.stateMu.Unlock()
+	if p.state != discoveryProtocolStarted {
+		return fmt.Errorf("cannot close discoveryProtocol that is not started, state was: %v", p.state)
 	}
-	p.locked.state = discoveryProtocolClosed
-	p.lock.Unlock()
+	p.state = discoveryProtocolClosed
 
 	logger.Debug("Exiting", nil)
 	defer logger.Debug("Exited", nil)

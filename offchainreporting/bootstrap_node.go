@@ -2,6 +2,8 @@ package offchainreporting
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -9,7 +11,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"golang.org/x/sync/semaphore"
 )
 
 type BootstrapNodeArgs struct {
@@ -23,14 +24,23 @@ type BootstrapNodeArgs struct {
 	MonitoringEndpoint    commontypes.MonitoringEndpoint
 }
 
+type bootstrapNodeState int
+
+const (
+	bootstrapNodeStateUnstarted bootstrapNodeState = iota
+	bootstrapNodeStateStarted
+	bootstrapNodeStateClosed
+)
+
 // BootstrapNode connects to a particular feed and listens for config changes,
 // but does not participate in the protocol. It merely acts as a bootstrap node
-// for the DHT
+// for peer discovery.
 type BootstrapNode struct {
-	bootstrapArgs BootstrapNodeArgs
+	lock sync.Mutex
 
-	// Indicates whether the BootstrapNode has been started, in a thread-safe way
-	started *semaphore.Weighted
+	state bootstrapNodeState
+
+	bootstrapArgs BootstrapNodeArgs
 
 	// subprocesses tracks completion of all go routines on BootstrapNode.Close()
 	subprocesses subprocesses.Subprocesses
@@ -42,17 +52,26 @@ type BootstrapNode struct {
 func NewBootstrapNode(args BootstrapNodeArgs) (*BootstrapNode, error) {
 	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
 		return nil, errors.Wrapf(err,
-			"bad local config while creating bootstrap node")
+			"bad local config while creating BootstrapNode")
 	}
 	return &BootstrapNode{
-		bootstrapArgs: args,
-		started:       semaphore.NewWeighted(1),
+		sync.Mutex{},
+		bootstrapNodeStateUnstarted,
+		args,
+		subprocesses.Subprocesses{},
+		nil,
 	}, nil
 }
 
-// Start spins up a BootstrapNode. Panics if called more than once.
+// Start spins up a BootstrapNode.
 func (b *BootstrapNode) Start() error {
-	b.failIfAlreadyStarted()
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.state != bootstrapNodeStateUnstarted {
+		return fmt.Errorf("can only start BootstrapNode once")
+	}
+	b.state = bootstrapNodeStateStarted
 
 	ctx, cancel := context.WithCancel(context.Background())
 	b.cancel = cancel
@@ -76,6 +95,14 @@ func (b *BootstrapNode) Start() error {
 
 // Close shuts down a BootstrapNode. Can safely be called multiple times.
 func (b *BootstrapNode) Close() error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.state != bootstrapNodeStateStarted {
+		return fmt.Errorf("can only close a started BootstrapNode")
+	}
+	b.state = bootstrapNodeStateClosed
+
 	if b.cancel != nil {
 		b.cancel()
 	}
@@ -83,10 +110,4 @@ func (b *BootstrapNode) Close() error {
 	// (Wouldn't want anything to panic from attempting to use a closed resource.)
 	b.subprocesses.Wait()
 	return nil
-}
-
-func (b *BootstrapNode) failIfAlreadyStarted() {
-	if !b.started.TryAcquire(1) {
-		panic("can only start a BootstrapNode once")
-	}
 }

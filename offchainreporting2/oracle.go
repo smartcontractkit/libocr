@@ -3,6 +3,7 @@ package offchainreporting
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -10,8 +11,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-
-	"golang.org/x/sync/semaphore"
 )
 
 // OracleArgs contains the configuration and services a caller must provide, in
@@ -22,49 +21,58 @@ type OracleArgs struct {
 	// communicate with other participating nodes.
 	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
 
-	// OCR2 doesn't use the V1 networking
-	// // V1Bootstrappers is the list of bootstrap node addresses and IDs for the v1 stack
-	// V1Bootstrappers []string
-
-	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack
+	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack.
 	V2Bootstrappers []commontypes.BootstrapperLocator
 
-	// Tracks configuration changes
+	// Tracks configuration changes.
 	ContractConfigTracker types.ContractConfigTracker
 
-	// Interfaces with the OCR2Aggregator smart contract's transmission related logic
+	// Interfaces with the OCR2Aggregator smart contract's transmission related logic.
 	ContractTransmitter types.ContractTransmitter
 
-	// Database provides persistent storage
+	// Database provides persistent storage.
 	Database types.Database
 
 	// LocalConfig contains oracle-specific configuration details which are not
-	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig
+	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig.
 	LocalConfig types.LocalConfig
 
-	// Logger logs stuff
+	// Logger logs stuff.
 	Logger commontypes.Logger
 
-	// Used to send logs to a monitor
+	// Used to send logs to a monitor.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
 
-	// Computes a config digest using purely offchain logic
+	// Computes a config digest using purely offchain logic.
 	OffchainConfigDigester types.OffchainConfigDigester
 
 	// OffchainKeyring contains the secret keys needed for the OCR protocol, and methods
 	// which use those keys without exposing them to the rest of the application.
 	OffchainKeyring types.OffchainKeyring
 
+	// OnchainKeyring is used to sign reports that can be validated
+	// offchain and by the target contract.
 	OnchainKeyring types.OnchainKeyring
 
+	// ReportingPluginFactory creates ReportingPlugins that determine the
+	// "application logic" used in a OCR2 protocol instance.
 	ReportingPluginFactory types.ReportingPluginFactory
 }
 
-type Oracle struct {
-	oracleArgs OracleArgs
+type oracleState int
 
-	// Indicates whether the Oracle has been started, in a thread-safe way
-	started *semaphore.Weighted
+const (
+	oracleStateUnstarted oracleState = iota
+	oracleStateStarted
+	oracleStateClosed
+)
+
+type Oracle struct {
+	lock sync.Mutex
+
+	state oracleState
+
+	oracleArgs OracleArgs
 
 	// subprocesses tracks completion of all go routines on Oracle.Close()
 	subprocesses subprocesses.Subprocesses
@@ -80,17 +88,23 @@ func NewOracle(args OracleArgs) (*Oracle, error) {
 		return nil, errors.Wrapf(err, "bad local config while creating new oracle")
 	}
 	return &Oracle{
-		oracleArgs: args,
-		started:    semaphore.NewWeighted(1),
+		sync.Mutex{},
+		oracleStateUnstarted,
+		args,
+		subprocesses.Subprocesses{},
+		nil,
 	}, nil
 }
 
-// Start spins up a Oracle. Panics if called more than once.
+// Start spins up a Oracle.
 func (o *Oracle) Start() error {
-	if !o.started.TryAcquire(1) {
-		defer o.Close()
-		return fmt.Errorf("can only start an Oracle once")
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	if o.state != oracleStateUnstarted {
+		return fmt.Errorf("can only start Oracle once")
 	}
+	o.state = oracleStateStarted
 
 	logger := loghelper.MakeRootLoggerWithContext(o.oracleArgs.Logger)
 
@@ -120,6 +134,14 @@ func (o *Oracle) Start() error {
 
 // Close shuts down an oracle. Can safely be called multiple times.
 func (o *Oracle) Close() error {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	if o.state != oracleStateStarted {
+		return fmt.Errorf("can only close a started Oracle")
+	}
+	o.state = oracleStateClosed
+
 	if o.cancel != nil {
 		o.cancel()
 	}

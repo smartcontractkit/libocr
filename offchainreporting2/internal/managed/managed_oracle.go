@@ -2,7 +2,7 @@ package managed
 
 import (
 	"context"
-	"sort"
+	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -12,6 +12,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/shim"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
+	"go.uber.org/multierr"
 )
 
 // RunManagedOracle runs a "managed" version of protocol.RunOracle. It handles
@@ -102,20 +103,29 @@ func RunManagedOracle(
 				})
 				return
 			}
-			if err := reportingPlugin.Start(); err != nil {
-				logger.Error("ManagedOracle: error during ReportingPlugin.Start()", commontypes.LogFields{
-					"error":               err,
-					"reportingPluginInfo": reportingPluginInfo,
-				})
-				return
-			}
 			defer loghelper.CloseLogError(
 				reportingPlugin,
 				logger,
 				"ManagedOracle: error during reportingPlugin.Close()",
 			)
+			if err := validateReportingPluginInfo(reportingPluginInfo); err != nil {
+				logger.Error("ManagedOracle: invalid ReportingPluginInfo", commontypes.LogFields{
+					"error":               err,
+					"reportingPluginInfo": reportingPluginInfo,
+				})
+				return
+			}
 
-			lims := limits(sharedConfig.PublicConfig, reportingPluginInfo, onchainKeyring.MaxSignatureLength())
+			lims, err := limits(sharedConfig.PublicConfig, reportingPluginInfo, onchainKeyring.MaxSignatureLength())
+			if err != nil {
+				logger.Error("ManagedOracle: error during limits", commontypes.LogFields{
+					"error":               err,
+					"publicConfig":        sharedConfig.PublicConfig,
+					"reportingPluginInfo": reportingPluginInfo,
+					"maxSigLen":           onchainKeyring.MaxSignatureLength(),
+				})
+				return
+			}
 			binNetEndpoint, err := netEndpointFactory.NewEndpoint(
 				sharedConfig.ConfigDigest,
 				peerIDs,
@@ -194,11 +204,16 @@ func RunManagedOracle(
 	)
 }
 
-func max(x int, xs ...int) int {
-	sort.Ints(xs)
-	if len(xs) == 0 || xs[len(xs)-1] < x {
-		return x
-	} else {
-		return xs[len(xs)-1]
+func validateReportingPluginInfo(info types.ReportingPluginInfo) error {
+	var err error
+	if !(0 <= info.MaxQueryLen && info.MaxQueryLen <= types.MaxMaxQueryLen) {
+		err = multierr.Append(err, fmt.Errorf("MaxQueryLen (%v) out of range. Should be between 0 and %v", info.MaxQueryLen, types.MaxMaxQueryLen))
 	}
+	if !(0 <= info.MaxObservationLen && info.MaxObservationLen <= types.MaxMaxObservationLen) {
+		err = multierr.Append(err, fmt.Errorf("MaxObservationLen (%v) out of range. Should be between 0 and %v", info.MaxObservationLen, types.MaxMaxObservationLen))
+	}
+	if !(0 <= info.MaxReportLen && info.MaxReportLen <= types.MaxMaxReportLen) {
+		err = multierr.Append(err, fmt.Errorf("MaxReportLen (%v) out of range. Should be between 0 and %v", info.MaxReportLen, types.MaxMaxReportLen))
+	}
+	return err
 }

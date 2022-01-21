@@ -189,12 +189,6 @@ func (trp *TitleRequestPlugin) ShouldTransmitAcceptedReport(ctx context.Context,
 	return !trp.fulfilled[requestID], nil
 }
 
-func (trp *TitleRequestPlugin) Start() error {
-	// No background go-routines or other resources are held by
-	// TitleRequestPlugin, no need to do anything here.
-	return nil
-}
-
 func (trp *TitleRequestPlugin) Close() error {
 	// No background go-routines or other resources are held by
 	// TitleRequestPlugin, no need to do anything here.
