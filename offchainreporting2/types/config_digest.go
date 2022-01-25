@@ -2,11 +2,13 @@ package types
 
 import (
 	"encoding"
+	"encoding/binary"
 	"fmt"
 )
 
 // ConfigDigestPrefix acts as a domain separator between different (typically
-// chain-specific) methods of computing a ConfigDigest.
+// chain-specific) methods of computing a ConfigDigest. The Prefix is encoded
+// in big-endian.
 type ConfigDigestPrefix uint16
 
 // This acts as the canonical "registry" of ConfigDigestPrefixes. Pick an unused
@@ -17,8 +19,22 @@ const (
 	ConfigDigestPrefixEVM    ConfigDigestPrefix = 1
 	ConfigDigestPrefixTerra  ConfigDigestPrefix = 2
 	ConfigDigestPrefixSolana ConfigDigestPrefix = 3
+	ConfigDigestPrefixOCR1   ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
 	_                        ConfigDigestPrefix = 0xFFFF // reserved for future use
 )
+
+// Checks whether a ConfigDigestPrefix is actually a prefix of a ConfigDigest.
+func (prefix ConfigDigestPrefix) IsPrefixOf(configDigest ConfigDigest) bool {
+	return uint16(prefix) == binary.BigEndian.Uint16(configDigest[:2])
+}
+
+var _ fmt.Stringer = ConfigDigestPrefix(0)
+
+func (prefix ConfigDigestPrefix) String() string {
+	var encoded [2]byte
+	binary.BigEndian.PutUint16(encoded[:], uint16(prefix))
+	return fmt.Sprintf("%x", encoded)
+}
 
 // Digest of the configuration for a OCR2 protocol instance. The first two
 // bytes indicate which config digester (typically specific to a targeted
@@ -46,13 +62,6 @@ func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 	}
 
 	return configDigest, nil
-}
-
-// Truncate ConfigDigest to 16 bytes like in OCR1
-func (c ConfigDigest) Truncate() [16]byte {
-	var result [16]byte
-	copy(result[:], c[:])
-	return result
 }
 
 var _ fmt.Stringer = ConfigDigest{}

@@ -916,6 +916,8 @@ func (ho *Host) NewStream(
 		s.sendLoop()
 	})
 
+	streamLogger.Info("NewStream succeeded", nil)
+
 	return &s, nil
 }
 
@@ -1067,10 +1069,10 @@ func (st *Stream) sendLoop() {
 				if pendingFilled {
 					chStreamToPeerOrNil = st.chStreamToConn
 				}
-				st.logger.Trace("Turned on stream", nil)
+				st.logger.Info("Turned on stream", nil)
 			} else {
 				chStreamToPeerOrNil = nil
-				st.logger.Trace("Turned off stream", nil)
+				st.logger.Info("Turned off stream", nil)
 			}
 
 		case msg := <-st.chSend:

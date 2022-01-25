@@ -9,6 +9,7 @@ import (
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	"go.uber.org/multierr"
 
+	"github.com/smartcontractkit/libocr/internal/configdigesthelper"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 
@@ -64,12 +65,6 @@ type concretePeer struct {
 	networkingStack NetworkingStack
 }
 
-// registrant is an endpoint pinned to a particular config digest that is attached to this peer
-// There may only be one registrant per config digest
-type registrant interface {
-	getConfigDigest() ocr2types.ConfigDigest
-}
-
 // NewPeer constructs a new peer, consisting of the v1 and/or v2 sub-peers
 // depending on the networking stack requested in PeerConfig. Specifically:
 // NetworkingStackV1: only the v1 peer is started
@@ -105,6 +100,21 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 	return &concretePeer{v1, v2, logger, c.NetworkingStack}, nil
 }
 
+func (p *concretePeer) newEndpointV1(
+	configDigest ocr2types.ConfigDigest,
+	peerIDs []string,
+	v1bootstrappers []string,
+	f int,
+	limits BinaryNetworkEndpointLimits,
+) (commontypes.BinaryNetworkEndpoint, error) {
+	v1ConfigDigest, err := configdigesthelper.OCR2ToOCR1(configDigest)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.v1.newEndpoint(v1ConfigDigest, peerIDs, v1bootstrappers, f, limits)
+}
+
 // newEndpoint returns an appropriate OCR endpoint depending on the networking stack used
 func (p *concretePeer) newEndpoint(
 	networkingStack NetworkingStack,
@@ -123,7 +133,13 @@ func (p *concretePeer) newEndpoint(
 		v1err, v2err error
 	)
 	if networkingStack.needsv1() {
-		v1, v1err = p.v1.newEndpoint(configDigest, peerIDs, v1bootstrappers, f, limits)
+		v1, v1err = p.newEndpointV1(
+			configDigest,
+			peerIDs,
+			v1bootstrappers,
+			f,
+			limits,
+		)
 		if v1err != nil || networkingStack == NetworkingStackV1 {
 			return v1, v1err
 		}
@@ -143,6 +159,20 @@ func (p *concretePeer) newEndpoint(
 	return newOCREndpointV1V2(p.logger, peerIDs, v1, v2)
 }
 
+func (p *concretePeer) newBootstrapperV1(
+	configDigest ocr2types.ConfigDigest,
+	peerIDs []string,
+	v1bootstrappers []string,
+	f int,
+) (commontypes.Bootstrapper, error) {
+	v1ConfigDigest, err := configdigesthelper.OCR2ToOCR1(configDigest)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.v1.newBootstrapper(v1ConfigDigest, peerIDs, v1bootstrappers, f)
+}
+
 func (p *concretePeer) newBootstrapper(
 	networkingStack NetworkingStack,
 	configDigest ocr2types.ConfigDigest,
@@ -159,7 +189,7 @@ func (p *concretePeer) newBootstrapper(
 		v1err, v2err error
 	)
 	if networkingStack.needsv1() {
-		v1, v1err = p.v1.newBootstrapper(configDigest, peerIDs, v1bootstrappers, f)
+		v1, v1err = p.newBootstrapperV1(configDigest, peerIDs, v1bootstrappers, f)
 		if v1err != nil || networkingStack == NetworkingStackV1 {
 			return v1, v1err
 		}

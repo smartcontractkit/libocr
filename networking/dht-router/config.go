@@ -8,7 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
+	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 type DHTNodeConfig struct {
@@ -24,22 +24,24 @@ type DHTNodeConfig struct {
 	announcementUserPrefix uint32
 }
 
+func genExtension(cd ocr1types.ConfigDigest) protocol.ID {
+	return protocol.ID(fmt.Sprintf("/%x", cd))
+}
+
 func BuildConfig(
 	bootstrapNodes []peer.AddrInfo,
 	prefix protocol.ID,
-	configDigest ocr2types.ConfigDigest,
+	configDigest ocr1types.ConfigDigest,
 	logger loghelper.LoggerWithContext,
 	bootstrapConnectionCheckInterval time.Duration,
 	failureThreshold int,
 	extendedDHTLogging bool,
 	announcementUserPrefix uint32,
 ) DHTNodeConfig {
-	extension := protocol.ID(fmt.Sprintf("/%x", configDigest.Truncate()))
-
 	c := DHTNodeConfig{
 		bootstrapNodes:         bootstrapNodes,
 		prefix:                 prefix,
-		extension:              extension,
+		extension:              genExtension(configDigest),
 		bootstrapCheckInterval: bootstrapConnectionCheckInterval,
 		failureThreshold:       failureThreshold,
 		extendedDHTLogging:     extendedDHTLogging,

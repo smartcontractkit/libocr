@@ -17,7 +17,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
+	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 const (
@@ -33,7 +33,7 @@ type concretePeerV1 struct {
 	gater *connectionGater
 
 	registrantsMu *sync.Mutex
-	registrants   map[ocr2types.ConfigDigest]struct{}
+	registrants   map[ocr1types.ConfigDigest]struct{}
 
 	dhtAnnouncementCounterUserPrefix uint32
 
@@ -45,7 +45,7 @@ type concretePeerV1 struct {
 }
 
 type registrantV1 interface {
-	registrant
+	getConfigDigest() ocr1types.ConfigDigest
 	allower
 }
 
@@ -129,7 +129,7 @@ func newPeerV1(c PeerConfig) (*concretePeerV1, error) {
 		tls,
 		gater,
 		&sync.Mutex{},
-		make(map[ocr2types.ConfigDigest]struct{}),
+		make(map[ocr1types.ConfigDigest]struct{}),
 		c.V1DHTAnnouncementCounterUserPrefix,
 		bandwidthLimiters,
 		logger,
@@ -214,7 +214,7 @@ func (p1 *concretePeerV1) Close() error {
 }
 
 func (p1 *concretePeerV1) newEndpoint(
-	configDigest ocr2types.ConfigDigest,
+	configDigest ocr1types.ConfigDigest,
 	v1peerIDs []string,
 	v1bootstrappers []string,
 	f int,
@@ -251,7 +251,7 @@ func (p1 *concretePeerV1) newEndpoint(
 }
 
 func (p1 *concretePeerV1) newBootstrapper(
-	configDigest ocr2types.ConfigDigest,
+	configDigest ocr1types.ConfigDigest,
 	v1peerIDs []string,
 	v1bootstrappers []string,
 	f int,

@@ -11,7 +11,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/smartcontractkit/libocr/commontypes"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"golang.org/x/time/rate"
 
 	p2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -25,6 +24,7 @@ import (
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
 	"github.com/smartcontractkit/libocr/networking/wire"
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 var (
@@ -78,7 +78,7 @@ type ocrEndpointV1 struct {
 	peer                *concretePeerV1
 	rhost               *rhost.RoutedHost
 	routing             dhtrouter.PeerDiscoveryRouter
-	configDigest        ocr2types.ConfigDigest
+	configDigest        ocr1types.ConfigDigest
 	protocolID          p2pprotocol.ID
 	bootstrapperAddrs   []p2ppeer.AddrInfo
 	f                   int
@@ -129,7 +129,7 @@ const (
 
 func newOCREndpointV1(
 	logger loghelper.LoggerWithContext,
-	configDigest ocr2types.ConfigDigest,
+	configDigest ocr1types.ConfigDigest,
 	peer *concretePeerV1,
 	peerIDs []p2ppeer.ID,
 	bootstrappers []p2ppeer.AddrInfo,
@@ -165,7 +165,7 @@ func newOCREndpointV1(
 
 	chSendToSelf := make(chan commontypes.BinaryMessageWithSender, sendToSelfBufferSize)
 
-	protocolID := genProtocolID(configDigest.Truncate())
+	protocolID := genProtocolID(configDigest)
 
 	logger = logger.MakeChild(commontypes.LogFields{
 		"protocolID":   protocolID,
@@ -750,7 +750,7 @@ func (o *ocrEndpointV1) allowlist() (allowlist []p2ppeer.ID) {
 	return
 }
 
-func (o *ocrEndpointV1) getConfigDigest() ocr2types.ConfigDigest {
+func (o *ocrEndpointV1) getConfigDigest() ocr1types.ConfigDigest {
 	return o.configDigest
 }
 

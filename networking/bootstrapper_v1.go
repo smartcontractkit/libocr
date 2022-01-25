@@ -12,7 +12,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	dhtrouter "github.com/smartcontractkit/libocr/networking/dht-router"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
+	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 var (
@@ -25,7 +25,7 @@ type bootstrapperV1 struct {
 	v1bootstrappers      []p2ppeer.AddrInfo
 	routing              dhtrouter.PeerDiscoveryRouter
 	logger               loghelper.LoggerWithContext
-	configDigest         ocr2types.ConfigDigest
+	configDigest         ocr1types.ConfigDigest
 	ctx                  context.Context
 	ctxCancel            context.CancelFunc
 	state                bootstrapperState
@@ -52,7 +52,7 @@ const (
 
 func newBootstrapperV1(
 	logger loghelper.LoggerWithContext,
-	configDigest ocr2types.ConfigDigest,
+	configDigest ocr1types.ConfigDigest,
 	peer *concretePeerV1,
 	v1peerIDs []p2ppeer.ID,
 	v1bootstrappers []p2ppeer.AddrInfo,
@@ -180,6 +180,6 @@ func (b *bootstrapperV1) allowlist() (allowlist []p2ppeer.ID) {
 	return
 }
 
-func (b *bootstrapperV1) getConfigDigest() ocr2types.ConfigDigest {
+func (b *bootstrapperV1) getConfigDigest() ocr1types.ConfigDigest {
 	return b.configDigest
 }
