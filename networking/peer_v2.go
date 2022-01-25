@@ -26,7 +26,7 @@ type concretePeerV2 struct {
 }
 
 type registrantV2 interface {
-	registrant
+	getConfigDigest() ocr2types.ConfigDigest
 	getV2Bootstrappers() []ragetypes.PeerInfo
 	getV2Oracles() []ragetypes.PeerID
 }

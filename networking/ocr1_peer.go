@@ -2,6 +2,7 @@ package networking
 
 import (
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/configdigesthelper"
 	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -30,7 +31,7 @@ func (o *ocr1BinaryNetworkEndpointFactory) NewEndpoint(
 ) (commontypes.BinaryNetworkEndpoint, error) {
 	return o.newEndpoint(
 		o.networkingStack,
-		configDigest.Expand(),
+		configdigesthelper.OCR1ToOCR2(configDigest),
 		pids,
 		v1bootstrappers,
 		v2bootstrappers,
@@ -58,7 +59,7 @@ func (o *ocr1BootstrapperFactory) NewBootstrapper(
 ) (commontypes.Bootstrapper, error) {
 	return o.newBootstrapper(
 		o.networkingStack,
-		configDigest.Expand(),
+		configdigesthelper.OCR1ToOCR2(configDigest),
 		peerIDs,
 		v1bootstrappers,
 		v2bootstrappers,

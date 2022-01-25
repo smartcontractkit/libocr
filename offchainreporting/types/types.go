@@ -19,11 +19,6 @@ func (c ConfigDigest) Hex() string {
 	return fmt.Sprintf("%x", c[:])
 }
 
-func (c ConfigDigest) Expand() (expanded [32]byte) {
-	copy(expanded[:], c[:])
-	return
-}
-
 func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 	configDigest := ConfigDigest{}
 

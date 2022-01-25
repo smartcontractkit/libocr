@@ -124,6 +124,10 @@ func newOCREndpointV2(
 	}, nil
 }
 
+func streamNameFromConfigDigest(cd ocr2types.ConfigDigest) string {
+	return fmt.Sprintf("ocr/%s", cd)
+}
+
 // Start the ocrEndpointV2. Should only be called once. Even in case of error Close() _should_ be called afterwards for cleanup.
 func (o *ocrEndpointV2) Start() error {
 	succeeded := false
@@ -149,9 +153,10 @@ func (o *ocrEndpointV2) Start() error {
 		if oid == o.ownOracleID {
 			continue
 		}
+		streamName := streamNameFromConfigDigest(o.configDigest)
 		stream, err := o.host.NewStream(
 			pid,
-			fmt.Sprintf("ocr/%x", o.configDigest),
+			streamName,
 			o.config.OutgoingMessageBufferSize,
 			o.config.IncomingMessageBufferSize,
 			o.limits.MaxMessageLength,

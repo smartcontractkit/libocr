@@ -1,7 +1,6 @@
 package managed
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
@@ -16,19 +15,14 @@ type prefixCheckConfigDigester struct {
 // consistent with OffchainConfigDigester.ConfigDigestPrefix
 func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.ConfigDigest, error) {
 	prefix := d.offchainConfigDigester.ConfigDigestPrefix()
-	prefixBytes := [2]byte{}
-	if types.ConfigDigestPrefix(uint16(prefix)) != prefix {
-		return types.ConfigDigest{}, fmt.Errorf("did somebody change the size of ConfigDigestPrefix? this should never happen!")
-	}
-	binary.BigEndian.PutUint16(prefixBytes[:], uint16(prefix))
 
 	cd, err := d.offchainConfigDigester.ConfigDigest(cc)
 	if err != nil {
 		return types.ConfigDigest{}, err
 	}
 
-	if cd[0] != prefixBytes[0] || cd[1] != prefixBytes[1] {
-		return types.ConfigDigest{}, fmt.Errorf("ConfigDigest has prefix %v, but wanted prefix %v", cd[:2], prefixBytes)
+	if !prefix.IsPrefixOf(cd) {
+		return types.ConfigDigest{}, fmt.Errorf("ConfigDigest has prefix %v, but wanted prefix %v", cd[:2], prefix)
 	}
 
 	return cd, nil
