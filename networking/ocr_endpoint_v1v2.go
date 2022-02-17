@@ -182,7 +182,7 @@ func (o *ocrEndpointV1V2) Start() error {
 		return err
 	}
 	if err := o.v2.Start(); err != nil {
-		o.logger.Error("Failed to start v2 OCR endpoint as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
+		o.logger.Critical("Failed to start v2 OCR endpoint as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
 	} else {
 		o.v2Started = true
 	}

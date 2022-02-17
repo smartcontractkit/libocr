@@ -203,7 +203,17 @@ func (o *oracleState) run() {
 	for {
 		select {
 		case msg := <-chNet:
-			msg.Msg.process(o, msg.Sender)
+			// This bounds check should never trigger since it's the netEndpoint's
+			// responsibility to only provide valid senders. We perform it for
+			// defense-in-depth.
+			if 0 <= int(msg.Sender) && int(msg.Sender) < o.config.N() {
+				msg.Msg.process(o, msg.Sender)
+			} else {
+				o.logger.Critical("msg.Sender out of bounds. This should *never* happen.", commontypes.LogFields{
+					"sender": msg.Sender,
+					"n":      o.config.N(),
+				})
+			}
 		case epoch := <-chPacemakerToOracle:
 			o.epochChanged(epoch)
 		case <-chDone:

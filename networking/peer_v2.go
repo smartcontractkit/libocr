@@ -86,12 +86,14 @@ func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
 }
 
 func (p2 *concretePeerV2) register(r registrantV2) error {
-	configDigest := r.getConfigDigest()
+	configDigest, oracles, bootstrappers := r.getConfigDigest(), r.getV2Oracles(), r.getV2Bootstrappers()
 	p2.registrantsMu.Lock()
 	defer p2.registrantsMu.Unlock()
 
-	p2.logger.Debug("PeerV2: registering v2 protocol handler", commontypes.LogFields{
-		"configDigest": configDigest.Hex(),
+	p2.logger.Info("PeerV2: registering v2 protocol handler", commontypes.LogFields{
+		"configDigest":  configDigest,
+		"oracles":       oracles,
+		"bootstrappers": bootstrappers,
 	})
 
 	if _, ok := p2.registrants[configDigest]; ok {
@@ -99,18 +101,20 @@ func (p2 *concretePeerV2) register(r registrantV2) error {
 	}
 	p2.registrants[configDigest] = struct{}{}
 	return p2.discoverer.AddGroup(
-		r.getConfigDigest(),
-		r.getV2Oracles(),
-		r.getV2Bootstrappers(),
+		configDigest,
+		oracles,
+		bootstrappers,
 	)
 }
 
 func (p2 *concretePeerV2) deregister(r registrantV2) error {
-	configDigest := r.getConfigDigest()
+	configDigest, oracles, bootstrappers := r.getConfigDigest(), r.getV2Oracles(), r.getV2Bootstrappers()
 	p2.registrantsMu.Lock()
 	defer p2.registrantsMu.Unlock()
-	p2.logger.Debug("PeerV2: deregistering v2 protocol handler", commontypes.LogFields{
-		"ProtocolID": configDigest.Hex(),
+	p2.logger.Info("PeerV2: deregistering v2 protocol handler", commontypes.LogFields{
+		"configDigest":  configDigest,
+		"oracles":       oracles,
+		"bootstrappers": bootstrappers,
 	})
 
 	if _, ok := p2.registrants[configDigest]; !ok {

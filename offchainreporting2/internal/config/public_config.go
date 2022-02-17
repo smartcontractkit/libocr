@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"strconv"
@@ -71,6 +72,10 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 		return PublicConfig{}, SharedSecretEncryptions{}, err
 	}
 
+	if err := checkIdentityListsHaveNoDuplicates(change, oc); err != nil {
+		return PublicConfig{}, SharedSecretEncryptions{}, err
+	}
+
 	// must check that all lists have the same length, or bad input could crash
 	// the following for loop.
 	if err := checkIdentityListsHaveTheSameLength(change, oc); err != nil {
@@ -119,6 +124,53 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 	}
 
 	return cfg, oc.SharedSecretEncryptions, nil
+}
+
+func checkIdentityListsHaveNoDuplicates(change types.ContractConfig, oc offchainConfig) error {
+	// inefficient, but it doesn't matter
+	for i := range change.Signers {
+		for j := range change.Signers {
+			if i != j && bytes.Equal(change.Signers[i], change.Signers[j]) {
+				return fmt.Errorf("%v-th and %v-th signer are identical: %x", i, j, change.Signers[i])
+			}
+		}
+	}
+
+	{
+		uniquePeerIDs := map[string]struct{}{}
+		for _, peerID := range oc.PeerIDs {
+			if _, ok := uniquePeerIDs[peerID]; ok {
+				return fmt.Errorf("duplicate PeerID '%v'", peerID)
+			}
+			uniquePeerIDs[peerID] = struct{}{}
+		}
+	}
+
+	{
+		uniqueOffchainPublicKeys := map[types.OffchainPublicKey]struct{}{}
+		for _, ocpk := range oc.OffchainPublicKeys {
+			if _, ok := uniqueOffchainPublicKeys[ocpk]; ok {
+				return fmt.Errorf("duplicate OffchainPublicKey %x", ocpk)
+			}
+			uniqueOffchainPublicKeys[ocpk] = struct{}{}
+		}
+	}
+
+	{
+		// this isn't strictly necessary, but since we don't intend to run
+		// with duplicate transmitters at this time, we might as well check
+		uniqueTransmitters := map[types.Account]struct{}{}
+		for _, transmitter := range change.Transmitters {
+			if _, ok := uniqueTransmitters[transmitter]; ok {
+				return fmt.Errorf("duplicate transmitter '%v'", transmitter)
+			}
+			uniqueTransmitters[transmitter] = struct{}{}
+		}
+	}
+
+	// no point in checking SharedSecretEncryptions for uniqueness
+
+	return nil
 }
 
 func checkIdentityListsHaveTheSameLength(

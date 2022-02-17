@@ -8,7 +8,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 )
 
-func loadConfigFromDatabase(ctx context.Context, database types.Database, logger loghelper.LoggerWithContext) *types.ContractConfig {
+func loadConfigFromDatabase(ctx context.Context, database types.ConfigDatabase, logger loghelper.LoggerWithContext) *types.ContractConfig {
 	cc, err := database.ReadConfig(ctx)
 	if err != nil {
 		logger.ErrorIfNotCanceled("loadConfigFromDatabase: Error during Database.ReadConfig", ctx, commontypes.LogFields{

@@ -8,14 +8,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ConfigDatabase persistently stores configuration-related information on
+// disk.
+//
+// All its functions should be thread-safe.
+type ConfigDatabase interface {
+	ReadConfig(ctx context.Context) (*ContractConfig, error)
+	WriteConfig(ctx context.Context, config ContractConfig) error
+}
+
 // Database persistently stores information on-disk.
 // All its functions should be thread-safe.
 type Database interface {
+	ConfigDatabase
+
 	ReadState(ctx context.Context, configDigest ConfigDigest) (*PersistentState, error)
 	WriteState(ctx context.Context, configDigest ConfigDigest, state PersistentState) error
-
-	ReadConfig(ctx context.Context) (*ContractConfig, error)
-	WriteConfig(ctx context.Context, config ContractConfig) error
 
 	StorePendingTransmission(context.Context, ReportTimestamp, PendingTransmission) error
 	PendingTransmissionsWithConfigDigest(context.Context, ConfigDigest) (map[ReportTimestamp]PendingTransmission, error)

@@ -3,6 +3,7 @@ package ragedisco
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,9 @@ func combinedAnnounceAddrs(as []string) (combined []ragetypes.Address, err error
 	for addr := range dedup {
 		combined = append(combined, addr)
 	}
+	sort.Slice(combined, func(i, j int) bool {
+		return combined[i] < combined[j]
+	})
 	return
 }
 

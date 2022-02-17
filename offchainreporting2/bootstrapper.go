@@ -17,7 +17,7 @@ type BootstrapperArgs struct {
 	BootstrapperFactory    types.BootstrapperFactory
 	V2Bootstrappers        []commontypes.BootstrapperLocator
 	ContractConfigTracker  types.ContractConfigTracker
-	Database               types.Database
+	Database               types.ConfigDatabase
 	LocalConfig            types.LocalConfig
 	Logger                 commontypes.Logger
 	MonitoringEndpoint     commontypes.MonitoringEndpoint
