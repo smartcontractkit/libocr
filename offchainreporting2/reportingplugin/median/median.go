@@ -449,10 +449,11 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 	subs.Wait()
 
 	if err := multierr.Combine(resultTransmissionDetails.err, resultRoundRequested.err); err != nil {
-		// Err on the side of creating too many reports. For instance, the Ethereum node
-		// might be down, but that need not prevent us from still contributing to the
-		// protocol.
-		return true, fmt.Errorf("error during LatestTransmissionDetails/LatestRoundRequested: %w", err)
+		return false, fmt.Errorf("error during LatestTransmissionDetails/LatestRoundRequested: %w", err)
+	}
+
+	if resultTransmissionDetails.latestAnswer == nil {
+		return false, fmt.Errorf("nil latestAnswer was returned by LatestTransmissionDetails. This should never happen")
 	}
 
 	// sort by values

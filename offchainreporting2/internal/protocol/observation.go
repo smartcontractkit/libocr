@@ -5,7 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
+	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
@@ -39,9 +39,15 @@ func (so SignedObservation) Equal(so2 SignedObservation) bool {
 }
 
 func (so SignedObservation) Verify(repts types.ReportTimestamp, query types.Query, publicKey types.OffchainPublicKey) error {
-	ok := ed25519.Verify(ed25519.PublicKey(publicKey), signedObservationWireMessage(repts, query, so.Observation), so.Signature)
+	pk := ed25519.PublicKey(publicKey[:])
+	// should never trigger since types.OffchainPublicKey is an array with length ed25519.PublicKeySize
+	if len(pk) != ed25519.PublicKeySize {
+		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
+	}
+
+	ok := ed25519.Verify(pk, signedObservationWireMessage(repts, query, so.Observation), so.Signature)
 	if !ok {
-		return errors.New("SignedObservation has invalid signature")
+		return fmt.Errorf("SignedObservation has invalid signature")
 	}
 
 	return nil

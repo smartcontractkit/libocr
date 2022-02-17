@@ -27,9 +27,14 @@ type PeerConfig struct {
 	PrivKey         p2pcrypto.PrivKey
 	Logger          commontypes.Logger
 
-	V1ListenIP     net.IP
-	V1ListenPort   uint16
-	V1AnnounceIP   net.IP
+	V1ListenIP   net.IP
+	V1ListenPort uint16
+	// V1AnnounceIP _should not_ be an unspecified IP (https://pkg.go.dev/net#IP.IsUnspecified), otherwise V1 peer
+	// discovery will not work. V1ListenIP might be an unspecified IP, so be careful!
+	// For auto-detection of the V1 announce IP and port based on V1ListenIP and V1ListenPort, you should leave both
+	// V1AnnounceIP and V1AnnouncePort unspecified!
+	V1AnnounceIP net.IP
+	// V1AnnouncePort should be set if and only if V1AnnounceIP is also set.
 	V1AnnouncePort uint16
 	V1Peerstore    p2ppeerstore.Peerstore
 
@@ -37,12 +42,13 @@ type PeerConfig struct {
 	// users can bump this value to manually bump the counter.
 	V1DHTAnnouncementCounterUserPrefix uint32
 
-	// V2ListenAddresses contains the addresses the peer will listen to on the network in <host>:<port> form as
-	// accepted by net.Listen, but host and port must be fully specified and cannot be empty.
+	// V2ListenAddresses contains the addresses the peer will listen to on the network in <ip>:<port> form as
+	// accepted by net.Listen.
 	V2ListenAddresses []string
 
 	// V2AnnounceAddresses contains the addresses the peer will advertise on the network in <host>:<port> form as
 	// accepted by net.Dial. The addresses should be reachable by peers of interest.
+	// May be left unspecified, in which case the announce addresses are auto-detected based on V2ListenAddresses.
 	V2AnnounceAddresses []string
 
 	// Every V2DeltaReconcile a Reconcile message is sent to every peer.
@@ -152,7 +158,7 @@ func (p *concretePeer) newEndpoint(
 	}
 
 	if v2err != nil {
-		p.logger.Error("newEndpoint failed for v2 as part of v1v2, operating only with v1", commontypes.LogFields{"error": v2err})
+		p.logger.Critical("newEndpoint failed for v2 as part of v1v2, operating only with v1", commontypes.LogFields{"error": v2err})
 		return v1, nil
 	}
 
@@ -202,7 +208,7 @@ func (p *concretePeer) newBootstrapper(
 	}
 
 	if v2err != nil {
-		p.logger.Error("newBootstrapper failed for v2 as part of v1v2, operating only with v1", commontypes.LogFields{"error": v2err})
+		p.logger.Critical("newBootstrapper failed for v2 as part of v1v2, operating only with v1", commontypes.LogFields{"error": v2err})
 		return v1, nil
 	}
 

@@ -708,7 +708,11 @@ func (ho *Host) handleIncomingConnection(conn net.Conn) {
 
 	other, err := knock.VerifyKnock(ho.id, knck)
 	if err != nil {
-		logger.Warn("Invalid knock", commontypes.LogFields{"error": err})
+		if errors.Is(err, knock.ErrFromSelfDial) {
+			logger.Info("Self-dial knock, dropping connection. Someone has likely misconfigured their announce addresses.", nil)
+		} else {
+			logger.Warn("Invalid knock", commontypes.LogFields{"error": err})
+		}
 		return
 	}
 

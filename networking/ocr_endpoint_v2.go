@@ -101,6 +101,11 @@ func newOCREndpointV2(
 		"id":           "OCREndpointV2",
 	})
 
+	logger.Info("OCREndpointV2: Initialized", commontypes.LogFields{
+		"bootstrappers": v2bootstrappers,
+		"oracles":       peerIDs,
+	})
+
 	return &ocrEndpointV2{
 		config,
 		peerIDs,
@@ -186,7 +191,6 @@ func (o *ocrEndpointV2) Start() error {
 	})
 
 	o.logger.Info("OCREndpointV2: Started listening", nil)
-
 	succeeded = true
 	return nil
 }

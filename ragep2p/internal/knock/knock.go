@@ -36,6 +36,12 @@ func BuildKnock(other types.PeerID, self types.PeerID, secretKey ed25519.Private
 	return knock
 }
 
+var (
+	ErrSizeMismatch     = fmt.Errorf("knock size mismatch")
+	ErrFromSelfDial     = fmt.Errorf("knock from self-dial")
+	ErrInvalidSignature = fmt.Errorf("knock has invalid signature")
+)
+
 // Verifies a knock message allegedly destined to self. If the message is valid,
 // returns the PeerId of the sender. Otherwise returns nil and an error.
 //
@@ -51,14 +57,18 @@ func VerifyKnock(self types.PeerID, knock []byte) (*types.PeerID, error) {
 	knock = knock[1:]
 
 	var other types.PeerID
-	if len(other) != copy(other[:], knock[:ed25519.PublicKeySize]) { // TODO: PeerIDSize
-		return nil, fmt.Errorf("size mismatch")
+	if len(other) != copy(other[:], knock[:ed25519.PublicKeySize]) {
+		return nil, ErrSizeMismatch
+	}
+
+	if other == self {
+		return nil, ErrFromSelfDial
 	}
 
 	msg := messageToSign(self)
 	sig := knock[ed25519.PublicKeySize:]
 	if !ed25519.Verify(ed25519.PublicKey(other[:]), msg, sig) {
-		return nil, fmt.Errorf("invalid signature")
+		return nil, ErrInvalidSignature
 	}
 
 	return &other, nil

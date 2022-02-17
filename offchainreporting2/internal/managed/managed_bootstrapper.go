@@ -17,7 +17,7 @@ func RunManagedBootstrapper(
 	bootstrapperFactory types.BootstrapperFactory,
 	v2bootstrappers []commontypes.BootstrapperLocator,
 	contractConfigTracker types.ContractConfigTracker,
-	database types.Database,
+	database types.ConfigDatabase,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	offchainConfigDigester types.OffchainConfigDigester,

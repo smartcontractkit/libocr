@@ -40,6 +40,12 @@ func newBootstrapperV2(
 		"id":           "bootstrapperV2",
 		"configDigest": configDigest.Hex(),
 	})
+
+	logger.Info("BootstrapperV2: Initialized", commontypes.LogFields{
+		"bootstrappers": v2bootstrappers,
+		"oracles":       v2peerIDs,
+	})
+
 	return &bootstrapperV2{
 		peer,
 		v2peerIDs,

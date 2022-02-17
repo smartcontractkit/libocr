@@ -284,7 +284,13 @@ type Account string
 // All its functions should be thread-safe.
 type ContractTransmitter interface {
 
-	// Transmit sends the report to the on-chain OCR2Aggregator smart contract's Transmit method
+	// Transmit sends the report to the on-chain OCR2Aggregator smart
+	// contract's Transmit method.
+	//
+	// In most cases, implementations of this function should store the
+	// transmission in a queue/database/..., but perform the actual
+	// transmission (and potentially confirmation) of the transaction
+	// asynchronously.
 	Transmit(
 		context.Context,
 		ReportContext,
@@ -292,6 +298,8 @@ type ContractTransmitter interface {
 		[]AttributedOnchainSignature,
 	) error
 
+	// LatestConfigDigestAndEpoch returns the logically latest configDigest and
+	// epoch for which a report was successfully transmitted.
 	LatestConfigDigestAndEpoch(
 		ctx context.Context,
 	) (
@@ -300,6 +308,7 @@ type ContractTransmitter interface {
 		err error,
 	)
 
+	// Account from which the transmitter invokes the contract
 	FromAccount() Account
 }
 
@@ -340,7 +349,7 @@ type ContractConfig struct {
 
 // OffchainPublicKey is the public key used to cryptographically identify an
 // oracle in inter-oracle communications.
-type OffchainPublicKey ed25519.PublicKey
+type OffchainPublicKey [ed25519.PublicKeySize]byte
 
 // OnchainPublicKey is the public key used to cryptographically identify an
 // oracle to the on-chain smart contract.
@@ -397,6 +406,9 @@ type OnchainKeyring interface {
 
 	// Verify verifies a signature over ReportContext and Report allegedly
 	// created from OnchainPublicKey.
+	//
+	// Implementations of this function must gracefully handle malformed or
+	// adversarially crafted inputs.
 	Verify(_ OnchainPublicKey, _ ReportContext, _ Report, signature []byte) bool
 
 	// Maximum length of a signature

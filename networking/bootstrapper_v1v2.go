@@ -52,7 +52,7 @@ func (b *bootstrapperV1V2) Start() error {
 		return err
 	}
 	if err := b.v2.Start(); err != nil {
-		b.logger.Error("Failed to start v2 bootstrapper as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
+		b.logger.Critical("Failed to start v2 bootstrapper as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
 		b.v2started = false
 	}
 	succeeded = true

@@ -263,7 +263,7 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		1666700003: {"Harmony Testnet Shard 3", chainTypePublicTestnet},
 		137:        {"Matic", chainTypeFastUpdates},
 		80001:      {"Matic Testnet", chainTypePublicTestnet},
-		10:         {"Optimism", chainTypeModerateUpdates},
+		10:         {"Optimism", chainTypeFastUpdates},
 		69:         {"Optimism Testnet Kovan", chainTypePublicTestnet},
 		420:        {"Optimism Testnet Goerli", chainTypePublicTestnet},
 		30:         {"RSK", chainTypeModerateUpdates},

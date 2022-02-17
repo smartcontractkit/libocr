@@ -16,7 +16,7 @@ func runWithContractConfig(
 	ctx context.Context,
 
 	contractConfigTracker types.ContractConfigTracker,
-	database types.Database,
+	database types.ConfigDatabase,
 	fn func(context.Context, types.ContractConfig, loghelper.LoggerWithContext),
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
@@ -45,7 +45,7 @@ type runWithContractConfigState struct {
 
 	configDigest          types.ConfigDigest
 	contractConfigTracker types.ContractConfigTracker
-	database              types.Database
+	database              types.ConfigDatabase
 	fn                    func(context.Context, types.ContractConfig, loghelper.LoggerWithContext)
 	localConfig           types.LocalConfig
 	logger                loghelper.LoggerWithContext
