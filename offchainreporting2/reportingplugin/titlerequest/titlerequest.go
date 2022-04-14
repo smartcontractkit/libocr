@@ -46,13 +46,15 @@ func (fac *TitleRequestPluginFactory) NewReportingPlugin(config types.ReportingP
 		}, types.ReportingPluginInfo{
 			"Title Request ReportingPlugin",
 			false,
-			// queries are empty
-			0,
-			// observations are at most 32 (request id) + 32 (title offset) + 32
-			// (title len) + maxTitleLen chars, let's generously round to 1000
-			1_000,
-			// reports follow the same format as observations
-			1_000,
+			types.ReportingPluginLimits{
+				// queries are empty
+				0,
+				// observations are at most 32 (request id) + 32 (title offset) + 32
+				// (title len) + maxTitleLen chars, let's generously round to 1000
+				1_000,
+				// reports follow the same format as observations
+				1_000,
+			},
 		}, nil
 }
 

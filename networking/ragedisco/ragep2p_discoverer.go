@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
 
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -92,9 +91,9 @@ func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, l
 	}
 	r.state = ragep2pDiscovererStarted
 	r.host = h
-	announceAddresses, err := combinedAnnounceAddrs(r.announceAddresses)
-	if err != nil {
-		return err
+	announceAddresses, ok := combinedAnnounceAddrsForDiscoverer(r.logger, r.announceAddresses)
+	if !ok {
+		return fmt.Errorf("failed to obtain announce addresses")
 	}
 	proto, err := newDiscoveryProtocol(
 		r.deltaReconcile,
@@ -107,12 +106,12 @@ func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, l
 		logger,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to construct underlying discovery protocol")
+		return fmt.Errorf("failed to construct underlying discovery protocol: %w", err)
 	}
 	r.proto = proto
 	err = r.proto.Start()
 	if err != nil {
-		return errors.Wrap(err, "failed to start underlying discovery protocol")
+		return fmt.Errorf("failed to start underlying discovery protocol: %w", err)
 	}
 	r.proc.Go(r.connectivityLoop)
 	r.proc.Go(r.writeLoop)
@@ -219,7 +218,7 @@ func (r *Ragep2pDiscoverer) writeLoop() {
 			r.streamsMu.Lock()
 			s, exists := r.streams[m.to]
 			if !exists {
-				r.logger.Warn("write message to peer we don't have a stream open for", commontypes.LogFields{
+				r.logger.Warn("Write message to peer we don't have a stream open for", commontypes.LogFields{
 					"remotePeerID": m.to,
 				})
 				r.streamsMu.Unlock()
@@ -228,7 +227,7 @@ func (r *Ragep2pDiscoverer) writeLoop() {
 			r.streamsMu.Unlock()
 			bs, err := toBytesWrapped(m.payload)
 			if err != nil {
-				r.logger.Warn("failed to convert message to bytes", commontypes.LogFields{"message": m.payload})
+				r.logger.Warn("Failed to convert message to bytes", commontypes.LogFields{"message": m.payload})
 				break
 			}
 			s.SendMessage(bs)

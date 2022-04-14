@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/managed"
@@ -85,7 +84,7 @@ type Oracle struct {
 // and configuration.
 func NewOracle(args OracleArgs) (*Oracle, error) {
 	if err := SanityCheckLocalConfig(args.LocalConfig); err != nil {
-		return nil, errors.Wrapf(err, "bad local config while creating new oracle")
+		return nil, fmt.Errorf("bad local config while creating new oracle: %w", err)
 	}
 	return &Oracle{
 		sync.Mutex{},

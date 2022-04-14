@@ -35,16 +35,16 @@ func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
 
 	rawPriv, err := c.PrivKey.Raw()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get raw private key to use for v2")
+		return nil, fmt.Errorf("failed to get raw private key to use for v2: %w", err)
 	}
 	ed25519Priv := ed25519.PrivateKey(rawPriv)
 	if err := ed25519SanityCheck(ed25519Priv); err != nil {
-		return nil, errors.Wrap(err, "ed25519 sanity check failed")
+		return nil, fmt.Errorf("ed25519 sanity check failed: %w", err)
 	}
 
 	peerID, err := ragetypes.PeerIDFromPrivateKey(ed25519Priv)
 	if err != nil {
-		return nil, errors.Wrap(err, "error extracting v2 peer ID from private key")
+		return nil, fmt.Errorf("error extracting v2 peer ID from private key: %w", err)
 	}
 
 	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(commontypes.LogFields{
@@ -65,11 +65,11 @@ func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
 		c.Logger,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to construct ragep2p host")
+		return nil, fmt.Errorf("failed to construct ragep2p host: %w", err)
 	}
 	err = host.Start()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to start ragep2p host")
+		return nil, fmt.Errorf("failed to start ragep2p host: %w", err)
 	}
 
 	logger.Info("PeerV2: ragep2p host booted", nil)
@@ -141,7 +141,7 @@ func decodev2Bootstrappers(v2bootstrappers []commontypes.BootstrapperLocator) (i
 		var rageID ragetypes.PeerID
 		err := rageID.UnmarshalText([]byte(b.PeerID))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal v2 peer ID (%s) from BootstrapperLocator", b.PeerID)
+			return nil, fmt.Errorf("failed to unmarshal v2 peer ID (%q) from BootstrapperLocator: %w", b.PeerID, err)
 		}
 		infos = append(infos, ragetypes.PeerInfo{
 			rageID,
@@ -157,7 +157,7 @@ func decodev2PeerIDs(pids []string) ([]ragetypes.PeerID, error) {
 		var rid ragetypes.PeerID
 		err := rid.UnmarshalText([]byte(pid))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error decoding v2 peer ID: %s", pid)
+			return nil, fmt.Errorf("error decoding v2 peer ID (%q): %w", pid, err)
 		}
 		peerIDs[i] = rid
 	}
@@ -181,12 +181,12 @@ func (p2 *concretePeerV2) newEndpoint(
 
 	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not decode v2 peer IDs")
+		return nil, fmt.Errorf("could not decode v2 peer IDs: %w", err)
 	}
 
 	decodedv2Bootstrappers, err := decodev2Bootstrappers(v2bootstrappers)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not decode v2 bootstrappers")
+		return nil, fmt.Errorf("could not decode v2 bootstrappers: %w", err)
 	}
 
 	return newOCREndpointV2(
@@ -221,7 +221,7 @@ func (p2 *concretePeerV2) newBootstrapper(
 
 	decodedv2Bootstrappers, err := decodev2Bootstrappers(v2bootstrappers)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not decode v2 bootstrappers")
+		return nil, fmt.Errorf("could not decode v2 bootstrappers: %w", err)
 	}
 
 	return newBootstrapperV2(p2.logger, configDigest, p2, decodedv2PeerIDs, decodedv2Bootstrappers, f)

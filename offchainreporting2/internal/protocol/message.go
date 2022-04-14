@@ -48,6 +48,9 @@ type EventToTransmission interface {
 // Message is the interface used to pass an inter-oracle message to the local
 // oracle process.
 type Message interface {
+	// CheckSize checks whether the given message conforms to the limits imposed by
+	// reportingPluginLimits
+	CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool
 
 	// process passes this Message instance to the oracle o, as a message from
 	// oracle with the given sender index
@@ -115,6 +118,10 @@ type MessageNewEpoch struct {
 
 var _ MessageToPacemaker = (*MessageNewEpoch)(nil)
 
+func (msg MessageNewEpoch) CheckSize(types.ReportingPluginLimits) bool {
+	return true
+}
+
 func (msg MessageNewEpoch) process(o *oracleState, sender commontypes.OracleID) {
 	o.chNetToPacemaker <- MessageToPacemakerWithSender{msg, sender}
 }
@@ -133,6 +140,10 @@ type MessageObserveReq struct {
 }
 
 var _ MessageToReportGeneration = (*MessageObserveReq)(nil)
+
+func (msg MessageObserveReq) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+	return len(msg.Query) <= reportingPluginLimits.MaxQueryLength
+}
 
 func (msg MessageObserveReq) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
@@ -157,6 +168,10 @@ type MessageObserve struct {
 
 var _ MessageToReportGeneration = (*MessageObserve)(nil)
 
+func (msg MessageObserve) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+	return len(msg.SignedObservation.Observation) <= reportingPluginLimits.MaxObservationLength
+}
+
 func (msg MessageObserve) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
@@ -177,6 +192,24 @@ type MessageReportReq struct {
 	Round                        uint8
 	Query                        types.Query
 	AttributedSignedObservations []AttributedSignedObservation
+}
+
+func (msg MessageReportReq) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+	if !(len(msg.Query) <= reportingPluginLimits.MaxQueryLength) {
+		return false
+	}
+
+	if !(len(msg.AttributedSignedObservations) <= types.MaxOracles) {
+		return false
+	}
+
+	for _, aso := range msg.AttributedSignedObservations {
+		if !(len(aso.SignedObservation.Observation) <= reportingPluginLimits.MaxObservationLength) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (msg MessageReportReq) process(o *oracleState, sender commontypes.OracleID) {
@@ -205,6 +238,10 @@ type MessageReport struct {
 
 var _ MessageToReportGeneration = (*MessageReport)(nil)
 
+func (msg MessageReport) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+	return len(msg.AttestedReport.Report) <= reportingPluginLimits.MaxReportLength
+}
+
 func (msg MessageReport) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
@@ -230,6 +267,11 @@ type MessageFinal struct {
 
 var _ MessageToReportGeneration = (*MessageFinal)(nil)
 
+func (msg MessageFinal) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+	return len(msg.AttestedReport.AttributedSignatures) <= types.MaxOracles &&
+		len(msg.AttestedReport.Report) <= reportingPluginLimits.MaxReportLength
+}
+
 func (msg MessageFinal) process(o *oracleState, sender commontypes.OracleID) {
 	o.reportGenerationMessage(msg, sender)
 }
@@ -249,6 +291,10 @@ var _ MessageToReportFinalization = MessageFinalEcho{}
 // their role in transmitting the report to the on-chain contract.
 type MessageFinalEcho struct {
 	MessageFinal
+}
+
+func (msg MessageFinalEcho) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+	return msg.MessageFinal.CheckSize(reportingPluginLimits)
 }
 
 func (msg MessageFinalEcho) process(o *oracleState, sender commontypes.OracleID) {

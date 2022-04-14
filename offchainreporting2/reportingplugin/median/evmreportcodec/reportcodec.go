@@ -97,6 +97,10 @@ func (ReportCodec) MedianFromReport(report types.Report) (*big.Int, error) {
 	return median, nil
 }
 
+func (ReportCodec) MaxReportLength(n int) int {
+	return 32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + n*32) /*observations*/ + 32 /* juelsPerFeeCoin */
+}
+
 func (ReportCodec) XXXJuelsPerFeeCoinFromReport(report types.Report) (*big.Int, error) {
 	reportElems := map[string]interface{}{}
 	if err := reportTypes.UnpackIntoMap(reportElems, report); err != nil {

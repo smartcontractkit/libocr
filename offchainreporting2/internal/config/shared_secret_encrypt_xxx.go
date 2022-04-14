@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"golang.org/x/crypto/curve25519"
 )
@@ -60,7 +59,7 @@ func XXXEncryptSharedSecret(
 	var sk [32]byte
 	_, err := io.ReadFull(rand, sk[:])
 	if err != nil {
-		panic(errors.Wrapf(err, "could not produce entropy for encryption"))
+		panic(fmt.Errorf("could not produce entropy for encryption: %w", err))
 	}
 	return XXXEncryptSharedSecretInternal(keys, sharedSecret, &sk)
 }

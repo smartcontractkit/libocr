@@ -92,14 +92,14 @@ func NewPeer(c PeerConfig) (*concretePeer, error) {
 	if c.NetworkingStack.needsv1() {
 		v1, err = newPeerV1(c)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to make v1 peer")
+			return nil, fmt.Errorf("failed to make v1 peer: %w", err)
 		}
 		logger = logger.MakeChild(commontypes.LogFields{"v1peerID": v1.PeerID()})
 	}
 	if c.NetworkingStack.needsv2() {
 		v2, err = newPeerV2(c)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to make v2 peer")
+			return nil, fmt.Errorf("failed to make v2 peer: %w", err)
 		}
 		logger = logger.MakeChild(commontypes.LogFields{"v2peerID": v2.PeerID()})
 	}

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/mr-tron/base58"
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/mtls"
 )
 
@@ -44,7 +43,7 @@ func (p PeerID) MarshalText() (text []byte, err error) {
 func (p *PeerID) UnmarshalText(text []byte) error {
 	b58, err := base58.Decode(string(text))
 	if err != nil {
-		return errors.Wrap(err, "failed to base58 decode")
+		return fmt.Errorf("failed to base58 decode: %w", err)
 	}
 	return p.UnmarshalBinary(b58)
 }

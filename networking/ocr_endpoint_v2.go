@@ -12,7 +12,6 @@ import (
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 )
 
@@ -175,7 +174,7 @@ func (o *ocrEndpointV2) Start() error {
 			},
 		)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create stream for oracle %v (peer id: %s)", oid, pid)
+			return fmt.Errorf("failed to create stream for oracle %v (peer id: %q): %w", oid, pid, err)
 		}
 		o.streams[oid] = stream
 	}
@@ -251,11 +250,15 @@ func (o *ocrEndpointV2) Close() error {
 
 	var allErrors error
 	for oid, stream := range o.streams {
-		allErrors = multierr.Append(allErrors, errors.Wrapf(stream.Close(), "error while closing stream with oracle %v", oid))
+		if err := stream.Close(); err != nil {
+			allErrors = multierr.Append(allErrors, fmt.Errorf("error while closing stream with oracle %v: %w", oid, err))
+		}
 	}
 
 	o.logger.Debug("OCREndpointV2: Deregister", nil)
-	allErrors = multierr.Append(allErrors, errors.Wrap(o.peer.deregister(o), "error closing OCREndpointV2: could not deregister"))
+	if err := o.peer.deregister(o); err != nil {
+		allErrors = multierr.Append(allErrors, fmt.Errorf("error closing OCREndpointV2: could not deregister: %w", err))
+	}
 
 	o.logger.Debug("OCREndpointV2: Closing o.recv", nil)
 	close(o.recv)

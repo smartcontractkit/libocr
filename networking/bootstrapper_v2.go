@@ -8,7 +8,6 @@ import (
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 )
 
@@ -91,7 +90,10 @@ func (b *bootstrapperV2) Close() error {
 	}
 	b.state = bootstrapperClosed
 
-	return errors.Wrap(b.peer.deregister(b), "could not unregister bootstrapperV2")
+	if err := b.peer.deregister(b); err != nil {
+		return fmt.Errorf("could not unregister bootstrapperV2: %w", err)
+	}
+	return nil
 }
 
 func (b *bootstrapperV2) getConfigDigest() ocr2types.ConfigDigest {

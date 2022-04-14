@@ -2,100 +2,140 @@ package ragedisco
 
 import (
 	"fmt"
-	"net"
-	"sort"
-	"strconv"
+	"net/netip"
 
-	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/networking/ragedisco/autodetect"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
-func announceAddrs(a ragetypes.Address) ([]ragetypes.Address, error) {
-	host, port, err := splitAddress(a)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid address")
-	}
-	ip := net.ParseIP(host)
-	if ip == nil {
-		return nil, fmt.Errorf("host was not an IP")
-	}
-	if ip.IsUnspecified() {
-		allIPv4s, allIPv6s, err := getAddressesForAllInterfaces(port)
+type autodetector func() ([]netip.Addr, []netip.Addr, error)
+
+// combinedAnnounceAddrs takes in the user-provided string addresses and converts them to proper ragep2p addresses.
+// Unspecified addresses such as 0.0.0.0 are replaced with specified auto-detected addresses. This function never
+// returns duplicate addresses. If autodetection fails and there is no specified (non-unspecified) address available,
+// it returns returns ok=false.
+func combinedAnnounceAddrs(logger commontypes.Logger, addrStrs []string, autodetectFunc autodetector) ([]ragetypes.Address, bool) {
+	var addrs []ragetypes.Address
+	ifaceV4, ifaceV6, autodetectErr := autodetectFunc()
+	for _, addrStr := range addrStrs {
+		addrPort, err := parseAddrPortForAnnouncement(addrStr)
 		if err != nil {
-			return nil, err
-		} else if ip.To4() != nil {
-			return allIPv4s, nil
+			logger.Critical("Invalid announce address provided", commontypes.LogFields{"address": addrStr, "error": err})
+			return nil, false
+		}
+
+		ip, port := addrPort.Addr(), addrPort.Port()
+		if !ip.IsUnspecified() {
+			addrs = append(addrs, ragetypes.Address(addrStr))
 		} else {
-			return allIPv6s, nil
+			if ip.Is4() {
+				if autodetectErr == nil {
+					addrs = append(addrs, joinIPsPort(ifaceV4, port)...)
+				}
+			} else if ip.Is6() {
+				if autodetectErr == nil {
+					addrs = append(addrs, joinIPsPort(ifaceV6, port)...)
+				}
+			} else {
+				logger.Critical("We ended up with an announce IP that is neither IPv4 nor IPv6. This should never happen!", commontypes.LogFields{"ip": ip})
+				return nil, false
+			}
 		}
 	}
-	return []ragetypes.Address{a}, nil
+
+	addrs = dedup(addrs)
+	if autodetectErr != nil {
+		if len(addrs) > 0 {
+			logger.Critical("Could not autodetect announce addresses, using only specified addresses", commontypes.LogFields{
+				"announceAddresses": addrs,
+				"error":             autodetectErr,
+			})
+		} else {
+			logger.Critical("No specified announce addresses were supplied and failed to autodetect interface IPs", commontypes.LogFields{
+				"error": autodetectErr,
+			})
+			return nil, false
+		}
+	}
+	if len(addrs) > maxAddrsInAnnouncement {
+		logger.Critical("Announce addresses length is more than the allowed max, trimming", commontypes.LogFields{
+			"length":           len(addrs),
+			"maxAllowedLength": maxAddrsInAnnouncement,
+		})
+		addrs = addrs[:maxAddrsInAnnouncement]
+	}
+
+	// Sanity check, better to fail here than to produce announcements that
+	// would be not accepted by other peers due to invalid addresses.
+	for _, addr := range addrs {
+		if !isValidForAnnouncement(addr) {
+			logger.Critical("Produced announce addresses contain an invalid address. This should never happen!", commontypes.LogFields{
+				"invalidAddress":          addr,
+				"announceAddresses":       addrs,
+				"configAnnounceAddresses": addrStrs,
+			})
+			return nil, false
+		}
+	}
+	return addrs, true
 }
 
-func combinedAnnounceAddrs(as []string) (combined []ragetypes.Address, err error) {
-	dedup := make(map[ragetypes.Address]struct{})
-	for _, addr := range as {
-		announceAddresses, err := announceAddrs(ragetypes.Address(addr))
-		if err != nil {
-			return nil, err
+func combinedAnnounceAddrsForDiscoverer(logger commontypes.Logger, addrStrs []string) ([]ragetypes.Address, bool) {
+	return combinedAnnounceAddrs(logger, addrStrs, autodetect.AutodetectIPs)
+}
+
+func dedup(addrs []ragetypes.Address) []ragetypes.Address {
+	m := make(map[ragetypes.Address]struct{})
+	var ret []ragetypes.Address
+	for _, addr := range addrs {
+		if _, exists := m[addr]; exists {
+			continue
 		}
-		for _, annAddr := range announceAddresses {
-			dedup[annAddr] = struct{}{}
-		}
+		ret = append(ret, addr)
+		m[addr] = struct{}{}
 	}
-	for addr := range dedup {
-		combined = append(combined, addr)
+	return ret
+}
+
+func parseAddrPortForAnnouncement(s string) (netip.AddrPort, error) {
+	const maxAddrPortSize = 1 + // opening bracket [
+		39 + // max IPv6 string representation, len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+		1 + // closing bracket ]
+		1 + // port separator :
+		5 // max port, len("65535")
+	if len(s) > maxAddrPortSize {
+		return netip.AddrPort{}, fmt.Errorf("address %q larger than %d bytes", s, maxAddrPortSize)
 	}
-	sort.Slice(combined, func(i, j int) bool {
-		return combined[i] < combined[j]
-	})
-	return
+	addrPort, err := netip.ParseAddrPort(s)
+	if err != nil {
+		return netip.AddrPort{}, err
+	}
+	addr := addrPort.Addr()
+	if addr.Zone() != "" {
+		return netip.AddrPort{}, fmt.Errorf("address %q contains IPv6 zone", s)
+	}
+	if !(addr.Is4() || addr.Is6()) {
+		return netip.AddrPort{}, fmt.Errorf("address %q should be either IPv4 or IPv6", s)
+	}
+	return addrPort, err
 }
 
 // isValidForAnnouncement checks that the provided address is in the form ip:port.
 // Hostnames or domain names are not allowed.
 func isValidForAnnouncement(a ragetypes.Address) bool {
-	host, _, err := splitAddress(a)
-	if err != nil {
-		return false
-	}
-	ip := net.ParseIP(host)
-	return ip != nil
+	_, err := parseAddrPortForAnnouncement(string(a))
+	return err == nil
 }
 
-// splitAddress splits an address into host and port. A third error argument is also returned.
-func splitAddress(a ragetypes.Address) (string, uint16, error) {
-	host, portString, err := net.SplitHostPort(string(a))
-	if err != nil {
-		return "", 0, err
-	}
-	port, err := strconv.ParseUint(portString, 10, 16)
-	return host, uint16(port), err
+func joinIPPort(ip netip.Addr, port uint16) ragetypes.Address {
+	return ragetypes.Address(netip.AddrPortFrom(ip, port).String())
 }
 
-func getAddressesForAllInterfaces(port uint16) (ipv4s []ragetypes.Address, ipv6s []ragetypes.Address, err error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return
+func joinIPsPort(ips []netip.Addr, port uint16) []ragetypes.Address {
+	var addrs []ragetypes.Address
+	for _, ip := range ips {
+		addrs = append(addrs, joinIPPort(ip, port))
 	}
-
-	for _, addr := range addrs {
-		// By default addr contains the subnet, so decompose.
-		ipNet, ok := addr.(*net.IPNet)
-		if !ok {
-			// Since we are working with interface addresses here, we should never reach this.
-			// However, if for some reason we do, it is safe to say that the address would not be a useful
-			// address to advertise, so it's ok to ignore.
-			continue
-		}
-		ip := ipNet.IP
-		// would be nice to use a switch here but IPv4 and IPv6 share a type in the standard library
-		addr := ragetypes.Address(net.JoinHostPort(ip.String(), fmt.Sprintf("%d", port)))
-		if ip.To4() != nil {
-			ipv4s = append(ipv4s, addr)
-		} else {
-			ipv6s = append(ipv6s, addr)
-		}
-	}
-	return
+	return addrs
 }

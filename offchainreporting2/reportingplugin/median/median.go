@@ -21,6 +21,10 @@ var _ types.ReportingPlugin = (*numericalMedian)(nil)
 const onchainConfigVersion = 1
 const onchainConfigEncodedLength = 1 + byteWidth + byteWidth
 
+// An encoded onchain config is expected to be in the format
+// <version><min><max>
+// where version is a uint8 and min and max are in the format
+// returned by EncodeValue.
 type OnchainConfig struct {
 	Min *big.Int
 	Max *big.Int
@@ -35,11 +39,11 @@ func DecodeOnchainConfig(b []byte) (OnchainConfig, error) {
 		return OnchainConfig{}, fmt.Errorf("unexpected version of OnchainConfig, expected %v, got %v", onchainConfigVersion, b[0])
 	}
 
-	min, err := ToBigInt(b[1 : 1+byteWidth])
+	min, err := DecodeValue(b[1 : 1+byteWidth])
 	if err != nil {
 		return OnchainConfig{}, err
 	}
-	max, err := ToBigInt(b[1+byteWidth:])
+	max, err := DecodeValue(b[1+byteWidth:])
 	if err != nil {
 		return OnchainConfig{}, err
 	}
@@ -52,11 +56,11 @@ func DecodeOnchainConfig(b []byte) (OnchainConfig, error) {
 }
 
 func (c OnchainConfig) Encode() ([]byte, error) {
-	minBytes, err := ToBytes(c.Min)
+	minBytes, err := EncodeValue(c.Min)
 	if err != nil {
 		return nil, err
 	}
-	maxBytes, err := ToBytes(c.Max)
+	maxBytes, err := EncodeValue(c.Max)
 	if err != nil {
 		return nil, err
 	}
@@ -198,9 +202,18 @@ type ReportCodec interface {
 	// function should be an output of BuildReport in the benign case.
 	// Nevertheless, make sure to treat the input to this function as untrusted.
 	MedianFromReport(types.Report) (*big.Int, error)
+
+	// Returns the maximum length of a report based on n, the number of oracles.
+	// The output of BuildReport must respect this maximum length.
+	MaxReportLength(n int) int
 }
 
 var _ types.ReportingPluginFactory = NumericalMedianFactory{}
+
+const maxObservationLength = 4 /* timestamp */ +
+	byteWidth /* observation */ +
+	byteWidth /* juelsPerFeeCoin */ +
+	16 /* overapprox. of protobuf overhead */
 
 type NumericalMedianFactory struct {
 	ContractTransmitter       MedianContract
@@ -227,6 +240,8 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 		"reportingPlugin": "NumericalMedian",
 	})
 
+	maxReportLength := fac.ReportCodec.MaxReportLength(configuration.N)
+
 	return &numericalMedian{
 			offchainConfig,
 			onchainConfig,
@@ -240,12 +255,15 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 			configuration.F,
 			epochRound{},
 			new(big.Int),
+			maxReportLength,
 		}, types.ReportingPluginInfo{
 			"NumericalMedian",
 			false,
-			0,
-			4 /* timestamp */ + byteWidth /* observation */ + byteWidth /* juelsPerFeeCoin */ + 32, /* overhead */
-			32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + configuration.N*32) /*observations*/ + 32 /* juelsPerFeeCoin */ + 32, /* overhead */
+			types.ReportingPluginLimits{
+				0,
+				maxObservationLength,
+				maxReportLength,
+			},
 		}, nil
 }
 
@@ -283,6 +301,7 @@ type numericalMedian struct {
 	f                        int
 	latestAcceptedEpochRound epochRound
 	latestAcceptedMedian     *big.Int
+	maxReportLength          int
 }
 
 func (nm *numericalMedian) Query(ctx context.Context, repts types.ReportTimestamp) (types.Query, error) {
@@ -302,7 +321,7 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 		if value == nil {
 			return nil, fmt.Errorf("%v.Observe returned nil big.Int which should never happen", name)
 		}
-		encoded, err := ToBytes(value)
+		encoded, err := EncodeValue(value)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode output of %v.Observe : %w", name, err)
 		}
@@ -343,42 +362,40 @@ type ParsedAttributedObservation struct {
 	Observer        commontypes.OracleID
 }
 
+func parseAttributedObservation(ao types.AttributedObservation) (ParsedAttributedObservation, error) {
+	var observationProto NumericalMedianObservationProto
+	if err := proto.Unmarshal(ao.Observation, &observationProto); err != nil {
+		return ParsedAttributedObservation{}, fmt.Errorf("attributed observation cannot be unmarshaled: %w", err)
+	}
+	value, err := DecodeValue(observationProto.Value)
+	if err != nil {
+		return ParsedAttributedObservation{}, fmt.Errorf("attributed observation with value that cannot be converted to big.Int: %w", err)
+	}
+	juelsPerFeeCoin, err := DecodeValue(observationProto.JuelsPerFeeCoin)
+	if err != nil {
+		return ParsedAttributedObservation{}, fmt.Errorf("attributed observation with juelsPerFeeCoin that cannot be converted to big.Int: %w", err)
+	}
+	return ParsedAttributedObservation{
+		observationProto.Timestamp,
+		value,
+		juelsPerFeeCoin,
+		ao.Observer,
+	}, nil
+}
+
 func parseAttributedObservations(logger loghelper.LoggerWithContext, aos []types.AttributedObservation) []ParsedAttributedObservation {
 	paos := make([]ParsedAttributedObservation, 0, len(aos))
 	for i, ao := range aos {
-		var observationProto NumericalMedianObservationProto
-		if err := proto.Unmarshal(ao.Observation, &observationProto); err != nil {
-			logger.Warn("parseAttributedObservations: dropping attributed observation that cannot be unmarshaled", commontypes.LogFields{
-				"observer": ao.Observer,
-				"error":    err,
-				"i":        i,
-			})
-			continue
-		}
-		value, err := ToBigInt(observationProto.Value)
+		pao, err := parseAttributedObservation(ao)
 		if err != nil {
-			logger.Warn("parseAttributedObservations: dropping attributed observation with value that cannot be converted to big.Int", commontypes.LogFields{
+			logger.Warn("parseAttributedObservations: dropping invalid observation", commontypes.LogFields{
 				"observer": ao.Observer,
 				"error":    err,
 				"i":        i,
 			})
 			continue
 		}
-		juelsPerFeeCoin, err := ToBigInt(observationProto.JuelsPerFeeCoin)
-		if err != nil {
-			logger.Warn("parseAttributedObservations: dropping attributed observation with juelsPerFeeCoin that cannot be converted to big.Int", commontypes.LogFields{
-				"observer": ao.Observer,
-				"error":    err,
-				"i":        i,
-			})
-			continue
-		}
-		paos = append(paos, ParsedAttributedObservation{
-			observationProto.Timestamp,
-			value,
-			juelsPerFeeCoin,
-			ao.Observer,
-		})
+		paos = append(paos, pao)
 	}
 	return paos
 }
@@ -406,6 +423,10 @@ func (nm *numericalMedian) Report(ctx context.Context, repts types.ReportTimesta
 	if err != nil {
 		return false, nil, err
 	}
+	if !(len(report) <= nm.maxReportLength) {
+		return false, nil, fmt.Errorf("report violates MaxReportLength limit set by ReportCodec (%v vs %v)", len(report), nm.maxReportLength)
+	}
+
 	return true, report, nil
 }
 
@@ -562,6 +583,15 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
 			"contractEpochRound": contractEpochRound,
 			"reportEpochRound":   reportEpochRound,
+		})
+		return false, nil
+	}
+
+	if !(len(report) <= nm.maxReportLength) {
+		nm.logger.Warn("report violates MaxReportLength limit set by ReportCodec", commontypes.LogFields{
+			"reportEpochRound": reportEpochRound,
+			"reportLength":     len(report),
+			"maxReportLength":  nm.maxReportLength,
 		})
 		return false, nil
 	}

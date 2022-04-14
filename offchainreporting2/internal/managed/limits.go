@@ -12,7 +12,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 )
 
-func limits(cfg config.PublicConfig, reportingPluginInfo types.ReportingPluginInfo, maxSigLen int) (types.BinaryNetworkEndpointLimits, error) {
+func limits(cfg config.PublicConfig, reportingPluginLimits types.ReportingPluginLimits, maxSigLen int) (types.BinaryNetworkEndpointLimits, error) {
 	overflow := false
 
 	// These two helper functions add/multiply together a bunch of numbers and set overflow to true if the result
@@ -42,11 +42,11 @@ func limits(cfg config.PublicConfig, reportingPluginInfo types.ReportingPluginIn
 	const overhead = 256
 
 	maxLenNewEpoch := overhead
-	maxLenObserveReq := add(reportingPluginInfo.MaxQueryLen, overhead)
-	maxLenObserve := add(reportingPluginInfo.MaxObservationLen, overhead)
-	maxLenReportReq := add(mul(add(reportingPluginInfo.MaxObservationLen, ed25519.SignatureSize), cfg.N()), overhead)
-	maxLenReport := add(reportingPluginInfo.MaxReportLen, ed25519.SignatureSize, overhead)
-	maxLenFinal := add(reportingPluginInfo.MaxReportLen, mul(maxSigLen, cfg.N()), overhead)
+	maxLenObserveReq := add(reportingPluginLimits.MaxQueryLength, overhead)
+	maxLenObserve := add(reportingPluginLimits.MaxObservationLength, overhead)
+	maxLenReportReq := add(mul(add(reportingPluginLimits.MaxObservationLength, ed25519.SignatureSize), cfg.N()), overhead)
+	maxLenReport := add(reportingPluginLimits.MaxReportLength, ed25519.SignatureSize, overhead)
+	maxLenFinal := add(reportingPluginLimits.MaxReportLength, mul(maxSigLen, cfg.N()), overhead)
 	maxLenFinalEcho := maxLenFinal
 
 	maxMessageSize := max(maxLenObserveReq, maxLenObserve, maxLenReportReq, maxLenReport, maxLenFinal, maxLenFinalEcho)
