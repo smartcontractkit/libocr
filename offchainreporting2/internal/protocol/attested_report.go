@@ -7,8 +7,6 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
-
-	"github.com/pkg/errors"
 )
 
 type AttributedObservation struct {
@@ -33,7 +31,7 @@ func MakeAttestedReportOneNoskip(
 ) (AttestedReportOne, error) {
 	sig, err := signer(repctx, report)
 	if err != nil {
-		return AttestedReportOne{}, errors.Wrapf(err, "while signing on-chain report")
+		return AttestedReportOne{}, fmt.Errorf("error while signing in MakeAttestedReportOneNoskip: %w", err)
 	}
 
 	return AttestedReportOne{false, report, sig}, nil

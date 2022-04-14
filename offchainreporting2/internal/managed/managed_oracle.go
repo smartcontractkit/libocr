@@ -108,7 +108,7 @@ func RunManagedOracle(
 				logger,
 				"ManagedOracle: error during reportingPlugin.Close()",
 			)
-			if err := validateReportingPluginInfo(reportingPluginInfo); err != nil {
+			if err := validateReportingPluginLimits(reportingPluginInfo.Limits); err != nil {
 				logger.Error("ManagedOracle: invalid ReportingPluginInfo", commontypes.LogFields{
 					"error":               err,
 					"reportingPluginInfo": reportingPluginInfo,
@@ -116,7 +116,7 @@ func RunManagedOracle(
 				return
 			}
 
-			lims, err := limits(sharedConfig.PublicConfig, reportingPluginInfo, onchainKeyring.MaxSignatureLength())
+			lims, err := limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, onchainKeyring.MaxSignatureLength())
 			if err != nil {
 				logger.Error("ManagedOracle: error during limits", commontypes.LogFields{
 					"error":               err,
@@ -149,6 +149,7 @@ func RunManagedOracle(
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
 				childLogger,
+				reportingPluginInfo.Limits,
 			)
 			if err := netEndpoint.Start(); err != nil {
 				logger.Error("ManagedOracle: error during netEndpoint.Start()", commontypes.LogFields{
@@ -193,7 +194,7 @@ func RunManagedOracle(
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,
-				reportingPlugin,
+				shim.LimitCheckReportingPlugin{reportingPlugin, reportingPluginInfo.Limits},
 				reportQuorum,
 				shim.MakeTelemetrySender(chTelemetrySend, childLogger),
 			)
@@ -204,16 +205,16 @@ func RunManagedOracle(
 	)
 }
 
-func validateReportingPluginInfo(info types.ReportingPluginInfo) error {
+func validateReportingPluginLimits(limits types.ReportingPluginLimits) error {
 	var err error
-	if !(0 <= info.MaxQueryLen && info.MaxQueryLen <= types.MaxMaxQueryLen) {
-		err = multierr.Append(err, fmt.Errorf("MaxQueryLen (%v) out of range. Should be between 0 and %v", info.MaxQueryLen, types.MaxMaxQueryLen))
+	if !(0 <= limits.MaxQueryLength && limits.MaxQueryLength <= types.MaxMaxQueryLength) {
+		err = multierr.Append(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, types.MaxMaxQueryLength))
 	}
-	if !(0 <= info.MaxObservationLen && info.MaxObservationLen <= types.MaxMaxObservationLen) {
-		err = multierr.Append(err, fmt.Errorf("MaxObservationLen (%v) out of range. Should be between 0 and %v", info.MaxObservationLen, types.MaxMaxObservationLen))
+	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= types.MaxMaxObservationLength) {
+		err = multierr.Append(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, types.MaxMaxObservationLength))
 	}
-	if !(0 <= info.MaxReportLen && info.MaxReportLen <= types.MaxMaxReportLen) {
-		err = multierr.Append(err, fmt.Errorf("MaxReportLen (%v) out of range. Should be between 0 and %v", info.MaxReportLen, types.MaxMaxReportLen))
+	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= types.MaxMaxReportLength) {
+		err = multierr.Append(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, types.MaxMaxReportLength))
 	}
 	return err
 }

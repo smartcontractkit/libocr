@@ -3,11 +3,10 @@ package commontypes
 import (
 	"bytes"
 	"fmt"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"net"
 	"strings"
 
-	"github.com/pkg/errors"
+	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
 // OracleID is an index over the oracles, used as a succinct attribution to an
@@ -30,12 +29,12 @@ type BootstrapperLocator struct {
 
 func NewBootstrapperLocator(peerID string, addrs []string) (*BootstrapperLocator, error) {
 	if err := (&ragetypes.PeerID{}).UnmarshalText([]byte(peerID)); err != nil {
-		return nil, errors.Wrapf(err, "invalid peer id, was %s", peerID)
+		return nil, fmt.Errorf("invalid peer id (%q): %w", peerID, err)
 	}
 	for _, address := range addrs {
 		_, _, err := net.SplitHostPort(address)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid address %s for bootstrapper %s", address, peerID)
+			return nil, fmt.Errorf("invalid address (%q) for bootstrapper (%q): %w", address, peerID, err)
 		}
 	}
 	return &BootstrapperLocator{peerID, addrs}, nil

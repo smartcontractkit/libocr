@@ -18,5 +18,5 @@ func equalAddrs(a []ragetypes.Address, b []ragetypes.Address) bool {
 }
 
 func reason(err error) commontypes.LogFields {
-	return commontypes.LogFields{"reason": err}
+	return commontypes.LogFields{"error": err}
 }

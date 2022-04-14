@@ -44,8 +44,6 @@ var (
 
 // Verifies a knock message allegedly destined to self. If the message is valid,
 // returns the PeerId of the sender. Otherwise returns nil and an error.
-//
-// TODO: this is a great fuzz target
 func VerifyKnock(self types.PeerID, knock []byte) (*types.PeerID, error) {
 	if len(knock) != KnockSize {
 		return nil, fmt.Errorf("knock hash wrong length %v, expected %v", len(knock), KnockSize)

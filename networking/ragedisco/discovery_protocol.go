@@ -3,8 +3,8 @@ package ragedisco
 import (
 	"context"
 	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,7 +14,6 @@ import (
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -94,7 +93,7 @@ func newDiscoveryProtocol(
 ) (*discoveryProtocol, error) {
 	ownID, err := ragetypes.PeerIDFromPrivateKey(privKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to obtain peer id from private key")
+		return nil, fmt.Errorf("failed to obtain peer id from private key: %w", err)
 	}
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
@@ -144,7 +143,7 @@ func (p *discoveryProtocol) Start() error {
 	defer p.lock.Unlock()
 	_, _, err := p.lockedBumpOwnAnnouncement()
 	if err != nil {
-		return errors.Wrap(err, "failed to bump own announcement")
+		return fmt.Errorf("failed to bump own announcement: %w", err)
 	}
 	p.processes.Go(p.recvLoop)
 	p.processes.Go(p.sendLoop)
@@ -155,31 +154,23 @@ func (p *discoveryProtocol) Start() error {
 }
 
 func formatAnnouncementsForReport(allIDs map[ragetypes.PeerID]struct{}, baSigned map[ragetypes.PeerID]Announcement) (string, int) {
-	// Would use json here but I want to avoid having quotes in logs as it would cause escaping all over the place.
-	var sb strings.Builder
-	sb.WriteRune('{')
-	i := 0
+	maybeAnnouncementById := make(map[ragetypes.PeerID][]unsignedAnnouncement)
+	// For every peer, its array will length 0 when they are undetected or
+	// length 1 when they are detected. Note that we can't use pointers instead
+	// because printing does not dereference the values.
+	// Example for peers A, B where we have an detected B but not A:
+	// map[A:[] B:[{Addrs:[1.2.3.4:1234] Counter:0}]]
 	undetected := 0
 	for id := range allIDs {
 		ann, exists := baSigned[id]
-		var s string
 		if exists {
-			s = ann.unsignedAnnouncement.String()
+			maybeAnnouncementById[id] = append(maybeAnnouncementById[id], ann.unsignedAnnouncement)
 		} else {
-			s = "<not found>"
+			maybeAnnouncementById[id] = nil
 			undetected++
 		}
-
-		if i != 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(id.String())
-		sb.WriteString(": ")
-		sb.WriteString(s)
-		i++
 	}
-	sb.WriteRune('}')
-	return sb.String(), undetected
+	return fmt.Sprintf("%+v", maybeAnnouncementById), undetected
 }
 
 func (p *discoveryProtocol) statusReportLoop() {
@@ -219,7 +210,7 @@ func (p *discoveryProtocol) statusReportLoop() {
 func (p *discoveryProtocol) lockedAllowedPeers(ann Announcement) (ps []ragetypes.PeerID) {
 	annPeerID, err := ann.PeerID()
 	if err != nil {
-		p.logger.Warn("failed to obtain peer id from announcement", reason(err))
+		p.logger.Warn("Failed to obtain peer id from announcement", reason(err))
 		return
 	}
 	peers := make(map[ragetypes.PeerID]struct{})
@@ -287,6 +278,7 @@ func (p *discoveryProtocol) lockedLoadFromDB(ragePeerIDs []ragetypes.PeerID) err
 	if len(ragePeerIDs) == 0 || p.db == nil {
 		return nil
 	}
+	p.logger.Info("Loading announcements from db", commontypes.LogFields{"peerIDs": ragePeerIDs})
 	strPeerIDs := make([]string, len(ragePeerIDs))
 	for i, pid := range ragePeerIDs {
 		strPeerIDs[i] = pid.String()
@@ -295,23 +287,35 @@ func (p *discoveryProtocol) lockedLoadFromDB(ragePeerIDs []ragetypes.PeerID) err
 	if err != nil {
 		return err
 	}
-	for _, dbannBytes := range annByID {
+	var loaded, found []string
+	for peerID, dbannBytes := range annByID {
+		found = append(found, peerID)
 		dbann, err := deserializeSignedAnnouncement(dbannBytes)
 		if err != nil {
-			p.logger.Warn("failed to deserialize signed announcement from db", commontypes.LogFields{
-				"error": err,
-				"bytes": dbannBytes,
+			p.logger.Error("Failed to deserialize signed announcement from db", commontypes.LogFields{
+				"announcementPeerID": peerID,
+				"announcementBytes":  hex.EncodeToString(dbannBytes),
+				"error":              err,
 			})
 			continue
 		}
-		err = p.lockedProcessAnnouncement(dbann)
-		if err != nil {
-			p.logger.Warn("failed to process announcement from db", commontypes.LogFields{
-				"error": err,
-				"ann":   dbann,
+		if err := p.lockedProcessAnnouncement(dbann); err != nil {
+			p.logger.Error("Failed to process announcement from db", commontypes.LogFields{
+				"announcement": dbann,
+				"error":        err,
 			})
+			continue
 		}
+		loaded = append(loaded, peerID)
 	}
+	p.logger.Info("Loaded announcements from db", commontypes.LogFields{
+		"queried":    ragePeerIDs,
+		"numQueried": len(ragePeerIDs),
+		"found":      found,
+		"numFound":   len(found),
+		"loaded":     loaded,
+		"numLoaded":  len(loaded),
+	})
 	return nil
 }
 
@@ -348,6 +352,9 @@ func (p *discoveryProtocol) saveLoop() {
 	if p.db == nil {
 		return
 	}
+	logger := p.logger.MakeChild(commontypes.LogFields{"in": "saveLoop"})
+	logger.Debug("Entering", nil)
+	defer logger.Debug("Exiting", nil)
 	for {
 		select {
 		case <-time.After(saveInterval):
@@ -356,7 +363,7 @@ func (p *discoveryProtocol) saveLoop() {
 		}
 
 		if err := p.saveToDB(); err != nil {
-			p.logger.Warn("failed to save announcements to db", reason(err))
+			logger.Warn("Failed to save announcements to db", reason(err))
 		}
 	}
 }
@@ -420,24 +427,22 @@ func (p *discoveryProtocol) removeGroup(digest types.ConfigDigest) error {
 	return nil
 }
 
-func (p *discoveryProtocol) FindPeer(peer ragetypes.PeerID) (addrs []ragetypes.Address, err error) {
-	allAddrs := make(map[ragetypes.Address]struct{})
+func (p *discoveryProtocol) FindPeer(peer ragetypes.PeerID) ([]ragetypes.Address, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
+	var addrs []ragetypes.Address
+	// The addresses we know from local configuration take priority — useful for overriding addresses in disaster
+	// scenarios
 	if baddrs, ok := p.locked.bootstrappers[peer]; ok {
-		for a := range baddrs {
-			allAddrs[a] = struct{}{}
+		for baddr := range baddrs {
+			addrs = append(addrs, baddr)
 		}
 	}
+	// Followed by the addresses obtained by the best announcement
 	if ann, ok := p.locked.bestAnnouncement[peer]; ok {
-		for _, a := range ann.Addrs {
-			allAddrs[a] = struct{}{}
-		}
+		addrs = append(addrs, ann.Addrs...)
 	}
-	for a := range allAddrs {
-		addrs = append(addrs, a)
-	}
-	return
+	return dedup(addrs), nil
 }
 
 func (p *discoveryProtocol) recvLoop() {
@@ -452,20 +457,25 @@ func (p *discoveryProtocol) recvLoop() {
 			logger := logger.MakeChild(commontypes.LogFields{"remotePeerID": msg.from})
 			switch v := msg.payload.(type) {
 			case *Announcement:
-				logger.Trace("Received announcement", v.toLogFields())
-				if err := p.processAnnouncement(*v); err != nil {
-					logger := logger.MakeChild(reason(err))
-					logger = logger.MakeChild(v.toLogFields())
-					logger.Warn("Failed to process announcement", nil)
+				announcement := *v
+				logger.Trace("Received announcement", commontypes.LogFields{"announcement": announcement})
+				if err := p.processAnnouncement(announcement); err != nil {
+					logger.Warn("Failed to process announcement", commontypes.LogFields{
+						"announcement": announcement,
+						"error":        err,
+					})
 				}
 			case *reconcile:
-				// logger.Trace("Received reconcile", commontypes.LogFields{"reconcile": v.toLogFields()})
-				for _, ann := range v.Anns {
+				reconcile := *v
+				// logger.Trace("Received reconcile", commontypes.LogFields{"reconcile": reconcile})
+				for _, ann := range reconcile.Anns {
 					if err := p.processAnnouncement(ann); err != nil {
-						logger := logger.MakeChild(reason(err))
-						logger = logger.MakeChild(v.toLogFields())
-						logger = logger.MakeChild(ann.toLogFields())
-						logger.Warn("Failed to process announcement which was part of a reconcile", nil)
+
+						logger.Warn("Failed to process announcement from reconcile", commontypes.LogFields{
+							"reconcile":    reconcile,
+							"announcement": ann,
+							"error":        err,
+						})
 					}
 				}
 			default:
@@ -484,19 +494,22 @@ func (p *discoveryProtocol) processAnnouncement(ann Announcement) error {
 
 // lockedProcessAnnouncement requires lock to be held.
 func (p *discoveryProtocol) lockedProcessAnnouncement(ann Announcement) error {
-	logger := p.logger.MakeChild(commontypes.LogFields{"in": "processAnnouncement"}).MakeChild(ann.toLogFields())
+	logger := p.logger.MakeChild(commontypes.LogFields{
+		"in":           "processAnnouncement",
+		"announcement": ann,
+	})
 	pid, err := ann.PeerID()
 	if err != nil {
-		return errors.Wrap(err, "failed to obtain peer id from announcement")
+		return fmt.Errorf("failed to obtain peer id: %w", err)
 	}
 
 	if p.locked.numGroupsByOracle[pid] == 0 {
-		return fmt.Errorf("got announcement for an oracle we don't share a group with (%s)", pid)
+		return fmt.Errorf("peer %s is not an oracle in any of our jobs; perhaps whoever sent this is running a job that includes us and this peer, but we are not running that job", pid)
 	}
 
 	err = ann.verify()
 	if err != nil {
-		return errors.Wrap(err, "failed to verify announcement")
+		return fmt.Errorf("invalid signature: %w", err)
 	}
 
 	if localann, exists := p.locked.bestAnnouncement[pid]; !exists || localann.Counter <= ann.Counter {
@@ -507,7 +520,7 @@ func (p *discoveryProtocol) lockedProcessAnnouncement(ann Announcement) error {
 		if pid == p.ownID {
 			bumpedann, better, err := p.lockedBumpOwnAnnouncement()
 			if err != nil {
-				return errors.Wrap(err, "failed to bump own announcement")
+				return fmt.Errorf("failed to bump own announcement: %w", err)
 			}
 
 			if !better {
@@ -556,7 +569,7 @@ func (p *discoveryProtocol) sendLoop() {
 		case <-p.ctx.Done():
 			return
 		case ourann := <-p.chInternalBump:
-			logger.Info("Our announcement was bumped - broadcasting", ourann.toLogFields())
+			logger.Info("Our announcement was bumped - broadcasting", commontypes.LogFields{"announcement": ourann})
 			p.sendToAllowedPeers(ourann)
 		case <-tick:
 			logger.Debug("Starting reconciliation", nil)
@@ -578,7 +591,7 @@ func (p *discoveryProtocol) sendLoop() {
 			for pid, rec := range reconcileByPeer {
 				select {
 				case p.chOutgoingMessages <- outgoingMessage{rec, pid}:
-					logger.Trace("Sending reconcile", commontypes.LogFields{"remotePeerID": pid, "reconcile": rec.toLogFields()})
+					logger.Trace("Sending reconcile", commontypes.LogFields{"remotePeerID": pid, "reconcile": rec})
 				case <-p.ctx.Done():
 					return
 				}
@@ -603,15 +616,15 @@ func (p *discoveryProtocol) lockedBumpOwnAnnouncement() (*Announcement, bool, er
 		// more than 2**64 times.
 		newctr = oldann.Counter + 1
 	}
-	if newctr > announcementVersionWarnThreshold {
-		logger.Warn("New announcement version too big!", commontypes.LogFields{"version": newctr})
-	}
 	newann := unsignedAnnouncement{Addrs: p.ownAddrs, Counter: newctr}
+	if newctr > announcementVersionWarnThreshold {
+		logger.Warn("New announcement version too big!", commontypes.LogFields{"announcement": newann})
+	}
 	sann, err := newann.sign(p.privKey)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "failed to sign own announcement")
+		return nil, false, fmt.Errorf("failed to sign own announcement: %w", err)
 	}
-	logger.Info("Replacing our own announcement", sann.toLogFields())
+	logger.Info("Replacing our own announcement", commontypes.LogFields{"announcement": sann})
 	p.locked.bestAnnouncement[p.ownID] = sann
 	return &sann, true, nil
 }

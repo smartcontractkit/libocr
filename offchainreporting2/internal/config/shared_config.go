@@ -93,7 +93,7 @@ func SharedConfigFromContractConfig(
 
 	x, err := encSharedSecret.Decrypt(oracleID, offchainKeyring)
 	if err != nil {
-		return SharedConfig{}, 0, errors.Wrapf(err, "could not decrypt shared secret")
+		return SharedConfig{}, 0, fmt.Errorf("could not decrypt shared secret: %w", err)
 	}
 
 	return SharedConfig{

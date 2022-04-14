@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/protocol"
@@ -15,10 +14,12 @@ import (
 )
 
 type SerializingEndpoint struct {
-	chTelemetry  chan<- *serialization.TelemetryWrapper
-	configDigest types.ConfigDigest
-	endpoint     commontypes.BinaryNetworkEndpoint
-	logger       commontypes.Logger
+	chTelemetry           chan<- *serialization.TelemetryWrapper
+	configDigest          types.ConfigDigest
+	endpoint              commontypes.BinaryNetworkEndpoint
+	logger                commontypes.Logger
+	reportingPluginLimits types.ReportingPluginLimits
+
 	mutex        sync.Mutex
 	subprocesses subprocesses.Subprocesses
 	started      bool
@@ -36,12 +37,15 @@ func NewSerializingEndpoint(
 	configDigest types.ConfigDigest,
 	endpoint commontypes.BinaryNetworkEndpoint,
 	logger commontypes.Logger,
+	reportingPluginLimits types.ReportingPluginLimits,
 ) *SerializingEndpoint {
 	return &SerializingEndpoint{
 		chTelemetry,
 		configDigest,
 		endpoint,
 		logger,
+		reportingPluginLimits,
+
 		sync.Mutex{},
 		subprocesses.Subprocesses{},
 		false,
@@ -71,6 +75,13 @@ func (n *SerializingEndpoint) sendTelemetry(t *serialization.TelemetryWrapper) {
 }
 
 func (n *SerializingEndpoint) serialize(msg protocol.Message) ([]byte, *serialization.MessageWrapper) {
+	if !msg.CheckSize(n.reportingPluginLimits) {
+		n.logger.Error("SerializingEndpoint: Dropping outgoing message because it fails size check", commontypes.LogFields{
+			"message": msg,
+			"limits":  n.reportingPluginLimits,
+		})
+		return nil, nil
+	}
 	sMsg, pbm, err := serialization.Serialize(msg)
 	if err != nil {
 		n.logger.Error("SerializingEndpoint: Failed to serialize", commontypes.LogFields{
@@ -79,6 +90,19 @@ func (n *SerializingEndpoint) serialize(msg protocol.Message) ([]byte, *serializ
 		return nil, nil
 	}
 	return sMsg, pbm
+}
+
+func (n *SerializingEndpoint) deserialize(raw []byte) (protocol.Message, *serialization.MessageWrapper, error) {
+	m, pbm, err := serialization.Deserialize(raw)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !m.CheckSize(n.reportingPluginLimits) {
+		return nil, nil, fmt.Errorf("message failed size check")
+	}
+
+	return m, pbm, nil
 }
 
 // Start starts the SerializingEndpoint. It will also start the underlying endpoint.
@@ -92,7 +116,7 @@ func (n *SerializingEndpoint) Start() error {
 	n.started = true
 
 	if err := n.endpoint.Start(); err != nil {
-		return errors.Wrap(err, "while starting SerializingEndpoint")
+		return fmt.Errorf("error while starting SerializingEndpoint: %w", err)
 	}
 
 	n.subprocesses.Go(func() {
@@ -108,7 +132,7 @@ func (n *SerializingEndpoint) Start() error {
 					return
 				}
 
-				m, pbm, err := serialization.Deserialize(raw.Msg)
+				m, pbm, err := n.deserialize(raw.Msg)
 				if err != nil {
 					n.logger.Error("SerializingEndpoint: Failed to deserialize", commontypes.LogFields{
 						"message": raw,

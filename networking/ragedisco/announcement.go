@@ -1,4 +1,4 @@
-//go:generate protoc -I. --go_out=./serialization  ./serialization/peer_discovery_announcement.proto
+//go:generate ../../gogeneratehelpers/protoc -I. --go_out=./serialization  ./serialization/peer_discovery_announcement.proto
 
 package ragedisco
 
@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/commontypes"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
 	"github.com/pkg/errors"
@@ -38,7 +37,7 @@ type reconcile struct {
 
 const (
 	// The maximum number of addr an Announcement may broadcast
-	maxAddrInAnnouncements = 10
+	maxAddrsInAnnouncement = 10
 	// Domain separator for signatures
 	announcementDomainSeparator = "announcement for chainlink peer discovery v2.0.0"
 	// Maximum message size over all message types. Should be able to
@@ -76,8 +75,8 @@ func (ann Announcement) toProto() (*serialization.SignedAnnouncement, error) {
 }
 
 func (uann unsignedAnnouncement) validate() error {
-	if len(uann.Addrs) == 0 || len(uann.Addrs) > maxAddrInAnnouncements {
-		return fmt.Errorf("invalid length of addresses (was %d, min is 1, max is %d)", len(uann.Addrs), maxAddrInAnnouncements)
+	if len(uann.Addrs) == 0 || len(uann.Addrs) > maxAddrsInAnnouncement {
+		return fmt.Errorf("invalid length of addresses (was %d, min is 1, max is %d)", len(uann.Addrs), maxAddrsInAnnouncement)
 	}
 	for _, addr := range uann.Addrs {
 		if !isValidForAnnouncement(addr) {
@@ -127,23 +126,26 @@ func deserializeSignedAnnouncement(binary []byte) (Announcement, error) {
 	return signedAnnouncementFromProto(&pm)
 }
 
-func (uann unsignedAnnouncement) String() string {
-	return fmt.Sprintf("<counter=%d, addrs=%s>",
-		uann.Counter,
-		uann.Addrs)
-}
-
 func (ann Announcement) PeerID() (ragetypes.PeerID, error) {
 	return ragetypes.PeerIDFromPublicKey(ann.PublicKey)
 }
 
 func (ann Announcement) String() string {
-	pkStr := base64.StdEncoding.EncodeToString(ann.PublicKey)
-	return fmt.Sprintf("<counter=%d, addrs=%s, pk=%s, sig=%s>",
+	var identityPart string
+	if pid, err := ragetypes.PeerIDFromPublicKey(ann.PublicKey); err == nil {
+		identityPart = fmt.Sprintf("PeerID:%s", pid.String())
+	} else {
+		identityPart = fmt.Sprintf("InvalidPublicKey:%x", ann.PublicKey)
+	}
+	return fmt.Sprintf("{%s Counter:%d Addrs:%s Sig:%s}",
+		identityPart,
 		ann.Counter,
 		ann.Addrs,
-		pkStr,
 		base64.StdEncoding.EncodeToString(ann.Sig))
+}
+
+func (r reconcile) String() string {
+	return fmt.Sprintf("%s", r.Anns)
 }
 
 // digest returns a deterministic digest used for signing
@@ -300,32 +302,6 @@ func toBytesWrapped(m WrappableMessage) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(p)
-}
-
-func (ann Announcement) toLogFields() commontypes.LogFields {
-	pid, err := ragetypes.PeerIDFromPublicKey(ann.PublicKey)
-	if err != nil {
-		return commontypes.LogFields{
-			"ann_publicKey": ann.PublicKey,
-			"ann_ver":       ann.Counter,
-			"ann_addrs":     ann.Addrs,
-		}
-	}
-	return commontypes.LogFields{
-		"ann_pid":   pid,
-		"ann_ver":   ann.Counter,
-		"ann_addrs": ann.Addrs,
-	}
-}
-
-func (r reconcile) toLogFields() commontypes.LogFields {
-	var annsLogFields []commontypes.LogFields
-	for _, ann := range r.Anns {
-		annsLogFields = append(annsLogFields, ann.toLogFields())
-	}
-	return commontypes.LogFields{
-		"anns": annsLogFields,
-	}
 }
 
 var (

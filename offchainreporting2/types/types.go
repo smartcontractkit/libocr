@@ -255,11 +255,19 @@ type ReportingPlugin interface {
 }
 
 const (
-	twoHundredFiftySixMiB = 256 * 1024 * 1024     // 256 MiB
-	MaxMaxQueryLen        = twoHundredFiftySixMiB // 256 MiB
-	MaxMaxObservationLen  = twoHundredFiftySixMiB // 256 MiB
-	MaxMaxReportLen       = twoHundredFiftySixMiB // 256 MiB
+	twoHundredFiftySixMiB   = 256 * 1024 * 1024     // 256 MiB
+	MaxMaxQueryLength       = twoHundredFiftySixMiB // 256 MiB
+	MaxMaxObservationLength = twoHundredFiftySixMiB // 256 MiB
+	MaxMaxReportLength      = twoHundredFiftySixMiB // 256 MiB
 )
+
+type ReportingPluginLimits struct {
+	// Maximum length in bytes of Query, Observation, Report returned by the
+	// ReportingPlugin. Used for defending against spam attacks.
+	MaxQueryLength       int
+	MaxObservationLength int
+	MaxReportLength      int
+}
 
 type ReportingPluginInfo struct {
 	// Used for debugging purposes.
@@ -269,11 +277,7 @@ type ReportingPluginInfo struct {
 	// will reach a quorum of signatures for any (epoch, round) tuple.
 	UniqueReports bool
 
-	// Maximum length in bytes of Query, Observation, Report returned by the
-	// ReportingPlugin. Used for defending against spam attacks.
-	MaxQueryLen       int
-	MaxObservationLen int
-	MaxReportLen      int
+	Limits ReportingPluginLimits
 }
 
 // Account is a human-readable account identifier, e.g. an Ethereum address

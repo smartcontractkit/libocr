@@ -234,7 +234,7 @@ func (ho *Host) Start() error {
 	for _, addr := range ho.listenAddresses {
 		ln, err := net.Listen("tcp", addr)
 		if err != nil {
-			return errors.Wrapf(err, "net.Listen(%s) failed", addr)
+			return fmt.Errorf("net.Listen(%q) failed: %w", addr, err)
 		}
 		ho.subprocesses.Go(func() {
 			ho.listenLoop(ln)
@@ -243,7 +243,7 @@ func (ho *Host) Start() error {
 
 	err := ho.discoverer.Start(ho, ho.secretKey, ho.logger)
 	if err != nil {
-		return errors.Wrap(err, "failed to start discoverer")
+		return fmt.Errorf("failed to start discoverer: %w", err)
 	}
 
 	succeeded = true
@@ -533,7 +533,10 @@ func (ho *Host) Close() error {
 	ho.cancel()
 	ho.subprocesses.Wait()
 	ho.logger.Info("Host exiting", nil)
-	return errors.Wrap(err, "failed to close discoverer")
+	if err != nil {
+		return fmt.Errorf("failed to close discoverer: %w", err)
+	}
+	return nil
 }
 
 func (ho *Host) ID() types.PeerID {
