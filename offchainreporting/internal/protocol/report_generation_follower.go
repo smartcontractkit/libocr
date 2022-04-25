@@ -367,7 +367,7 @@ func (repgen *reportGenerationState) observeValue() observation.Observation {
 	)
 
 	if !ok {
-		repgen.logger.Error("DataSource timed out", commontypes.LogFields{
+		repgen.logger.Warn("DataSource timed out", commontypes.LogFields{
 			"round":   repgen.followerState.r,
 			"timeout": repgen.localConfig.DataSourceTimeout,
 		})
