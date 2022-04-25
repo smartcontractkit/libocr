@@ -15,12 +15,13 @@ type ConfigDigestPrefix uint16
 // prefix and add it to this list before you build an OffchainConfigDigester for
 // whatever chain you're targeting.
 const (
-	_                        ConfigDigestPrefix = 0 // reserved to prevent errors where a zero-default creeps through somewhere
-	ConfigDigestPrefixEVM    ConfigDigestPrefix = 1
-	ConfigDigestPrefixTerra  ConfigDigestPrefix = 2
-	ConfigDigestPrefixSolana ConfigDigestPrefix = 3
-	ConfigDigestPrefixOCR1   ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
-	_                        ConfigDigestPrefix = 0xFFFF // reserved for future use
+	_                        	 ConfigDigestPrefix = 0 // reserved to prevent errors where a zero-default creeps through somewhere
+	ConfigDigestPrefixEVM    	 ConfigDigestPrefix = 1
+	ConfigDigestPrefixTerra  	 ConfigDigestPrefix = 2
+	ConfigDigestPrefixSolana 	 ConfigDigestPrefix = 3
+	ConfigDigestPrefixCustomEndpoint ConfigDigestPrefix = 4
+	ConfigDigestPrefixOCR1   	 ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
+	_                        	 ConfigDigestPrefix = 0xFFFF // reserved for future use
 )
 
 // Checks whether a ConfigDigestPrefix is actually a prefix of a ConfigDigest.
