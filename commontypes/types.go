@@ -56,7 +56,7 @@ func (b *BootstrapperLocator) MarshalText() ([]byte, error) {
 func (b *BootstrapperLocator) UnmarshalText(text []byte) error {
 	parts := strings.Split(string(text), "@")
 	if len(parts) != 2 {
-		return fmt.Errorf("invalid BootstrapperLocator")
+		return fmt.Errorf("invalid BootstrapperLocator, expected format is PeerID@Host1:Port1/Host2:Port2")
 	}
 	peerID, addrsJoined := parts[0], parts[1]
 	addrs := []string{}

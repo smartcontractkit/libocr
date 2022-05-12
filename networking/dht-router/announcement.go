@@ -1,5 +1,3 @@
-//go:generate ../../gogeneratehelpers/protoc -I. --go_out=./serialization  ./serialization/cl_dht_addr_announcement.proto
-
 package dhtrouter
 
 import (
