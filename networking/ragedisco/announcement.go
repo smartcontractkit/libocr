@@ -1,5 +1,3 @@
-//go:generate ../../gogeneratehelpers/protoc -I. --go_out=./serialization  ./serialization/peer_discovery_announcement.proto
-
 package ragedisco
 
 import (
