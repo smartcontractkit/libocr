@@ -253,6 +253,7 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		5:               {"Ethereum Testnet Goerli", chainTypePublicTestnet},
 		42:              {"Ethereum Testnet Kovan", chainTypePublicTestnet},
 		4:               {"Ethereum Testnet Rinkeby", chainTypePublicTestnet},
+		11155111:        {"Ethereum Testnet Sepolia", chainTypePublicTestnet},
 		250:             {"Fantom", chainTypeModerateUpdates},
 		4002:            {"Fantom Testnet", chainTypePublicTestnet},
 		1666600000:      {"Harmony Shard 0", chainTypeModerateUpdates},
