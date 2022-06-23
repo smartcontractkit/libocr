@@ -40,7 +40,7 @@ func (n NetworkingStack) MarshalText() (text []byte, err error) {
 	case NetworkingStackV1V2:
 		return []byte("V1V2"), nil
 	}
-	return nil, fmt.Errorf("unknown NetworkingStack %v", n)
+	return nil, fmt.Errorf("unknown NetworkingStack %d", n)
 }
 
 func (n NetworkingStack) String() string {
@@ -60,7 +60,7 @@ func (n *NetworkingStack) UnmarshalText(text []byte) error {
 	case "V1V2":
 		*n = NetworkingStackV1V2
 	default:
-		return fmt.Errorf("cannot unmarshal %s as NetworkingStack", text)
+		return fmt.Errorf("cannot unmarshal %q as NetworkingStack", text)
 	}
 	return nil
 }
