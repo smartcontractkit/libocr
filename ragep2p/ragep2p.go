@@ -594,11 +594,17 @@ func (ho *Host) dialLoop() {
 					Timeout: ho.config.DurationBetweenDials,
 				}
 				address := string(addresses[ds.next%uint(len(addresses))])
+
+				// We used to increment this only on dial error but a connection might fail after the Dial itself has
+				// succeeded (eg. this happens with self-dials where the connection is reset after the incorrect knock
+				// is received). Tracking an error so far down the stack is much harder so increment every time to give
+				// a fair chance to every address.
+				ds.next++
+
 				logger := p.logger.MakeChild(commontypes.LogFields{"direction": "out", "remoteAddr": address})
 				conn, err := dialer.DialContext(ho.ctx, "tcp", address)
 				if err != nil {
 					logger.Warn("Dial error", commontypes.LogFields{"error": err})
-					ds.next++
 					return
 				}
 
