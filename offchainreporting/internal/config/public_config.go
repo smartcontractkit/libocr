@@ -242,6 +242,7 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		42161:           {"Arbitrum", chainTypeModerateUpdates},
 		144545313136048: {"Arbitrum Testnet Kovan", chainTypePublicTestnet},
 		421611:          {"Arbitrum Testnet Rinkeby", chainTypePublicTestnet},
+		421613:          {"Arbitrum Testnet Goerli", chainTypePublicTestnet},
 		43114:           {"Avalanche", chainTypeModerateUpdates},
 		43113:           {"Avalanche Testnet Fuji", chainTypePublicTestnet},
 		56:              {"BSC", chainTypeFastUpdates},
