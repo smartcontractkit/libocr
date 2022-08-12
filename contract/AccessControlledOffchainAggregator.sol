@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.1;
+pragma solidity 0.7.6;
 
 import "./OffchainAggregator.sol";
 import "./SimpleReadAccessController.sol";
@@ -50,7 +50,7 @@ contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAcc
     virtual
     returns (string memory)
   {
-    return "AccessControlledOffchainAggregator 3.0.0";
+    return "AccessControlledOffchainAggregator 4.0.0";
   }
 
 

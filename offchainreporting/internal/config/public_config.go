@@ -239,9 +239,11 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 	info, ok := map[uint64]chainInfo{
 		1337:            {"SimulatedBackend", chainTypePrivateTestnet},
 		7418:            {"Geth Local Testnet", chainTypePrivateTestnet},
-		42161:           {"Arbitrum", chainTypeModerateUpdates},
+		42161:           {"Arbitrum One", chainTypeModerateUpdates},
+		42170:           {"Arbitrum Nova", chainTypeFastUpdates},
 		144545313136048: {"Arbitrum Testnet Kovan", chainTypePublicTestnet},
 		421611:          {"Arbitrum Testnet Rinkeby", chainTypePublicTestnet},
+		421613:          {"Arbitrum Testnet Goerli", chainTypePublicTestnet},
 		43114:           {"Avalanche", chainTypeModerateUpdates},
 		43113:           {"Avalanche Testnet Fuji", chainTypePublicTestnet},
 		56:              {"BSC", chainTypeFastUpdates},

@@ -21,16 +21,28 @@ var _ types.ReportingPlugin = (*numericalMedian)(nil)
 const onchainConfigVersion = 1
 const onchainConfigEncodedLength = 1 + byteWidth + byteWidth
 
-// An encoded onchain config is expected to be in the format
-// <version><min><max>
-// where version is a uint8 and min and max are in the format
-// returned by EncodeValue.
 type OnchainConfig struct {
 	Min *big.Int
 	Max *big.Int
 }
 
-func DecodeOnchainConfig(b []byte) (OnchainConfig, error) {
+type OnchainConfigCodec interface {
+	Encode(OnchainConfig) ([]byte, error)
+	Decode([]byte) (OnchainConfig, error)
+}
+
+var _ OnchainConfigCodec = StandardOnchainConfigCodec{}
+
+// StandardOnchainConfigCodec provides a standard implementation of OnchainConfigCodec.
+// This is the implementation used by the EVM and Solana integrations.
+//
+// An encoded onchain config is expected to be in the format
+// <version><min><max>
+// where version is a uint8 and min and max are in the format
+// returned by EncodeValue.
+type StandardOnchainConfigCodec struct{}
+
+func (StandardOnchainConfigCodec) Decode(b []byte) (OnchainConfig, error) {
 	if len(b) != onchainConfigEncodedLength {
 		return OnchainConfig{}, fmt.Errorf("unexpected length of OnchainConfig, expected %v, got %v", onchainConfigEncodedLength, len(b))
 	}
@@ -55,7 +67,7 @@ func DecodeOnchainConfig(b []byte) (OnchainConfig, error) {
 	return OnchainConfig{min, max}, nil
 }
 
-func (c OnchainConfig) Encode() ([]byte, error) {
+func (StandardOnchainConfigCodec) Encode(c OnchainConfig) ([]byte, error) {
 	minBytes, err := EncodeValue(c.Min)
 	if err != nil {
 		return nil, err
@@ -220,6 +232,7 @@ type NumericalMedianFactory struct {
 	DataSource                DataSource
 	JuelsPerFeeCoinDataSource DataSource
 	Logger                    commontypes.Logger
+	OnchainConfigCodec        OnchainConfigCodec
 	ReportCodec               ReportCodec
 }
 
@@ -230,7 +243,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 		return nil, types.ReportingPluginInfo{}, err
 	}
 
-	onchainConfig, err := DecodeOnchainConfig(configuration.OnchainConfig)
+	onchainConfig, err := fac.OnchainConfigCodec.Decode(configuration.OnchainConfig)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
 	}
