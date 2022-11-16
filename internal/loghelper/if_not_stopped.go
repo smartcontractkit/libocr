@@ -35,7 +35,7 @@ func NewIfNotStopped(d time.Duration, f func()) *IfNotStopped {
 func (ins *IfNotStopped) Stop() {
 	select {
 	case <-ins.chStop:
-		// chStopp has been closed, don't close again
+		// chStop has been closed, don't close again
 	default:
 		close(ins.chStop)
 	}

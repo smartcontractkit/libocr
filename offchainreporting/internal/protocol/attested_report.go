@@ -17,7 +17,7 @@ import (
 
 var reportTypes = getReportTypes()
 
-// AttributedObservation succinctly atrributes a value reported to an oracle
+// AttributedObservation succinctly attributes a value reported to an oracle
 type AttributedObservation struct {
 	Observation observation.Observation
 	Observer    commontypes.OracleID

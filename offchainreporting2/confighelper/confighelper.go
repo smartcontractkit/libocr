@@ -151,8 +151,93 @@ func ContractSetConfigArgsForEthereumIntegrationTest(
 	return config.XXXContractSetConfigArgsFromSharedConfigEthereum(sharedConfig, sharedSecretEncryptionPublicKeys)
 }
 
-// ContractSetConfigArgs generates setConfig args from the relevant parameters.
-// Only use this for testing, *not* for production.
+// ContractSetConfigArgsForTestsWithAuxiliaryArgs generates setConfig args from
+// the relevant parameters. Only use this for testing, *not* for production.
+func ContractSetConfigArgsForTestsWithAuxiliaryArgs(
+	deltaProgress time.Duration,
+	deltaResend time.Duration,
+	deltaRound time.Duration,
+	deltaGrace time.Duration,
+	deltaStage time.Duration,
+	rMax uint8,
+	s []int,
+	oracles []OracleIdentityExtra,
+	reportingPluginConfig []byte,
+	maxDurationQuery time.Duration,
+	maxDurationObservation time.Duration,
+	maxDurationReport time.Duration,
+	maxDurationShouldAcceptFinalizedReport time.Duration,
+	maxDurationShouldTransmitAcceptedReport time.Duration,
+
+	f int,
+	onchainConfig []byte,
+	auxiliaryArgs AuxiliaryArgs,
+) (
+	signers []types.OnchainPublicKey,
+	transmitters []types.Account,
+	f_ uint8,
+	onchainConfig_ []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
+	err error,
+) {
+	identities := []config.OracleIdentity{}
+	configEncryptionPublicKeys := []types.ConfigEncryptionPublicKey{}
+	for _, oracle := range oracles {
+		identities = append(identities, config.OracleIdentity{
+			oracle.OffchainPublicKey,
+			oracle.OnchainPublicKey,
+			oracle.PeerID,
+			oracle.TransmitAccount,
+		})
+		configEncryptionPublicKeys = append(configEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)
+	}
+
+	sharedSecret := [config.SharedSecretSize]byte{}
+	if _, err := io.ReadFull(auxiliaryArgs.rng(), sharedSecret[:]); err != nil {
+		return nil, nil, 0, nil, 0, nil, err
+	}
+
+	sharedConfig := config.SharedConfig{
+		config.PublicConfig{
+			deltaProgress,
+			deltaResend,
+			deltaRound,
+			deltaGrace,
+			deltaStage,
+			rMax,
+			s,
+			identities,
+			reportingPluginConfig,
+			maxDurationQuery,
+			maxDurationObservation,
+			maxDurationReport,
+			maxDurationShouldAcceptFinalizedReport,
+			maxDurationShouldTransmitAcceptedReport,
+			f,
+			onchainConfig,
+			types.ConfigDigest{},
+		},
+		&sharedSecret,
+	}
+	return config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, configEncryptionPublicKeys)
+}
+
+// AuxiliaryArgs provides keyword-style extra configuration for calls to
+// ContractSetConfigArgsForTests
+type AuxiliaryArgs struct {
+	RNG io.Reader
+}
+
+func (a AuxiliaryArgs) rng() io.Reader {
+	if a.RNG == nil {
+		return rand.Reader
+	}
+	return a.RNG
+}
+
+// ContractSetConfigArgsForTests generates setConfig args from the relevant
+// parameters. Only use this for testing, *not* for production.
 func ContractSetConfigArgsForTests(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
@@ -180,44 +265,23 @@ func ContractSetConfigArgsForTests(
 	offchainConfig []byte,
 	err error,
 ) {
-	identities := []config.OracleIdentity{}
-	configEncryptionPublicKeys := []types.ConfigEncryptionPublicKey{}
-	for _, oracle := range oracles {
-		identities = append(identities, config.OracleIdentity{
-			oracle.OffchainPublicKey,
-			oracle.OnchainPublicKey,
-			oracle.PeerID,
-			oracle.TransmitAccount,
-		})
-		configEncryptionPublicKeys = append(configEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)
-	}
-
-	sharedSecret := [config.SharedSecretSize]byte{}
-	if _, err := io.ReadFull(rand.Reader, sharedSecret[:]); err != nil {
-		return nil, nil, 0, nil, 0, nil, err
-	}
-
-	sharedConfig := config.SharedConfig{
-		config.PublicConfig{
-			deltaProgress,
-			deltaResend,
-			deltaRound,
-			deltaGrace,
-			deltaStage,
-			rMax,
-			s,
-			identities,
-			reportingPluginConfig,
-			maxDurationQuery,
-			maxDurationObservation,
-			maxDurationReport,
-			maxDurationShouldAcceptFinalizedReport,
-			maxDurationShouldTransmitAcceptedReport,
-			f,
-			onchainConfig,
-			types.ConfigDigest{},
-		},
-		&sharedSecret,
-	}
-	return config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, configEncryptionPublicKeys)
+	return ContractSetConfigArgsForTestsWithAuxiliaryArgs(
+		deltaProgress,
+		deltaResend,
+		deltaRound,
+		deltaGrace,
+		deltaStage,
+		rMax,
+		s,
+		oracles,
+		reportingPluginConfig,
+		maxDurationQuery,
+		maxDurationObservation,
+		maxDurationReport,
+		maxDurationShouldAcceptFinalizedReport,
+		maxDurationShouldTransmitAcceptedReport,
+		f,
+		onchainConfig,
+		AuxiliaryArgs{},
+	)
 }

@@ -130,26 +130,10 @@ func (t *transmissionState) restoreFromDatabase() {
 		}
 	}
 
-	// find logically latest expired transmission and insert into queue
-	latestExpiredTransmissionKey := types.ReportTimestamp{}
-	latestExpiredTransmission := (*types.PendingTransmission)(nil)
-	for key, trans := range pending {
-		if trans.Time.Before(now) && (EpochRound{latestExpiredTransmissionKey.Epoch, latestExpiredTransmissionKey.Round}).Less(EpochRound{key.Epoch, key.Round}) {
-			latestExpiredTransmissionKey = key
-			transCopy := trans // prevent aliasing of loop var
-			latestExpiredTransmission = &transCopy
-		}
-	}
-	if latestExpiredTransmission != nil {
-		t.times.Push(MinHeapTimeToPendingTransmissionItem{
-			latestExpiredTransmissionKey,
-			*latestExpiredTransmission,
-		})
-	}
-
 	// if queue isn't empty, set tTransmit to expire at next transmission time
 	if t.times.Len() != 0 {
-		t.tTransmit = time.After(now.Sub(t.times.Peek().Time))
+		next := t.times.Peek()
+		t.tTransmit = time.After(time.Until(next.Time))
 	}
 }
 
@@ -228,10 +212,10 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 
 func (t *transmissionState) eventTTransmitTimeout() {
 	defer func() {
-		if t.times.Len() != 0 { // If there's other transmissions due later...
-			// ...reset timer to expire when the next one is due
-			item := t.times.Peek()
-			t.tTransmit = time.After(time.Until(item.Time))
+		// if queue isn't empty, set tTransmit to expire at next transmission time
+		if t.times.Len() != 0 {
+			next := t.times.Peek()
+			t.tTransmit = time.After(time.Until(next.Time))
 		}
 	}()
 

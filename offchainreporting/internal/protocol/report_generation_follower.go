@@ -471,11 +471,11 @@ func (repgen *reportGenerationState) shouldReport(observations []AttributedSigne
 	alphaPPB, deltaC := repgen.config.AlphaPPB, repgen.config.DeltaC
 	if override := repgen.configOverrider.ConfigOverride(); override != nil {
 		repgen.logger.Debug("shouldReport: using overrides for alphaPPB and deltaC", commontypes.LogFields{
-			"round":             repgen.followerState.r,
-			"alphaPPB":          alphaPPB,
-			"deltaC":            deltaC,
-			"overridenAlphaPPB": override.AlphaPPB,
-			"overridenDeltaC":   override.DeltaC,
+			"round":              repgen.followerState.r,
+			"alphaPPB":           alphaPPB,
+			"deltaC":             deltaC,
+			"overriddenAlphaPPB": override.AlphaPPB,
+			"overriddenDeltaC":   override.DeltaC,
 		})
 		alphaPPB = override.AlphaPPB
 		deltaC = override.DeltaC

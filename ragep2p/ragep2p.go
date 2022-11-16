@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"sync"
@@ -984,7 +983,8 @@ func (st *Stream) SendMessage(data []byte) {
 }
 
 // Best effort receiving of messages. The returned channel will be closed when
-// the stream is closed.
+// the stream is closed. Note that this function may return the same channel
+// across invocations.
 func (st *Stream) ReceiveMessages() <-chan []byte {
 	return st.chReceive
 }
@@ -1196,7 +1196,7 @@ func authenticatedConnectionReadLoop(
 	}
 
 	skipInternal := func(n uint32) bool {
-		r, err := io.Copy(ioutil.Discard, io.LimitReader(conn, int64(n)))
+		r, err := io.Copy(io.Discard, io.LimitReader(conn, int64(n)))
 		if err != nil || r != int64(n) {
 			logger.Warn("Error reading from connection", commontypes.LogFields{"error": err})
 			return false
@@ -1421,7 +1421,7 @@ func safeClose(conn net.Conn) error {
 
 func incomingConnsRateLimit(durationBetweenDials time.Duration) ratelimit.MillitokensPerSecond {
 	// 2 dials per DurationBetweenDials are okay
-	result := ratelimit.MillitokensPerSecond(2 / durationBetweenDials.Seconds() * 1000)
+	result := ratelimit.MillitokensPerSecond(2.0 / durationBetweenDials.Seconds() * 1000.0)
 	// dialing once every two seconds is always okay
 	if result < 500 {
 		result = 500

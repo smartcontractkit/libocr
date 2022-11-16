@@ -92,8 +92,8 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
   }
 
   /**
-  * @notice optionally emited to indicate the latest configDigest and epoch for
-     which a report was successfully transmited. Alternatively, the contract may
+  * @notice optionally emitted to indicate the latest configDigest and epoch for
+     which a report was successfully transmitted. Alternatively, the contract may
      use latestConfigDigestAndEpoch with scanLogs set to false.
   */
   event Transmitted(
@@ -123,7 +123,8 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
 
   /**
    * @notice transmit is called to post a new report to the contract
-   * @param report serialized report, which the signatures are signing.
+   * @param reportContext serialized report context containing configDigest, epoch, round, extraHash
+   * @param report serialized report, which the signatures are signing
    * @param rs ith element is the R components of the ith signature on report. Must have at most maxNumOracles entries
    * @param ss ith element is the S components of the ith signature on report. Must have at most maxNumOracles entries
    * @param rawVs ith element is the the V component of the ith signature

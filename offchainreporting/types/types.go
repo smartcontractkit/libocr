@@ -69,7 +69,7 @@ type DataSource interface {
 	// Observe should *not* make any assumptions about context timeout behavior.
 	// Once the context times out, Observe should prioritize returning as
 	// quickly as possible, but may still perform fast computations to return a
-	// result rather than errror. For example, if Observe medianizes a number
+	// result rather than error. For example, if Observe medianizes a number
 	// of data sources, some of which already returned a result to Observe prior
 	// to the context's expiry, Observe might still compute their median, and
 	// return it instead of an error.

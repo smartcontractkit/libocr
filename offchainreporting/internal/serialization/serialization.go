@@ -300,7 +300,7 @@ func messageFinalEchoFromProtoMessage(m *protobuf.MessageFinalEcho) (protocol.Me
 func attributedSignedObservationsFromProtoMessage(pbasos []*protobuf.AttributedSignedObservation) ([]protocol.AttributedSignedObservation, error) {
 	if pbasos == nil {
 		// note: we return an empty list instead of an error, because protobuf
-		// represents empy list and nil as the same thing
+		// represents empty list and nil as the same thing
 		return []protocol.AttributedSignedObservation{}, nil
 	}
 	asos := make([]protocol.AttributedSignedObservation, 0, len(pbasos))
@@ -389,7 +389,7 @@ func finalToProtoMessage(v protocol.MessageFinal) *protobuf.MessageFinal {
 			Signatures:             make([][]byte, len(v.Report.Signatures)),
 		},
 	}
-	for i, sig := range v.Report.Signatures {
+	for i, sig := range v.Report.Signatures { //nolint:gosimple
 		pm.Report.Signatures[i] = sig
 	}
 	return pm

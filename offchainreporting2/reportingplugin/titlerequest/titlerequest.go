@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -248,7 +248,7 @@ func title(ctx context.Context, url string) string {
 		return ""
 	}
 
-	bodyBytes, err := ioutil.ReadAll(httpResp.Body)
+	bodyBytes, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return ""
 	}

@@ -667,7 +667,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
 
     // Verify signatures attached to report
     {
-      bytes32 h = keccak256(abi.encodePacked(keccak256(report), reportContext));
+      bytes32 h = keccak256(abi.encode(keccak256(report), reportContext));
 
       // i-th byte counts number of sigs made by i-th signer
       uint256 signedCount = 0;
@@ -794,7 +794,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
       configDigest,
       epochAndRound
     );
-    // Emit these for backwards compatability with offchain consumers
+    // Emit these for backwards compatibility with offchain consumers
     // that only support legacy events
     emit NewRound(
       hotVars.latestAggregatorRoundId,
@@ -1001,7 +1001,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   /**
    * @notice sets the LINK token contract used for paying oracles
    * @param linkToken the address of the LINK token contract
-   * @param recipient remaining funds from the previous token contract are transfered
+   * @param recipient remaining funds from the previous token contract are transferred
    * here
    * @dev this function will return early (without an error) without changing any state
    * if linkToken equals getLinkToken().
@@ -1493,7 +1493,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   /**
    * @notice emitted when a transfer of an oracle's payee address has been initiated
    * @param transmitter address from which the oracle sends reports to the transmit method
-   * @param current the payeee address for the oracle, prior to this setting
+   * @param current the payee address for the oracle, prior to this setting
    * @param proposed the proposed new payee address for the oracle
    */
   event PayeeshipTransferRequested(
@@ -1505,7 +1505,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   /**
    * @notice emitted when a transfer of an oracle's payee address has been completed
    * @param transmitter address from which the oracle sends reports to the transmit method
-   * @param current the payeee address for the oracle, prior to this setting
+   * @param current the payee address for the oracle, prior to this setting
    */
   event PayeeshipTransferred(
     address indexed transmitter,
