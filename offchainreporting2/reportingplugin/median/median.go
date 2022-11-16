@@ -16,8 +16,6 @@ import (
 	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
-var _ types.ReportingPlugin = (*numericalMedian)(nil)
-
 const onchainConfigVersion = 1
 const onchainConfigEncodedLength = 1 + byteWidth + byteWidth
 

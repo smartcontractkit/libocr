@@ -282,9 +282,7 @@ func (pace *pacemakerState) restoreStateFromDatabase() {
 
 	pace.e = state.Epoch
 	pace.ne = state.HighestSentEpoch
-	for i, e := range state.HighestReceivedEpoch {
-		pace.newepoch[i] = e
-	}
+	copy(pace.newepoch, state.HighestReceivedEpoch)
 	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
 	pace.logger.Info("Restored state from database", commontypes.LogFields{
 		"epoch":  pace.e,

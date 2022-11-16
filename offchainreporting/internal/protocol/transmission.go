@@ -136,7 +136,7 @@ func (t *transmissionState) restoreFromDatabase() {
 
 	// if queue isn't empty, set tTransmit to expire at next transmission time
 	if t.times.Len() != 0 {
-		t.tTransmit = time.After(now.Sub(t.times.Peek().Time))
+		t.tTransmit = time.After(time.Until(t.times.Peek().Time))
 	}
 }
 
@@ -364,9 +364,9 @@ func (t *transmissionState) shouldTransmit(ev EventTransmit, contractEpochRound 
 	alphaPPB := t.config.AlphaPPB
 	if override := t.configOverrider.ConfigOverride(); override != nil {
 		t.logger.Debug("shouldTransmit: using override for alphaPPB", commontypes.LogFields{
-			"epochRound":        reportEpochRound,
-			"alphaPPB":          alphaPPB,
-			"overridenAlphaPPB": override.AlphaPPB,
+			"epochRound":         reportEpochRound,
+			"alphaPPB":           alphaPPB,
+			"overriddenAlphaPPB": override.AlphaPPB,
 		})
 		alphaPPB = override.AlphaPPB
 	}
