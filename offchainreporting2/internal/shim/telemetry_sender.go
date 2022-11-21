@@ -50,5 +50,6 @@ func (ts TelemetrySender) RoundStarted(
 			Leader:       uint64(leader),
 			Time:         uint64(time.Now().UnixNano()),
 		}},
+		UnixTimeNanoseconds: time.Now().UnixNano(),
 	})
 }

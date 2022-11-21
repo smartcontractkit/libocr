@@ -3,6 +3,7 @@ package shim
 
 import (
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -121,6 +122,7 @@ func (n *SerializingEndpoint) Start() error {
 								Sender:        uint32(raw.Sender),
 							}},
 						}},
+						UnixTimeNanoseconds: time.Now().UnixNano(),
 					})
 					break
 				}
@@ -131,6 +133,7 @@ func (n *SerializingEndpoint) Start() error {
 						Msg:          pbm,
 						Sender:       uint32(raw.Sender),
 					}},
+					UnixTimeNanoseconds: time.Now().UnixNano(),
 				})
 
 				select {
@@ -179,6 +182,7 @@ func (n *SerializingEndpoint) SendTo(msg protocol.Message, to commontypes.Oracle
 				SerializedMsg: sMsg,
 				Receiver:      uint32(to),
 			}},
+			UnixTimeNanoseconds: time.Now().UnixNano(),
 		})
 	}
 }
@@ -193,6 +197,7 @@ func (n *SerializingEndpoint) Broadcast(msg protocol.Message) {
 				Msg:           pbm,
 				SerializedMsg: sMsg,
 			}},
+			UnixTimeNanoseconds: time.Now().UnixNano(),
 		})
 	}
 }

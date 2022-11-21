@@ -82,22 +82,26 @@ func (StandardOnchainConfigCodec) Encode(c OnchainConfig) ([]byte, error) {
 }
 
 type OffchainConfig struct {
-	// AlphaReport is used during the reporting stage to determine whether there
-	// is sufficient deviation to warrant a report, i.e. if the deviation
-	// between the report under consideration and the answer stored in the
-	// contract is greater than or equal to AlphaReport, a report is created.
+	// If AlphaReportInfinite is true, the deviation check parametrized by
+	// AlphaReportPPB will never be satisfied.
 	AlphaReportInfinite bool
-	AlphaReportPPB      uint64
-	// AlphaAccept is used during the transmission stage to determine whether
-	// there is sufficient deviation to warrant a report iff there is already a
-	// pending transmission. If the deviation between the pending transmission
-	// and the report under consideration is greater than or equal to
-	// AlphaAccept, the report is accepted for transmission.
+	// AlphaReportPPB determines the relative deviation between the median (i.e.
+	// answer) in the contract and the current median of observations (offchain)
+	// at which a report should be issued. That is, a report is issued if
+	// abs((offchainMedian - contractMedian)/contractMedian) >= alphaReport.
+	AlphaReportPPB uint64 // PPB is parts-per-billion
+	// If AlphaAcceptInfinite is true, the deviation check parametrized by
+	// AlphaAcceptPPB will never be satisfied.
 	AlphaAcceptInfinite bool
-	AlphaAcceptPPB      uint64
-	// DeltaC is used during the reporting stage to determine whether the last
-	// report on the contract is sufficiently old that a new report should be
-	// created.
+	// AlphaAcceptPPB determines the relative deviation between the median in a
+	// newly generated report considered for transmission and the median of the
+	// currently pending report. That is, a report is accepted for transmission
+	// if abs((newMedian - pendingMedian)/pendingMedian) >= alphaAccept. If no
+	// report is pending, this variable has no effect.
+	AlphaAcceptPPB uint64 // PPB is parts-per-billion
+	// DeltaC is the maximum age of the latest report in the contract. If the
+	// maximum age is exceeded, a new report will be created by the report
+	// generation protocol.
 	DeltaC time.Duration
 }
 

@@ -48,7 +48,7 @@ func (o *ocrEndpointV1V2) SendTo(payload []byte, to commontypes.OracleID) {
 	o.stateMu.RLock()
 	defer o.stateMu.RUnlock()
 	if o.state != ocrEndpointV1V2Started {
-		o.logger.Error("ocrEndpointV1V2 asked to SentTo while not in started state", commontypes.LogFields{"state": o.state})
+		o.logger.Error("OCREndpointV1V2: Asked to SentTo while not in started state", commontypes.LogFields{"state": o.state})
 		return
 	}
 	o.v1.SendTo(payload, to)
@@ -61,7 +61,7 @@ func (o *ocrEndpointV1V2) Broadcast(payload []byte) {
 	o.stateMu.RLock()
 	defer o.stateMu.RUnlock()
 	if o.state != ocrEndpointV1V2Started {
-		o.logger.Error("ocrEndpointV1V2 asked to Broadcast while not in started state", commontypes.LogFields{"state": o.state})
+		o.logger.Error("OCREndpointV1V2: Asked to Broadcast while not in started state", commontypes.LogFields{"state": o.state})
 		return
 	}
 	o.v1.Broadcast(payload)
@@ -137,7 +137,7 @@ func (o *ocrEndpointV1V2) mergeRecvs() {
 			for i, lastTime := range lastHeardV2 {
 				durationSinceLastHeardV2[i] = now.Sub(lastTime)
 			}
-			o.logger.Info("OCR endpoint v1v2 status report", commontypes.LogFields{
+			o.logger.Info("OCREndpointV1V2: Status report", commontypes.LogFields{
 				"peerIDs":                   o.peerIDs,
 				"durationSinceLastHeardV2":  durationSinceLastHeardV2,
 				"messagesSinceLastReportV2": messagesSinceLastReportV2,
@@ -167,6 +167,7 @@ func (o *ocrEndpointV1V2) Start() error {
 	succeeded := false
 	defer func() {
 		if !succeeded {
+			o.logger.Warn("OCREndpointV1V2: Start: errored, auto-closing", nil)
 			o.Close()
 		}
 	}()
@@ -179,10 +180,11 @@ func (o *ocrEndpointV1V2) Start() error {
 	o.state = ocrEndpointV1V2Started
 
 	if err := o.v1.Start(); err != nil {
+		o.logger.Warn("OCREndpointV1V2: Start: Failed to start v1", commontypes.LogFields{"err": err})
 		return err
 	}
 	if err := o.v2.Start(); err != nil {
-		o.logger.Critical("Failed to start v2 OCR endpoint as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
+		o.logger.Critical("OCREndpointV1V2: Start: Failed to start v2 OCR endpoint as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
 	} else {
 		o.v2Started = true
 	}
@@ -192,15 +194,22 @@ func (o *ocrEndpointV1V2) Start() error {
 }
 
 func (o *ocrEndpointV1V2) Close() error {
-	o.stateMu.Lock()
-	defer o.stateMu.Unlock()
-	if o.state != ocrEndpointV1V2Started {
-		return fmt.Errorf("cannot Close ocrEndpointV1V2 that is in state %v", o.state)
+	err := func() error {
+		o.stateMu.Lock()
+		defer o.stateMu.Unlock()
+		if o.state != ocrEndpointV1V2Started {
+			return fmt.Errorf("cannot Close ocrEndpointV1V2 that is in state %v", o.state)
+		}
+		o.state = ocrEndpointV1V2Closed
+		return nil
+	}()
+	if err != nil {
+		return err
 	}
-	o.state = ocrEndpointV1V2Closed
 
 	close(o.chClose)
 	o.processes.Wait()
+
 	var allErrors error
 	allErrors = multierr.Append(allErrors, o.v1.Close())
 	allErrors = multierr.Append(allErrors, o.v2.Close())
