@@ -37,7 +37,7 @@ func (d prefixCheckConfigDigester) CheckContractConfig(cc types.ContractConfig) 
 	}
 
 	if goodConfigDigest != cc.ConfigDigest {
-		return fmt.Errorf("ConfigDigest mismatch. Expected %x but got %x", goodConfigDigest, cc.ConfigDigest)
+		return fmt.Errorf("ConfigDigest mismatch. Expected %s but got %s", goodConfigDigest, cc.ConfigDigest)
 	}
 
 	return nil

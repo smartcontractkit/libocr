@@ -36,6 +36,7 @@ func (b *bootstrapperV1V2) Start() error {
 	succeeded := false
 	defer func() {
 		if !succeeded {
+			b.logger.Warn("BootstrapperV1V2: Start: errored, auto-closing", nil)
 			b.Close()
 		}
 	}()
@@ -49,10 +50,12 @@ func (b *bootstrapperV1V2) Start() error {
 	b.state = bootstrapperStarted
 
 	if err := b.v1.Start(); err != nil {
+		b.logger.Warn("BootstrapperV1V2: Start: Failed to start v1", commontypes.LogFields{"err": err})
 		return err
 	}
+	b.logger.Info("BootstrapperV1V2: Start: v1 started successfully", nil)
 	if err := b.v2.Start(); err != nil {
-		b.logger.Critical("Failed to start v2 bootstrapper as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
+		b.logger.Critical("BootstrapperV1V2: Start: Failed to start v2 bootstrapper as part of v1v2, operating only with v1", commontypes.LogFields{"error": err})
 		b.v2started = false
 	}
 	succeeded = true
@@ -60,6 +63,7 @@ func (b *bootstrapperV1V2) Start() error {
 }
 
 func (b *bootstrapperV1V2) Close() error {
+	b.logger.Debug("BootstrapperV1V2: Close", nil)
 	b.stateMu.Lock()
 	defer b.stateMu.Unlock()
 	if b.state != bootstrapperStarted {

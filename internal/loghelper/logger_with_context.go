@@ -52,11 +52,11 @@ func (l loggerWithContextImpl) ErrorIfNotCanceled(msg string, ctx context.Contex
 	if !errors.Is(ctx.Err(), context.Canceled) {
 		l.logger.Error(msg, Merge(l.context, fields))
 	} else {
-		l.logger.Debug("logging as debug due to context cancelation: "+msg, Merge(l.context, fields))
+		l.logger.Debug("logging as debug due to context cancellation: "+msg, Merge(l.context, fields))
 	}
 }
 
-// MakeChild is the preferred way to create a new specialised logger.
+// MakeChild is the preferred way to create a new specialized logger.
 // It will reuse the base commontypes.Logger and create a new extended context.
 func (l loggerWithContextImpl) MakeChild(extra commontypes.LogFields) LoggerWithContext {
 	return loggerWithContextImpl{
@@ -68,7 +68,7 @@ func (l loggerWithContextImpl) MakeChild(extra commontypes.LogFields) LoggerWith
 // Helpers
 
 // Merge will create a new LogFields and add all the properties from extras on it.
-// Key conflicts are resolved by prefixing the pkey for the new value with underscores until there's no overwrite.
+// Key conflicts are resolved by prefixing the key for the new value with underscores until there's no conflict.
 func Merge(extras ...commontypes.LogFields) commontypes.LogFields {
 	base := commontypes.LogFields{}
 	for _, extra := range extras {

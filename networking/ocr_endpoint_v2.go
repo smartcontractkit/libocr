@@ -2,6 +2,7 @@ package networking
 
 import (
 	"fmt"
+	"io"
 	"sync"
 
 	"go.uber.org/multierr"
@@ -52,9 +53,11 @@ type ocrEndpointV2 struct {
 	chSendToSelf chan commontypes.BinaryMessageWithSender
 	chClose      chan struct{}
 	streams      map[commontypes.OracleID]*ragep2p.Stream
+	registration io.Closer
 	state        ocrEndpointState
-	stateMu      sync.RWMutex
-	subs         subprocesses.Subprocesses
+
+	stateMu sync.RWMutex
+	subs    subprocesses.Subprocesses
 
 	// recv is exposed to clients of this network endpoint
 	recv chan commontypes.BinaryMessageWithSender
@@ -81,6 +84,7 @@ func newOCREndpointV2(
 	config EndpointConfigV2,
 	f int,
 	limits BinaryNetworkEndpointLimits,
+	registration io.Closer,
 ) (*ocrEndpointV2, error) {
 	peerMapping := make(map[commontypes.OracleID]ragetypes.PeerID)
 	for i, peerID := range peerIDs {
@@ -119,6 +123,7 @@ func newOCREndpointV2(
 		chSendToSelf,
 		make(chan struct{}),
 		make(map[commontypes.OracleID]*ragep2p.Stream),
+		registration,
 		ocrEndpointUnstarted,
 		sync.RWMutex{},
 		subprocesses.Subprocesses{},
@@ -132,7 +137,7 @@ func streamNameFromConfigDigest(cd ocr2types.ConfigDigest) string {
 	return fmt.Sprintf("ocr/%s", cd)
 }
 
-// Start the ocrEndpointV2. Should only be called once. Even in case of error Close() _should_ be called afterwards for cleanup.
+// Start the ocrEndpointV2. Should only be called once.
 func (o *ocrEndpointV2) Start() error {
 	succeeded := false
 	defer func() {
@@ -148,10 +153,6 @@ func (o *ocrEndpointV2) Start() error {
 		return fmt.Errorf("cannot start ocrEndpointV2 that is not unstarted, state was: %d", o.state)
 	}
 	o.state = ocrEndpointStarted
-
-	if err := o.peer.register(o); err != nil {
-		return err
-	}
 
 	for oid, pid := range o.peerMapping {
 		if oid == o.ownOracleID {
@@ -234,6 +235,7 @@ func (o *ocrEndpointV2) runSendToSelf() {
 	}
 }
 
+// Close should be called to clean up even if Start is never called.
 func (o *ocrEndpointV2) Close() error {
 	o.stateMu.Lock()
 	defer o.stateMu.Unlock()
@@ -256,7 +258,7 @@ func (o *ocrEndpointV2) Close() error {
 	}
 
 	o.logger.Debug("OCREndpointV2: Deregister", nil)
-	if err := o.peer.deregister(o); err != nil {
+	if err := o.registration.Close(); err != nil {
 		allErrors = multierr.Append(allErrors, fmt.Errorf("error closing OCREndpointV2: could not deregister: %w", err))
 	}
 
@@ -321,16 +323,4 @@ func (o *ocrEndpointV2) Broadcast(payload []byte) {
 // Receive gives the channel to receive messages
 func (o *ocrEndpointV2) Receive() <-chan commontypes.BinaryMessageWithSender {
 	return o.recv
-}
-
-func (o *ocrEndpointV2) getConfigDigest() ocr2types.ConfigDigest {
-	return o.configDigest
-}
-
-func (o *ocrEndpointV2) getV2Oracles() []ragetypes.PeerID {
-	return o.peerIDs
-}
-
-func (o *ocrEndpointV2) getV2Bootstrappers() []ragetypes.PeerInfo {
-	return o.bootstrappers
 }

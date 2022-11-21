@@ -11,6 +11,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/smartcontractkit/libocr/commontypes"
+	"go.uber.org/multierr"
 	"golang.org/x/time/rate"
 
 	p2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -23,7 +24,6 @@ import (
 	dhtrouter "github.com/smartcontractkit/libocr/networking/dht-router"
 	"github.com/smartcontractkit/libocr/networking/knockingtls"
 	"github.com/smartcontractkit/libocr/networking/wire"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
@@ -90,11 +90,17 @@ type ocrEndpointV1 struct {
 	muSends      map[commontypes.OracleID]*sync.Mutex
 	chSendToSelf chan commontypes.BinaryMessageWithSender
 	chClose      chan struct{}
-	state        ocrEndpointState
-	stateMu      *sync.RWMutex
-	wg           *sync.WaitGroup
-	ctx          context.Context
-	ctxCancel    context.CancelFunc
+
+	registered       bool
+	setStreamHandler bool
+
+	state ocrEndpointState
+
+	stateMu *sync.RWMutex
+
+	wg        *sync.WaitGroup
+	ctx       context.Context
+	ctxCancel context.CancelFunc
 
 	// recv is exposed to clients of this network endpoint
 	recv chan commontypes.BinaryMessageWithSender
@@ -147,7 +153,7 @@ func newOCREndpointV1(
 	reversedPeerMapping := reverseMapping(peerMapping)
 	ownOracleID, ok := reversedPeerMapping[peer.ID()]
 	if !ok {
-		return nil, errors.Errorf("host peer ID 0x%x is not present in given peerMapping", peer.ID())
+		return nil, errors.Errorf("host peer ID %s is not present in given peerMapping", peer.ID())
 	}
 
 	chRecvs := make(map[commontypes.OracleID]chan []byte)
@@ -190,9 +196,9 @@ func newOCREndpointV1(
 		reversedPeerMapping,
 		allowlist,
 		peer,
-		// Will be set in Start()
+		// Will be set in Start(): rhost
 		nil,
-		// Will be set in Start()
+		// Will be set in Start(): routing
 		nil,
 		configDigest,
 		protocolID,
@@ -204,6 +210,8 @@ func newOCREndpointV1(
 		muSends,
 		chSendToSelf,
 		make(chan struct{}),
+		false,
+		false,
 		ocrEndpointUnstarted,
 		new(sync.RWMutex),
 		new(sync.WaitGroup),
@@ -258,7 +266,7 @@ func reverseMapping(m map[commontypes.OracleID]p2ppeer.ID) map[p2ppeer.ID]common
 	return n
 }
 
-func genProtocolID(configDigest types.ConfigDigest) p2pprotocol.ID {
+func genProtocolID(configDigest ocr1types.ConfigDigest) p2pprotocol.ID {
 	// configDigest is namespaced under version but libp2p standard specifies a
 	// trailing version, hence the dummy 1.0.0
 	return p2pprotocol.ID(fmt.Sprintf("/%s/%s/%x/1.0.0", protocolBaseName, protocolVersion, configDigest))
@@ -277,12 +285,14 @@ func (o *ocrEndpointV1) Start() error {
 	if err := o.peer.register(o); err != nil {
 		return err
 	}
+	o.registered = true
 
 	if err := o.setupDHT(); err != nil {
-		return errors.Wrap(err, "error setting up DHT")
+		return fmt.Errorf("error setting up DHT: %w", err)
 	}
 
 	o.rhost.SetStreamHandler(o.protocolID, o.streamReceiver)
+	o.setStreamHandler = true
 
 	o.wg.Add(len(o.chRecvs))
 	for oid := range o.chRecvs {
@@ -317,14 +327,15 @@ func (o *ocrEndpointV1) setupDHT() (err error) {
 	acl.Activate(config.ProtocolID(), o.allowlist()...)
 	aclHost := dhtrouter.WrapACL(o.peer.host, acl, o.logger)
 
-	o.routing, err = dhtrouter.NewDHTRouter(
+	routing, err := dhtrouter.NewDHTRouter(
 		o.ctx,
 		config,
 		aclHost,
 	)
 	if err != nil {
-		return errors.Wrap(err, "could not initialize DHTRouter")
+		return fmt.Errorf("could not initialize DHTRouter: %w", err)
 	}
+	o.routing = routing
 
 	// Async
 	o.routing.Start()
@@ -520,23 +531,30 @@ func (o *ocrEndpointV1) Close() error {
 
 	o.logger.Debug("OCREndpointV1: Closing", nil)
 
-	o.logger.Debug("OCREndpointV1: Removing stream handler", nil)
-	o.peer.host.RemoveStreamHandler(o.protocolID)
+	if o.setStreamHandler {
+		o.logger.Debug("OCREndpointV1: Removing stream handler", nil)
+		o.peer.host.RemoveStreamHandler(o.protocolID)
+	}
 
 	o.logger.Debug("OCREndpointV1: Closing streams", nil)
 	close(o.chClose)
 	o.ctxCancel()
 	o.wg.Wait()
 
-	o.logger.Debug("OCREndpointV1: Closing dht", nil)
-	err := o.routing.Close()
-	if err != nil {
-		return errors.Wrap(err, "error closing OCREndpointV1: could not close dht")
+	var allErrors error
+
+	if o.routing != nil {
+		o.logger.Debug("OCREndpointV1: Closing dht", nil)
+		if err := o.routing.Close(); err != nil {
+			allErrors = multierr.Append(allErrors, fmt.Errorf("could not close dht: %w", err))
+		}
 	}
 
-	o.logger.Debug("OCREndpointV1: Deregister", nil)
-	if err := o.peer.deregister(o); err != nil {
-		return errors.Wrap(err, "error closing OCREndpointV1: could not deregister")
+	if o.registered {
+		o.logger.Debug("OCREndpointV1: Deregistering", nil)
+		if err := o.peer.deregister(o); err != nil {
+			allErrors = multierr.Append(allErrors, fmt.Errorf("could not deregister: %w", err))
+		}
 	}
 
 	o.logger.Debug("OCREndpointV1: Closing o.recv", nil)
@@ -546,7 +564,7 @@ func (o *ocrEndpointV1) Close() error {
 	o.lowerBandwidthLimits()
 
 	o.logger.Info("OCREndpointV1: Closed", nil)
-	return nil
+	return allErrors
 }
 
 func (o *ocrEndpointV1) streamReceiver(s p2pnetwork.Stream) {

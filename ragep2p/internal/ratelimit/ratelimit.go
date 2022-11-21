@@ -11,7 +11,7 @@ type MillitokensPerSecond uint64
 // saturates.
 // The zero TokenBucket{} is a valid value.
 //
-// NOT threadsafe
+// NOT thread-safe
 type TokenBucket struct {
 	rate     MillitokensPerSecond
 	capacity uint32

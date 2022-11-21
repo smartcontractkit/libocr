@@ -14,25 +14,71 @@ import (
 // PublicConfig is the configuration disseminated through the smart contract
 // It's public, because anybody can read it from the blockchain
 type PublicConfig struct {
-	DeltaProgress    time.Duration
-	DeltaResend      time.Duration
-	DeltaRound       time.Duration
-	DeltaGrace       time.Duration
-	DeltaStage       time.Duration
-	RMax             uint8
-	S                []int
+	// If an epoch (driven by a leader) fails to achieve progress (generate a
+	// report) after DeltaProgress, we enter a new epoch. This parameter must be
+	// chosen carefully. If the duration is too short, we may keep prematurely
+	// switching epochs without ever achieving any progress, resulting in a
+	// liveness failure!
+	DeltaProgress time.Duration
+	// DeltaResend determines how often Pacemaker newepoch messages should be
+	// resent, allowing oracles that had crashed and are recovering to rejoin
+	// the protocol more quickly. ~30s should be a reasonable default under most
+	// circumstances.
+	DeltaResend time.Duration
+	// DeltaRound determines the minimal amount of time that should pass between
+	// the start of report generation rounds. With OCR2 only (not OCR1!) you can
+	// set this value very aggressively. Note that this only provides a lower
+	// bound on the round interval; actual rounds might take longer.
+	DeltaRound time.Duration
+	// Once the leader of a report generation round has collected sufficiently
+	// many observations, it will wait for DeltaGrace to pass to allow slower
+	// oracles to still contribute an observation before moving on to generating
+	// the report. Consequently, rounds driven by correct leaders will always
+	// take at least DeltaGrace.
+	DeltaGrace time.Duration
+	// DeltaStage determines the duration between stages of the transmission
+	// protocol. In each stage, a certain number of oracles (determined by S)
+	// will attempt to transmit, assuming that no other oracle has yet
+	// successfully transmitted a report.
+	DeltaStage time.Duration
+	// The maximum number of rounds during an epoch.
+	RMax uint8
+	// S is the transmission schedule. For example, S = [1,2,3] indicates that
+	// in the first stage of transmission one oracle will attempt to transmit,
+	// in the second stage two more will attempt to transmit (if in their view
+	// the first stage didn't succeed), and in the third stage three more will
+	// attempt to transmit (if in their view the first and second stage didn't
+	// succeed).
+	//
+	// sum(S) should equal n.
+	S []int
+	// Identities (i.e. public keys) of the oracles participating in this
+	// protocol instance.
 	OracleIdentities []OracleIdentity
 
+	// Binary blob containing configuration passed through to the
+	// ReportingPlugin.
 	ReportingPluginConfig []byte
 
+	// MaxDurationX is the maximum duration a ReportingPlugin should spend
+	// performing X. Reasonable values for these will be specific to each
+	// ReportingPlugin. Be sure to not set these too short, or the corresponding
+	// ReportingPlugin function may always time out.
 	MaxDurationQuery                        time.Duration
-	MaxDurationObservation                  time.Duration
+	MaxDurationObservation                  time.Duration // Used to be an environment variable called OCR_OBSERVATION_TIMEOUT in OCR1 in the Chainlink node.
 	MaxDurationReport                       time.Duration
 	MaxDurationShouldAcceptFinalizedReport  time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
 
+	// The maximum number of oracles that are assumed to be faulty while the
+	// protocol can retain liveness and safety. Unless you really know what
+	// you’re doing, be sure to set this to floor(n/3) where n is the total
+	// number of oracles.
 	F int
 
+	// Binary blob containing configuration passed through to the
+	// ReportingPlugin, and also available to the contract. (Unlike
+	// ReportingPluginConfig which is only available offchain.)
 	OnchainConfig []byte
 
 	ConfigDigest types.ConfigDigest

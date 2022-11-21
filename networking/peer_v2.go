@@ -12,6 +12,7 @@ import (
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	"go.uber.org/multierr"
 )
 
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
@@ -19,16 +20,8 @@ type concretePeerV2 struct {
 	peerID         ragetypes.PeerID
 	host           *ragep2p.Host
 	discoverer     *ragedisco.Ragep2pDiscoverer
-	registrantsMu  *sync.Mutex
-	registrants    map[ocr2types.ConfigDigest]struct{}
 	logger         loghelper.LoggerWithContext
 	endpointConfig EndpointConfigV2
-}
-
-type registrantV2 interface {
-	getConfigDigest() ocr2types.ConfigDigest
-	getV2Bootstrappers() []ragetypes.PeerInfo
-	getV2Oracles() []ragetypes.PeerID
 }
 
 func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
@@ -78,51 +71,43 @@ func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
 		peerID,
 		host,
 		discoverer,
-		&sync.Mutex{},
-		make(map[ocr2types.ConfigDigest]struct{}),
 		logger,
 		c.V2EndpointConfig,
 	}, nil
 }
 
-func (p2 *concretePeerV2) register(r registrantV2) error {
-	configDigest, oracles, bootstrappers := r.getConfigDigest(), r.getV2Oracles(), r.getV2Bootstrappers()
-	p2.registrantsMu.Lock()
-	defer p2.registrantsMu.Unlock()
-
-	p2.logger.Info("PeerV2: registering v2 protocol handler", commontypes.LogFields{
-		"configDigest":  configDigest,
-		"oracles":       oracles,
-		"bootstrappers": bootstrappers,
-	})
-
-	if _, ok := p2.registrants[configDigest]; ok {
-		return fmt.Errorf("v2 endpoint with config digest %s has already been registered", configDigest.Hex())
-	}
-	p2.registrants[configDigest] = struct{}{}
-	return p2.discoverer.AddGroup(
-		configDigest,
-		oracles,
-		bootstrappers,
-	)
+// An endpointRegistration is held by an endpoint which services a particular configDigest. The invariant is that only
+// there can be at most a single active (ie. not closed) endpointRegistration for some configDigest, and thus only at
+// most one endpoint can service a particular configDigest at any given point in time. The endpoint is responsible for
+// calling Close on the registration.
+type endpointRegistration struct {
+	deregisterFunc func() error
+	once           sync.Once
 }
 
-func (p2 *concretePeerV2) deregister(r registrantV2) error {
-	configDigest, oracles, bootstrappers := r.getConfigDigest(), r.getV2Oracles(), r.getV2Bootstrappers()
-	p2.registrantsMu.Lock()
-	defer p2.registrantsMu.Unlock()
-	p2.logger.Info("PeerV2: deregistering v2 protocol handler", commontypes.LogFields{
-		"configDigest":  configDigest,
-		"oracles":       oracles,
-		"bootstrappers": bootstrappers,
+func newEndpointRegistration(deregisterFunc func() error) *endpointRegistration {
+	return &endpointRegistration{deregisterFunc, sync.Once{}}
+}
+
+func (r *endpointRegistration) Close() (err error) {
+	r.once.Do(func() {
+		err = r.deregisterFunc()
 	})
+	return err
+}
 
-	if _, ok := p2.registrants[configDigest]; !ok {
-		return fmt.Errorf("v2 endpoint with config digest %s is not currently registered", configDigest.Hex())
+func (p2 *concretePeerV2) register(configDigest ocr2types.ConfigDigest, oracles []ragetypes.PeerID, bootstrappers []ragetypes.PeerInfo) (*endpointRegistration, error) {
+	if err := p2.discoverer.AddGroup(configDigest, oracles, bootstrappers); err != nil {
+		p2.logger.Warn("PeerV2: Failed to register endpoint", commontypes.LogFields{"configDigest": configDigest})
+		return nil, err
 	}
-	delete(p2.registrants, configDigest)
 
-	return p2.discoverer.RemoveGroup(configDigest)
+	return newEndpointRegistration(func() error {
+		// Discoverer will not be closed until concretePeerV2.Close() is called.
+		// By the time concretePeerV2.Close() is called all endpoints/bootstrappers should have already been closed.
+		// Even if this weren't true, RemoveGroup() is a no-op if the discoverer is closed.
+		return p2.discoverer.RemoveGroup(configDigest)
+	}), nil
 }
 
 func (p2 *concretePeerV2) PeerID() string {
@@ -189,7 +174,12 @@ func (p2 *concretePeerV2) newEndpoint(
 		return nil, fmt.Errorf("could not decode v2 bootstrappers: %w", err)
 	}
 
-	return newOCREndpointV2(
+	registration, err := p2.register(configDigest, decodedv2PeerIDs, decodedv2Bootstrappers)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint, err := newOCREndpointV2(
 		p2.logger,
 		configDigest,
 		p2,
@@ -201,7 +191,13 @@ func (p2 *concretePeerV2) newEndpoint(
 		},
 		f,
 		limits,
+		registration,
 	)
+	if err != nil {
+		// Important: we close registration in case newOCREndpointV2 failed to prevent zombie registrations.
+		return nil, multierr.Combine(err, registration.Close())
+	}
+	return endpoint, nil
 }
 
 func (p2 *concretePeerV2) newBootstrapper(
@@ -224,5 +220,15 @@ func (p2 *concretePeerV2) newBootstrapper(
 		return nil, fmt.Errorf("could not decode v2 bootstrappers: %w", err)
 	}
 
-	return newBootstrapperV2(p2.logger, configDigest, p2, decodedv2PeerIDs, decodedv2Bootstrappers, f)
+	registration, err := p2.register(configDigest, decodedv2PeerIDs, decodedv2Bootstrappers)
+	if err != nil {
+		return nil, err
+	}
+
+	bootstrapper, err := newBootstrapperV2(p2.logger, configDigest, p2, decodedv2PeerIDs, decodedv2Bootstrappers, f, registration)
+	if err != nil {
+		// Important: we close registration in case newBootstrapperV2 failed to prevent zombie registrations.
+		return nil, multierr.Combine(err, registration.Close())
+	}
+	return bootstrapper, nil
 }

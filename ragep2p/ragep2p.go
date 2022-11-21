@@ -193,7 +193,7 @@ func NewHost(
 		listenAddresses,
 		discoverer,
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
-		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"peerID": types.PeerID(id)}),
+		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": types.PeerID(id)}),
 
 		id,
 		mtls.NewMinimalX509CertFromPrivateKey(secretKey),

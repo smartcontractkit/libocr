@@ -2,6 +2,7 @@ package networking
 
 import (
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -21,12 +22,13 @@ type bootstrapperV2 struct {
 	v2bootstrappers []ragetypes.PeerInfo
 	logger          loghelper.LoggerWithContext
 	configDigest    ocr2types.ConfigDigest
+	registration    io.Closer
 	state           bootstrapperState
-	stateMu         *sync.Mutex
-	f               int
+
+	stateMu *sync.Mutex
+	f       int
 }
 
-// v1peerIDs and v2peerIDs are expected to be the same lists, just using different types
 func newBootstrapperV2(
 	logger loghelper.LoggerWithContext,
 	configDigest ocr2types.ConfigDigest,
@@ -34,6 +36,7 @@ func newBootstrapperV2(
 	v2peerIDs []ragetypes.PeerID,
 	v2bootstrappers []ragetypes.PeerInfo,
 	f int,
+	registration io.Closer,
 ) (*bootstrapperV2, error) {
 	logger = logger.MakeChild(commontypes.LogFields{
 		"id":           "bootstrapperV2",
@@ -51,6 +54,7 @@ func newBootstrapperV2(
 		v2bootstrappers,
 		logger,
 		configDigest,
+		registration,
 		bootstrapperUnstarted,
 		new(sync.Mutex),
 		f,
@@ -74,9 +78,6 @@ func (b *bootstrapperV2) Start() error {
 
 	b.state = bootstrapperStarted
 
-	if err := b.peer.register(b); err != nil {
-		return err
-	}
 	b.logger.Info("BootstrapperV2: Started listening", nil)
 	succeeded = true
 	return nil
@@ -90,20 +91,8 @@ func (b *bootstrapperV2) Close() error {
 	}
 	b.state = bootstrapperClosed
 
-	if err := b.peer.deregister(b); err != nil {
+	if err := b.registration.Close(); err != nil {
 		return fmt.Errorf("could not unregister bootstrapperV2: %w", err)
 	}
 	return nil
-}
-
-func (b *bootstrapperV2) getConfigDigest() ocr2types.ConfigDigest {
-	return b.configDigest
-}
-
-func (b *bootstrapperV2) getV2Oracles() []ragetypes.PeerID {
-	return b.v2peerIDs
-}
-
-func (b *bootstrapperV2) getV2Bootstrappers() []ragetypes.PeerInfo {
-	return b.v2bootstrappers
 }

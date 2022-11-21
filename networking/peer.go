@@ -77,6 +77,9 @@ type concretePeer struct {
 // NetworkingStackV2: only the v2 peer is started
 // NetworkingStackV1V2: both v1 and v2 are started, and NewPeer will fail if
 // either fails to start.
+//
+// Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
+// Close() on the peer itself.
 func NewPeer(c PeerConfig) (*concretePeer, error) {
 	var (
 		v1  *concretePeerV1
@@ -158,11 +161,12 @@ func (p *concretePeer) newEndpoint(
 	}
 
 	if v2err != nil {
-		p.logger.Critical("newEndpoint failed for v2 as part of v1v2, operating only with v1", commontypes.LogFields{"error": v2err})
+		p.logger.Critical("PeerV1V2: NewEndpoint: Failed for v2, operating only with v1", commontypes.LogFields{"error": v2err})
 		return v1, nil
 	}
 
-	return newOCREndpointV1V2(p.logger, peerIDs, v1, v2)
+	logger := p.logger.MakeChild(commontypes.LogFields{"id": "OCREndpointV1V2", "configDigest": configDigest})
+	return newOCREndpointV1V2(logger, peerIDs, v1, v2)
 }
 
 func (p *concretePeer) newBootstrapperV1(
@@ -208,11 +212,12 @@ func (p *concretePeer) newBootstrapper(
 	}
 
 	if v2err != nil {
-		p.logger.Critical("newBootstrapper failed for v2 as part of v1v2, operating only with v1", commontypes.LogFields{"error": v2err})
+		p.logger.Critical("PeerV1V2: NewBootstrapper: Failed for v2, operating only with v1", commontypes.LogFields{"error": v2err})
 		return v1, nil
 	}
 
-	return newBootstrapperV1V2(p.logger, v1, v2)
+	logger := p.logger.MakeChild(commontypes.LogFields{"id": "BootstrapperV1V2", "configDigest": configDigest})
+	return newBootstrapperV1V2(logger, v1, v2)
 }
 
 func (p *concretePeer) PeerID() string {

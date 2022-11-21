@@ -175,6 +175,7 @@ func (p1 *concretePeerV1) register(r registrantV1) error {
 	})
 
 	if _, ok := p1.registrants[configDigest]; ok {
+		p1.logger.Warn("PeerV1: Failed to register endpoint", commontypes.LogFields{"configDigest": configDigest.Hex()})
 		return errors.Errorf("v1 endpoint with config digest %s has already been registered", configDigest.Hex())
 	}
 	p1.registrants[configDigest] = struct{}{}

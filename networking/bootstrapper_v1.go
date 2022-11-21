@@ -8,7 +8,6 @@ import (
 	"go.uber.org/multierr"
 
 	p2ppeer "github.com/libp2p/go-libp2p-core/peer"
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	dhtrouter "github.com/smartcontractkit/libocr/networking/dht-router"
@@ -20,15 +19,17 @@ var (
 )
 
 type bootstrapperV1 struct {
-	peer                 *concretePeerV1
-	peerAllowlist        map[p2ppeer.ID]struct{}
-	v1bootstrappers      []p2ppeer.AddrInfo
-	routing              dhtrouter.PeerDiscoveryRouter
-	logger               loghelper.LoggerWithContext
-	configDigest         ocr1types.ConfigDigest
-	ctx                  context.Context
-	ctxCancel            context.CancelFunc
-	state                bootstrapperState
+	peer            *concretePeerV1
+	peerAllowlist   map[p2ppeer.ID]struct{}
+	v1bootstrappers []p2ppeer.AddrInfo
+	routing         dhtrouter.PeerDiscoveryRouter
+	logger          loghelper.LoggerWithContext
+	configDigest    ocr1types.ConfigDigest
+	ctx             context.Context
+	ctxCancel       context.CancelFunc
+	registered      bool
+	state           bootstrapperState
+
 	stateMu              *sync.Mutex
 	f                    int
 	lowerBandwidthLimits func()
@@ -84,6 +85,7 @@ func newBootstrapperV1(
 		configDigest,
 		ctx,
 		cancel,
+		false,
 		bootstrapperUnstarted,
 		new(sync.Mutex),
 		f,
@@ -105,11 +107,12 @@ func (b *bootstrapperV1) Start() error {
 	if err := b.peer.register(b); err != nil {
 		return err
 	}
+	b.registered = true
 	if err := b.setupDHT(); err != nil {
-		return errors.Wrap(err, "error setting up DHT")
+		return fmt.Errorf("error setting up DHT: %w", err)
 	}
 
-	b.logger.Info("Bootstrapper: Started listening", nil)
+	b.logger.Info("BootstrapperV1: Started listening", nil)
 
 	return nil
 }
@@ -131,14 +134,16 @@ func (b *bootstrapperV1) setupDHT() (err error) {
 	acl.Activate(config.ProtocolID(), b.allowlist()...)
 	aclHost := dhtrouter.WrapACL(b.peer.host, acl, b.logger)
 
-	b.routing, err = dhtrouter.NewDHTRouter(
+	routing, err := dhtrouter.NewDHTRouter(
 		b.ctx,
 		config,
 		aclHost,
 	)
 	if err != nil {
-		return errors.Wrap(err, "could not initialize DHTRouter")
+		return fmt.Errorf("could not initialize DHTRouter: %w", err)
 	}
+
+	b.routing = routing
 
 	// Async
 	b.routing.Start()
@@ -158,11 +163,19 @@ func (b *bootstrapperV1) Close() error {
 	b.ctxCancel()
 
 	var allErrors error
-	b.logger.Debug("Bootstrapper: lowering v1 bandwidth limits when closing the bootstrapperV1", nil)
+	b.logger.Debug("BootstrapperV1: lowering v1 bandwidth limits when closing the bootstrapperV1", nil)
 	b.lowerBandwidthLimits()
 
-	allErrors = multierr.Append(allErrors, errors.Wrap(b.routing.Close(), "could not close dht router"))
-	allErrors = multierr.Append(allErrors, errors.Wrap(b.peer.deregister(b), "could not unregister bootstrapperV1"))
+	if b.routing != nil {
+		if err := b.routing.Close(); err != nil {
+			allErrors = multierr.Append(allErrors, fmt.Errorf("could not close dht router: %w", err))
+		}
+	}
+	if b.registered {
+		if err := b.peer.deregister(b); err != nil {
+			allErrors = multierr.Append(allErrors, fmt.Errorf("could not unregister bootstrapperV1: %w", err))
+		}
+	}
 	return allErrors
 }
 

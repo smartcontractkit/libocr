@@ -3,7 +3,6 @@ package ragedisco
 import (
 	"context"
 	"crypto/ed25519"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -254,18 +253,17 @@ func (r *Ragep2pDiscoverer) Close() error {
 }
 
 func (r *Ragep2pDiscoverer) AddGroup(digest types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error {
-	r.logger.Trace("Ragep2pDiscoverer::AddGroup()", commontypes.LogFields{
-		"digest":     hex.EncodeToString(digest[:]),
-		"oracles":    onodes,
-		"bootstraps": bnodes,
+	r.logger.Info("Ragep2pDiscoverer: Adding group", commontypes.LogFields{
+		"configDigest": digest,
+		"oracles":      onodes,
+		"bootstraps":   bnodes,
 	})
 	return r.proto.addGroup(digest, onodes, bnodes)
 }
 
+// RemoveGroup should not block or panic even if the discoverer is closed.
 func (r *Ragep2pDiscoverer) RemoveGroup(digest types.ConfigDigest) error {
-	r.logger.Trace("Ragep2pDiscoverer::RemoveGroup()", commontypes.LogFields{
-		"digest": hex.EncodeToString(digest[:]),
-	})
+	r.logger.Info("Ragep2pDiscoverer: Removing group", commontypes.LogFields{"configDigest": digest})
 	return r.proto.removeGroup(digest)
 }
 

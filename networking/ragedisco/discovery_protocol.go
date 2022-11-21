@@ -120,7 +120,7 @@ func newDiscoveryProtocol(
 		subprocesses.Subprocesses{},
 		ctx,
 		ctxCancel,
-		logger.MakeChild(commontypes.LogFields{"struct": "discoveryProtocol"}),
+		logger.MakeChild(commontypes.LogFields{"id": "discoveryProtocol"}),
 	}, nil
 }
 
@@ -191,7 +191,7 @@ func (p *discoveryProtocol) statusReportLoop() {
 				}
 
 				reportStr, undetected := formatAnnouncementsForReport(uniquePeersToDetect, p.locked.bestAnnouncement)
-				p.logger.Info("Discoverer status report", commontypes.LogFields{
+				p.logger.Info("DiscoveryProtocol: Status report", commontypes.LogFields{
 					"statusByPeer":    reportStr,
 					"peersToDetect":   len(uniquePeersToDetect),
 					"peersUndetected": undetected,
@@ -268,7 +268,7 @@ func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetyp
 	// we hold lock here
 	if err := p.lockedLoadFromDB(newPeerIDs); err != nil {
 		// db-level errors are not prohibitive
-		p.logger.Warn("Failed to load announcements from db", reason(err))
+		p.logger.Warn("DiscoveryProtocol: Failed to load announcements from db", commontypes.LogFields{"configDigest": digest, "error": err})
 	}
 	return nil
 }
@@ -624,7 +624,7 @@ func (p *discoveryProtocol) lockedBumpOwnAnnouncement() (*Announcement, bool, er
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to sign own announcement: %w", err)
 	}
-	logger.Info("Replacing our own announcement", commontypes.LogFields{"announcement": sann})
+	logger.Info("DiscoveryProtocol: Replacing our own announcement", commontypes.LogFields{"announcement": sann})
 	p.locked.bestAnnouncement[p.ownID] = sann
 	return &sann, true, nil
 }

@@ -190,7 +190,7 @@ type ReportingPluginConfig struct {
 // invoked on node A, but not on node B. Or Observation may have been invoked on
 // A and B, but with different queries.
 //
-// All functions on a ReportingPlugin should be threadsafe.
+// All functions on a ReportingPlugin should be thread-safe.
 //
 // All functions that take a context as their first argument may still do cheap
 // computations after the context expires, but should stop any blocking
@@ -199,7 +199,12 @@ type ReportingPluginConfig struct {
 // take longer than a few ms.) A blocking function may block execution of the
 // entire protocol instance!
 //
-// TODO: Talk about protocol instance vs runtime
+// For a given OCR2 protocol instance, there can be many (consecutive) instances
+// of a ReportingPlugin, e.g. due to software restarts. If you need
+// ReportingPlugin state to survive across restarts, you should persist it. A
+// ReportingPlugin instance will only ever serve a single protocol instance.
+// When we talk about "instance" below, we typically mean ReportingPlugin
+// instances, not protocol instances.
 type ReportingPlugin interface {
 	// Query creates a Query that is sent from the leader to all follower nodes
 	// as part of the request for an observation. Be careful! A malicious leader
@@ -245,11 +250,19 @@ type ReportingPlugin interface {
 	//
 	// Don't make assumptions about the epoch/round order in which this function
 	// is called.
+	//
+	// As mentioned above, you should gracefully handle only a subset of a
+	// ReportingPlugin's functions being invoked for a given report. For
+	// example, due to reloading persisted pending transmissions from the
+	// database upon oracle restart, this function  may be called with reports
+	// that no other function of this instance of this interface has ever
+	// been invoked on.
 	ShouldTransmitAcceptedReport(context.Context, ReportTimestamp, Report) (bool, error)
 
 	// If Close is called a second time, it may return an error but must not
 	// panic. This will always be called when a ReportingPlugin is no longer
-	// needed. This will only be called after any calls to other functions
+	// needed, e.g. on shutdown of the protocol instance or shutdown of the
+	// oracle node. This will only be called after any calls to other functions
 	// of the ReportingPlugin will have completed.
 	Close() error
 }
