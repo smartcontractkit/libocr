@@ -460,6 +460,12 @@ func peerLoop(
 					nil,
 					fmt.Errorf("stream already exists"),
 				}
+			} else if len(streams) >= MaxStreamsPerPeer {
+				chStreamOpenResponse <- peerStreamOpenResponse{
+					nil,
+					nil,
+					fmt.Errorf("too many streams, expected at most %d", MaxStreamsPerPeer),
+				}
 			} else {
 				connRateLimiter.AddStream(req.messagesLimit, req.bytesLimit)
 				if !demux.AddStream(req.streamID, req.incomingBufferSize, req.maxMessageLength, req.messagesLimit, req.bytesLimit) {
@@ -1210,10 +1216,25 @@ func authenticatedConnectionReadLoop(
 	// with unknown stream id.
 	unknownStreamIDTaper := loghelper.LogarithmicTaper{}
 
-	// We keep track of stream names for logging
-	streamNameByID := make(map[streamID]string)
+	// We keep track of stream names for logging.
+	// Note that entries in this map are not checked for truthfulness, the remote
+	// could lie about the stream name.
+	remoteStreamNameByID := make(map[streamID]string)
+
+	logWithHeader := func(header frameHeader) commontypes.Logger {
+		return logger.MakeChild(commontypes.LogFields{
+			"payloadLength":    header.PayloadLength,
+			"streamID":         header.StreamID,
+			"remoteStreamName": remoteStreamNameByID[header.StreamID],
+		})
+	}
+
+	// We keep track of the number of open & close frames that we have received.
+	openCloseFramesReceived := 0
+	const maxOpenCloseFramesReceived = 2 * MaxStreamsPerPeer
 
 	rawHeader := make([]byte, frameHeaderEncodedSize)
+
 	for {
 		if !readInternal(rawHeader) {
 			return
@@ -1225,16 +1246,9 @@ func authenticatedConnectionReadLoop(
 			return
 		}
 
-		logger := func() commontypes.Logger {
-			return logger.MakeChild(commontypes.LogFields{
-				"payloadLength": header.PayloadLength,
-				"streamID":      header.StreamID,
-				"streamName":    streamNameByID[header.StreamID],
-			})
-		}
-
 		switch header.Type {
 		case frameTypeOpen:
+			openCloseFramesReceived++
 			if header.PayloadLength == 0 || header.PayloadLength > MaxStreamNameLength {
 				return
 			}
@@ -1242,7 +1256,7 @@ func authenticatedConnectionReadLoop(
 			if !readInternal(streamName) {
 				return
 			}
-			streamNameByID[header.StreamID] = string(streamName)
+			remoteStreamNameByID[header.StreamID] = string(streamName)
 			select {
 			case chOtherStreamStateNotification <- streamStateNotification{
 				header.StreamID,
@@ -1253,11 +1267,12 @@ func authenticatedConnectionReadLoop(
 				return
 			}
 		case frameTypeClose:
+			openCloseFramesReceived++
 			if header.PayloadLength != 0 {
-				logger().Warn("Frame close payload length is not zero", nil)
+				logWithHeader(header).Warn("Frame close payload length is not zero", nil)
 				return
 			}
-			delete(streamNameByID, header.StreamID)
+			delete(remoteStreamNameByID, header.StreamID)
 			select {
 			case chOtherStreamStateNotification <- streamStateNotification{
 				header.StreamID,
@@ -1274,11 +1289,11 @@ func authenticatedConnectionReadLoop(
 			// Cast to int is safe since header.PayloadLength <= MaxMessageLength <= INT_MAX
 			switch demux.ShouldPush(header.StreamID, int(header.PayloadLength)) {
 			case shouldPushResultMessageTooBig:
-				logger().Warn("authenticatedConnectionReadLoop: message too big, closing connection", nil)
+				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message too big, closing connection", nil)
 				return
 			case shouldPushResultMessagesLimitExceeded:
 				limitsExceededTaper.Trigger(func(count uint64) {
-					logger().Warn("authenticatedConnectionReadLoop: message limit exceeded, dropping message", commontypes.LogFields{
+					logWithHeader(header).Warn("authenticatedConnectionReadLoop: message limit exceeded, dropping message", commontypes.LogFields{
 						"limitsExceededDroppedCount": count,
 					})
 				})
@@ -1287,7 +1302,7 @@ func authenticatedConnectionReadLoop(
 				}
 			case shouldPushResultBytesLimitExceeded:
 				limitsExceededTaper.Trigger(func(count uint64) {
-					logger().Warn("authenticatedConnectionReadLoop: bytes limit exceeded, dropping message", commontypes.LogFields{
+					logWithHeader(header).Warn("authenticatedConnectionReadLoop: bytes limit exceeded, dropping message", commontypes.LogFields{
 						"limitsExceededDroppedCount": count,
 					})
 				})
@@ -1296,7 +1311,7 @@ func authenticatedConnectionReadLoop(
 				}
 			case shouldPushResultUnknownStream:
 				unknownStreamIDTaper.Trigger(func(count uint64) {
-					logger().Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
+					logWithHeader(header).Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
 						"unknownStreamIDDroppedCount": count,
 					})
 				})
@@ -1305,7 +1320,7 @@ func authenticatedConnectionReadLoop(
 				}
 			case shouldPushResultYes:
 				limitsExceededTaper.Reset(func(oldCount uint64) {
-					logger().Info("authenticatedConnectionReadLoop: limits are no longer being exceeded", commontypes.LogFields{
+					logWithHeader(header).Info("authenticatedConnectionReadLoop: limits are no longer being exceeded", commontypes.LogFields{
 						"droppedCount": oldCount,
 					})
 				})
@@ -1316,16 +1331,23 @@ func authenticatedConnectionReadLoop(
 				switch demux.PushMessage(header.StreamID, data) {
 				case pushResultSuccess:
 				case pushResultDropped:
-					logger().Trace("authenticatedConnectionReadLoop: demuxer is overflowing for stream, dropping oldest message", nil)
+					logWithHeader(header).Trace("authenticatedConnectionReadLoop: demuxer is overflowing for stream, dropping oldest message", nil)
 				case pushResultUnknownStream:
 					unknownStreamIDTaper.Trigger(func(count uint64) {
-						logger().Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
+						logWithHeader(header).Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
 							"unknownStreamIDDroppedCount": count,
 						})
 					})
 				}
 
 			}
+		}
+
+		if openCloseFramesReceived > maxOpenCloseFramesReceived {
+			logWithHeader(header).Warn("authenticatedConnectionReadLoop: peer received too many open/close frames, closing connection", commontypes.LogFields{
+				"maxOpenCloseFramesReceived": maxOpenCloseFramesReceived,
+			})
+			return
 		}
 	}
 }
