@@ -46,12 +46,15 @@ type Ragep2pDiscoverer struct {
 	chIncomingMessages chan incomingMessage
 	chOutgoingMessages chan outgoingMessage
 	chConnectivity     chan connectivityMsg
+
+	metrics commontypes.Metrics
 }
 
 func NewRagep2pDiscoverer(
 	deltaReconcile time.Duration,
 	announceAddresses []string,
 	db nettypes.DiscovererDatabase,
+	metrics commontypes.Metrics,
 ) *Ragep2pDiscoverer {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &Ragep2pDiscoverer{
@@ -71,10 +74,11 @@ func NewRagep2pDiscoverer(
 		make(chan incomingMessage),
 		make(chan outgoingMessage),
 		make(chan connectivityMsg),
+		metrics,
 	}
 }
 
-func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, logger loghelper.LoggerWithContext) error {
+func (r *Ragep2pDiscoverer) Start(host *ragep2p.Host, privKey ed25519.PrivateKey, logger loghelper.LoggerWithContext) error {
 	succeeded := false
 	defer func() {
 		if !succeeded {
@@ -89,7 +93,7 @@ func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, l
 		return fmt.Errorf("cannot start Ragep2pDiscoverer that is not unstarted, state was: %v", r.state)
 	}
 	r.state = ragep2pDiscovererStarted
-	r.host = h
+	r.host = host
 	announceAddresses, ok := combinedAnnounceAddrsForDiscoverer(r.logger, r.announceAddresses)
 	if !ok {
 		return fmt.Errorf("failed to obtain announce addresses")
@@ -103,6 +107,7 @@ func (r *Ragep2pDiscoverer) Start(h *ragep2p.Host, privKey ed25519.PrivateKey, l
 		announceAddresses,
 		r.db,
 		logger,
+		r.metrics,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to construct underlying discovery protocol: %w", err)

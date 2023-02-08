@@ -148,6 +148,7 @@ type Host struct {
 	listenAddresses []string
 	discoverer      Discoverer
 	logger          loghelper.LoggerWithContext
+	metrics         commontypes.Metrics
 
 	// Derived from secretKey
 	id      types.PeerID
@@ -176,6 +177,7 @@ func NewHost(
 	listenAddresses []string,
 	discoverer Discoverer,
 	logger commontypes.Logger,
+	metrics commontypes.Metrics,
 ) (*Host, error) {
 	if len(listenAddresses) == 0 {
 		return nil, fmt.Errorf("no listen addresses provided")
@@ -194,6 +196,7 @@ func NewHost(
 		discoverer,
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
 		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": types.PeerID(id)}),
+		metrics,
 
 		id,
 		mtls.NewMinimalX509CertFromPrivateKey(secretKey),
