@@ -7,8 +7,9 @@ import (
 	"crypto/ed25519"
 	"time"
 
-	"github.com/smartcontractkit/libocr/commontypes"
 	"golang.org/x/crypto/curve25519"
+
+	"github.com/smartcontractkit/libocr/commontypes"
 )
 
 type BinaryNetworkEndpointLimits struct {
@@ -88,7 +89,7 @@ type ReportingPluginFactory interface {
 	// Creates a new reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
+	NewReportingPlugin(context.Context, ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
@@ -326,7 +327,7 @@ type ContractTransmitter interface {
 	)
 
 	// Account from which the transmitter invokes the contract
-	FromAccount() Account
+	FromAccount(context.Context) (Account, error)
 }
 
 // ContractConfigTracker tracks configuration changes of the OCR contract
@@ -340,7 +341,7 @@ type ContractConfigTracker interface {
 	// who don't care about this may simply return a nil channel.
 	//
 	// The returned channel should never be closed.
-	Notify() <-chan struct{}
+	Notify(context.Context) (<-chan struct{}, error)
 
 	// LatestConfigDetails returns information about the latest configuration,
 	// but not the configuration itself.

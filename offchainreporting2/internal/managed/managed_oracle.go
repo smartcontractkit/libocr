@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/multierr"
+
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/config"
@@ -12,7 +14,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2/internal/shim"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"go.uber.org/multierr"
 )
 
 // RunManagedOracle runs a "managed" version of protocol.RunOracle. It handles
@@ -57,6 +58,13 @@ func RunManagedOracle(
 		configTracker,
 		database,
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
+			fromAccount, err := contractTransmitter.FromAccount(ctx)
+			if err != nil {
+				logger.Error("ManagedOracle: error while getting account", commontypes.LogFields{
+					"error": err,
+				})
+				return
+			}
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 			sharedConfig, oid, err := config.SharedConfigFromContractConfig(
 				skipResourceExhaustionChecks,
@@ -64,7 +72,7 @@ func RunManagedOracle(
 				offchainKeyring,
 				onchainKeyring,
 				netEndpointFactory.PeerID(),
-				contractTransmitter.FromAccount(),
+				fromAccount,
 			)
 			if err != nil {
 				logger.Error("ManagedOracle: error while updating config", commontypes.LogFields{
@@ -83,7 +91,7 @@ func RunManagedOracle(
 				"oid": oid,
 			})
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(types.ReportingPluginConfig{
+			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(ctx, types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),

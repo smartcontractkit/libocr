@@ -28,7 +28,10 @@ func (state *trackConfigState) run() {
 	// Check immediately after startup
 	tCheckLatestConfigDetails := time.After(0)
 
-	chNotify := state.configTracker.Notify()
+	chNotify, err := state.configTracker.Notify(context.TODO())
+	if err != nil {
+		//TODO retry periodically?
+	}
 
 	for {
 		select {
@@ -140,7 +143,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 
 	// Ignore configs where the configDigest doesn't match, they might have
 	// been corrupted somehow.
-	if err := state.configDigester.CheckContractConfig(contractConfig); err != nil {
+	if err := state.configDigester.CheckContractConfig(context.TODO(), contractConfig); err != nil {
 		state.logger.Error("TrackConfig: received corrupted config change", commontypes.LogFields{
 			"error":          err,
 			"contractConfig": contractConfig,
