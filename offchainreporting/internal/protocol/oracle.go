@@ -81,17 +81,17 @@ type oracleState struct {
 // Here is a graph of the various channels involved and what they
 // transport.
 //
-//      ┌─────────────epoch changes─────────────┐
-//      ▼                                       │
-//  ┌──────┐                               ┌────┴────┐
-//  │Oracle├────pacemaker messages────────►│Pacemaker│
-//  └────┬─┘                               └─────────┘
-//       │                                       ▲
-//       └──────rep. gen. messages────────────┐  │
-//                                            ▼  │progress events
-//  ┌────────────┐                         ┌─────┴──────────┐
-//  │Transmission│◄──────reports───────────┤ReportGeneration│
-//  └────────────┘                         └────────────────┘
+//	    ┌─────────────epoch changes─────────────┐
+//	    ▼                                       │
+//	┌──────┐                               ┌────┴────┐
+//	│Oracle├────pacemaker messages────────►│Pacemaker│
+//	└────┬─┘                               └─────────┘
+//	     │                                       ▲
+//	     └──────rep. gen. messages────────────┐  │
+//	                                          ▼  │progress events
+//	┌────────────┐                         ┌─────┴──────────┐
+//	│Transmission│◄──────reports───────────┤ReportGeneration│
+//	└────────────┘                         └────────────────┘
 //
 // All channels are unbuffered.
 //

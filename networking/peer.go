@@ -61,6 +61,8 @@ type PeerConfig struct {
 
 	V1EndpointConfig EndpointConfigV1
 	V2EndpointConfig EndpointConfigV2
+
+	Metrics commontypes.Metrics
 }
 
 // concretePeer represents a libp2p and/or ragep2p peer
