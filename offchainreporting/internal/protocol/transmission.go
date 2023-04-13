@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
@@ -14,7 +16,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting/types"
 	"github.com/smartcontractkit/libocr/permutation"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"golang.org/x/crypto/sha3"
 )
 
 // TransmissionProtocol tracks the local oracle process's role in the transmission of a
@@ -118,7 +119,7 @@ func (t *transmissionState) restoreFromDatabase() {
 	}
 
 	// find logically latest expired transmission and insert into queue
-	latestExpiredTransmissionKey := types.PendingTransmissionKey{}
+	latestExpiredTransmissionKey := types.ReportTimestamp{}
 	latestExpiredTransmission := (*types.PendingTransmission)(nil)
 	for key, trans := range pending {
 		if trans.Time.Before(now) && (EpochRound{latestExpiredTransmissionKey.Epoch, latestExpiredTransmissionKey.Round}).Less(EpochRound{key.Epoch, key.Round}) {
@@ -195,7 +196,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 		return
 	}
 
-	key := types.PendingTransmissionKey{
+	key := types.ReportTimestamp{
 		ConfigDigest: t.config.ConfigDigest,
 		Epoch:        ev.Epoch,
 		Round:        ev.Round,
@@ -253,7 +254,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 		t.ctx,
 		t.localConfig.DatabaseTimeout,
 		func(ctx context.Context) {
-			if err := t.database.DeletePendingTransmission(ctx, types.PendingTransmissionKey{
+			if err := t.database.DeletePendingTransmission(ctx, types.ReportTimestamp{
 				ConfigDigest: t.config.ConfigDigest,
 				Epoch:        item.Epoch,
 				Round:        item.Round,

@@ -7,13 +7,14 @@ import (
 	"sort"
 	"time"
 
+	"go.uber.org/multierr"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoimpl"
+
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"go.uber.org/multierr"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const onchainConfigVersion = 1
@@ -199,7 +200,7 @@ type DataSource interface {
 	//
 	// Important: Observe should not perform any potentially time-consuming
 	// actions like database access, once the context passed has expired.
-	Observe(context.Context) (*big.Int, error)
+	Observe(context.Context, types.ReportTimestamp) (*big.Int, error)
 }
 
 // All functions on ReportCodec should be pure and thread-safe.
@@ -329,7 +330,7 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 	}
 
 	observe := func(dataSource DataSource, name string) ([]byte, error) {
-		value, err := dataSource.Observe(ctx)
+		value, err := dataSource.Observe(ctx, repts)
 		if err != nil {
 			return nil, fmt.Errorf("%v.Observe returned an error: %w", name, err)
 		}

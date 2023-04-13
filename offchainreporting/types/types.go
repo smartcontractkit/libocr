@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/smartcontractkit/libocr/commontypes"
 	"golang.org/x/crypto/curve25519"
+
+	"github.com/smartcontractkit/libocr/commontypes"
 )
 
 type ConfigDigest [16]byte
@@ -76,7 +77,7 @@ type DataSource interface {
 	//
 	// Important: Observe should not perform any potentially time-consuming
 	// actions like database access, once the context passed has expired.
-	Observe(context.Context) (Observation, error)
+	Observe(context.Context, ReportTimestamp) (Observation, error)
 }
 
 type ConfigOverride struct {

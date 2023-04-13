@@ -2,7 +2,7 @@
 // self-healing, message-oriented, authenticated, encrypted bidirectional
 // communication streams between peers.
 //
-// Concepts
+// # Concepts
 //
 // ragep2p peers are identified by their PeerID. PeerIDs are public keys.
 // PeerIDs' string representation is compatible with libp2p to ease migration
@@ -24,7 +24,7 @@
 // guarantee that messages that are delivered are delivered in FIFO order and
 // without modifications.
 //
-// Peer discovery
+// # Peer discovery
 //
 // ragep2p will handle peer discovery (i.e. associating network addresses like
 // 1.2.3.4:1337 with PeerIDs) automatically. Upon construction of a Host, a
@@ -34,21 +34,21 @@
 // sequentially dialing all of them until a connection is successfully
 // established.
 //
-// Thread Safety
+// # Thread Safety
 //
 // All public functions on Host and Stream are thread-safe.
 //
 // It is safe to double-Close(), though all but the first Close() may return an
 // error.
 //
-// Allocations
+// # Allocations
 //
 // We allocate a buffer for each message received. In principle, this could allo
 // an adversary to force a recipient to run out of memory. To defend against
 // this, we put limits on the length of messages and rate limit messages,
 // thereby also limiting adversarially-controlled allocations.
 //
-// Security
+// # Security
 //
 // Note: Users don't need to care about the details of how these security
 // measures work, only what properties they provide.
@@ -85,5 +85,4 @@
 // Stream.Close(), Stream.SendMessage(), and Stream.Receive() return immediately
 // and do any potential resulting communication asynchronously in the
 // background. Host.Close() terminates after at most a few seconds.
-//
 package ragep2p
