@@ -17,13 +17,13 @@ type Database interface {
 	ReadConfig(ctx context.Context) (*ContractConfig, error)
 	WriteConfig(ctx context.Context, config ContractConfig) error
 
-	StorePendingTransmission(context.Context, PendingTransmissionKey, PendingTransmission) error
-	PendingTransmissionsWithConfigDigest(context.Context, ConfigDigest) (map[PendingTransmissionKey]PendingTransmission, error)
-	DeletePendingTransmission(context.Context, PendingTransmissionKey) error
+	StorePendingTransmission(context.Context, ReportTimestamp, PendingTransmission) error
+	PendingTransmissionsWithConfigDigest(context.Context, ConfigDigest) (map[ReportTimestamp]PendingTransmission, error)
+	DeletePendingTransmission(context.Context, ReportTimestamp) error
 	DeletePendingTransmissionsOlderThan(context.Context, time.Time) error
 }
 
-type PendingTransmissionKey struct {
+type ReportTimestamp struct {
 	ConfigDigest ConfigDigest
 	Epoch        uint32
 	Round        uint8

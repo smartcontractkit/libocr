@@ -28,7 +28,7 @@ func (h *MinHeapTimeToPendingTransmission) Len() int {
 }
 
 type MinHeapTimeToPendingTransmissionItem struct {
-	types.PendingTransmissionKey
+	types.ReportTimestamp
 	types.PendingTransmission
 }
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/protocol/observation"
 	"github.com/smartcontractkit/libocr/offchainreporting/internal/signature"
@@ -358,7 +359,11 @@ func (repgen *reportGenerationState) observeValue() observation.Observation {
 			warnCtx, cancel := context.WithTimeout(ctx, repgen.localConfig.DataSourceTimeout)
 			defer cancel()
 			var rawValue types.Observation
-			rawValue, err = repgen.datasource.Observe(warnCtx)
+			rawValue, err = repgen.datasource.Observe(warnCtx, types.ReportTimestamp{
+				repgen.config.ConfigDigest,
+				repgen.e,
+				repgen.followerState.r,
+			})
 			if err != nil {
 				return
 			}
