@@ -11,7 +11,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/internal/configdigesthelper"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2/types"
+	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	p2ppeerstore "github.com/libp2p/go-libp2p-core/peerstore"
