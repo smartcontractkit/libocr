@@ -6,7 +6,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/shim"
@@ -58,13 +58,22 @@ func RunManagedOCR2Oracle(
 		database,
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
-			sharedConfig, oid, err := config.SharedConfigFromContractConfig(
+
+			fromAccount, err := contractTransmitter.FromAccount()
+			if err != nil {
+				logger.Error("ManagedOCR2Oracle: error getting FromAccount", commontypes.LogFields{
+					"error": err,
+				})
+				return
+			}
+
+			sharedConfig, oid, err := ocr2config.SharedConfigFromContractConfig(
 				skipResourceExhaustionChecks,
 				contractConfig,
 				offchainKeyring,
 				onchainKeyring,
 				netEndpointFactory.PeerID(),
-				contractTransmitter.FromAccount(),
+				fromAccount,
 			)
 			if err != nil {
 				logger.Error("ManagedOCR2Oracle: error while updating config", commontypes.LogFields{

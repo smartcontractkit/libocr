@@ -14,7 +14,10 @@ type prefixCheckConfigDigester struct {
 // ConfigDigest method that checks that the computed ConfigDigest's prefix is
 // consistent with OffchainConfigDigester.ConfigDigestPrefix
 func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.ConfigDigest, error) {
-	prefix := d.offchainConfigDigester.ConfigDigestPrefix()
+	prefix, err := d.offchainConfigDigester.ConfigDigestPrefix()
+	if err != nil {
+		return types.ConfigDigest{}, err
+	}
 
 	cd, err := d.offchainConfigDigester.ConfigDigest(cc)
 	if err != nil {

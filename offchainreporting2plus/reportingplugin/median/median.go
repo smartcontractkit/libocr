@@ -220,7 +220,7 @@ type ReportCodec interface {
 
 	// Returns the maximum length of a report based on n, the number of oracles.
 	// The output of BuildReport must respect this maximum length.
-	MaxReportLength(n int) int
+	MaxReportLength(n int) (int, error)
 }
 
 var _ types.ReportingPluginFactory = NumericalMedianFactory{}
@@ -256,7 +256,10 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 		"reportingPlugin": "NumericalMedian",
 	})
 
-	maxReportLength := fac.ReportCodec.MaxReportLength(configuration.N)
+	maxReportLength, err := fac.ReportCodec.MaxReportLength(configuration.N)
+	if err != nil {
+		return nil, types.ReportingPluginInfo{}, err
+	}
 
 	return &numericalMedian{
 			offchainConfig,

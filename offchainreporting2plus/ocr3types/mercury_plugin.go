@@ -44,10 +44,7 @@ type MercuryPluginConfig struct {
 	EstimatedRoundInterval time.Duration
 
 	// Maximum duration the ReportingPlugin's functions are allowed to take
-	MaxDurationObservation                  time.Duration
-	MaxDurationReport                       time.Duration
-	MaxDurationShouldAcceptFinalizedReport  time.Duration
-	MaxDurationShouldTransmitAcceptedReport time.Duration
+	MaxDurationObservation time.Duration
 }
 
 // A MercuryPlugin allows plugging custom logic into the OCR protocol. The OCR
@@ -117,7 +114,7 @@ type MercuryPlugin interface {
 	// You may assume that the sequence of epochs and the sequence of rounds
 	// within an epoch are strictly monotonically increasing during the lifetime
 	// of an instance of this interface.
-	Observation(ctx context.Context, previousReport types.Report, repts types.ReportTimestamp) (types.Observation, error)
+	Observation(ctx context.Context, repts types.ReportTimestamp, previousReport types.Report) (types.Observation, error)
 
 	// Decides whether a report (destined for the contract) should be generated
 	// in this round. If yes, also constructs the report.
@@ -130,30 +127,7 @@ type MercuryPlugin interface {
 	// You may assume that the sequence of epochs and the sequence of rounds
 	// within an epoch are strictly monotonically increasing during the lifetime
 	// of an instance of this interface.
-	Report(ctx context.Context, previousReport types.Report, repts types.ReportTimestamp, aos []types.AttributedObservation) (bool, types.Report, error)
-
-	// Decides whether a report should be accepted for transmission. Any report
-	// passed to this function will have been signed by a quorum of oracles.
-	//
-	// Don't make assumptions about the epoch/round order in which this function
-	// is called.
-	ShouldAcceptFinalizedReport(context.Context, types.ReportTimestamp, types.Report) (bool, error)
-
-	// Decides whether the given report should actually be broadcast to the
-	// contract. This is invoked just before the broadcast occurs. Any report
-	// passed to this function will have been signed by a quorum of oracles and
-	// been accepted by ShouldAcceptFinalizedReport.
-	//
-	// Don't make assumptions about the epoch/round order in which this function
-	// is called.
-	//
-	// As mentioned above, you should gracefully handle only a subset of a
-	// ReportingPlugin's functions being invoked for a given report. For
-	// example, due to reloading persisted pending transmissions from the
-	// database upon oracle restart, this function  may be called with reports
-	// that no other function of this instance of this interface has ever
-	// been invoked on.
-	ShouldTransmitAcceptedReport(context.Context, types.ReportTimestamp, types.Report) (bool, error)
+	Report(repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error)
 
 	// If Close is called a second time, it may return an error but must not
 	// panic. This will always be called when a ReportingPlugin is no longer
@@ -164,9 +138,9 @@ type MercuryPlugin interface {
 }
 
 const (
-	twoHundredFiftySixMiB   = 256 * 1024 * 1024     // 256 MiB
-	MaxMaxObservationLength = twoHundredFiftySixMiB // 256 MiB
-	MaxMaxReportLength      = twoHundredFiftySixMiB // 256 MiB
+	twoMiB                         = 2 * 1024 * 1024 // 2 MiB
+	MaxMaxMercuryObservationLength = twoMiB          // 2 MiB
+	MaxMaxMercuryReportLength      = twoMiB          // 2 MiB
 )
 
 type MercuryPluginLimits struct {

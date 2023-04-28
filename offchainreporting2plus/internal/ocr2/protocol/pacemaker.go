@@ -10,7 +10,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol/persist"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -31,7 +31,7 @@ func RunPacemaker(
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
 	chPacemakerToOracle chan<- uint32,
 	chReportGenerationToReportFinalization chan<- EventToReportFinalization,
-	config config.SharedConfig,
+	config ocr2config.SharedConfig,
 	contractTransmitter types.ContractTransmitter,
 	database types.Database,
 	id commontypes.OracleID,
@@ -60,7 +60,7 @@ func makePacemakerState(
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
 	chPacemakerToOracle chan<- uint32,
 	chReportGenerationToReportFinalization chan<- EventToReportFinalization,
-	config config.SharedConfig, contractTransmitter types.ContractTransmitter,
+	config ocr2config.SharedConfig, contractTransmitter types.ContractTransmitter,
 	database types.Database, id commontypes.OracleID,
 	localConfig types.LocalConfig, logger loghelper.LoggerWithContext,
 	netSender NetworkSender,
@@ -104,7 +104,7 @@ type pacemakerState struct {
 	chPacemakerToOracle                    chan<- uint32
 	chReportGenerationToPacemaker          <-chan EventToPacemaker
 	chReportGenerationToReportFinalization chan<- EventToReportFinalization
-	config                                 config.SharedConfig
+	config                                 ocr2config.SharedConfig
 	contractTransmitter                    types.ContractTransmitter
 	database                               types.Database
 	id                                     commontypes.OracleID

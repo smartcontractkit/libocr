@@ -97,8 +97,8 @@ func (ReportCodec) MedianFromReport(report types.Report) (*big.Int, error) {
 	return median, nil
 }
 
-func (ReportCodec) MaxReportLength(n int) int {
-	return 32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + n*32) /*observations*/ + 32 /* juelsPerFeeCoin */
+func (ReportCodec) MaxReportLength(n int) (int, error) {
+	return 32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + n*32) /*observations*/ + 32 /* juelsPerFeeCoin */, nil
 }
 
 func (ReportCodec) XXXJuelsPerFeeCoinFromReport(report types.Report) (*big.Int, error) {

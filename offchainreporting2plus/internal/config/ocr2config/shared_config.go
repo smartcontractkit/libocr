@@ -1,4 +1,4 @@
-package config
+package ocr2config
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ethcontractconfig"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"golang.org/x/crypto/sha3"
 )
@@ -18,7 +20,7 @@ import (
 // but parts of it are encrypted so that only oracles can access them.
 type SharedConfig struct {
 	PublicConfig
-	SharedSecret *[SharedSecretSize]byte
+	SharedSecret *[config.SharedSecretSize]byte
 }
 
 func (c *SharedConfig) LeaderSelectionKey() [16]byte {
@@ -125,7 +127,7 @@ func XXXContractSetConfigArgsFromSharedConfig(
 	}
 	f = uint8(c.F)
 	onchainConfig = c.OnchainConfig
-	offchainConfigVersion = OffchainConfigVersion
+	offchainConfigVersion = config.OCR2OffchainConfigVersion
 	offchainConfig_ = (offchainConfig{
 		c.DeltaProgress,
 		c.DeltaResend,
@@ -142,7 +144,7 @@ func XXXContractSetConfigArgsFromSharedConfig(
 		c.MaxDurationReport,
 		c.MaxDurationShouldAcceptFinalizedReport,
 		c.MaxDurationShouldTransmitAcceptedReport,
-		XXXEncryptSharedSecret(
+		config.XXXEncryptSharedSecret(
 			sharedSecretEncryptionPublicKeys,
 			c.SharedSecret,
 			cryptorand.Reader,
@@ -156,34 +158,37 @@ func XXXContractSetConfigArgsFromSharedConfigEthereum(
 	c SharedConfig,
 	sharedSecretEncryptionPublicKeys []types.ConfigEncryptionPublicKey,
 ) (
-	signers []common.Address,
-	transmitters []common.Address,
-	f uint8,
-	onchainConfig []byte,
-	offchainConfigVersion uint64,
-	offchainConfig []byte,
+	setConfigArgs ethcontractconfig.SetConfigArgs,
 	err error,
 ) {
 	signerOnchainPublicKeys, transmitterAccounts, f, onchainConfig, offchainConfigVersion, offchainConfig, err :=
 		XXXContractSetConfigArgsFromSharedConfig(c, sharedSecretEncryptionPublicKeys)
 	if err != nil {
-		return nil, nil, 0, nil, 0, nil, err
-
+		return ethcontractconfig.SetConfigArgs{}, err
 	}
 
+	var signers []common.Address
 	for _, signer := range signerOnchainPublicKeys {
 		if len(signer) != 20 {
-			return nil, nil, 0, nil, 0, nil, fmt.Errorf("OnChainPublicKey has wrong length for address")
+			return ethcontractconfig.SetConfigArgs{}, fmt.Errorf("OnChainPublicKey has wrong length for address")
 		}
 		signers = append(signers, common.BytesToAddress(signer))
 	}
 
+	var transmitters []common.Address
 	for _, transmitter := range transmitterAccounts {
 		if !common.IsHexAddress(string(transmitter)) {
-			return nil, nil, 0, nil, 0, nil, fmt.Errorf("TransmitAccount is not a valid Ethereum address")
+			return ethcontractconfig.SetConfigArgs{}, fmt.Errorf("TransmitAccount is not a valid Ethereum address")
 		}
 		transmitters = append(transmitters, common.HexToAddress(string(transmitter)))
 	}
 
-	return signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig, err
+	return ethcontractconfig.SetConfigArgs{
+		signers,
+		transmitters,
+		f,
+		onchainConfig,
+		offchainConfigVersion,
+		offchainConfig,
+	}, nil
 }

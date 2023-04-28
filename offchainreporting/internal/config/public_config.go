@@ -250,6 +250,8 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		84531:           {"Base Testnet Goerli", chainTypePublicTestnet},
 		56:              {"BSC", chainTypeFastUpdates},
 		97:              {"BSC Testnet", chainTypePublicTestnet},
+		42220:           {"Celo", chainTypeModerateUpdates},
+		44787:           {"Celo Testnet", chainTypePublicTestnet},
 		65:              {"Cosmos Testnet Okex", chainTypePublicTestnet},
 		128:             {"HECO", chainTypeModerateUpdates},
 		256:             {"HECO Testnet", chainTypePublicTestnet},

@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/ethereum/go-ethereum v1.10.11
+	github.com/golang/protobuf v1.5.2
 	github.com/leanovate/gopter v0.2.10-0.20210127095200-9abe2343507a
 	github.com/libp2p/go-libp2p v0.13.0
 	github.com/libp2p/go-libp2p-core v0.8.5

@@ -7,7 +7,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -17,7 +17,7 @@ func RunReportFinalization(
 	chNetToReportFinalization <-chan MessageToReportFinalizationWithSender,
 	chReportFinalizationToTransmission chan<- EventToTransmission,
 	chReportGenerationToReportFinalization <-chan EventToReportFinalization,
-	config config.SharedConfig,
+	config ocr2config.SharedConfig,
 	contractSigner types.OnchainKeyring,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender,
@@ -38,7 +38,7 @@ type reportFinalizationState struct {
 	chNetToReportFinalization              <-chan MessageToReportFinalizationWithSender
 	chReportFinalizationToTransmission     chan<- EventToTransmission
 	chReportGenerationToReportFinalization <-chan EventToReportFinalization
-	config                                 config.SharedConfig
+	config                                 ocr2config.SharedConfig
 	contractSigner                         types.OnchainKeyring
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender
@@ -204,7 +204,7 @@ func newReportFinalizationState(
 	chNetToReportFinalization <-chan MessageToReportFinalizationWithSender,
 	chReportFinalizationToTransmission chan<- EventToTransmission,
 	chReportGenerationToReportFinalization <-chan EventToReportFinalization,
-	config config.SharedConfig,
+	config ocr2config.SharedConfig,
 	contractSigner types.OnchainKeyring,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender,

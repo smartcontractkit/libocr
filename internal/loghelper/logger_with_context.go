@@ -10,6 +10,7 @@ import (
 type LoggerWithContext interface {
 	commontypes.Logger
 	MakeChild(extraContext commontypes.LogFields) LoggerWithContext
+	MakeUpdated(updatedContext commontypes.LogFields) LoggerWithContext
 	ErrorIfNotCanceled(msg string, ctx context.Context, fields commontypes.LogFields)
 }
 
@@ -25,34 +26,34 @@ func MakeRootLoggerWithContext(logger commontypes.Logger) LoggerWithContext {
 }
 
 func (l loggerWithContextImpl) Trace(msg string, fields commontypes.LogFields) {
-	l.logger.Trace(msg, Merge(l.context, fields))
+	l.logger.Trace(msg, MergePreserve(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Debug(msg string, fields commontypes.LogFields) {
-	l.logger.Debug(msg, Merge(l.context, fields))
+	l.logger.Debug(msg, MergePreserve(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Info(msg string, fields commontypes.LogFields) {
-	l.logger.Info(msg, Merge(l.context, fields))
+	l.logger.Info(msg, MergePreserve(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Warn(msg string, fields commontypes.LogFields) {
-	l.logger.Warn(msg, Merge(l.context, fields))
+	l.logger.Warn(msg, MergePreserve(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Error(msg string, fields commontypes.LogFields) {
-	l.logger.Error(msg, Merge(l.context, fields))
+	l.logger.Error(msg, MergePreserve(l.context, fields))
 }
 
 func (l loggerWithContextImpl) Critical(msg string, fields commontypes.LogFields) {
-	l.logger.Critical(msg, Merge(l.context, fields))
+	l.logger.Critical(msg, MergePreserve(l.context, fields))
 }
 
 func (l loggerWithContextImpl) ErrorIfNotCanceled(msg string, ctx context.Context, fields commontypes.LogFields) {
 	if !errors.Is(ctx.Err(), context.Canceled) {
-		l.logger.Error(msg, Merge(l.context, fields))
+		l.logger.Error(msg, MergePreserve(l.context, fields))
 	} else {
-		l.logger.Debug("logging as debug due to context cancellation: "+msg, Merge(l.context, fields))
+		l.logger.Debug("logging as debug due to context cancellation: "+msg, MergePreserve(l.context, fields))
 	}
 }
 
@@ -61,15 +62,24 @@ func (l loggerWithContextImpl) ErrorIfNotCanceled(msg string, ctx context.Contex
 func (l loggerWithContextImpl) MakeChild(extra commontypes.LogFields) LoggerWithContext {
 	return loggerWithContextImpl{
 		l.logger,
-		Merge(l.context, extra),
+		MergePreserve(l.context, extra),
+	}
+}
+
+// MakeUpdated will reuse the base commontypes.Logger and create a new extended context,
+// overwriting any entries in the context with the ones from upserts.
+func (l loggerWithContextImpl) MakeUpdated(upserts commontypes.LogFields) LoggerWithContext {
+	return loggerWithContextImpl{
+		l.logger,
+		MergeOverwrite(l.context, upserts),
 	}
 }
 
 // Helpers
 
-// Merge will create a new LogFields and add all the properties from extras on it.
+// MergePreserve will create a new LogFields and add all the properties from extras on it.
 // Key conflicts are resolved by prefixing the key for the new value with underscores until there's no conflict.
-func Merge(extras ...commontypes.LogFields) commontypes.LogFields {
+func MergePreserve(extras ...commontypes.LogFields) commontypes.LogFields {
 	base := commontypes.LogFields{}
 	for _, extra := range extras {
 		for k, v := range extra {
@@ -91,4 +101,16 @@ func add(base commontypes.LogFields, key string, val interface{}) {
 		base[key] = val
 		return
 	}
+}
+
+// Overwrite will create a new LogFields and add all the properties from upserts on it.
+// Key conflicts are resolved by prefixing the key for the new value with underscores until there's no conflict.
+func MergeOverwrite(upserts ...commontypes.LogFields) commontypes.LogFields {
+	base := commontypes.LogFields{}
+	for _, logfields := range upserts {
+		for k, v := range logfields {
+			base[k] = v
+		}
+	}
+	return base
 }

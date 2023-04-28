@@ -6,7 +6,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -19,7 +19,7 @@ func RunReportGeneration(
 	chNetToReportGeneration <-chan MessageToReportGenerationWithSender,
 	chReportGenerationToPacemaker chan<- EventToPacemaker,
 	chReportGenerationToReportFinalization chan<- EventToReportFinalization,
-	config config.SharedConfig,
+	config ocr2config.SharedConfig,
 	contractTransmitter types.ContractTransmitter,
 	e uint32,
 	id commontypes.OracleID,
@@ -64,7 +64,7 @@ type reportGenerationState struct {
 	chNetToReportGeneration                <-chan MessageToReportGenerationWithSender
 	chReportGenerationToPacemaker          chan<- EventToPacemaker
 	chReportGenerationToReportFinalization chan<- EventToReportFinalization
-	config                                 config.SharedConfig
+	config                                 ocr2config.SharedConfig
 	contractTransmitter                    types.ContractTransmitter
 	e                                      uint32 // Current epoch number
 	id                                     commontypes.OracleID

@@ -13,7 +13,7 @@ import (
 )
 
 const SharedSecretSize = 16 // A 128-bit symmetric key
-type encryptedSharedSecret [SharedSecretSize]byte
+type EncryptedSharedSecret [SharedSecretSize]byte
 
 // SharedSecretEncryptions is the encryptions of SharedConfig.SharedSecret,
 // using each oracle's SharedSecretEncryptionPublicKey.
@@ -40,7 +40,7 @@ type SharedSecretEncryptions struct {
 	// 2. sharedSecret := AES128DecryptBlock(key, Encryptions[i])
 	//
 	// See Decrypt for details.
-	Encryptions []encryptedSharedSecret
+	Encryptions []EncryptedSharedSecret
 }
 
 func (e SharedSecretEncryptions) Equal(e2 SharedSecretEncryptions) bool {

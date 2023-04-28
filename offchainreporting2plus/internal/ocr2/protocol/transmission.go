@@ -7,7 +7,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol/persist"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/permutation"
@@ -30,7 +30,7 @@ func RunTransmission(
 	ctx context.Context,
 	subprocesses *subprocesses.Subprocesses,
 
-	config config.SharedConfig,
+	config ocr2config.SharedConfig,
 	chReportFinalizationToTransmission <-chan EventToTransmission,
 	database types.Database,
 	id commontypes.OracleID,
@@ -59,7 +59,7 @@ type transmissionState struct {
 	ctx          context.Context
 	subprocesses *subprocesses.Subprocesses
 
-	config                             config.SharedConfig
+	config                             ocr2config.SharedConfig
 	chReportFinalizationToTransmission <-chan EventToTransmission
 	database                           types.Database
 	id                                 commontypes.OracleID

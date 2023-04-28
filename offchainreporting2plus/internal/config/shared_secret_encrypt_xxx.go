@@ -27,7 +27,7 @@ func XXXEncryptSharedSecretInternal(
 	var pkArray [32]byte
 	copy(pkArray[:], pk)
 
-	encryptedSharedSecrets := []encryptedSharedSecret{}
+	encryptedSharedSecrets := []EncryptedSharedSecret{}
 	for _, pk := range publicKeys { // encrypt sharedSecret with each pk
 		pkBytes := [32]byte(pk)
 		dhPoint, err := curve25519.X25519(sk[:], pkBytes[:])
@@ -37,7 +37,7 @@ func XXXEncryptSharedSecretInternal(
 
 		key := crypto.Keccak256(dhPoint)[:16]
 
-		encryptedSharedSecret := encryptedSharedSecret(aesEncryptBlock(key, sharedSecret[:]))
+		encryptedSharedSecret := EncryptedSharedSecret(aesEncryptBlock(key, sharedSecret[:]))
 		encryptedSharedSecrets = append(encryptedSharedSecrets, encryptedSharedSecret)
 	}
 

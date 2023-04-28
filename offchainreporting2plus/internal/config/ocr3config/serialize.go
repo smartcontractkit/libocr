@@ -1,4 +1,4 @@
-package config
+package ocr3config
 
 import (
 	"fmt"
@@ -6,13 +6,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"golang.org/x/crypto/curve25519"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/runtime/protoimpl"
 )
-
-const OffchainConfigVersion = 2
 
 // Serialized configs must be no larger than this (arbitrary bound, to prevent
 // resource exhaustion attacks)
@@ -26,17 +25,16 @@ type offchainConfig struct {
 	DeltaRound                              time.Duration
 	DeltaGrace                              time.Duration
 	DeltaStage                              time.Duration
-	RMax                                    uint8
+	RMax                                    uint64
 	S                                       []int
 	OffchainPublicKeys                      []types.OffchainPublicKey
 	PeerIDs                                 []string
 	ReportingPluginConfig                   []byte
 	MaxDurationQuery                        time.Duration
 	MaxDurationObservation                  time.Duration
-	MaxDurationReport                       time.Duration
 	MaxDurationShouldAcceptFinalizedReport  time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
-	SharedSecretEncryptions                 SharedSecretEncryptions
+	SharedSecretEncryptions                 config.SharedSecretEncryptions
 }
 
 // serialize returns a binary serialization of o
@@ -98,44 +96,43 @@ func deprotoOffchainConfig(
 		time.Duration(offchainConfigProto.GetDeltaRoundNanoseconds()),
 		time.Duration(offchainConfigProto.GetDeltaGraceNanoseconds()),
 		time.Duration(offchainConfigProto.GetDeltaStageNanoseconds()),
-		uint8(offchainConfigProto.GetRMax()),
+		offchainConfigProto.GetRMax(),
 		S,
 		offchainPublicKeys,
 		offchainConfigProto.GetPeerIds(),
 		offchainConfigProto.GetReportingPluginConfig(),
 		time.Duration(offchainConfigProto.GetMaxDurationQueryNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationObservationNanoseconds()),
-		time.Duration(offchainConfigProto.GetMaxDurationReportNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationShouldAcceptFinalizedReportNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationShouldTransmitAcceptedReportNanoseconds()),
 		sharedSecretEncryptions,
 	}, nil
 }
 
-func deprotoSharedSecretEncryptions(sharedSecretEncryptionsProto *SharedSecretEncryptionsProto) (SharedSecretEncryptions, error) {
+func deprotoSharedSecretEncryptions(sharedSecretEncryptionsProto *SharedSecretEncryptionsProto) (config.SharedSecretEncryptions, error) {
 	var diffieHellmanPoint [curve25519.PointSize]byte
 	if len(diffieHellmanPoint) != len(sharedSecretEncryptionsProto.GetDiffieHellmanPoint()) {
-		return SharedSecretEncryptions{}, fmt.Errorf("DiffieHellmanPoint has wrong length. Expected %v bytes, got %v bytes", len(diffieHellmanPoint), len(sharedSecretEncryptionsProto.GetDiffieHellmanPoint()))
+		return config.SharedSecretEncryptions{}, fmt.Errorf("DiffieHellmanPoint has wrong length. Expected %v bytes, got %v bytes", len(diffieHellmanPoint), len(sharedSecretEncryptionsProto.GetDiffieHellmanPoint()))
 	}
 	copy(diffieHellmanPoint[:], sharedSecretEncryptionsProto.GetDiffieHellmanPoint())
 
 	var sharedSecretHash common.Hash
 	if len(sharedSecretHash) != len(sharedSecretEncryptionsProto.GetSharedSecretHash()) {
-		return SharedSecretEncryptions{}, fmt.Errorf("sharedSecretHash has wrong length. Expected %v bytes, got %v bytes", len(sharedSecretHash), len(sharedSecretEncryptionsProto.GetSharedSecretHash()))
+		return config.SharedSecretEncryptions{}, fmt.Errorf("sharedSecretHash has wrong length. Expected %v bytes, got %v bytes", len(sharedSecretHash), len(sharedSecretEncryptionsProto.GetSharedSecretHash()))
 	}
 	copy(sharedSecretHash[:], sharedSecretEncryptionsProto.GetSharedSecretHash())
 
-	encryptions := make([]encryptedSharedSecret, 0, len(sharedSecretEncryptionsProto.GetEncryptions()))
+	encryptions := make([]config.EncryptedSharedSecret, 0, len(sharedSecretEncryptionsProto.GetEncryptions()))
 	for i, encryptionRaw := range sharedSecretEncryptionsProto.GetEncryptions() {
-		var encryption encryptedSharedSecret
+		var encryption config.EncryptedSharedSecret
 		if len(encryption) != len(encryptionRaw) {
-			return SharedSecretEncryptions{}, fmt.Errorf("Encryptions[%v] has wrong length. Expected %v bytes, got %v bytes", i, len(encryption), len(encryptionRaw))
+			return config.SharedSecretEncryptions{}, fmt.Errorf("Encryptions[%v] has wrong length. Expected %v bytes, got %v bytes", i, len(encryption), len(encryptionRaw))
 		}
 		copy(encryption[:], encryptionRaw)
 		encryptions = append(encryptions, encryption)
 	}
 
-	return SharedSecretEncryptions{
+	return config.SharedSecretEncryptions{
 		diffieHellmanPoint,
 		sharedSecretHash,
 		encryptions,
@@ -164,21 +161,20 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		uint64(o.DeltaRound),
 		uint64(o.DeltaGrace),
 		uint64(o.DeltaStage),
-		uint32(o.RMax),
+		o.RMax,
 		s,
 		offchainPublicKeys,
 		o.PeerIDs,
 		o.ReportingPluginConfig,
 		uint64(o.MaxDurationQuery),
 		uint64(o.MaxDurationObservation),
-		uint64(o.MaxDurationReport),
 		uint64(o.MaxDurationShouldAcceptFinalizedReport),
 		uint64(o.MaxDurationShouldTransmitAcceptedReport),
 		&sharedSecretEncryptions,
 	}
 }
 
-func enprotoSharedSecretEncryptions(e SharedSecretEncryptions) SharedSecretEncryptionsProto {
+func enprotoSharedSecretEncryptions(e config.SharedSecretEncryptions) SharedSecretEncryptionsProto {
 	encs := make([][]byte, 0, len(e.Encryptions))
 	for _, enc := range e.Encryptions {
 		enc := enc

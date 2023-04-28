@@ -1,4 +1,4 @@
-package config
+package ocr3config
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -42,7 +43,7 @@ type PublicConfig struct {
 	// successfully transmitted a report.
 	DeltaStage time.Duration
 	// The maximum number of rounds during an epoch.
-	RMax uint8
+	RMax uint64
 	// S is the transmission schedule. For example, S = [1,2,3] indicates that
 	// in the first stage of transmission one oracle will attempt to transmit,
 	// in the second stage two more will attempt to transmit (if in their view
@@ -54,7 +55,7 @@ type PublicConfig struct {
 	S []int
 	// Identities (i.e. public keys) of the oracles participating in this
 	// protocol instance.
-	OracleIdentities []OracleIdentity
+	OracleIdentities []config.OracleIdentity
 
 	// Binary blob containing configuration passed through to the
 	// ReportingPlugin.
@@ -65,14 +66,13 @@ type PublicConfig struct {
 	// ReportingPlugin. Be sure to not set these too short, or the corresponding
 	// ReportingPlugin function may always time out.
 	MaxDurationQuery                        time.Duration
-	MaxDurationObservation                  time.Duration // Used to be an environment variable called OCR_OBSERVATION_TIMEOUT in OCR1 in the Chainlink node.
-	MaxDurationReport                       time.Duration
+	MaxDurationObservation                  time.Duration
 	MaxDurationShouldAcceptFinalizedReport  time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
 
 	// The maximum number of oracles that are assumed to be faulty while the
 	// protocol can retain liveness and safety. Unless you really know what
-	// you’re doing, be sure to set this to floor(n/3) where n is the total
+	// you’re doing, be sure to set this to floor((n-1)/3) where n is the total
 	// number of oracles.
 	F int
 
@@ -82,13 +82,6 @@ type PublicConfig struct {
 	OnchainConfig []byte
 
 	ConfigDigest types.ConfigDigest
-}
-
-type OracleIdentity struct {
-	OffchainPublicKey types.OffchainPublicKey
-	OnchainPublicKey  types.OnchainPublicKey
-	PeerID            string
-	TransmitAccount   types.Account
 }
 
 // N is the number of oracles participating in the protocol
@@ -108,29 +101,29 @@ func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 	return pubcon, err
 }
 
-func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change types.ContractConfig) (PublicConfig, SharedSecretEncryptions, error) {
-	if change.OffchainConfigVersion != OffchainConfigVersion {
-		return PublicConfig{}, SharedSecretEncryptions{}, fmt.Errorf("unsuppported OffchainConfigVersion %v, supported OffchainConfigVersion is %v", change.OffchainConfigVersion, OffchainConfigVersion)
+func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change types.ContractConfig) (PublicConfig, config.SharedSecretEncryptions, error) {
+	if change.OffchainConfigVersion != config.OCR3OffchainConfigVersion {
+		return PublicConfig{}, config.SharedSecretEncryptions{}, fmt.Errorf("unsuppported OffchainConfigVersion %v, supported OffchainConfigVersion is %v", change.OffchainConfigVersion, config.OCR3OffchainConfigVersion)
 	}
 
 	oc, err := deserializeOffchainConfig(change.OffchainConfig)
 	if err != nil {
-		return PublicConfig{}, SharedSecretEncryptions{}, err
+		return PublicConfig{}, config.SharedSecretEncryptions{}, err
 	}
 
 	if err := checkIdentityListsHaveNoDuplicates(change, oc); err != nil {
-		return PublicConfig{}, SharedSecretEncryptions{}, err
+		return PublicConfig{}, config.SharedSecretEncryptions{}, err
 	}
 
 	// must check that all lists have the same length, or bad input could crash
 	// the following for loop.
 	if err := checkIdentityListsHaveTheSameLength(change, oc); err != nil {
-		return PublicConfig{}, SharedSecretEncryptions{}, err
+		return PublicConfig{}, config.SharedSecretEncryptions{}, err
 	}
 
-	identities := []OracleIdentity{}
+	identities := []config.OracleIdentity{}
 	for i := range change.Signers {
-		identities = append(identities, OracleIdentity{
+		identities = append(identities, config.OracleIdentity{
 			oc.OffchainPublicKeys[i],
 			types.OnchainPublicKey(change.Signers[i][:]),
 			oc.PeerIDs[i],
@@ -150,7 +143,6 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 		oc.ReportingPluginConfig,
 		oc.MaxDurationQuery,
 		oc.MaxDurationObservation,
-		oc.MaxDurationReport,
 		oc.MaxDurationShouldAcceptFinalizedReport,
 		oc.MaxDurationShouldTransmitAcceptedReport,
 
@@ -160,12 +152,12 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 	}
 
 	if err := checkPublicConfigParameters(cfg); err != nil {
-		return PublicConfig{}, SharedSecretEncryptions{}, err
+		return PublicConfig{}, config.SharedSecretEncryptions{}, err
 	}
 
 	if !skipResourceExhaustionChecks {
 		if err := checkResourceExhaustion(cfg); err != nil {
-			return PublicConfig{}, SharedSecretEncryptions{}, err
+			return PublicConfig{}, config.SharedSecretEncryptions{}, err
 		}
 	}
 
@@ -291,10 +283,6 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 		return fmt.Errorf("MaxDurationObservation (%v) must be non-negative", cfg.MaxDurationObservation)
 	}
 
-	if !(0 <= cfg.MaxDurationReport) {
-		return fmt.Errorf("MaxDurationReport (%v) must be non-negative", cfg.MaxDurationReport)
-	}
-
 	if !(0 <= cfg.MaxDurationShouldAcceptFinalizedReport) {
 		return fmt.Errorf("MaxDurationShouldAcceptFinalizedReport (%v) must be non-negative", cfg.MaxDurationShouldAcceptFinalizedReport)
 	}
@@ -308,9 +296,9 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 			cfg.DeltaRound, cfg.DeltaProgress)
 	}
 
-	sumMaxDurationsReportGeneration := cfg.MaxDurationQuery + cfg.MaxDurationObservation + cfg.MaxDurationReport
+	sumMaxDurationsReportGeneration := cfg.MaxDurationQuery + cfg.MaxDurationObservation
 	if !(sumMaxDurationsReportGeneration < cfg.DeltaProgress) {
-		return fmt.Errorf("sum of MaxDurationQuery/Observation/Report (%v) must be less than DeltaProgress (%v)",
+		return fmt.Errorf("sum of MaxDurationQuery/Observation (%v) must be less than DeltaProgress (%v)",
 			sumMaxDurationsReportGeneration, cfg.DeltaProgress)
 	}
 
@@ -321,10 +309,8 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 	// for each round, we should have MaxDurationShouldAcceptFinalizedReport +
 	// MaxDurationShouldTransmitAcceptedReport < round duration.
 
-	// *less* than 255 is intentional!
-	// In report_generation_leader.go, we add 1 to a round number that can equal RMax.
-	if !(0 < cfg.RMax && cfg.RMax < 255) {
-		return fmt.Errorf("RMax (%v) must be greater than zero and less than 255", cfg.RMax)
+	if !(0 < cfg.RMax) {
+		return fmt.Errorf("RMax (%v) must be greater than zero", cfg.RMax)
 	}
 
 	// This prevents possible overflows adding up the elements of S. We should never

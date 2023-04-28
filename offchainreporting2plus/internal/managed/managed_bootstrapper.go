@@ -5,7 +5,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/netconfig"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -28,7 +28,7 @@ func RunManagedBootstrapper(
 		contractConfigTracker,
 		database,
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
-			config, err := config.PublicConfigFromContractConfig(true, contractConfig)
+			config, err := netconfig.NetConfigFromContractConfig(contractConfig)
 			if err != nil {
 				logger.Error("ManagedBootstrapper: error while decoding ContractConfig", commontypes.LogFields{
 					"error": err,
@@ -36,16 +36,11 @@ func RunManagedBootstrapper(
 				return
 			}
 
-			peerIDs := []string{}
-			for _, pcKey := range config.OracleIdentities {
-				peerIDs = append(peerIDs, pcKey.PeerID)
-			}
-
-			bootstrapper, err := bootstrapperFactory.NewBootstrapper(config.ConfigDigest, peerIDs, v2bootstrappers, config.F)
+			bootstrapper, err := bootstrapperFactory.NewBootstrapper(config.ConfigDigest, config.PeerIDs, v2bootstrappers, config.F)
 			if err != nil {
 				logger.Error("ManagedBootstrapper: error during NewBootstrapper", commontypes.LogFields{
 					"error":           err,
-					"peerIDs":         peerIDs,
+					"peerIDs":         config.PeerIDs,
 					"v2bootstrappers": v2bootstrappers,
 				})
 				return
