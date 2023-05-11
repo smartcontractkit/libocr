@@ -75,7 +75,13 @@ func (repgen *reportGenerationState) startRound() {
 	repgen.leaderState.readyToStartRound = false
 	var query types.Query
 	{
-		ctx, cancel := context.WithTimeout(repgen.ctx, repgen.config.MaxDurationQuery)
+		maxDurationQuery := repgen.config.MaxDurationQuery
+		if maxDurationQuery == 0 {
+			// Some feeds are configured to zero due to the in-memory implementation of Query being a no-op.
+			// This is incompatible with GRPC/LOOPPs, which short circuits on the cancelled context, so we override the value.
+			maxDurationQuery = 20 * time.Millisecond // TODO from config?
+		}
+		ctx, cancel := context.WithTimeout(repgen.ctx, maxDurationQuery)
 		defer cancel()
 
 		ins := loghelper.NewIfNotStopped(
