@@ -326,7 +326,7 @@ type ContractTransmitter interface {
 	)
 
 	// Account from which the transmitter invokes the contract
-	FromAccount() Account
+	FromAccount() (Account, error)
 }
 
 // ContractConfigTracker tracks configuration changes of the OCR contract

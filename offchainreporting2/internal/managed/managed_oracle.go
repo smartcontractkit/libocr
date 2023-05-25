@@ -58,13 +58,20 @@ func RunManagedOracle(
 		database,
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
+			fromAccount, err := contractTransmitter.FromAccount()
+			if err != nil {
+				logger.Error("ManagedOracle: error getting FromAccount", commontypes.LogFields{
+					"error": err,
+				})
+				return
+			}
 			sharedConfig, oid, err := config.SharedConfigFromContractConfig(
 				skipResourceExhaustionChecks,
 				contractConfig,
 				offchainKeyring,
 				onchainKeyring,
 				netEndpointFactory.PeerID(),
-				contractTransmitter.FromAccount(),
+				fromAccount,
 			)
 			if err != nil {
 				logger.Error("ManagedOracle: error while updating config", commontypes.LogFields{
