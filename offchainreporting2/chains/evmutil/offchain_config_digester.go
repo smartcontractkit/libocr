@@ -46,6 +46,6 @@ func (d EVMOffchainConfigDigester) ConfigDigest(cc types.ContractConfig) (types.
 	), nil
 }
 
-func (d EVMOffchainConfigDigester) ConfigDigestPrefix() types.ConfigDigestPrefix {
-	return types.ConfigDigestPrefixEVM
+func (d EVMOffchainConfigDigester) ConfigDigestPrefix() (types.ConfigDigestPrefix, error) {
+	return types.ConfigDigestPrefixEVM, nil
 }
