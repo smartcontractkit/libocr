@@ -52,6 +52,9 @@ type OracleArgs struct {
 	// Logger logs stuff
 	Logger commontypes.Logger
 
+	// Enables adding metrics to track. This may be nil.
+	Metrics commontypes.Metrics
+
 	// Used to send logs to a monitor. This may be nil.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
 
