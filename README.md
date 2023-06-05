@@ -22,7 +22,9 @@ The nodes then attempt to transmit the final report to the smart contract accord
 ├── gethwrappers2: go-ethereum bindings for the OCR2 contracts, generated with abigen
 ├── networking: p2p networking layer
 ├── offchainreporting: offchain reporting protocol version 1
-├── offchainreporting2: offchain reporting protocol version 2
+├── offchainreporting2plus: offchain reporting protocol version 2 and beyond
 ├── permutation: helper package for generating permutations
 └── subprocesses: helper package for managing go routines
 ```
+
+Please note that **OCR3 & Mercury are currently in an alpha stage. Do not use them in production** lest you wish to be confronted with the BFT equivalent of Lovecraftian horrors.
