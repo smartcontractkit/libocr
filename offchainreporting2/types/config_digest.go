@@ -15,4 +15,8 @@ const (
 
 type ConfigDigest = ocr2plustypes.ConfigDigest
 
+func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
+	return ocr2plustypes.BytesToConfigDigest(b)
+}
+
 type OffchainConfigDigester = ocr2plustypes.OffchainConfigDigester
