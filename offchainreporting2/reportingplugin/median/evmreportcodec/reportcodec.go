@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/reportingplugin/median"
+	"github.com/smartcontractkit/libocr/offchainreporting2/reportingplugin/median"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 

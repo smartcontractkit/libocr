@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/smartcontractkit/libocr/offchainreporting2/reportingplugin/median"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/reportingplugin/median"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
