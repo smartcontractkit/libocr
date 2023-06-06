@@ -1,3 +1,5 @@
+// titlerequest is a small example reporting plugin that requests website titles
+// and puts them onchain. This is not production code.
 package titlerequest
 
 import (
@@ -13,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/smartcontractkit/libocr/gethwrappers2/ocr2titlerequest"
-	"github.com/smartcontractkit/libocr/offchainreporting2/types"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 // Transactions that are buried confirmationDepth blocks deep in the chain are
