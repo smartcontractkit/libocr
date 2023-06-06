@@ -11,7 +11,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
-	"github.com/smartcontractkit/libocr/offchainreporting2/types"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"

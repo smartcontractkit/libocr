@@ -130,8 +130,8 @@ func checkIdentityListsHaveTheSameLength(
 // (1) violations of fundamental constraints like 3*f<n;
 // (2) configurations that would trivially exhaust all of a node's resources;
 // (3) (some) simple mistakes
-
 func checkPublicConfigParameters(cfg PublicConfig) error {
+
 	/////////////////////////////////////////////////////////////////
 	// Be sure to think about changes to other tooling that need to
 	// be made when you change this function!
@@ -282,6 +282,8 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		10:              {"Optimism", chainTypeFastUpdates},
 		69:              {"Optimism Testnet Kovan", chainTypePublicTestnet},
 		420:             {"Optimism Testnet Goerli", chainTypePublicTestnet},
+		1101:            {"Polygon zkEVM", chainTypeSlowUpdates},
+		1442:            {"Polygon zkEVM Testnet", chainTypePublicTestnet},
 		30:              {"RSK", chainTypeModerateUpdates},
 		31:              {"RSK Testnet", chainTypePublicTestnet},
 		100:             {"xDai", chainTypeModerateUpdates},

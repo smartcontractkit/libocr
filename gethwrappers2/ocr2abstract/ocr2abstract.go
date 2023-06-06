@@ -26,6 +26,7 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
+	_ = abi.ConvertType
 )
 
 // OCR2AbstractMetaData contains all meta data concerning the OCR2Abstract contract.
@@ -134,11 +135,11 @@ func NewOCR2AbstractFilterer(address common.Address, filterer bind.ContractFilte
 
 // bindOCR2Abstract binds a generic wrapper to an already deployed contract.
 func bindOCR2Abstract(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(OCR2AbstractABI))
+	parsed, err := OCR2AbstractMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and
@@ -735,11 +736,11 @@ func NewTypeAndVersionInterfaceFilterer(address common.Address, filterer bind.Co
 
 // bindTypeAndVersionInterface binds a generic wrapper to an already deployed contract.
 func bindTypeAndVersionInterface(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(TypeAndVersionInterfaceABI))
+	parsed, err := TypeAndVersionInterfaceMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and
