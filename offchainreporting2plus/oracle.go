@@ -16,7 +16,7 @@ import (
 type OracleArgs interface {
 	oracleArgsMarker()
 	localConfig() types.LocalConfig
-	logger() commontypes.Logger
+	runManaged(ctx context.Context)
 }
 
 // OCR2OracleArgs contains the configuration and services a caller must provide, in
@@ -69,8 +69,29 @@ func (OCR2OracleArgs) oracleArgsMarker() {}
 
 func (args OCR2OracleArgs) localConfig() types.LocalConfig { return args.LocalConfig }
 
-func (args OCR2OracleArgs) logger() commontypes.Logger { return args.Logger }
+func (args OCR2OracleArgs) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
 
+	managed.RunManagedOCR2Oracle(
+		ctx,
+
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.LocalConfig,
+		logger,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
+		args.OnchainKeyring,
+		args.ReportingPluginFactory,
+	)
+}
+
+// MercuryOracleArgs is used for OCR3 protocol instances that only use
+// the Mercury-specific subset of OCR3 features.
 type MercuryOracleArgs struct {
 	// A factory for producing network endpoints. A network endpoints consists of
 	// networking methods a consumer must implement to allow a node to
@@ -111,7 +132,7 @@ type MercuryOracleArgs struct {
 	OnchainKeyring types.OnchainKeyring
 
 	// ReportingPluginFactory creates ReportingPlugins that determine the
-	// "application logic" used in a OCR2 protocol instance.
+	// "application logic" used in an OCR protocol instance.
 	MercuryPluginFactory ocr3types.MercuryPluginFactory
 }
 
@@ -119,7 +140,95 @@ func (MercuryOracleArgs) oracleArgsMarker() {}
 
 func (args MercuryOracleArgs) localConfig() types.LocalConfig { return args.LocalConfig }
 
-func (args MercuryOracleArgs) logger() commontypes.Logger { return args.Logger }
+func (args MercuryOracleArgs) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
+
+	managed.RunManagedMercuryOracle(
+		ctx,
+
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.LocalConfig,
+		logger,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
+		args.OnchainKeyring,
+		args.MercuryPluginFactory,
+	)
+}
+
+type OCR3OracleArgs[RI any] struct {
+	// A factory for producing network endpoints. A network endpoints consists of
+	// networking methods a consumer must implement to allow a node to
+	// communicate with other participating nodes.
+	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
+
+	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack.
+	V2Bootstrappers []commontypes.BootstrapperLocator
+
+	// Tracks configuration changes.
+	ContractConfigTracker types.ContractConfigTracker
+
+	// Transmit reports to the targeted system (e.g. a blockchain)
+	ContractTransmitter ocr3types.ContractTransmitter[RI]
+
+	// Database provides persistent storage.
+	Database ocr3types.Database
+
+	// LocalConfig contains oracle-specific configuration details which are not
+	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig.
+	LocalConfig types.LocalConfig
+
+	// Logger logs stuff.
+	Logger commontypes.Logger
+
+	// Used to send logs to a monitor.
+	MonitoringEndpoint commontypes.MonitoringEndpoint
+
+	// Computes a config digest using purely offchain logic.
+	OffchainConfigDigester types.OffchainConfigDigester
+
+	// OffchainKeyring contains the secret keys needed for the OCR protocol, and methods
+	// which use those keys without exposing them to the rest of the application.
+	OffchainKeyring types.OffchainKeyring
+
+	// OnchainKeyring is used to sign reports that can be validated
+	// offchain and by the target contract.
+	OnchainKeyring ocr3types.OnchainKeyring[RI]
+
+	// PluginFactory creates Plugins that determine the "application logic" used
+	// in a protocol instance.
+	ReportingPluginFactory ocr3types.ReportingPluginFactory[RI]
+}
+
+func (OCR3OracleArgs[RI]) oracleArgsMarker() {}
+
+func (args OCR3OracleArgs[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
+
+	managed.RunManagedOCR3Oracle(
+		ctx,
+
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.LocalConfig,
+		logger,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
+		args.OnchainKeyring,
+		args.ReportingPluginFactory,
+	)
+}
 
 type oracleState int
 
@@ -129,7 +238,12 @@ const (
 	oracleStateClosed
 )
 
-type Oracle struct {
+type Oracle interface {
+	Start() error
+	Close() error
+}
+
+type oracle struct {
 	lock sync.Mutex
 
 	state oracleState
@@ -145,11 +259,11 @@ type Oracle struct {
 
 // NewOracle returns a newly initialized Oracle using the provided services
 // and configuration.
-func NewOracle(args OracleArgs) (*Oracle, error) {
+func NewOracle(args OracleArgs) (Oracle, error) {
 	if err := SanityCheckLocalConfig(args.localConfig()); err != nil {
 		return nil, fmt.Errorf("bad local config while creating new oracle: %w", err)
 	}
-	return &Oracle{
+	return &oracle{
 		sync.Mutex{},
 		oracleStateUnstarted,
 		args,
@@ -159,7 +273,7 @@ func NewOracle(args OracleArgs) (*Oracle, error) {
 }
 
 // Start spins up a Oracle.
-func (o *Oracle) Start() error {
+func (o *oracle) Start() error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -168,61 +282,23 @@ func (o *Oracle) Start() error {
 	}
 	o.state = oracleStateStarted
 
-	logger := loghelper.MakeRootLoggerWithContext(o.oracleArgs.logger())
-
 	ctx, cancel := context.WithCancel(context.Background())
 	o.cancel = cancel
 	o.subprocesses.Go(func() {
 		defer cancel()
 
-		switch args := o.oracleArgs.(type) {
-		case OCR2OracleArgs:
-			managed.RunManagedOCR2Oracle(
-				ctx,
-
-				args.V2Bootstrappers,
-				args.ContractConfigTracker,
-				args.ContractTransmitter,
-				args.Database,
-				args.LocalConfig,
-				logger,
-				args.MonitoringEndpoint,
-				args.BinaryNetworkEndpointFactory,
-				args.OffchainConfigDigester,
-				args.OffchainKeyring,
-				args.OnchainKeyring,
-				args.ReportingPluginFactory,
-			)
-		case MercuryOracleArgs:
-			managed.RunManagedMercuryOracle(
-				ctx,
-
-				args.V2Bootstrappers,
-				args.ContractConfigTracker,
-				args.ContractTransmitter,
-				args.Database,
-				args.LocalConfig,
-				logger,
-				args.MonitoringEndpoint,
-				args.BinaryNetworkEndpointFactory,
-				args.OffchainConfigDigester,
-				args.OffchainKeyring,
-				args.OnchainKeyring,
-				args.MercuryPluginFactory,
-			)
-
-		}
+		o.oracleArgs.runManaged(ctx)
 	})
 	return nil
 }
 
 // Close shuts down an oracle. Can safely be called multiple times.
-func (o *Oracle) Close() error {
+func (o *oracle) Close() error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
 	if o.state != oracleStateStarted {
-		return fmt.Errorf("can only close a started Oracle")
+		return fmt.Errorf("can only close a started oracle")
 	}
 	o.state = oracleStateClosed
 

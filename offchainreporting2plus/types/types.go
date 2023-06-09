@@ -233,7 +233,8 @@ type ReportingPlugin interface {
 	//
 	// You may assume that the sequence of epochs and the sequence of rounds
 	// within an epoch are strictly monotonically increasing during the lifetime
-	// of an instance of this interface.
+	// of an instance of this interface. This function will always be called
+	// with at least 2f+1 AttributedObservations from distinct oracles.
 	Report(context.Context, ReportTimestamp, Query, []AttributedObservation) (bool, Report, error)
 
 	// Decides whether a report should be accepted for transmission. Any report

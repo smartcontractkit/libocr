@@ -16,6 +16,8 @@ type SerializingOCR3Database struct {
 
 var _ protocol.Database = (*SerializingOCR3Database)(nil)
 
+const pacemakerKey = "pacemaker"
+
 const certKey = "cert"
 
 func (db *SerializingOCR3Database) ReadConfig(ctx context.Context) (*types.ContractConfig, error) {
@@ -24,6 +26,35 @@ func (db *SerializingOCR3Database) ReadConfig(ctx context.Context) (*types.Contr
 
 func (db *SerializingOCR3Database) WriteConfig(ctx context.Context, config types.ContractConfig) error {
 	return db.BinaryDb.WriteConfig(ctx, config)
+}
+
+func (db *SerializingOCR3Database) ReadPacemakerState(ctx context.Context, configDigest types.ConfigDigest) (protocol.PacemakerState, error) {
+	raw, err := db.BinaryDb.ReadProtocolState(ctx, configDigest, pacemakerKey)
+	if err != nil {
+		return protocol.PacemakerState{}, err
+	}
+
+	if len(raw) == 0 {
+		return protocol.PacemakerState{}, nil
+	}
+
+	p := serialization.PacemakerState{}
+	if err := proto.Unmarshal(raw, &p); err != nil {
+		return protocol.PacemakerState{}, err
+	}
+
+	return serialization.PacemakerStateFromProtoMessage(&p)
+}
+
+func (db *SerializingOCR3Database) WritePacemakerState(ctx context.Context, configDigest types.ConfigDigest, state protocol.PacemakerState) error {
+	p := serialization.PacemakerStateToProtoMessage(state)
+
+	raw, err := proto.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	return db.BinaryDb.WriteProtocolState(ctx, configDigest, pacemakerKey, raw)
 }
 
 func (db *SerializingOCR3Database) ReadCert(ctx context.Context, configDigest types.ConfigDigest) (protocol.CertifiedPrepareOrCommit, error) {

@@ -312,7 +312,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 
 	}
 
-	t.logger.Info("eventTTransmitTimeout:❗️successfully transmitted report on-chain", commontypes.LogFields{
+	t.logger.Info("eventTTransmitTimeout:❗️successfully called Transmit", commontypes.LogFields{
 		"epoch": item.Epoch,
 		"round": item.Round,
 	})

@@ -1,23 +1,23 @@
 package protocol
 
 // MessageBuffer implements a fixed capacity ringbuffer for items of type
-// MessageToReportGeneration
+// MessageToOutcomeGeneration
 type MessageBuffer[RI any] struct {
 	start  int
 	length int
-	buffer []*MessageToReportGeneration[RI]
+	buffer []*MessageToOutcomeGeneration[RI]
 }
 
 func NewMessageBuffer[RI any](cap int) *MessageBuffer[RI] {
 	return &MessageBuffer[RI]{
 		0,
 		0,
-		make([]*MessageToReportGeneration[RI], cap),
+		make([]*MessageToOutcomeGeneration[RI], cap),
 	}
 }
 
 // Peek at the front item
-func (rb *MessageBuffer[RI]) Peek() *MessageToReportGeneration[RI] {
+func (rb *MessageBuffer[RI]) Peek() *MessageToOutcomeGeneration[RI] {
 	if rb.length == 0 {
 		return nil
 	} else {
@@ -26,7 +26,7 @@ func (rb *MessageBuffer[RI]) Peek() *MessageToReportGeneration[RI] {
 }
 
 // Pop front item
-func (rb *MessageBuffer[RI]) Pop() *MessageToReportGeneration[RI] {
+func (rb *MessageBuffer[RI]) Pop() *MessageToOutcomeGeneration[RI] {
 	result := rb.Peek()
 	if result != nil {
 		rb.buffer[rb.start] = nil
@@ -38,7 +38,7 @@ func (rb *MessageBuffer[RI]) Pop() *MessageToReportGeneration[RI] {
 
 // Push new item to back. If the additional item would lead
 // to the capacity being exceeded, remove the front item first
-func (rb *MessageBuffer[RI]) Push(msg MessageToReportGeneration[RI]) {
+func (rb *MessageBuffer[RI]) Push(msg MessageToOutcomeGeneration[RI]) {
 	if rb.length == len(rb.buffer) {
 		rb.Pop()
 	}
