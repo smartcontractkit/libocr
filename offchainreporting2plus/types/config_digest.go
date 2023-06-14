@@ -21,10 +21,11 @@ const (
 	ConfigDigestPrefixSolana     ConfigDigestPrefix = 3
 	ConfigDigestPrefixStarknet   ConfigDigestPrefix = 4
 	ConfigDigestPrefixMercuryV02 ConfigDigestPrefix = 6
-	ConfigDigestPrefixThreshold  ConfigDigestPrefix = 7
-	ConfigDigestPrefixS4         ConfigDigestPrefix = 8
-	ConfigDigestPrefixOCR1       ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
-	_                            ConfigDigestPrefix = 0xFFFF // reserved for future use
+	// Prefixes for running Threshold/S4 plugins as part of another product under one contract.
+	ConfigDigestPrefixThreshold ConfigDigestPrefix = 7
+	ConfigDigestPrefixS4        ConfigDigestPrefix = 8
+	ConfigDigestPrefixOCR1      ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
+	_                           ConfigDigestPrefix = 0xFFFF // reserved for future use
 )
 
 // Checks whether a ConfigDigestPrefix is actually a prefix of a ConfigDigest.
