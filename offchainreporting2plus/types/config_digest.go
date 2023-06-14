@@ -22,7 +22,7 @@ const (
 	ConfigDigestPrefixStarknet   ConfigDigestPrefix = 4
 	ConfigDigestPrefixMercuryV02 ConfigDigestPrefix = 6
 	ConfigDigestPrefixThreshold  ConfigDigestPrefix = 7
-	ConfigDigestPrefixFunctions  ConfigDigestPrefix = 8
+	ConfigDigestPrefixS4         ConfigDigestPrefix = 8
 	ConfigDigestPrefixOCR1       ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
 	_                            ConfigDigestPrefix = 0xFFFF // reserved for future use
 )
