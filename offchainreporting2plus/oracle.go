@@ -7,6 +7,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/automationshim"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -121,6 +122,56 @@ func (args MercuryOracleArgs) localConfig() types.LocalConfig { return args.Loca
 
 func (args MercuryOracleArgs) logger() commontypes.Logger { return args.Logger }
 
+type AutomationOracleArgs struct {
+	// A factory for producing network endpoints. A network endpoints consists of
+	// networking methods a consumer must implement to allow a node to
+	// communicate with other participating nodes.
+	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
+
+	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack.
+	V2Bootstrappers []commontypes.BootstrapperLocator
+
+	// Tracks configuration changes.
+	ContractConfigTracker types.ContractConfigTracker
+
+	// Interfaces with the OCR2Aggregator smart contract's transmission related logic.
+	ContractTransmitter types.ContractTransmitter
+
+	// Database provides persistent storage.
+	Database ocr3types.Database
+
+	// LocalConfig contains oracle-specific configuration details which are not
+	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig.
+	LocalConfig types.LocalConfig
+
+	// Logger logs stuff.
+	Logger commontypes.Logger
+
+	// Used to send logs to a monitor.
+	MonitoringEndpoint commontypes.MonitoringEndpoint
+
+	// Computes a config digest using purely offchain logic.
+	OffchainConfigDigester types.OffchainConfigDigester
+
+	// OffchainKeyring contains the secret keys needed for the OCR protocol, and methods
+	// which use those keys without exposing them to the rest of the application.
+	OffchainKeyring types.OffchainKeyring
+
+	// OnchainKeyring is used to sign reports that can be validated
+	// offchain and by the target contract.
+	OnchainKeyring types.OnchainKeyring
+
+	// ReportingPluginFactory creates ReportingPlugins that determine the
+	// "application logic" used in a OCR3 protocol instance.
+	ReportingPluginFactory ocr3types.OCR3PluginFactory[automationshim.AutomationReportInfo]
+}
+
+func (AutomationOracleArgs) oracleArgsMarker() {}
+
+func (args AutomationOracleArgs) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args AutomationOracleArgs) logger() commontypes.Logger { return args.Logger }
+
 type oracleState int
 
 const (
@@ -209,6 +260,23 @@ func (o *Oracle) Start() error {
 				args.OffchainKeyring,
 				args.OnchainKeyring,
 				args.MercuryPluginFactory,
+			)
+		case AutomationOracleArgs:
+			managed.RunManagedAutomationOracle(
+				ctx,
+
+				args.V2Bootstrappers,
+				args.ContractConfigTracker,
+				args.ContractTransmitter,
+				args.Database,
+				args.LocalConfig,
+				logger,
+				args.MonitoringEndpoint,
+				args.BinaryNetworkEndpointFactory,
+				args.OffchainConfigDigester,
+				args.OffchainKeyring,
+				args.OnchainKeyring,
+				args.ReportingPluginFactory,
 			)
 
 		}
