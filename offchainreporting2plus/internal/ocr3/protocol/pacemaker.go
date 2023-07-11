@@ -2,6 +2,8 @@ package protocol
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/binary"
 	"math/big"
 	"sort"
@@ -11,7 +13,6 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"golang.org/x/crypto/sha3"
 )
 
 // Pacemaker keeps track of the state and message handling for an oracle
@@ -20,8 +21,8 @@ func RunPacemaker[RI any](
 	ctx context.Context,
 
 	chNetToPacemaker <-chan MessageToPacemakerWithSender[RI],
-	chPacemakerToReportGeneration chan<- EventToReportGeneration[RI],
-	chReportGenerationToPacemaker <-chan EventToPacemaker[RI],
+	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI],
+	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI],
 	config ocr3config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
@@ -35,7 +36,7 @@ func RunPacemaker[RI any](
 ) {
 	pace := makePacemakerState[RI](
 		ctx, chNetToPacemaker,
-		chPacemakerToReportGeneration, chReportGenerationToPacemaker,
+		chPacemakerToOutcomeGeneration, chOutcomeGenerationToPacemaker,
 		config, database,
 		id, localConfig, logger, netSender, offchainKeyring,
 		telemetrySender,
@@ -46,8 +47,8 @@ func RunPacemaker[RI any](
 func makePacemakerState[RI any](
 	ctx context.Context,
 	chNetToPacemaker <-chan MessageToPacemakerWithSender[RI],
-	chPacemakerToReportGeneration chan<- EventToReportGeneration[RI],
-	chReportGenerationToPacemaker <-chan EventToPacemaker[RI],
+	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI],
+	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI],
 	config ocr3config.SharedConfig,
 	database Database, id commontypes.OracleID,
 	localConfig types.LocalConfig,
@@ -59,17 +60,17 @@ func makePacemakerState[RI any](
 	return pacemakerState[RI]{
 		ctx: ctx,
 
-		chNetToPacemaker:              chNetToPacemaker,
-		chPacemakerToReportGeneration: chPacemakerToReportGeneration,
-		chReportGenerationToPacemaker: chReportGenerationToPacemaker,
-		config:                        config,
-		database:                      database,
-		id:                            id,
-		localConfig:                   localConfig,
-		logger:                        logger,
-		netSender:                     netSender,
-		offchainKeyring:               offchainKeyring,
-		telemetrySender:               telemetrySender,
+		chNetToPacemaker:               chNetToPacemaker,
+		chPacemakerToOutcomeGeneration: chPacemakerToOutcomeGeneration,
+		chOutcomeGenerationToPacemaker: chOutcomeGenerationToPacemaker,
+		config:                         config,
+		database:                       database,
+		id:                             id,
+		localConfig:                    localConfig,
+		logger:                         logger.MakeUpdated(commontypes.LogFields{"proto": "pacemaker"}),
+		netSender:                      netSender,
+		offchainKeyring:                offchainKeyring,
+		telemetrySender:                telemetrySender,
 
 		newepoch: make([]uint64, config.N()),
 	}
@@ -78,17 +79,17 @@ func makePacemakerState[RI any](
 type pacemakerState[RI any] struct {
 	ctx context.Context
 
-	chNetToPacemaker              <-chan MessageToPacemakerWithSender[RI]
-	chPacemakerToReportGeneration chan<- EventToReportGeneration[RI]
-	chReportGenerationToPacemaker <-chan EventToPacemaker[RI]
-	config                        ocr3config.SharedConfig
-	database                      Database
-	id                            commontypes.OracleID
-	localConfig                   types.LocalConfig
-	logger                        loghelper.LoggerWithContext
-	netSender                     NetworkSender[RI]
-	offchainKeyring               types.OffchainKeyring
-	telemetrySender               TelemetrySender
+	chNetToPacemaker               <-chan MessageToPacemakerWithSender[RI]
+	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI]
+	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI]
+	config                         ocr3config.SharedConfig
+	database                       Database
+	id                             commontypes.OracleID
+	localConfig                    types.LocalConfig
+	logger                         loghelper.LoggerWithContext
+	netSender                      NetworkSender[RI]
+	offchainKeyring                types.OffchainKeyring
+	telemetrySender                TelemetrySender
 	// Test use only: send testBlocker an event to halt the pacemaker event loop,
 	// send testUnblocker an event to resume it.
 	testBlocker   chan eventTestBlock
@@ -117,7 +118,7 @@ type pacemakerState[RI any] struct {
 	// whether the current leader is making adequate progress.
 	tProgress <-chan time.Time
 
-	notifyReportGenerationOfNewEpoch bool
+	notifyOutcomeGenerationOfNewEpoch bool
 }
 
 func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
@@ -128,6 +129,8 @@ func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
 	// rounds start with 1, so let's make epochs also start with 1
 	// this also gives us cleaner behavior for the initial epoch, which is otherwise
 	// immediately terminated and superseded due to restoreNeFromTransmitter below
+
+	pace.ne = 1
 	pace.e = 1
 	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
 
@@ -139,7 +142,7 @@ func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
 
 	pace.sendNewepoch(pace.ne)
 
-	pace.notifyReportGenerationOfNewEpoch = true
+	pace.notifyOutcomeGenerationOfNewEpoch = true
 
 	// Initialization complete
 
@@ -149,19 +152,19 @@ func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
 
 	// Event Loop
 	for {
-		var nilOrChPacemakerToReportGeneration chan<- EventToReportGeneration[RI]
-		if pace.notifyReportGenerationOfNewEpoch {
-			nilOrChPacemakerToReportGeneration = pace.chPacemakerToReportGeneration
+		var nilOrChPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI]
+		if pace.notifyOutcomeGenerationOfNewEpoch {
+			nilOrChPacemakerToOutcomeGeneration = pace.chPacemakerToOutcomeGeneration
 		} else {
-			nilOrChPacemakerToReportGeneration = nil
+			nilOrChPacemakerToOutcomeGeneration = nil
 		}
 
 		select {
-		case nilOrChPacemakerToReportGeneration <- EventStartNewEpoch[RI]{pace.e}:
-			pace.notifyReportGenerationOfNewEpoch = false
+		case nilOrChPacemakerToOutcomeGeneration <- EventNewEpochStart[RI]{pace.e}:
+			pace.notifyOutcomeGenerationOfNewEpoch = false
 		case msg := <-pace.chNetToPacemaker:
 			msg.msg.processPacemaker(pace, msg.sender)
-		case ev := <-pace.chReportGenerationToPacemaker:
+		case ev := <-pace.chOutcomeGenerationToPacemaker:
 			ev.processPacemaker(pace)
 		case <-pace.tResend:
 			pace.eventTResendTimeout()
@@ -261,7 +264,7 @@ func (pace *pacemakerState[RI]) messageNewepoch(msg MessageNewEpoch[RI], sender 
 				pace.ne = pace.e
 			}
 
-			pace.notifyReportGenerationOfNewEpoch = true
+			pace.notifyOutcomeGenerationOfNewEpoch = true
 
 			pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 		}
@@ -281,20 +284,14 @@ func sortedGreaterThan(xs []uint64, y uint64) (rv []uint64) {
 
 // Leader will produce an oracle id for the given epoch.
 func Leader(epoch uint64, n int, key [16]byte) (leader commontypes.OracleID) {
-	// No need for HMAC. Since we use Keccak256, prepending
-	// with key gives us a PRF already.
-	h := sha3.NewLegacyKeccak256()
-	h.Write(key[:])
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, epoch)
-	h.Write(b)
+	mac := hmac.New(sha256.New, key[:])
+	_ = binary.Write(mac, binary.BigEndian, epoch)
 
-	result := big.NewInt(0)
-	r := big.NewInt(0).SetBytes(h.Sum(nil))
+	r := big.NewInt(0).SetBytes(mac.Sum(nil))
 	// This is biased, but we don't care because the prob of us hitting the bias are
 	// less than 2**5/2**256 = 2**-251.
-	result.Mod(r, big.NewInt(int64(n)))
-	return commontypes.OracleID(result.Int64())
+	r.Mod(r, big.NewInt(int64(n)))
+	return commontypes.OracleID(r.Int64())
 }
 
 type eventTestBlock struct{}

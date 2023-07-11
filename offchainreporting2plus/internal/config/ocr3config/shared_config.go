@@ -2,7 +2,9 @@ package ocr3config
 
 import (
 	"bytes"
+	"crypto/hmac"
 	cryptorand "crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"math"
 
@@ -11,8 +13,8 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ethcontractconfig"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"golang.org/x/crypto/sha3"
 )
 
 // SharedConfig is the configuration shared by all oracles running an instance
@@ -25,29 +27,27 @@ type SharedConfig struct {
 
 func (c *SharedConfig) LeaderSelectionKey() [16]byte {
 	var result [16]byte
-	h := sha3.NewLegacyKeccak256()
-	h.Write(c.SharedSecret[:])
-	h.Write([]byte("chainlink offchain reporting v1 leader selection key"))
-
-	copy(result[:], h.Sum(nil))
+	mac := hmac.New(sha256.New, c.SharedSecret[:])
+	_, _ = mac.Write([]byte("chainlink offchain reporting v3 leader selection key"))
+	_, _ = mac.Write(c.ConfigDigest[:])
+	_ = copy(result[:], mac.Sum(nil))
 	return result
 }
 
 func (c *SharedConfig) TransmissionOrderKey() [16]byte {
 	var result [16]byte
-	h := sha3.NewLegacyKeccak256()
-	h.Write(c.SharedSecret[:])
-	h.Write([]byte("chainlink offchain reporting v1 transmission order key"))
-
-	copy(result[:], h.Sum(nil))
+	mac := hmac.New(sha256.New, c.SharedSecret[:])
+	_, _ = mac.Write([]byte("chainlink offchain reporting v3 transmission order key"))
+	_, _ = mac.Write(c.ConfigDigest[:])
+	_ = copy(result[:], mac.Sum(nil))
 	return result
 }
 
-func SharedConfigFromContractConfig(
+func SharedConfigFromContractConfig[RI any](
 	skipResourceExhaustionChecks bool,
 	change types.ContractConfig,
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring types.OnchainKeyring,
+	onchainKeyring ocr3types.OnchainKeyring[RI],
 	peerID string,
 	transmitAccount types.Account,
 ) (SharedConfig, commontypes.OracleID, error) {
@@ -131,8 +131,10 @@ func XXXContractSetConfigArgsFromSharedConfig(
 	offchainConfig_ = (offchainConfig{
 		c.DeltaProgress,
 		c.DeltaResend,
+		c.DeltaInitial,
 		c.DeltaRound,
 		c.DeltaGrace,
+		c.DeltaCertifiedCommitRequest,
 		c.DeltaStage,
 		c.RMax,
 		c.S,
@@ -141,7 +143,7 @@ func XXXContractSetConfigArgsFromSharedConfig(
 		c.ReportingPluginConfig,
 		c.MaxDurationQuery,
 		c.MaxDurationObservation,
-		c.MaxDurationShouldAcceptFinalizedReport,
+		c.MaxDurationShouldAcceptAttestedReport,
 		c.MaxDurationShouldTransmitAcceptedReport,
 		config.XXXEncryptSharedSecret(
 			sharedSecretEncryptionPublicKeys,

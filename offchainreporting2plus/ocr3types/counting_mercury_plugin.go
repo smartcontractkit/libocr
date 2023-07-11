@@ -59,5 +59,12 @@ func (p *CountingMercuryPlugin) Close() error {
 type CountingMercuryPluginFactory struct{}
 
 func (fac *CountingMercuryPluginFactory) NewMercuryPlugin(_ MercuryPluginConfig) (MercuryPlugin, MercuryPluginInfo, error) {
-	return &CountingMercuryPlugin{}, MercuryPluginInfo{Name: "CountingMercuryPlugin"}, nil
+	return &CountingMercuryPlugin{},
+		MercuryPluginInfo{
+			"CountingMercuryPlugin", MercuryPluginLimits{
+				1,
+				4,
+			},
+		},
+		nil
 }

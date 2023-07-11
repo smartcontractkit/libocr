@@ -29,7 +29,7 @@ func RunOracle[RI any](
 	netEndpoint NetworkEndpoint[RI],
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring ocr3types.OnchainKeyring[RI],
-	reportingPlugin ocr3types.OCR3Plugin[RI],
+	reportingPlugin ocr3types.ReportingPlugin[RI],
 	telemetrySender TelemetrySender,
 ) {
 	o := oracleState[RI]{
@@ -62,21 +62,21 @@ type oracleState[RI any] struct {
 	netEndpoint         NetworkEndpoint[RI]
 	offchainKeyring     types.OffchainKeyring
 	onchainKeyring      ocr3types.OnchainKeyring[RI]
-	reportingPlugin     ocr3types.OCR3Plugin[RI]
+	reportingPlugin     ocr3types.ReportingPlugin[RI]
 	telemetrySender     TelemetrySender
 
-	chNetToPacemaker          chan<- MessageToPacemakerWithSender[RI]
-	chNetToReportGeneration   chan<- MessageToReportGenerationWithSender[RI]
-	chNetToReportFinalization chan<- MessageToReportFinalizationWithSender[RI]
-	childCancel               context.CancelFunc
-	childCtx                  context.Context
-	epoch                     uint64
-	subprocesses              subprocesses.Subprocesses
+	chNetToPacemaker         chan<- MessageToPacemakerWithSender[RI]
+	chNetToOutcomeGeneration chan<- MessageToOutcomeGenerationWithSender[RI]
+	chNetToReportAttestation chan<- MessageToReportAttestationWithSender[RI]
+	childCancel              context.CancelFunc
+	childCtx                 context.Context
+	epoch                    uint64
+	subprocesses             subprocesses.Subprocesses
 }
 
 // TODO: This comment is outdated
 // run ensures safe shutdown of the Oracle's "child routines",
-// (Pacemaker, ReportGeneration and Transmission) upon o.ctx.Done()
+// (Pacemaker, OutcomeGeneration and Transmission) upon o.ctx.Done()
 // being closed.
 //
 // Here is a graph of the various channels involved and what they
@@ -92,7 +92,7 @@ type oracleState[RI any] struct {
 //	   │rep. fin. messages                    │  │
 //	   ▼                                      ▼  │progress events
 //	┌──────────────────┐                   ┌─────┴──────────┐
-//	│ReportFinalization│◄───final events───┤ReportGeneration│
+//	│ReportAttestation│◄───final events───┤OutcomeGeneration│
 //	└────────┬─────────┘                   └────────────────┘
 //	         │
 //	         │transmit events
@@ -105,14 +105,14 @@ type oracleState[RI any] struct {
 //
 // Once o.ctx.Done() is closed, the Oracle runloop will enter the
 // corresponding select case and no longer forward network messages
-// to Pacemaker and ReportGeneration. It will then cancel o.childCtx,
+// to Pacemaker and OutcomeGeneration. It will then cancel o.childCtx,
 // making all children exit. To prevent deadlocks, all channel sends and
-// receives in Oracle, Pacemaker, ReportGeneration, Transmission, etc...
+// receives in Oracle, Pacemaker, OutcomeGeneration, Transmission, etc...
 // are contained in select{} statements that also contain a case for context
 // cancellation.
 //
 // Finally, all sub-goroutines spawned in the protocol are attached to o.subprocesses
-// (with the exception of ReportGeneration which is explicitly managed by Pacemaker).
+// (with the exception of OutcomeGeneration which is explicitly managed by Pacemaker).
 // This enables us to wait for their completion before exiting.
 func (o *oracleState[RI]) run() {
 	o.logger.Info("Running", nil)
@@ -120,19 +120,19 @@ func (o *oracleState[RI]) run() {
 	chNetToPacemaker := make(chan MessageToPacemakerWithSender[RI])
 	o.chNetToPacemaker = chNetToPacemaker
 
-	chNetToReportGeneration := make(chan MessageToReportGenerationWithSender[RI])
-	o.chNetToReportGeneration = chNetToReportGeneration
+	chNetToOutcomeGeneration := make(chan MessageToOutcomeGenerationWithSender[RI])
+	o.chNetToOutcomeGeneration = chNetToOutcomeGeneration
 
-	chPacemakerToReportGeneration := make(chan EventToReportGeneration[RI])
+	chPacemakerToOutcomeGeneration := make(chan EventToOutcomeGeneration[RI])
 
-	chReportGenerationToPacemaker := make(chan EventToPacemaker[RI])
+	chOutcomeGenerationToPacemaker := make(chan EventToPacemaker[RI])
 
-	chNetToReportFinalization := make(chan MessageToReportFinalizationWithSender[RI])
-	o.chNetToReportFinalization = chNetToReportFinalization
+	chNetToReportAttestation := make(chan MessageToReportAttestationWithSender[RI])
+	o.chNetToReportAttestation = chNetToReportAttestation
 
-	chReportGenerationToReportFinalization := make(chan EventToReportFinalization[RI])
+	chOutcomeGenerationToReportAttestation := make(chan EventToReportAttestation[RI])
 
-	chReportFinalizationToTransmission := make(chan EventToTransmission[RI])
+	chReportAttestationToTransmission := make(chan EventToTransmission[RI])
 
 	o.childCtx, o.childCancel = context.WithCancel(context.Background())
 	defer o.childCancel()
@@ -150,8 +150,8 @@ func (o *oracleState[RI]) run() {
 			o.childCtx,
 
 			chNetToPacemaker,
-			chPacemakerToReportGeneration,
-			chReportGenerationToPacemaker,
+			chPacemakerToOutcomeGeneration,
+			chOutcomeGenerationToPacemaker,
 			o.config,
 			o.database,
 			o.id,
@@ -165,14 +165,14 @@ func (o *oracleState[RI]) run() {
 		)
 	})
 	o.subprocesses.Go(func() {
-		RunReportGeneration[RI](
+		RunOutcomeGeneration[RI](
 			o.childCtx,
 			&o.subprocesses,
 
-			chNetToReportGeneration,
-			chPacemakerToReportGeneration,
-			chReportGenerationToPacemaker,
-			chReportGenerationToReportFinalization,
+			chNetToOutcomeGeneration,
+			chPacemakerToOutcomeGeneration,
+			chOutcomeGenerationToPacemaker,
+			chOutcomeGenerationToReportAttestation,
 			o.config,
 			o.database,
 			o.id,
@@ -188,17 +188,17 @@ func (o *oracleState[RI]) run() {
 	})
 
 	o.subprocesses.Go(func() {
-		RunReportFinalization[RI](
+		RunReportAttestation[RI](
 			o.childCtx,
 
-			chNetToReportFinalization,
-			chReportFinalizationToTransmission,
-			chReportGenerationToReportFinalization,
+			chNetToReportAttestation,
+			chReportAttestationToTransmission,
+			chOutcomeGenerationToReportAttestation,
 			o.config,
-			o.onchainKeyring,
 			o.contractTransmitter,
 			o.logger,
 			o.netEndpoint,
+			o.onchainKeyring,
 			o.reportingPlugin,
 		)
 	})
@@ -207,10 +207,9 @@ func (o *oracleState[RI]) run() {
 			o.childCtx,
 			&o.subprocesses,
 
-			chReportFinalizationToTransmission,
+			chReportAttestationToTransmission,
 			o.config,
 			o.contractTransmitter,
-			nil, // o.database,
 			o.id,
 			o.localConfig,
 			o.logger,
@@ -266,7 +265,7 @@ func (o *oracleState[RI]) restoreCertFromDatabase() (CertifiedPrepareOrCommit, e
 				return cert, nil
 			} else {
 				o.logger.Info("restoreCertFromDatabase: did not find cert, starting at genesis", nil)
-				return &CertifiedPrepareOrCommitCommit{}, nil
+				return &CertifiedCommit{}, nil
 			}
 		}
 

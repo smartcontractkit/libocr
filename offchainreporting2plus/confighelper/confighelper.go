@@ -300,8 +300,10 @@ func ContractSetConfigArgsForTests(
 func ContractSetConfigArgsForTestsMercuryV02(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
+	deltaInitial time.Duration,
 	deltaRound time.Duration,
 	deltaGrace time.Duration,
+	deltaRequestCertifiedCommit time.Duration,
 	deltaStage time.Duration,
 	rMax uint8,
 	s []int,
@@ -340,8 +342,10 @@ func ContractSetConfigArgsForTestsMercuryV02(
 		ocr3config.PublicConfig{
 			deltaProgress,
 			deltaResend,
+			deltaInitial,
 			deltaRound,
 			deltaGrace,
+			deltaRequestCertifiedCommit,
 			deltaStage,
 			uint64(rMax),
 			s,

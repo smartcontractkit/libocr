@@ -1,18 +1,17 @@
-package managed
+package limits
 
 import (
 	"crypto/ed25519"
 	"fmt"
 	"math"
 	"math/big"
-	"sort"
 	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-func ocr2limits(cfg ocr2config.PublicConfig, reportingPluginLimits types.ReportingPluginLimits, maxSigLen int) (types.BinaryNetworkEndpointLimits, error) {
+func OCR2Limits(cfg ocr2config.PublicConfig, reportingPluginLimits types.ReportingPluginLimits, maxSigLen int) (types.BinaryNetworkEndpointLimits, error) {
 	overflow := false
 
 	// These two helper functions add/multiply together a bunch of numbers and set overflow to true if the result
@@ -82,24 +81,4 @@ func ocr2limits(cfg ocr2config.PublicConfig, reportingPluginLimits types.Reporti
 		bytesRate,
 		bytesCapacity,
 	}, nil
-}
-
-func todoLimits() (types.BinaryNetworkEndpointLimits, error) {
-
-	return types.BinaryNetworkEndpointLimits{
-		100_000_000,
-		100_000_000,
-		100_000_000,
-		100_000_000,
-		100_000_000,
-	}, nil
-}
-
-func max(x int, xs ...int) int {
-	sort.Ints(xs)
-	if len(xs) == 0 || xs[len(xs)-1] < x {
-		return x
-	} else {
-		return xs[len(xs)-1]
-	}
 }

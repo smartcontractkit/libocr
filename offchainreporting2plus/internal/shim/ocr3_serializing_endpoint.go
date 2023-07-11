@@ -10,6 +10,7 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/serialization"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -18,7 +19,10 @@ type OCR3SerializingEndpoint[RI any] struct {
 	chTelemetry  chan<- *serialization.TelemetryWrapper
 	configDigest types.ConfigDigest
 	endpoint     commontypes.BinaryNetworkEndpoint
+	maxSigLen    int
 	logger       commontypes.Logger
+	pluginLimits ocr3types.ReportingPluginLimits
+	n, f         int
 
 	mutex        sync.Mutex
 	subprocesses subprocesses.Subprocesses
@@ -36,13 +40,19 @@ func NewOCR3SerializingEndpoint[RI any](
 	chTelemetry chan<- *serialization.TelemetryWrapper,
 	configDigest types.ConfigDigest,
 	endpoint commontypes.BinaryNetworkEndpoint,
+	maxSigLen int,
 	logger commontypes.Logger,
+	pluginLimits ocr3types.ReportingPluginLimits,
+	n, f int,
 ) *OCR3SerializingEndpoint[RI] {
 	return &OCR3SerializingEndpoint[RI]{
 		chTelemetry,
 		configDigest,
 		endpoint,
+		maxSigLen,
 		logger,
+		pluginLimits,
+		n, f,
 
 		sync.Mutex{},
 		subprocesses.Subprocesses{},
@@ -73,14 +83,12 @@ func (n *OCR3SerializingEndpoint[RI]) sendTelemetry(t *serialization.TelemetryWr
 }
 
 func (n *OCR3SerializingEndpoint[RI]) serialize(msg protocol.Message[RI]) ([]byte, *serialization.MessageWrapper) {
-
-	// if !msg.CheckSize(n.reportingPluginLimits) {
-	// 	n.logger.Error("OCR3SerializingEndpoint: Dropping outgoing message because it fails size check", commontypes.LogFields{
-	// 		"message": msg,
-	// 		"limits":  n.reportingPluginLimits,
-	// 	})
-	// 	return nil, nil
-	// }
+	if !msg.CheckSize(n.n, n.f, n.pluginLimits, n.maxSigLen) {
+		n.logger.Error("OCR3SerializingEndpoint: Dropping outgoing message because it fails size check", commontypes.LogFields{
+			"limits": n.pluginLimits,
+		})
+		return nil, nil
+	}
 	sMsg, pbm, err := serialization.Serialize(msg)
 	if err != nil {
 		n.logger.Error("OCR3SerializingEndpoint: Failed to serialize", commontypes.LogFields{
@@ -97,9 +105,9 @@ func (n *OCR3SerializingEndpoint[RI]) deserialize(raw []byte) (protocol.Message[
 		return nil, nil, err
 	}
 
-	// if !m.CheckSize(n.reportingPluginLimits) {
-	// 	return nil, nil, fmt.Errorf("message failed size check")
-	// }
+	if !m.CheckSize(n.n, n.f, n.pluginLimits, n.maxSigLen) {
+		return nil, nil, fmt.Errorf("message failed size check")
+	}
 
 	return m, pbm, nil
 }
