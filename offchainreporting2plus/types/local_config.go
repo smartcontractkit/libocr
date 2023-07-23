@@ -62,6 +62,12 @@ type LocalConfig struct {
 	// blocking forever on an observation would break the oracle.)
 	DatabaseTimeout time.Duration
 
+	// OCR2's MaxDurationQuery will be computed as
+	// max(MinOCR2MaxDurationQuery, MaxDurationQuery). Don't use this value
+	// unless you understand the potential pitfalls of doing so. No further
+	// validation will be done on this value.
+	MinOCR2MaxDurationQuery time.Duration
+
 	// DANGER, this turns off all kinds of sanity checks. May be useful for testing.
 	// Set this to EnableDangerousDevelopmentMode to turn on dev mode.
 	DevelopmentMode string
