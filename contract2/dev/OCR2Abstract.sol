@@ -8,6 +8,20 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
   // Maximum number of oracles the offchain reporting protocol is designed for
   uint256 constant internal maxNumOracles = 31;
 
+  // The active config which has been persisted if enabled
+  struct Config {
+    uint32 previousConfigBlockNumber;
+    uint32 currentConfigBlockNumber;
+    bytes32 configDigest;
+    uint64 configCount;
+    address[] signers;
+    address[] transmitters;
+    uint8 f;
+    bytes onchainConfig;
+    uint64 offchainConfigVersion;
+    bytes offchainConfig;
+  }
+
   /**
    * @notice triggers a new run of the offchain reporting protocol
    * @param previousConfigBlockNumber block in which the previous config was set, to simplify historic analysis
@@ -67,6 +81,18 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
       uint32 blockNumber,
       bytes32 configDigest
     );
+
+  /**
+   * @notice this returns whether the contract is persisting the latest config
+   * @return true if the contract is persisting the latest config
+   */
+  function persistConfig() external view virtual returns (bool);
+
+  /**
+   * @notice if persistence is enabled, this returns the latest configuration
+   * @return config struct containing the latest configuration
+   */
+  function latestConfig() external view virtual returns (Config memory config);
 
   function _configDigestFromConfigData(
     uint256 chainId,

@@ -134,7 +134,10 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   int192 immutable public minAnswer;
   // Highest answer the system is allowed to report in response to transmissions
   int192 immutable public maxAnswer;
-
+  // The active config which has been persisted onchain
+  Config internal s_config;
+  // We may want to persist configurations on chains where not every node is an archive node
+  bool internal immutable s_persistConfig;
   /***************************************************************************
    * Section: Constructor
    **************************************************************************/
@@ -146,6 +149,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
    * @param requesterAccessController access controller for requesting new rounds
    * @param decimals_ answers are stored in fixed-point format, with this many digits of precision
    * @param description_ short human-readable description of observable this contract's answers pertain to
+   * @param persistConfig_ whether to persist the active configuration
    */
   constructor(
     LinkTokenInterface link,
@@ -154,7 +158,8 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     AccessControllerInterface billingAccessController,
     AccessControllerInterface requesterAccessController,
     uint8 decimals_,
-    string memory description_
+    string memory description_,
+    bool persistConfig_
   ) {
     s_linkToken = link;
     emit LinkTokenSet(LinkTokenInterface(address(0)), link);
@@ -166,6 +171,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     setValidatorConfig(AggregatorValidatorInterface(address(0x0)), 0);
     minAnswer = minAnswer_;
     maxAnswer = maxAnswer_;
+    s_persistConfig = persistConfig_;
   }
 
 
@@ -281,6 +287,21 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
       args.offchainConfig
     );
 
+    if(s_persistConfig) {
+      s_config = Config(
+        previousConfigBlockNumber,
+        s_latestConfigBlockNumber,
+        s_latestConfigDigest,
+        s_configCount,
+        args.signers,
+        args.transmitters,
+        args.f,
+        args.onchainConfig,
+        args.offchainConfigVersion,
+        args.offchainConfig
+      );
+    }
+
     emit ConfigSet(
       previousConfigBlockNumber,
       s_latestConfigDigest,
@@ -311,6 +332,20 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     )
   {
     return (s_configCount, s_latestConfigBlockNumber, s_latestConfigDigest);
+  }
+
+  /// @inheritdoc OCR2Abstract
+  function persistConfig() external view override returns (bool)
+  {
+    return s_persistConfig;
+  }
+
+  /// @inheritdoc OCR2Abstract
+  function latestConfig() external view override returns (Config memory config)
+  {
+    require(msg.sender == tx.origin, "Only callable by EOA");
+
+    return s_config;
   }
 
   /**

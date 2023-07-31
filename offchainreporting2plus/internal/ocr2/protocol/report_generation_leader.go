@@ -75,14 +75,19 @@ func (repgen *reportGenerationState) startRound() {
 	repgen.leaderState.readyToStartRound = false
 	var query types.Query
 	{
-		ctx, cancel := context.WithTimeout(repgen.ctx, repgen.config.MaxDurationQuery)
+		actualMaxDurationQuery := repgen.config.MaxDurationQuery
+		if actualMaxDurationQuery < repgen.localConfig.MinOCR2MaxDurationQuery {
+			actualMaxDurationQuery = repgen.localConfig.MinOCR2MaxDurationQuery
+		}
+
+		ctx, cancel := context.WithTimeout(repgen.ctx, actualMaxDurationQuery)
 		defer cancel()
 
 		ins := loghelper.NewIfNotStopped(
-			repgen.config.MaxDurationQuery+ReportingPluginTimeoutWarningGracePeriod,
+			actualMaxDurationQuery+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				repgen.logger.Error("ReportGeneration: ReportingPlugin.Query is taking too long", commontypes.LogFields{
-					"round": repgen.leaderState.r, "maxDuration": repgen.config.MaxDurationQuery,
+					"round": repgen.leaderState.r, "maxDuration": actualMaxDurationQuery,
 				})
 			},
 		)
