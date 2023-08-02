@@ -44,8 +44,8 @@ func Deserialize[RI any](b []byte) (protocol.Message[RI], *MessageWrapper, error
 func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 	msgWrapper := MessageWrapper{}
 	switch v := m.(type) {
-	case protocol.MessageNewEpoch[RI]:
-		pm := &MessageNewEpoch{
+	case protocol.MessageNewEpochWish[RI]:
+		pm := &MessageNewEpochWish{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -53,9 +53,9 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			// fields
 			uint64(v.Epoch),
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageNewEpoch{pm}
-	case protocol.MessageReconcile[RI]:
-		pm := &MessageReconcile{
+		msgWrapper.Msg = &MessageWrapper_MessageNewEpochWish{pm}
+	case protocol.MessageEpochStartRequest[RI]:
+		pm := &MessageEpochStartRequest{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -65,20 +65,20 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			CertifiedPrepareOrCommitToProtoMessage(v.HighestCertified),
 			signedHighestCertifiedTimestampToProtoMessage(v.SignedHighestCertifiedTimestamp),
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageReconcile{pm}
-	case protocol.MessageStartEpoch[RI]:
-		pm := &MessageStartEpoch{
+		msgWrapper.Msg = &MessageWrapper_MessageEpochStartRequest{pm}
+	case protocol.MessageEpochStart[RI]:
+		pm := &MessageEpochStart{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
 			nil,
 			// fields
 			uint64(v.Epoch),
-			startEpochProofToProtoMessage(v.StartEpochProof),
+			epochStartProofToProtoMessage(v.EpochStartProof),
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageStartEpoch{pm}
-	case protocol.MessageStartRound[RI]:
-		pm := &MessageStartRound{
+		msgWrapper.Msg = &MessageWrapper_MessageEpochStart{pm}
+	case protocol.MessageRoundStart[RI]:
+		pm := &MessageRoundStart{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -88,9 +88,9 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			v.SeqNr,
 			v.Query,
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageStartRound{pm}
-	case protocol.MessageObserve[RI]:
-		pm := &MessageObserve{
+		msgWrapper.Msg = &MessageWrapper_MessageRoundStart{pm}
+	case protocol.MessageObservation[RI]:
+		pm := &MessageObservation{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -100,14 +100,14 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			v.SeqNr,
 			signedObservationToProtoMessage(v.SignedObservation),
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageObserve{pm}
+		msgWrapper.Msg = &MessageWrapper_MessageObservation{pm}
 
-	case protocol.MessagePropose[RI]:
+	case protocol.MessageProposal[RI]:
 		pbasos := make([]*AttributedSignedObservation, 0, len(v.AttributedSignedObservations))
 		for _, aso := range v.AttributedSignedObservations {
 			pbasos = append(pbasos, attributedSignedObservationToProtoMessage(aso))
 		}
-		pm := &MessagePropose{
+		pm := &MessageProposal{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -117,7 +117,7 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			v.SeqNr,
 			pbasos,
 		}
-		msgWrapper.Msg = &MessageWrapper_MessagePropose{pm}
+		msgWrapper.Msg = &MessageWrapper_MessageProposal{pm}
 	case protocol.MessagePrepare[RI]:
 		pm := &MessagePrepare{
 			// zero-initialize protobuf built-ins
@@ -142,8 +142,8 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			v.Signature,
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageCommit{pm}
-	case protocol.MessageFinal[RI]:
-		pm := &MessageFinal{
+	case protocol.MessageReportSignatures[RI]:
+		pm := &MessageReportSignatures{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -152,9 +152,9 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			v.SeqNr,
 			v.ReportSignatures,
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageFinal{pm}
-	case protocol.MessageRequestCertifiedCommit[RI]:
-		pm := &MessageRequestCertifiedCommit{
+		msgWrapper.Msg = &MessageWrapper_MessageReportSignatures{pm}
+	case protocol.MessageCertifiedCommitRequest[RI]:
+		pm := &MessageCertifiedCommitRequest{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
@@ -162,17 +162,17 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 			// fields
 			v.SeqNr,
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageRequestCertifiedCommit{pm}
-	case protocol.MessageSupplyCertifiedCommit[RI]:
-		pm := &MessageSupplyCertifiedCommit{
+		msgWrapper.Msg = &MessageWrapper_MessageCertifiedCommitRequest{pm}
+	case protocol.MessageCertifiedCommit[RI]:
+		pm := &MessageCertifiedCommit{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
 			nil,
 			// fields
-			CertifiedPrepareOrCommitCommitToProtoMessage(v.CertifiedCommit),
+			CertifiedCommitToProtoMessage(v.CertifiedCommit),
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageSupplyCertifiedCommit{pm}
+		msgWrapper.Msg = &MessageWrapper_MessageCertifiedCommit{pm}
 
 	default:
 		return nil, fmt.Errorf("unable to serialize message of type %T", m)
@@ -183,7 +183,7 @@ func toProtoMessage[RI any](m protocol.Message[RI]) (*MessageWrapper, error) {
 
 func CertifiedPrepareOrCommitToProtoMessage(cpoc protocol.CertifiedPrepareOrCommit) *CertifiedPrepareOrCommit {
 	switch v := cpoc.(type) {
-	case *protocol.CertifiedPrepareOrCommitPrepare:
+	case *protocol.CertifiedPrepare:
 		prepareQuorumCertificate := make([]*AttributedPrepareSignature, 0, len(v.PrepareQuorumCertificate))
 		for _, aps := range v.PrepareQuorumCertificate {
 			prepareQuorumCertificate = append(prepareQuorumCertificate, &AttributedPrepareSignature{
@@ -202,7 +202,7 @@ func CertifiedPrepareOrCommitToProtoMessage(cpoc protocol.CertifiedPrepareOrComm
 			0,
 			nil,
 			// fields
-			&CertifiedPrepareOrCommit_Prepare{&CertifiedPrepareOrCommitPrepare{
+			&CertifiedPrepareOrCommit_Prepare{&CertifiedPrepare{
 				// zero-initialize protobuf built-ins
 				protoimpl.MessageState{},
 				0,
@@ -215,22 +215,23 @@ func CertifiedPrepareOrCommitToProtoMessage(cpoc protocol.CertifiedPrepareOrComm
 				prepareQuorumCertificate,
 			}},
 		}
-	case *protocol.CertifiedPrepareOrCommitCommit:
+	case *protocol.CertifiedCommit:
 		return &CertifiedPrepareOrCommit{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
 			nil,
 			// fields
-			&CertifiedPrepareOrCommit_Commit{CertifiedPrepareOrCommitCommitToProtoMessage(*v)},
+			&CertifiedPrepareOrCommit_Commit{CertifiedCommitToProtoMessage(*v)},
 		}
 	default:
-
-		panic("unrecognized")
+		// It's safe to crash here since the "protocol.*" versions of these values
+		// come from the trusted, local environment.
+		panic("unrecognized protocol.CertifiedPrepareOrCommit implementation")
 	}
 }
 
-func CertifiedPrepareOrCommitCommitToProtoMessage(cpocc protocol.CertifiedPrepareOrCommitCommit) *CertifiedPrepareOrCommitCommit {
+func CertifiedCommitToProtoMessage(cpocc protocol.CertifiedCommit) *CertifiedCommit {
 	commitQuorumCertificate := make([]*AttributedCommitSignature, 0, len(cpocc.CommitQuorumCertificate))
 	for _, aps := range cpocc.CommitQuorumCertificate {
 		commitQuorumCertificate = append(commitQuorumCertificate, &AttributedCommitSignature{
@@ -243,7 +244,7 @@ func CertifiedPrepareOrCommitCommitToProtoMessage(cpocc protocol.CertifiedPrepar
 			uint32(aps.Signer),
 		})
 	}
-	return &CertifiedPrepareOrCommitCommit{
+	return &CertifiedCommit{
 		// zero-initialize protobuf built-ins
 		protoimpl.MessageState{},
 		0,
@@ -292,12 +293,12 @@ func highestCertifiedTimestampToProtoMessage(hct protocol.HighestCertifiedTimest
 	}
 }
 
-func startEpochProofToProtoMessage(srqc protocol.StartEpochProof) *StartEpochProof {
+func epochStartProofToProtoMessage(srqc protocol.EpochStartProof) *EpochStartProof {
 	highestCertifiedProof := make([]*AttributedSignedHighestCertifiedTimestamp, 0, len(srqc.HighestCertifiedProof))
 	for _, ashct := range srqc.HighestCertifiedProof {
 		highestCertifiedProof = append(highestCertifiedProof, attributedSignedHighestCertifiedTimestampToProtoMessage(ashct))
 	}
-	return &StartEpochProof{
+	return &EpochStartProof{
 		// zero-initialize protobuf built-ins
 		protoimpl.MessageState{},
 		0,
@@ -332,90 +333,102 @@ func attributedSignedObservationToProtoMessage(aso protocol.AttributedSignedObse
 	}
 }
 
+func PacemakerStateToProtoMessage(ps protocol.PacemakerState) *PacemakerState {
+	return &PacemakerState{
+		// zero-initialize protobuf built-ins
+		protoimpl.MessageState{},
+		0,
+		nil,
+		// fields
+		ps.Epoch,
+		ps.HighestSentNewEpochWish,
+	}
+}
+
 //
 // *fromProtoMessage
 //
 
 func messageWrapperFromProtoMessage[RI any](wrapper *MessageWrapper) (protocol.Message[RI], error) {
 	switch msg := wrapper.Msg.(type) {
-	case *MessageWrapper_MessageNewEpoch:
-		return messageNewEpochFromProtoMessage[RI](wrapper.GetMessageNewEpoch())
-	case *MessageWrapper_MessageReconcile:
-		return messageReconcileFromProtoMessage[RI](wrapper.GetMessageReconcile())
-	case *MessageWrapper_MessageStartEpoch:
-		return messageStartEpochFromProtoMessage[RI](wrapper.GetMessageStartEpoch())
-	case *MessageWrapper_MessageStartRound:
-		return messageStartRoundFromProtoMessage[RI](wrapper.GetMessageStartRound())
-	case *MessageWrapper_MessageObserve:
-		return messageObserveFromProtoMessage[RI](wrapper.GetMessageObserve())
-	case *MessageWrapper_MessagePropose:
-		return messageProposeFromProtoMessage[RI](wrapper.GetMessagePropose())
+	case *MessageWrapper_MessageNewEpochWish:
+		return messageNewEpochWishFromProtoMessage[RI](wrapper.GetMessageNewEpochWish())
+	case *MessageWrapper_MessageEpochStartRequest:
+		return messageEpochStartRequestFromProtoMessage[RI](wrapper.GetMessageEpochStartRequest())
+	case *MessageWrapper_MessageEpochStart:
+		return messageEpochStartFromProtoMessage[RI](wrapper.GetMessageEpochStart())
+	case *MessageWrapper_MessageRoundStart:
+		return messageRoundStartFromProtoMessage[RI](wrapper.GetMessageRoundStart())
+	case *MessageWrapper_MessageObservation:
+		return messageObservationFromProtoMessage[RI](wrapper.GetMessageObservation())
+	case *MessageWrapper_MessageProposal:
+		return messageProposalFromProtoMessage[RI](wrapper.GetMessageProposal())
 	case *MessageWrapper_MessagePrepare:
 		return messagePrepareFromProtoMessage[RI](wrapper.GetMessagePrepare())
 	case *MessageWrapper_MessageCommit:
 		return messageCommitFromProtoMessage[RI](wrapper.GetMessageCommit())
-	case *MessageWrapper_MessageFinal:
-		return messageFinalFromProtoMessage[RI](wrapper.GetMessageFinal())
-	case *MessageWrapper_MessageRequestCertifiedCommit:
-		return messageRequestCertifiedCommitFromProtoMessage[RI](wrapper.GetMessageRequestCertifiedCommit())
-	case *MessageWrapper_MessageSupplyCertifiedCommit:
-		return messageSupplyCertifiedCommitFromProtoMessage[RI](wrapper.GetMessageSupplyCertifiedCommit())
+	case *MessageWrapper_MessageReportSignatures:
+		return messageReportSignaturesFromProtoMessage[RI](wrapper.GetMessageReportSignatures())
+	case *MessageWrapper_MessageCertifiedCommitRequest:
+		return messageCertifiedCommitRequestFromProtoMessage[RI](wrapper.GetMessageCertifiedCommitRequest())
+	case *MessageWrapper_MessageCertifiedCommit:
+		return messageCertifiedCommitFromProtoMessage[RI](wrapper.GetMessageCertifiedCommit())
 	default:
 		return nil, fmt.Errorf("unrecognized Msg type %T", msg)
 	}
 }
 
-func messageNewEpochFromProtoMessage[RI any](m *MessageNewEpoch) (protocol.MessageNewEpoch[RI], error) {
+func messageNewEpochWishFromProtoMessage[RI any](m *MessageNewEpochWish) (protocol.MessageNewEpochWish[RI], error) {
 	if m == nil {
-		return protocol.MessageNewEpoch[RI]{}, fmt.Errorf("unable to extract a MessageNewEpoch value")
+		return protocol.MessageNewEpochWish[RI]{}, fmt.Errorf("unable to extract a MessageNewEpochWish value")
 	}
-	return protocol.MessageNewEpoch[RI]{
+	return protocol.MessageNewEpochWish[RI]{
 		m.Epoch,
 	}, nil
 }
 
-func messageReconcileFromProtoMessage[RI any](m *MessageReconcile) (protocol.MessageReconcile[RI], error) {
+func messageEpochStartRequestFromProtoMessage[RI any](m *MessageEpochStartRequest) (protocol.MessageEpochStartRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageReconcile[RI]{}, fmt.Errorf("unable to extract a MessageReconcile value")
+		return protocol.MessageEpochStartRequest[RI]{}, fmt.Errorf("unable to extract a MessageEpochStartRequest value")
 	}
 	hc, err := CertifiedPrepareOrCommitFromProtoMessage(m.HighestCertified)
 	if err != nil {
-		return protocol.MessageReconcile[RI]{}, err
+		return protocol.MessageEpochStartRequest[RI]{}, err
 	}
 	shct, err := signedHighestCertifiedTimestampFromProtoMessage(m.SignedHighestCertifiedTimestamp)
 	if err != nil {
-		return protocol.MessageReconcile[RI]{}, err
+		return protocol.MessageEpochStartRequest[RI]{}, err
 	}
-	return protocol.MessageReconcile[RI]{
+	return protocol.MessageEpochStartRequest[RI]{
 		m.Epoch,
 		hc,
 		shct,
 	}, nil
 }
 
-func messageStartEpochFromProtoMessage[RI any](m *MessageStartEpoch) (protocol.MessageStartEpoch[RI], error) {
+func messageEpochStartFromProtoMessage[RI any](m *MessageEpochStart) (protocol.MessageEpochStart[RI], error) {
 	if m == nil {
-		return protocol.MessageStartEpoch[RI]{}, fmt.Errorf("unable to extract a MessageStartEpoch value")
+		return protocol.MessageEpochStart[RI]{}, fmt.Errorf("unable to extract a MessageEpochStart value")
 	}
-	srqc, err := startEpochProofFromProtoMessage(m.StartEpochProof)
+	srqc, err := epochStartProofFromProtoMessage(m.EpochStartProof)
 	if err != nil {
-		return protocol.MessageStartEpoch[RI]{}, err
+		return protocol.MessageEpochStart[RI]{}, err
 	}
-	return protocol.MessageStartEpoch[RI]{
+	return protocol.MessageEpochStart[RI]{
 		m.Epoch,
 		srqc,
 	}, nil
 }
 
-func messageProposeFromProtoMessage[RI any](m *MessagePropose) (protocol.MessagePropose[RI], error) {
+func messageProposalFromProtoMessage[RI any](m *MessageProposal) (protocol.MessageProposal[RI], error) {
 	if m == nil {
-		return protocol.MessagePropose[RI]{}, fmt.Errorf("unable to extract a MessagePropose value")
+		return protocol.MessageProposal[RI]{}, fmt.Errorf("unable to extract a MessageProposal value")
 	}
 	asos, err := attributedSignedObservationsFromProtoMessage(m.AttributedSignedObservations)
 	if err != nil {
-		return protocol.MessagePropose[RI]{}, err
+		return protocol.MessageProposal[RI]{}, err
 	}
-	return protocol.MessagePropose[RI]{
+	return protocol.MessageProposal[RI]{
 		m.Epoch,
 		m.SeqNr,
 		asos,
@@ -461,7 +474,7 @@ func CertifiedPrepareOrCommitFromProtoMessage(m *CertifiedPrepareOrCommit) (prot
 		var outcomeInputsDigest protocol.OutcomeInputsDigest
 		copy(outcomeInputsDigest[:], poc.Prepare.OutcomeInputsDigest)
 
-		return &protocol.CertifiedPrepareOrCommitPrepare{
+		return &protocol.CertifiedPrepare{
 			poc.Prepare.PrepareEpoch,
 			poc.Prepare.SeqNr,
 			outcomeInputsDigest,
@@ -469,7 +482,7 @@ func CertifiedPrepareOrCommitFromProtoMessage(m *CertifiedPrepareOrCommit) (prot
 			prepareQuorumCertificate,
 		}, nil
 	case *CertifiedPrepareOrCommit_Commit:
-		cpocc, err := certifiedPrepareOrCommitCommitFromProtoMessage(poc.Commit)
+		cpocc, err := certifiedCommitFromProtoMessage(poc.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -479,9 +492,9 @@ func CertifiedPrepareOrCommitFromProtoMessage(m *CertifiedPrepareOrCommit) (prot
 	}
 }
 
-func certifiedPrepareOrCommitCommitFromProtoMessage(m *CertifiedPrepareOrCommitCommit) (protocol.CertifiedPrepareOrCommitCommit, error) {
+func certifiedCommitFromProtoMessage(m *CertifiedCommit) (protocol.CertifiedCommit, error) {
 	if m == nil {
-		return protocol.CertifiedPrepareOrCommitCommit{}, fmt.Errorf("unable to extract a CertifiedPrepareOrCommitCommit value")
+		return protocol.CertifiedCommit{}, fmt.Errorf("unable to extract a CertifiedCommit value")
 	}
 	commitQuorumCertificate := make([]protocol.AttributedCommitSignature, 0, len(m.CommitQuorumCertificate))
 	for _, aps := range m.CommitQuorumCertificate {
@@ -490,7 +503,7 @@ func certifiedPrepareOrCommitCommitFromProtoMessage(m *CertifiedPrepareOrCommitC
 			commontypes.OracleID(aps.GetSigner()),
 		})
 	}
-	return protocol.CertifiedPrepareOrCommitCommit{
+	return protocol.CertifiedCommit{
 		m.CommitEpoch,
 		m.SeqNr,
 		m.Outcome,
@@ -508,13 +521,13 @@ func signedHighestCertifiedTimestampFromProtoMessage(m *SignedHighestCertifiedTi
 	}, nil
 }
 
-func startEpochProofFromProtoMessage(m *StartEpochProof) (protocol.StartEpochProof, error) {
+func epochStartProofFromProtoMessage(m *EpochStartProof) (protocol.EpochStartProof, error) {
 	if m == nil {
-		return protocol.StartEpochProof{}, fmt.Errorf("unable to extract a StartEpochProof value")
+		return protocol.EpochStartProof{}, fmt.Errorf("unable to extract a EpochStartProof value")
 	}
 	hc, err := CertifiedPrepareOrCommitFromProtoMessage(m.HighestCertified)
 	if err != nil {
-		return protocol.StartEpochProof{}, err
+		return protocol.EpochStartProof{}, err
 	}
 	hctqc := make([]protocol.AttributedSignedHighestCertifiedTimestamp, 0, len(m.HighestCertifiedProof))
 	for _, ashct := range m.HighestCertifiedProof {
@@ -530,66 +543,66 @@ func startEpochProofFromProtoMessage(m *StartEpochProof) (protocol.StartEpochPro
 		})
 	}
 
-	return protocol.StartEpochProof{
+	return protocol.EpochStartProof{
 		hc,
 		hctqc,
 	}, nil
 }
 
-func messageStartRoundFromProtoMessage[RI any](m *MessageStartRound) (protocol.MessageStartRound[RI], error) {
+func messageRoundStartFromProtoMessage[RI any](m *MessageRoundStart) (protocol.MessageRoundStart[RI], error) {
 	if m == nil {
-		return protocol.MessageStartRound[RI]{}, fmt.Errorf("unable to extract a MessageStartRound value")
+		return protocol.MessageRoundStart[RI]{}, fmt.Errorf("unable to extract a MessageRoundStart value")
 	}
-	return protocol.MessageStartRound[RI]{
+	return protocol.MessageRoundStart[RI]{
 		m.Epoch,
 		m.SeqNr,
 		m.Query,
 	}, nil
 }
 
-func messageObserveFromProtoMessage[RI any](m *MessageObserve) (protocol.MessageObserve[RI], error) {
+func messageObservationFromProtoMessage[RI any](m *MessageObservation) (protocol.MessageObservation[RI], error) {
 	if m == nil {
-		return protocol.MessageObserve[RI]{}, fmt.Errorf("unable to extract a MessageObserve value")
+		return protocol.MessageObservation[RI]{}, fmt.Errorf("unable to extract a MessageObservation value")
 	}
 	so, err := signedObservationFromProtoMessage(m.SignedObservation)
 	if err != nil {
-		return protocol.MessageObserve[RI]{}, err
+		return protocol.MessageObservation[RI]{}, err
 	}
-	return protocol.MessageObserve[RI]{
+	return protocol.MessageObservation[RI]{
 		m.Epoch,
 		m.SeqNr,
 		so,
 	}, nil
 }
 
-func messageFinalFromProtoMessage[RI any](m *MessageFinal) (protocol.MessageFinal[RI], error) {
+func messageReportSignaturesFromProtoMessage[RI any](m *MessageReportSignatures) (protocol.MessageReportSignatures[RI], error) {
 	if m == nil {
-		return protocol.MessageFinal[RI]{}, fmt.Errorf("unable to extract a MessageFinal value")
+		return protocol.MessageReportSignatures[RI]{}, fmt.Errorf("unable to extract a MessageReportSignatures value")
 	}
-	return protocol.MessageFinal[RI]{
+	return protocol.MessageReportSignatures[RI]{
 		m.SeqNr,
 		m.ReportSignatures,
 	}, nil
 }
 
-func messageRequestCertifiedCommitFromProtoMessage[RI any](m *MessageRequestCertifiedCommit) (protocol.MessageRequestCertifiedCommit[RI], error) {
+func messageCertifiedCommitRequestFromProtoMessage[RI any](m *MessageCertifiedCommitRequest) (protocol.MessageCertifiedCommitRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageRequestCertifiedCommit[RI]{}, fmt.Errorf("unable to extract a MessageRequestCertifiedCommit value")
+		return protocol.MessageCertifiedCommitRequest[RI]{}, fmt.Errorf("unable to extract a MessageCertifiedCommitRequest value")
 	}
-	return protocol.MessageRequestCertifiedCommit[RI]{
+	return protocol.MessageCertifiedCommitRequest[RI]{
 		m.SeqNr,
 	}, nil
 }
 
-func messageSupplyCertifiedCommitFromProtoMessage[RI any](m *MessageSupplyCertifiedCommit) (protocol.MessageSupplyCertifiedCommit[RI], error) {
+func messageCertifiedCommitFromProtoMessage[RI any](m *MessageCertifiedCommit) (protocol.MessageCertifiedCommit[RI], error) {
 	if m == nil {
-		return protocol.MessageSupplyCertifiedCommit[RI]{}, fmt.Errorf("unable to extract a MessageSupplyCertifiedCommit value")
+		return protocol.MessageCertifiedCommit[RI]{}, fmt.Errorf("unable to extract a MessageCertifiedCommit value")
 	}
-	cpocc, err := certifiedPrepareOrCommitCommitFromProtoMessage(m.CertifiedCommit)
+	cpocc, err := certifiedCommitFromProtoMessage(m.CertifiedCommit)
 	if err != nil {
-		return protocol.MessageSupplyCertifiedCommit[RI]{}, err
+		return protocol.MessageCertifiedCommit[RI]{}, err
 	}
-	return protocol.MessageSupplyCertifiedCommit[RI]{
+	return protocol.MessageCertifiedCommit[RI]{
 		cpocc,
 	}, nil
 }
@@ -624,11 +637,22 @@ func attributedSignedObservationFromProtoMessage(m *AttributedSignedObservation)
 
 func signedObservationFromProtoMessage(m *SignedObservation) (protocol.SignedObservation, error) {
 	if m == nil {
-		return protocol.SignedObservation{}, fmt.Errorf("unable to extract an SignedObservation value")
+		return protocol.SignedObservation{}, fmt.Errorf("unable to extract a SignedObservation value")
 	}
 
 	return protocol.SignedObservation{
 		m.Observation,
 		m.Signature,
+	}, nil
+}
+
+func PacemakerStateFromProtoMessage(m *PacemakerState) (protocol.PacemakerState, error) {
+	if m == nil {
+		return protocol.PacemakerState{}, fmt.Errorf("unable to extract a PacemakerState value")
+	}
+
+	return protocol.PacemakerState{
+		m.Epoch,
+		m.HighestSentNewEpochWish,
 	}, nil
 }

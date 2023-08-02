@@ -295,19 +295,69 @@ func ContractSetConfigArgsForTests(
 	)
 }
 
-// ContractSetConfigArgsForTestsWithAuxiliaryArgsMercuryV02 generates setConfig
-// args for mercury v0.2. Only use this for testing, *not* for production.
+// Deprecated: Use corresponding function in ocr3confighelper
 func ContractSetConfigArgsForTestsMercuryV02(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
+	deltaInitial time.Duration,
 	deltaRound time.Duration,
 	deltaGrace time.Duration,
+	deltaCertifiedCommitRequest time.Duration,
 	deltaStage time.Duration,
 	rMax uint8,
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
 	maxDurationObservation time.Duration,
+	f int,
+	onchainConfig []byte,
+) (
+	signers []types.OnchainPublicKey,
+	transmitters []types.Account,
+	f_ uint8,
+	onchainConfig_ []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
+	err error,
+) {
+	return ContractSetConfigArgsForTestsOCR3(
+		deltaProgress,
+		deltaResend,
+		deltaInitial,
+		deltaRound,
+		deltaGrace,
+		deltaCertifiedCommitRequest,
+		deltaStage,
+		uint64(rMax),
+		s,
+		oracles,
+		reportingPluginConfig,
+		0,
+		maxDurationObservation,
+		0,
+		0,
+		f,
+		onchainConfig,
+	)
+}
+
+// Deprecated: Use corresponding function in ocr3confighelper
+func ContractSetConfigArgsForTestsOCR3(
+	deltaProgress time.Duration,
+	deltaResend time.Duration,
+	deltaInitial time.Duration,
+	deltaRound time.Duration,
+	deltaGrace time.Duration,
+	deltaCertifiedCommitRequest time.Duration,
+	deltaStage time.Duration,
+	rMax uint64,
+	s []int,
+	oracles []OracleIdentityExtra,
+	reportingPluginConfig []byte,
+	maxDurationQuery time.Duration,
+	maxDurationObservation time.Duration,
+	maxDurationShouldAcceptAttestedReport time.Duration,
+	maxDurationShouldTransmitAcceptedReport time.Duration,
 	f int,
 	onchainConfig []byte,
 ) (
@@ -340,17 +390,19 @@ func ContractSetConfigArgsForTestsMercuryV02(
 		ocr3config.PublicConfig{
 			deltaProgress,
 			deltaResend,
+			deltaInitial,
 			deltaRound,
 			deltaGrace,
+			deltaCertifiedCommitRequest,
 			deltaStage,
-			uint64(rMax),
+			rMax,
 			s,
 			identities,
 			reportingPluginConfig,
-			0, // not used
+			maxDurationQuery,
 			maxDurationObservation,
-			0, // not used
-			0, // not used
+			maxDurationShouldAcceptAttestedReport,
+			maxDurationShouldTransmitAcceptedReport,
 			f,
 			onchainConfig,
 			types.ConfigDigest{},
