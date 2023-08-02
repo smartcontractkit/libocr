@@ -4,13 +4,14 @@ import (
 	"container/heap"
 )
 
+// LessFn defines a less-than relation between a and b, i.e. a < b
 type LessFn[T any] func(a, b T) bool
 
 func NewMinHeap[T any](lessFn LessFn[T]) *MinHeap[T] {
 	return &MinHeap[T]{minHeapInternal[T]{lessFn, nil}}
 }
 
-// Type safe wrapper around minHeapInternal
+// Type-safe wrapper around minHeapInternal
 type MinHeap[T any] struct {
 	internal minHeapInternal[T]
 }

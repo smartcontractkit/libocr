@@ -1,22 +1,18 @@
 package protocol //
 
 import (
+	"crypto/ed25519"
+
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/byzquorum"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-// EventToPacemaker is the interface used to pass in-process events to the
-// leader-election protocol.
 type EventToPacemaker[RI any] interface {
-	// processPacemaker is called when the local oracle process invokes an event
-	// intended for the leader-election protocol.
 	processPacemaker(pace *pacemakerState[RI])
 }
 
-// EventProgress is used to process the "progress" event passed by the local
-// oracle from its the reporting protocol to the leader-election protocol. It is
-// sent by the reporting protocol when the leader has produced a valid new
-// report.
 type EventProgress[RI any] struct{}
 
 var _ EventToPacemaker[struct{}] = (*EventProgress[struct{}])(nil) // implements EventToPacemaker
@@ -25,36 +21,32 @@ func (ev EventProgress[RI]) processPacemaker(pace *pacemakerState[RI]) {
 	pace.eventProgress()
 }
 
-// EventChangeLeader is used to process the "change-leader" event passed by the
-// local oracle from its the reporting protocol to the leader-election protocol
-type EventChangeLeader[RI any] struct{}
+type EventNewEpochRequest[RI any] struct{}
 
-var _ EventToPacemaker[struct{}] = (*EventChangeLeader[struct{}])(nil) // implements EventToPacemaker
+var _ EventToPacemaker[struct{}] = (*EventNewEpochRequest[struct{}])(nil) // implements EventToPacemaker
 
-func (ev EventChangeLeader[RI]) processPacemaker(pace *pacemakerState[RI]) {
-	pace.eventChangeLeader()
+func (ev EventNewEpochRequest[RI]) processPacemaker(pace *pacemakerState[RI]) {
+	pace.eventNewEpochRequest()
 }
 
-type EventToReportGeneration[RI any] interface {
-	processReportGeneration(repgen *reportGenerationState[RI])
+type EventToOutcomeGeneration[RI any] interface {
+	processOutcomeGeneration(outgen *outcomeGenerationState[RI])
 }
 
-type EventStartNewEpoch[RI any] struct {
+type EventNewEpochStart[RI any] struct {
 	Epoch uint64
 }
 
-var _ EventToReportGeneration[struct{}] = EventStartNewEpoch[struct{}]{}
+var _ EventToOutcomeGeneration[struct{}] = EventNewEpochStart[struct{}]{}
 
-func (ev EventStartNewEpoch[RI]) processReportGeneration(repgen *reportGenerationState[RI]) {
-	repgen.eventStartNewEpoch(ev)
+func (ev EventNewEpochStart[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventNewEpochStart(ev)
 }
 
-type EventToReportFinalization[RI any] interface {
-	processReportFinalization(repfin *reportFinalizationState[RI])
+type EventToReportAttestation[RI any] interface {
+	processReportAttestation(repfin *reportAttestationState[RI])
 }
 
-// EventToTransmission is the interface used to pass a completed report to the
-// protocol which will transmit it to the on-chain smart contract.
 type EventToTransmission[RI any] interface {
 	processTransmission(t *transmissionState[RI])
 }
@@ -64,7 +56,7 @@ type EventToTransmission[RI any] interface {
 type Message[RI any] interface {
 	// CheckSize checks whether the given message conforms to the limits imposed by
 	// reportingPluginLimits
-	CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool
+	CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool
 
 	// process passes this Message instance to the oracle o, as a message from
 	// oracle with the given sender index
@@ -77,212 +69,218 @@ type MessageWithSender[RI any] struct {
 	Sender commontypes.OracleID
 }
 
-// MessageToPacemaker is the interface used to pass a message to the local
-// leader-election protocol
 type MessageToPacemaker[RI any] interface {
 	Message[RI]
 
-	// process passes this MessageToPacemaker instance to the oracle o, as a
-	// message from oracle with the given sender index
 	processPacemaker(pace *pacemakerState[RI], sender commontypes.OracleID)
 }
 
-// MessageToPacemakerWithSender records a msg with the idx of the sender oracle
 type MessageToPacemakerWithSender[RI any] struct {
 	msg    MessageToPacemaker[RI]
 	sender commontypes.OracleID
 }
 
-// MessageToReportGeneration is the interface used to pass an inter-oracle message
-// to the local oracle reporting process.
-type MessageToReportGeneration[RI any] interface {
+type MessageToOutcomeGeneration[RI any] interface {
 	Message[RI]
 
-	// processReportGeneration is called to send this message to the local oracle
-	// reporting process.
-	processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID)
+	processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID)
 
 	epoch() uint64
 }
 
-// MessageToReportGenerationWithSender records a message destined for the oracle
-// reporting
-type MessageToReportGenerationWithSender[RI any] struct {
-	msg    MessageToReportGeneration[RI]
+type MessageToOutcomeGenerationWithSender[RI any] struct {
+	msg    MessageToOutcomeGeneration[RI]
 	sender commontypes.OracleID
 }
 
-type MessageToReportFinalization[RI any] interface {
+type MessageToReportAttestation[RI any] interface {
 	Message[RI]
 
-	processReportFinalization(repfin *reportFinalizationState[RI], sender commontypes.OracleID)
+	processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID)
 }
 
-type MessageToReportFinalizationWithSender[RI any] struct {
-	msg    MessageToReportFinalization[RI]
+type MessageToReportAttestationWithSender[RI any] struct {
+	msg    MessageToReportAttestation[RI]
 	sender commontypes.OracleID
 }
 
-// MessageNewEpoch corresponds to the "newepoch(epoch_number)" message from alg.
-// 1. It indicates that the node believes the protocol should move to the
-// specified epoch.
-type MessageNewEpoch[RI any] struct {
+type MessageNewEpochWish[RI any] struct {
 	Epoch uint64
 }
 
-var _ MessageToPacemaker[struct{}] = (*MessageNewEpoch[struct{}])(nil)
+var _ MessageToPacemaker[struct{}] = (*MessageNewEpochWish[struct{}])(nil)
 
-func (msg MessageNewEpoch[RI]) CheckSize(types.ReportingPluginLimits) bool {
+func (msg MessageNewEpochWish[RI]) CheckSize(n int, f int, _ ocr3types.ReportingPluginLimits, _ int) bool {
 	return true
 }
 
-func (msg MessageNewEpoch[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+func (msg MessageNewEpochWish[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
 	o.chNetToPacemaker <- MessageToPacemakerWithSender[RI]{msg, sender}
 }
 
-func (msg MessageNewEpoch[RI]) processPacemaker(pace *pacemakerState[RI], sender commontypes.OracleID) {
-	pace.messageNewepoch(msg, sender)
+func (msg MessageNewEpochWish[RI]) processPacemaker(pace *pacemakerState[RI], sender commontypes.OracleID) {
+	pace.messageNewEpochWish(msg, sender)
 }
 
-type MessageReconcile[RI any] struct {
+type MessageEpochStartRequest[RI any] struct {
 	Epoch                           uint64
 	HighestCertified                CertifiedPrepareOrCommit
 	SignedHighestCertifiedTimestamp SignedHighestCertifiedTimestamp
 }
 
-var _ MessageToReportGeneration[struct{}] = (*MessageReconcile[struct{}])(nil)
+var _ MessageToOutcomeGeneration[struct{}] = (*MessageEpochStartRequest[struct{}])(nil)
 
-func (msg MessageReconcile[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+func (msg MessageEpochStartRequest[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if !msg.HighestCertified.CheckSize(n, f, limits, maxReportSigLen) {
+		return false
+	}
+	if len(msg.SignedHighestCertifiedTimestamp.Signature) != ed25519.SignatureSize {
+		return false
+	}
 	return true
 }
 
-func (msg MessageReconcile[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+func (msg MessageEpochStartRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessageReconcile[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messageReconcile(msg, sender)
+func (msg MessageEpochStartRequest[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messageEpochStartRequest(msg, sender)
 }
 
-func (msg MessageReconcile[RI]) epoch() uint64 {
+func (msg MessageEpochStartRequest[RI]) epoch() uint64 {
 	return msg.Epoch
 }
 
-type MessageStartEpoch[RI any] struct {
+type MessageEpochStart[RI any] struct {
 	Epoch           uint64
-	StartEpochProof StartEpochProof
+	EpochStartProof EpochStartProof
 }
 
-var _ MessageToReportGeneration[struct{}] = (*MessageStartEpoch[struct{}])(nil)
+var _ MessageToOutcomeGeneration[struct{}] = (*MessageEpochStart[struct{}])(nil)
 
-func (msg MessageStartEpoch[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+func (msg MessageEpochStart[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if !msg.EpochStartProof.HighestCertified.CheckSize(n, f, limits, maxReportSigLen) {
+		return false
+	}
+	if len(msg.EpochStartProof.HighestCertifiedProof) != byzquorum.Size(n, f) {
+		return false
+	}
+	for _, ashct := range msg.EpochStartProof.HighestCertifiedProof {
+		if len(ashct.SignedHighestCertifiedTimestamp.Signature) != ed25519.SignatureSize {
+			return false
+		}
+	}
 	return true
 }
 
-func (msg MessageStartEpoch[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+func (msg MessageEpochStart[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessageStartEpoch[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messageStartEpoch(msg, sender)
+func (msg MessageEpochStart[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messageEpochStart(msg, sender)
 }
 
-func (msg MessageStartEpoch[RI]) epoch() uint64 {
+func (msg MessageEpochStart[RI]) epoch() uint64 {
 	return msg.Epoch
 }
 
-// MessageStartRound corresponds to the "observe-req" message from alg. 2. The
-// leader transmits this to request observations from participating oracles, so
-// that it can collate them into a report.
-type MessageStartRound[RI any] struct {
+type MessageRoundStart[RI any] struct {
 	Epoch uint64
 	SeqNr uint64
 	Query types.Query
 }
 
-var _ MessageToReportGeneration[struct{}] = (*MessageStartRound[struct{}])(nil)
+var _ MessageToOutcomeGeneration[struct{}] = (*MessageRoundStart[struct{}])(nil)
 
-func (msg MessageStartRound[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
-	return true
-	// return len(msg.Query) <= reportingPluginLimits.MaxQueryLength
+func (msg MessageRoundStart[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	return len(msg.Query) <= limits.MaxQueryLength
 }
 
-func (msg MessageStartRound[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+func (msg MessageRoundStart[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessageStartRound[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messageStartRound(msg, sender)
+func (msg MessageRoundStart[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messageRoundStart(msg, sender)
 }
 
-func (msg MessageStartRound[RI]) epoch() uint64 {
+func (msg MessageRoundStart[RI]) epoch() uint64 {
 	return msg.Epoch
 }
 
-// MessageObserve corresponds to the "observe" message from alg. 2.
-// Participating oracles send this back to the leader in response to
-// MessageStartRound's.
-type MessageObserve[RI any] struct {
+type MessageObservation[RI any] struct {
 	Epoch             uint64
 	SeqNr             uint64
 	SignedObservation SignedObservation
 }
 
-var _ MessageToReportGeneration[struct{}] = (*MessageObserve[struct{}])(nil)
+var _ MessageToOutcomeGeneration[struct{}] = (*MessageObservation[struct{}])(nil)
 
-func (msg MessageObserve[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
-	return true
-	// return len(msg.SignedObservation.Observation) <= reportingPluginLimits.MaxObservationLength
+func (msg MessageObservation[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	return len(msg.SignedObservation.Observation) <= limits.MaxObservationLength && len(msg.SignedObservation.Signature) == ed25519.SignatureSize
 }
 
-func (msg MessageObserve[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+func (msg MessageObservation[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessageObserve[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messageObserve(msg, sender)
+func (msg MessageObservation[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messageObservation(msg, sender)
 }
 
-func (msg MessageObserve[RI]) epoch() uint64 {
+func (msg MessageObservation[RI]) epoch() uint64 {
 	return msg.Epoch
 }
 
-type MessagePropose[RI any] struct {
+type MessageProposal[RI any] struct {
 	Epoch                        uint64
 	SeqNr                        uint64
 	AttributedSignedObservations []AttributedSignedObservation
 }
 
-var _ MessageToReportGeneration[struct{}] = MessagePropose[struct{}]{}
+var _ MessageToOutcomeGeneration[struct{}] = MessageProposal[struct{}]{}
 
-func (msg MessagePropose[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+func (msg MessageProposal[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if len(msg.AttributedSignedObservations) > n {
+		return false
+	}
+	for _, aso := range msg.AttributedSignedObservations {
+		if len(aso.SignedObservation.Observation) > limits.MaxObservationLength {
+			return false
+		}
+		if len(aso.SignedObservation.Signature) != ed25519.SignatureSize {
+			return false
+		}
+	}
 	return true
 }
 
-func (msg MessagePropose[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+func (msg MessageProposal[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessagePropose[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messagePropose(msg, sender)
+func (msg MessageProposal[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messageProposal(msg, sender)
 }
 
-func (msg MessagePropose[RI]) epoch() uint64 {
+func (msg MessageProposal[RI]) epoch() uint64 {
 	return msg.Epoch
 }
 
@@ -292,21 +290,21 @@ type MessagePrepare[RI any] struct {
 	Signature PrepareSignature
 }
 
-var _ MessageToReportGeneration[struct{}] = MessagePrepare[struct{}]{}
+var _ MessageToOutcomeGeneration[struct{}] = MessagePrepare[struct{}]{}
 
-func (msg MessagePrepare[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
-	return true
+func (msg MessagePrepare[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	return len(msg.Signature) == ed25519.SignatureSize
 }
 
 func (msg MessagePrepare[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessagePrepare[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messagePrepare(msg, sender)
+func (msg MessagePrepare[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messagePrepare(msg, sender)
 }
 
 func (msg MessagePrepare[RI]) epoch() uint64 {
@@ -319,122 +317,119 @@ type MessageCommit[RI any] struct {
 	Signature CommitSignature
 }
 
-var _ MessageToReportGeneration[struct{}] = MessageCommit[struct{}]{}
+var _ MessageToOutcomeGeneration[struct{}] = MessageCommit[struct{}]{}
 
-func (msg MessageCommit[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
-	return true
+func (msg MessageCommit[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	return len(msg.Signature) == ed25519.SignatureSize
 }
 
 func (msg MessageCommit[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportGeneration <- MessageToReportGenerationWithSender[RI]{
+	o.chNetToOutcomeGeneration <- MessageToOutcomeGenerationWithSender[RI]{
 		msg,
 		sender,
 	}
 }
 
-func (msg MessageCommit[RI]) processReportGeneration(repgen *reportGenerationState[RI], sender commontypes.OracleID) {
-	repgen.messageCommit(msg, sender)
+func (msg MessageCommit[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI], sender commontypes.OracleID) {
+	outgen.messageCommit(msg, sender)
 }
 
 func (msg MessageCommit[RI]) epoch() uint64 {
 	return msg.Epoch
 }
 
-// MessageFinal corresponds to the "final" message in alg. 2. It is sent by the
-// current leader with the aggregated signature(s) to all participating oracles,
-// for them to participate in the subsequent transmission of the report to the
-// on-chain contract.
-type MessageFinal[RI any] struct {
+type MessageReportSignatures[RI any] struct {
 	SeqNr            uint64
 	ReportSignatures [][]byte
 }
 
-var _ MessageToReportFinalization[struct{}] = MessageFinal[struct{}]{}
+var _ MessageToReportAttestation[struct{}] = MessageReportSignatures[struct{}]{}
 
-func (msg MessageFinal[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+func (msg MessageReportSignatures[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if len(msg.ReportSignatures) > limits.MaxReportCount {
+		return false
+	}
+	for _, sig := range msg.ReportSignatures {
+		if len(sig) > maxReportSigLen {
+			return false
+		}
+	}
+
 	return true
-
-	// return len(msg.AttestedReport.AttributedSignatures) <= types.MaxOracles &&
-	// 	len(msg.AttestedReport.Report) <= reportingPluginLimits.MaxReportLength
 }
 
-func (msg MessageFinal[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportFinalization <- MessageToReportFinalizationWithSender[RI]{msg, sender}
+func (msg MessageReportSignatures[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageFinal[RI]) processReportFinalization(repfin *reportFinalizationState[RI], sender commontypes.OracleID) {
-	repfin.messageFinal(msg, sender)
+func (msg MessageReportSignatures[RI]) processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID) {
+	repfin.messageReportSignatures(msg, sender)
 }
 
-type MessageRequestCertifiedCommit[RI any] struct {
+type MessageCertifiedCommitRequest[RI any] struct {
 	SeqNr uint64
 }
 
-var _ MessageToReportFinalization[struct{}] = MessageRequestCertifiedCommit[struct{}]{}
+var _ MessageToReportAttestation[struct{}] = MessageCertifiedCommitRequest[struct{}]{}
 
-func (msg MessageRequestCertifiedCommit[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
+func (msg MessageCertifiedCommitRequest[RI]) CheckSize(n int, f int, _ ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
 	return true
-
 }
 
-func (msg MessageRequestCertifiedCommit[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportFinalization <- MessageToReportFinalizationWithSender[RI]{msg, sender}
+func (msg MessageCertifiedCommitRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageRequestCertifiedCommit[RI]) processReportFinalization(repfin *reportFinalizationState[RI], sender commontypes.OracleID) {
-	repfin.messageRequestCertifiedCommit(msg, sender)
+func (msg MessageCertifiedCommitRequest[RI]) processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID) {
+	repfin.messageCertifiedCommitRequest(msg, sender)
 }
 
-type MessageSupplyCertifiedCommit[RI any] struct {
-	CertifiedCommit CertifiedPrepareOrCommitCommit
+type MessageCertifiedCommit[RI any] struct {
+	CertifiedCommit CertifiedCommit
 }
 
-var _ MessageToReportFinalization[struct{}] = MessageSupplyCertifiedCommit[struct{}]{}
+var _ MessageToReportAttestation[struct{}] = MessageCertifiedCommit[struct{}]{}
 
-func (msg MessageSupplyCertifiedCommit[RI]) CheckSize(reportingPluginLimits types.ReportingPluginLimits) bool {
-	return true
-
+func (msg MessageCertifiedCommit[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	return msg.CertifiedCommit.CheckSize(n, f, limits, maxReportSigLen)
 }
 
-func (msg MessageSupplyCertifiedCommit[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToReportFinalization <- MessageToReportFinalizationWithSender[RI]{msg, sender}
+func (msg MessageCertifiedCommit[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageSupplyCertifiedCommit[RI]) processReportFinalization(repfin *reportFinalizationState[RI], sender commontypes.OracleID) {
-	repfin.messageSupplyCertifiedCommit(msg, sender)
+func (msg MessageCertifiedCommit[RI]) processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID) {
+	repfin.messageCertifiedCommit(msg, sender)
 }
 
 type EventMissingOutcome[RI any] struct {
 	SeqNr uint64
 }
 
-var _ EventToReportFinalization[struct{}] = EventMissingOutcome[struct{}]{} // implements EventToReportFinalization
+var _ EventToReportAttestation[struct{}] = EventMissingOutcome[struct{}]{} // implements EventToReportAttestation
 
-func (ev EventMissingOutcome[RI]) processReportFinalization(repfin *reportFinalizationState[RI]) {
+func (ev EventMissingOutcome[RI]) processReportAttestation(repfin *reportAttestationState[RI]) {
 	repfin.eventMissingOutcome(ev)
 }
 
-type EventDeliver[RI any] struct {
-	CertifiedCommit CertifiedPrepareOrCommitCommit
+type EventCommittedOutcome[RI any] struct {
+	CertifiedCommit CertifiedCommit
 }
 
-var _ EventToReportFinalization[struct{}] = EventDeliver[struct{}]{} // implements EventToReportFinalization
+var _ EventToReportAttestation[struct{}] = EventCommittedOutcome[struct{}]{} // implements EventToReportAttestation
 
-func (ev EventDeliver[RI]) processReportFinalization(repfin *reportFinalizationState[RI]) {
-	repfin.eventDeliver(ev)
+func (ev EventCommittedOutcome[RI]) processReportAttestation(repfin *reportAttestationState[RI]) {
+	repfin.eventCommittedOutcome(ev)
 }
 
-// EventTransmit is used to process the "transmit" event passed by the local
-// reporting protocol to to the local transmit-to-the-onchain-smart-contract
-// protocol.
-type EventTransmit[RI any] struct {
+type EventAttestedReport[RI any] struct {
 	SeqNr          uint64
 	Index          int
 	AttestedReport AttestedReportMany[RI]
 }
 
-var _ EventToTransmission[struct{}] = EventTransmit[struct{}]{} // implements EventToTransmission
+var _ EventToTransmission[struct{}] = EventAttestedReport[struct{}]{} // implements EventToTransmission
 
-func (ev EventTransmit[RI]) processTransmission(t *transmissionState[RI]) {
-	t.eventTransmit(ev)
+func (ev EventAttestedReport[RI]) processTransmission(t *transmissionState[RI]) {
+	t.eventAttestedReport(ev)
 }

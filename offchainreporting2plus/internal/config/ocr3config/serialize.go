@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"golang.org/x/crypto/curve25519"
@@ -15,15 +14,17 @@ import (
 
 // Serialized configs must be no larger than this (arbitrary bound, to prevent
 // resource exhaustion attacks)
-var configSizeBound = 20 * 1000
+var maxSerializedOffchainConfigSize = 2_000_000
 
 // offchainConfig contains the contents of the oracle Config objects
 // which need to be serialized
 type offchainConfig struct {
 	DeltaProgress                           time.Duration
 	DeltaResend                             time.Duration
+	DeltaInitial                            time.Duration
 	DeltaRound                              time.Duration
 	DeltaGrace                              time.Duration
+	DeltaCertifiedCommitRequest             time.Duration
 	DeltaStage                              time.Duration
 	RMax                                    uint64
 	S                                       []int
@@ -32,9 +33,20 @@ type offchainConfig struct {
 	ReportingPluginConfig                   []byte
 	MaxDurationQuery                        time.Duration
 	MaxDurationObservation                  time.Duration
-	MaxDurationShouldAcceptFinalizedReport  time.Duration
+	MaxDurationShouldAcceptAttestedReport   time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
 	SharedSecretEncryptions                 config.SharedSecretEncryptions
+}
+
+func checkSize(serializedOffchainConfig []byte) error {
+	if len(serializedOffchainConfig) <= maxSerializedOffchainConfigSize {
+		return nil
+	} else {
+		return fmt.Errorf("OffchainConfig length is %d bytes which is greater than the max %d",
+			len(serializedOffchainConfig),
+			maxSerializedOffchainConfigSize,
+		)
+	}
 }
 
 // serialize returns a binary serialization of o
@@ -44,8 +56,8 @@ func (o offchainConfig) serialize() []byte {
 	if err != nil {
 		panic(err)
 	}
-	if len(rv) > configSizeBound {
-		panic("config serialization too large")
+	if err := checkSize(rv); err != nil {
+		panic(err.Error())
 	}
 	return rv
 }
@@ -53,10 +65,8 @@ func (o offchainConfig) serialize() []byte {
 func deserializeOffchainConfig(
 	b []byte,
 ) (offchainConfig, error) {
-	if len(b) > configSizeBound {
-		return offchainConfig{}, errors.Errorf(
-			"attempt to deserialize a too-long config (%d bytes)", len(b),
-		)
+	if err := checkSize(b); err != nil {
+		return offchainConfig{}, err
 	}
 
 	offchainConfigPB := OffchainConfigProto{}
@@ -93,8 +103,10 @@ func deprotoOffchainConfig(
 	return offchainConfig{
 		time.Duration(offchainConfigProto.GetDeltaProgressNanoseconds()),
 		time.Duration(offchainConfigProto.GetDeltaResendNanoseconds()),
+		time.Duration(offchainConfigProto.GetDeltaInitialNanoseconds()),
 		time.Duration(offchainConfigProto.GetDeltaRoundNanoseconds()),
 		time.Duration(offchainConfigProto.GetDeltaGraceNanoseconds()),
+		time.Duration(offchainConfigProto.GetDeltaCertifiedCommitRequestNanoseconds()),
 		time.Duration(offchainConfigProto.GetDeltaStageNanoseconds()),
 		offchainConfigProto.GetRMax(),
 		S,
@@ -103,7 +115,7 @@ func deprotoOffchainConfig(
 		offchainConfigProto.GetReportingPluginConfig(),
 		time.Duration(offchainConfigProto.GetMaxDurationQueryNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationObservationNanoseconds()),
-		time.Duration(offchainConfigProto.GetMaxDurationShouldAcceptFinalizedReportNanoseconds()),
+		time.Duration(offchainConfigProto.GetMaxDurationShouldAcceptAttestedReportNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationShouldTransmitAcceptedReportNanoseconds()),
 		sharedSecretEncryptions,
 	}, nil
@@ -158,8 +170,10 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		// fields
 		uint64(o.DeltaProgress),
 		uint64(o.DeltaResend),
+		uint64(o.DeltaInitial),
 		uint64(o.DeltaRound),
 		uint64(o.DeltaGrace),
+		uint64(o.DeltaCertifiedCommitRequest),
 		uint64(o.DeltaStage),
 		o.RMax,
 		s,
@@ -168,7 +182,7 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		o.ReportingPluginConfig,
 		uint64(o.MaxDurationQuery),
 		uint64(o.MaxDurationObservation),
-		uint64(o.MaxDurationShouldAcceptFinalizedReport),
+		uint64(o.MaxDurationShouldAcceptAttestedReport),
 		uint64(o.MaxDurationShouldTransmitAcceptedReport),
 		&sharedSecretEncryptions,
 	}

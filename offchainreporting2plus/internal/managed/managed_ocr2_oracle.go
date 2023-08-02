@@ -7,6 +7,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/shim"
@@ -125,7 +126,7 @@ func RunManagedOCR2Oracle(
 				return
 			}
 
-			lims, err := ocr2limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, onchainKeyring.MaxSignatureLength())
+			lims, err := limits.OCR2Limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, onchainKeyring.MaxSignatureLength())
 			if err != nil {
 				logger.Error("ManagedOCR2Oracle: error during limits", commontypes.LogFields{
 					"error":               err,

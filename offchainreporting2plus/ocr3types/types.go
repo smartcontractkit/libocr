@@ -6,13 +6,13 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-// ContractTransmitter sends new reports to the OCR2Aggregator smart contract.
+// ContractTransmitter sends new reports to a smart contract or other system.
 //
 // All its functions should be thread-safe.
 type ContractTransmitter[RI any] interface {
 
-	// Transmit sends the report to the on-chain OCR2Aggregator smart
-	// contract's Transmit method.
+	// Transmit sends the report to the on-chain smart contract's Transmit
+	// method.
 	//
 	// In most cases, implementations of this function should store the
 	// transmission in a queue/database/..., but perform the actual
@@ -21,6 +21,7 @@ type ContractTransmitter[RI any] interface {
 	Transmit(
 		context.Context,
 		types.ConfigDigest,
+		uint64,
 		ReportWithInfo[RI],
 		[]types.AttributedOnchainSignature,
 	) error

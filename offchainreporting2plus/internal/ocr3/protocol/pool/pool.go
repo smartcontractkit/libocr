@@ -9,7 +9,7 @@ import (
 type Pool[T any] struct {
 	maxItemsPerSender int
 
-	deliveredSeqNr uint64
+	completedSeqNr uint64
 	entries        map[uint64]map[commontypes.OracleID]*Entry[T]
 	count          map[commontypes.OracleID]int
 }
@@ -29,9 +29,9 @@ type Entry[T any] struct {
 	Verified *bool
 }
 
-func (p *Pool[M]) ReapDelivered(deliveredSeqNr uint64) {
+func (p *Pool[M]) ReapCompleted(completedSeqNr uint64) {
 	for seqNr, messagesByOracleID := range p.entries {
-		if seqNr > deliveredSeqNr {
+		if seqNr > completedSeqNr {
 			continue
 		}
 		for sender := range messagesByOracleID {
@@ -40,7 +40,7 @@ func (p *Pool[M]) ReapDelivered(deliveredSeqNr uint64) {
 		}
 		delete(p.entries, seqNr)
 	}
-	p.deliveredSeqNr = deliveredSeqNr
+	p.completedSeqNr = completedSeqNr
 }
 
 type PutResult string
@@ -49,12 +49,12 @@ const (
 	PutResultOK               PutResult = "ok"
 	PutResultDuplicate        PutResult = "duplicate"
 	PutResultFull             PutResult = "pool is full for sender"
-	PutResultAlreadyDelivered PutResult = "seqNr too low"
+	PutResultAlreadyCompleted PutResult = "seqNr too low"
 )
 
 func (p *Pool[T]) Put(seqNr uint64, sender commontypes.OracleID, item T) PutResult {
-	if seqNr <= p.deliveredSeqNr {
-		return PutResultAlreadyDelivered
+	if seqNr <= p.completedSeqNr {
+		return PutResultAlreadyCompleted
 	}
 	if p.maxItemsPerSender <= p.count[sender] {
 		return PutResultFull
