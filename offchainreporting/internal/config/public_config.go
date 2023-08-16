@@ -272,6 +272,10 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		1666700003:      {"Harmony Testnet Shard 3", chainTypePublicTestnet},
 		8217:            {"Klaytn", chainTypeFastUpdates},
 		1001:            {"Klaytn Testnet Baobab", chainTypePublicTestnet},
+		59144:           {"Linea", chainTypeFastUpdates},
+		59140:           {"Linea Testnet", chainTypePublicTestnet},
+		5000:            {"Mantle", chainTypeModerateUpdates},
+		5001:            {"Mantle Testnet", chainTypePublicTestnet},
 		137:             {"Matic", chainTypeFastUpdates},
 		80001:           {"Matic Testnet", chainTypePublicTestnet},
 		1088:            {"Metis", chainTypeFastUpdates},
@@ -286,6 +290,8 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		1442:            {"Polygon zkEVM Testnet", chainTypePublicTestnet},
 		30:              {"RSK", chainTypeModerateUpdates},
 		31:              {"RSK Testnet", chainTypePublicTestnet},
+		534352:          {"Scroll Mainnet", chainTypeFastUpdates},
+		534351:          {"Scroll Testnet Sepolia", chainTypePublicTestnet},
 		100:             {"xDai", chainTypeModerateUpdates},
 	}[chainID.Uint64()]
 	if !ok {
