@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/smartcontractkit/libocr/internal/byzquorum"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -26,17 +27,28 @@ type PublicConfig struct {
 	// the protocol more quickly. ~30s should be a reasonable default under most
 	// circumstances.
 	DeltaResend time.Duration
+	// If no message from the leader has been received after the epoch start plus
+	// DeltaInitial, we enter a new epoch. This parameter must be
+	// chosen carefully. If the duration is too short, we may keep prematurely
+	// switching epochs without ever achieving any progress, resulting in a
+	// liveness failure!
+	DeltaInitial time.Duration
 	// DeltaRound determines the minimal amount of time that should pass between
-	// the start of report generation rounds. With OCR2 only (not OCR1!) you can
+	// the start of outcome generation rounds. With OCR3 (not OCR1!) you can
 	// set this value very aggressively. Note that this only provides a lower
 	// bound on the round interval; actual rounds might take longer.
 	DeltaRound time.Duration
-	// Once the leader of a report generation round has collected sufficiently
+	// Once the leader of a outcome generation round has collected sufficiently
 	// many observations, it will wait for DeltaGrace to pass to allow slower
 	// oracles to still contribute an observation before moving on to generating
 	// the report. Consequently, rounds driven by correct leaders will always
 	// take at least DeltaGrace.
 	DeltaGrace time.Duration
+	// DeltaCertifiedCommitRequest determines the duration between requests for
+	// a certified commit after we have received f+1 signatures in the report
+	// attestation protocol but are still missing the certified commit/outcome
+	// required for validating the report signatures.
+	DeltaCertifiedCommitRequest time.Duration
 	// DeltaStage determines the duration between stages of the transmission
 	// protocol. In each stage, a certain number of oracles (determined by S)
 	// will attempt to transmit, assuming that no other oracle has yet
@@ -67,7 +79,7 @@ type PublicConfig struct {
 	// ReportingPlugin function may always time out.
 	MaxDurationQuery                        time.Duration
 	MaxDurationObservation                  time.Duration
-	MaxDurationShouldAcceptFinalizedReport  time.Duration
+	MaxDurationShouldAcceptAttestedReport   time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
 
 	// The maximum number of oracles that are assumed to be faulty while the
@@ -87,6 +99,17 @@ type PublicConfig struct {
 // N is the number of oracles participating in the protocol
 func (c *PublicConfig) N() int {
 	return len(c.OracleIdentities)
+}
+
+func (c *PublicConfig) ByzQuorumSize() int {
+	return byzquorum.Size(c.N(), c.F)
+}
+
+func (c *PublicConfig) MinRoundInterval() time.Duration {
+	if c.DeltaRound > c.DeltaGrace {
+		return c.DeltaRound
+	}
+	return c.DeltaGrace
 }
 
 func (c *PublicConfig) CheckParameterBounds() error {
@@ -134,8 +157,10 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 	cfg := PublicConfig{
 		oc.DeltaProgress,
 		oc.DeltaResend,
+		oc.DeltaInitial,
 		oc.DeltaRound,
 		oc.DeltaGrace,
+		oc.DeltaCertifiedCommitRequest,
 		oc.DeltaStage,
 		oc.RMax,
 		oc.S,
@@ -143,7 +168,7 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 		oc.ReportingPluginConfig,
 		oc.MaxDurationQuery,
 		oc.MaxDurationObservation,
-		oc.MaxDurationShouldAcceptFinalizedReport,
+		oc.MaxDurationShouldAcceptAttestedReport,
 		oc.MaxDurationShouldTransmitAcceptedReport,
 
 		int(change.F),
@@ -244,22 +269,6 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 	// be made when you change this function!
 	/////////////////////////////////////////////////////////////////
 
-	if !(0 <= cfg.DeltaStage) {
-		return fmt.Errorf("DeltaStage (%v) must be non-negative", cfg.DeltaStage)
-	}
-
-	if !(0 <= cfg.DeltaRound) {
-		return fmt.Errorf("DeltaRound (%v) must be non-negative", cfg.DeltaRound)
-	}
-
-	if !(0 <= cfg.DeltaProgress) {
-		return fmt.Errorf("DeltaProgress (%v) must be non-negative", cfg.DeltaProgress)
-	}
-
-	if !(0 <= cfg.DeltaResend) {
-		return fmt.Errorf("DeltaResend (%v) must be non-negative", cfg.DeltaResend)
-	}
-
 	if !(0 <= cfg.F && cfg.F*3 < cfg.N()) {
 		return fmt.Errorf("F (%v) must be non-negative and less than N/3 (N = %v)",
 			cfg.F, cfg.N())
@@ -270,9 +279,33 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 			cfg.N(), types.MaxOracles)
 	}
 
+	if !(0 <= cfg.DeltaProgress) {
+		return fmt.Errorf("DeltaProgress (%v) must be non-negative", cfg.DeltaProgress)
+	}
+
+	if !(0 <= cfg.DeltaResend) {
+		return fmt.Errorf("DeltaResend (%v) must be non-negative", cfg.DeltaResend)
+	}
+
+	if !(0 <= cfg.DeltaInitial) {
+		return fmt.Errorf("DeltaInitial (%v) must be non-negative", cfg.DeltaInitial)
+	}
+
+	if !(0 <= cfg.DeltaRound) {
+		return fmt.Errorf("DeltaRound (%v) must be non-negative", cfg.DeltaRound)
+	}
+
 	if !(0 <= cfg.DeltaGrace) {
 		return fmt.Errorf("DeltaGrace (%v) must be non-negative",
 			cfg.DeltaGrace)
+	}
+
+	if !(0 <= cfg.DeltaCertifiedCommitRequest) {
+		return fmt.Errorf("DeltaCertifiedCommitRequest (%v) must be non-negative", cfg.DeltaCertifiedCommitRequest)
+	}
+
+	if !(0 <= cfg.DeltaStage) {
+		return fmt.Errorf("DeltaStage (%v) must be non-negative", cfg.DeltaStage)
 	}
 
 	if !(0 <= cfg.MaxDurationQuery) {
@@ -283,8 +316,8 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 		return fmt.Errorf("MaxDurationObservation (%v) must be non-negative", cfg.MaxDurationObservation)
 	}
 
-	if !(0 <= cfg.MaxDurationShouldAcceptFinalizedReport) {
-		return fmt.Errorf("MaxDurationShouldAcceptFinalizedReport (%v) must be non-negative", cfg.MaxDurationShouldAcceptFinalizedReport)
+	if !(0 <= cfg.MaxDurationShouldAcceptAttestedReport) {
+		return fmt.Errorf("MaxDurationShouldAcceptAttestedReport (%v) must be non-negative", cfg.MaxDurationShouldAcceptAttestedReport)
 	}
 
 	if !(0 <= cfg.MaxDurationShouldTransmitAcceptedReport) {
@@ -296,17 +329,17 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 			cfg.DeltaRound, cfg.DeltaProgress)
 	}
 
-	sumMaxDurationsReportGeneration := cfg.MaxDurationQuery + cfg.MaxDurationObservation
-	if !(sumMaxDurationsReportGeneration < cfg.DeltaProgress) {
-		return fmt.Errorf("sum of MaxDurationQuery/Observation (%v) must be less than DeltaProgress (%v)",
-			sumMaxDurationsReportGeneration, cfg.DeltaProgress)
+	sumMaxDurationsOutcomeGeneration := cfg.MaxDurationQuery + cfg.MaxDurationObservation + cfg.DeltaGrace
+	if !(sumMaxDurationsOutcomeGeneration < cfg.DeltaProgress) {
+		return fmt.Errorf("sum of MaxDurationQuery/MaxDurationQuery/DeltaGrace (%v) must be less than DeltaProgress (%v)",
+			sumMaxDurationsOutcomeGeneration, cfg.DeltaProgress)
 	}
 
 	// We cannot easily add a similar check for the MaxDuration variables used
-	// in the transmission protocol (MaxDurationShouldAcceptFinalizedReport,
+	// in the transmission protocol (MaxDurationShouldAcceptAttestedReport,
 	// MaxDurationShouldTransmitAcceptedReport), because we don't know how often
 	// they will be triggered. But if we assume that there is one transmission
-	// for each round, we should have MaxDurationShouldAcceptFinalizedReport +
+	// for each round, we should have MaxDurationShouldAcceptAttestedReport +
 	// MaxDurationShouldTransmitAcceptedReport < round duration.
 
 	if !(0 < cfg.RMax) {
@@ -331,12 +364,18 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 func checkResourceExhaustion(cfg PublicConfig) error {
 	// Sending a NewEpoch more than every 200ms shouldn't be necessary in any
 	// realistic WAN deployment and could cause resource exhaustion
-	const safeInterval = 200 * time.Millisecond
+	const safeInterval = 100 * time.Millisecond
 	if cfg.DeltaProgress < safeInterval {
 		return fmt.Errorf("DeltaProgress (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaProgress, safeInterval)
 	}
 	if cfg.DeltaResend < safeInterval {
 		return fmt.Errorf("DeltaResend (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaResend, safeInterval)
+	}
+	if cfg.DeltaInitial < safeInterval {
+		return fmt.Errorf("DeltaInitial (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaInitial, safeInterval)
+	}
+	if cfg.DeltaCertifiedCommitRequest < safeInterval {
+		return fmt.Errorf("DeltaCertifiedCommitRequest (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaCertifiedCommitRequest, safeInterval)
 	}
 	// We don't check DeltaGrace, DeltaRound, DeltaStage since none of them
 	// would exhaust the oracle's resources even if they are all set to 0.

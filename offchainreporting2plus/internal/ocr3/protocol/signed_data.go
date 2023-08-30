@@ -5,14 +5,25 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"hash"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/byzquorum"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-const signedObservationDomainSeparator = "ocr3 SignedObservation"
+// Returns a byte slice whose first four bytes are the string "ocr3" and the rest
+// of which is the sum returned by h. Used for domain separation vs ocr2, where
+// we just directly sign sha256 hashes.
+//
+// Any signatures made with the OffchainKeyring should use ocr3DomainSeparatedSum!
+func ocr3DomainSeparatedSum(h hash.Hash) []byte {
+	result := make([]byte, 0, 4+32)
+	result = append(result, []byte("ocr3")...)
+	return h.Sum(result)
+}
 
 type SignedObservation struct {
 	Observation types.Observation
@@ -20,7 +31,8 @@ type SignedObservation struct {
 }
 
 func MakeSignedObservation(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
+	seqNr uint64,
 	query types.Query,
 	observation types.Observation,
 	signer func(msg []byte) (sig []byte, err error),
@@ -28,7 +40,7 @@ func MakeSignedObservation(
 	SignedObservation,
 	error,
 ) {
-	payload := signedObservationMsg(ocr3ts, query, observation)
+	payload := signedObservationMsg(ogid, seqNr, query, observation)
 	sig, err := signer(payload)
 	if err != nil {
 		return SignedObservation{}, err
@@ -36,14 +48,14 @@ func MakeSignedObservation(
 	return SignedObservation{observation, sig}, nil
 }
 
-func (so SignedObservation) Verify(ocr3ts Timestamp, query types.Query, publicKey types.OffchainPublicKey) error {
+func (so SignedObservation) Verify(ogid OutcomeGenerationID, seqNr uint64, query types.Query, publicKey types.OffchainPublicKey) error {
 	pk := ed25519.PublicKey(publicKey[:])
 	// should never trigger since types.OffchainPublicKey is an array with length ed25519.PublicKeySize
 	if len(pk) != ed25519.PublicKeySize {
 		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
 	}
 
-	ok := ed25519.Verify(pk, signedObservationMsg(ocr3ts, query, so.Observation), so.Signature)
+	ok := ed25519.Verify(pk, signedObservationMsg(ogid, seqNr, query, so.Observation), so.Signature)
 	if !ok {
 		return fmt.Errorf("SignedObservation has invalid signature")
 	}
@@ -51,14 +63,18 @@ func (so SignedObservation) Verify(ocr3ts Timestamp, query types.Query, publicKe
 	return nil
 }
 
-func signedObservationMsg(ocr3ts Timestamp, query types.Query, observation types.Observation) []byte {
+func signedObservationMsg(ogid OutcomeGenerationID, seqNr uint64, query types.Query, observation types.Observation) []byte {
 	h := sha256.New()
 
 	_, _ = h.Write([]byte(prepareSignatureDomainSeparator))
 
-	// ocr3ts
-	_, _ = h.Write(ocr3ts.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ocr3ts.Epoch)
+	// ogid
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+
+	// seqNr
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, seqNr)
 
 	// query
 	_ = binary.Write(h, binary.BigEndian, uint64(len(query)))
@@ -68,7 +84,7 @@ func signedObservationMsg(ocr3ts Timestamp, query types.Query, observation types
 	_ = binary.Write(h, binary.BigEndian, uint64(len(observation)))
 	_, _ = h.Write(observation)
 
-	return h.Sum(nil)
+	return ocr3DomainSeparatedSum(h)
 }
 
 type AttributedSignedObservation struct {
@@ -81,7 +97,7 @@ const prepareSignatureDomainSeparator = "ocr3 PrepareSignature"
 type OutcomeInputsDigest [32]byte
 
 func MakeOutcomeInputsDigest(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	previousOutcome ocr3types.Outcome,
 	seqNr uint64,
 	query types.Query,
@@ -89,8 +105,8 @@ func MakeOutcomeInputsDigest(
 ) OutcomeInputsDigest {
 	h := sha256.New()
 
-	_, _ = h.Write(ocr3ts.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ocr3ts.Epoch)
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
 	_ = binary.Write(h, binary.BigEndian, uint64(len(previousOutcome)))
 	_, _ = h.Write(previousOutcome)
@@ -136,18 +152,17 @@ func MakeOutcomeDigest(outcome ocr3types.Outcome) OutcomeDigest {
 type PrepareSignature []byte
 
 func MakePrepareSignature(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	seqNr uint64,
 	outcomeInputsDigest OutcomeInputsDigest,
 	outcomeDigest OutcomeDigest,
 	signer func(msg []byte) ([]byte, error),
 ) (PrepareSignature, error) {
-
-	return signer(prepareSignatureMsg(ocr3ts, seqNr, outcomeInputsDigest, outcomeDigest))
+	return signer(prepareSignatureMsg(ogid, seqNr, outcomeInputsDigest, outcomeDigest))
 }
 
 func (sig PrepareSignature) Verify(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	seqNr uint64,
 	outcomeInputsDigest OutcomeInputsDigest,
 	outcomeDigest OutcomeDigest,
@@ -159,7 +174,7 @@ func (sig PrepareSignature) Verify(
 		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
 	}
 
-	ok := ed25519.Verify(pk, prepareSignatureMsg(ocr3ts, seqNr, outcomeInputsDigest, outcomeDigest), sig)
+	ok := ed25519.Verify(pk, prepareSignatureMsg(ogid, seqNr, outcomeInputsDigest, outcomeDigest), sig)
 	if !ok {
 		return fmt.Errorf("PrepareSignature failed to verify")
 	}
@@ -168,7 +183,7 @@ func (sig PrepareSignature) Verify(
 }
 
 func prepareSignatureMsg(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	seqNr uint64,
 	outcomeInputsDigest OutcomeInputsDigest,
 	outcomeDigest OutcomeDigest,
@@ -177,8 +192,8 @@ func prepareSignatureMsg(
 
 	_, _ = h.Write([]byte(prepareSignatureDomainSeparator))
 
-	_, _ = h.Write(ocr3ts.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ocr3ts.Epoch)
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
 	_ = binary.Write(h, binary.BigEndian, seqNr)
 
@@ -186,7 +201,7 @@ func prepareSignatureMsg(
 
 	_, _ = h.Write(outcomeDigest[:])
 
-	return h.Sum(nil)
+	return ocr3DomainSeparatedSum(h)
 }
 
 type AttributedPrepareSignature struct {
@@ -199,17 +214,16 @@ const commitSignatureDomainSeparator = "ocr3 CommitSignature"
 type CommitSignature []byte
 
 func MakeCommitSignature(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	seqNr uint64,
 	outcomeDigest OutcomeDigest,
 	signer func(msg []byte) ([]byte, error),
 ) (CommitSignature, error) {
-
-	return signer(commitSignatureMsg(ocr3ts, seqNr, outcomeDigest))
+	return signer(commitSignatureMsg(ogid, seqNr, outcomeDigest))
 }
 
 func (sig CommitSignature) Verify(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	seqNr uint64,
 	outcomeDigest OutcomeDigest,
 	publicKey types.OffchainPublicKey,
@@ -220,7 +234,7 @@ func (sig CommitSignature) Verify(
 		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
 	}
 
-	ok := ed25519.Verify(pk, commitSignatureMsg(ocr3ts, seqNr, outcomeDigest), sig)
+	ok := ed25519.Verify(pk, commitSignatureMsg(ogid, seqNr, outcomeDigest), sig)
 	if !ok {
 		return fmt.Errorf("CommitSignature failed to verify")
 	}
@@ -229,7 +243,7 @@ func (sig CommitSignature) Verify(
 }
 
 func commitSignatureMsg(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	seqNr uint64,
 	outcomeDigest OutcomeDigest,
 ) []byte {
@@ -237,14 +251,14 @@ func commitSignatureMsg(
 
 	_, _ = h.Write([]byte(commitSignatureDomainSeparator))
 
-	_, _ = h.Write(ocr3ts.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ocr3ts.Epoch)
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
 	_ = binary.Write(h, binary.BigEndian, seqNr)
 
 	_, _ = h.Write(outcomeDigest[:])
 
-	return h.Sum(nil)
+	return ocr3DomainSeparatedSum(h)
 }
 
 type AttributedCommitSignature struct {
@@ -269,11 +283,11 @@ type SignedHighestCertifiedTimestamp struct {
 }
 
 func MakeSignedHighestCertifiedTimestamp(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	highestCertifiedTimestamp HighestCertifiedTimestamp,
 	signer func(msg []byte) ([]byte, error),
 ) (SignedHighestCertifiedTimestamp, error) {
-	sig, err := signer(signedHighestCertifiedTimestampMsg(ocr3ts, highestCertifiedTimestamp))
+	sig, err := signer(signedHighestCertifiedTimestampMsg(ogid, highestCertifiedTimestamp))
 	if err != nil {
 		return SignedHighestCertifiedTimestamp{}, err
 	}
@@ -284,14 +298,14 @@ func MakeSignedHighestCertifiedTimestamp(
 	}, nil
 }
 
-func (shct *SignedHighestCertifiedTimestamp) Verify(ocr3ts Timestamp, publicKey types.OffchainPublicKey) error {
+func (shct *SignedHighestCertifiedTimestamp) Verify(ogid OutcomeGenerationID, publicKey types.OffchainPublicKey) error {
 	pk := ed25519.PublicKey(publicKey[:])
 
 	if len(pk) != ed25519.PublicKeySize {
 		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
 	}
 
-	ok := ed25519.Verify(pk, signedHighestCertifiedTimestampMsg(ocr3ts, shct.HighestCertifiedTimestamp), shct.Signature)
+	ok := ed25519.Verify(pk, signedHighestCertifiedTimestampMsg(ogid, shct.HighestCertifiedTimestamp), shct.Signature)
 	if !ok {
 		return fmt.Errorf("SignedHighestCertifiedTimestamp signature failed to verify")
 	}
@@ -300,15 +314,15 @@ func (shct *SignedHighestCertifiedTimestamp) Verify(ocr3ts Timestamp, publicKey 
 }
 
 func signedHighestCertifiedTimestampMsg(
-	ocr3ts Timestamp,
+	ogid OutcomeGenerationID,
 	highestCertifiedTimestamp HighestCertifiedTimestamp,
 ) []byte {
 	h := sha256.New()
 
 	_, _ = h.Write([]byte(signedHighestCertifiedTimestampDomainSeparator))
 
-	_, _ = h.Write(ocr3ts.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ocr3ts.Epoch)
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
 	_ = binary.Write(h, binary.BigEndian, highestCertifiedTimestamp.SeqNr)
 
@@ -320,7 +334,7 @@ func signedHighestCertifiedTimestampMsg(
 	}
 	_, _ = h.Write([]byte{byte(committedElsePreparedByte)})
 
-	return h.Sum(nil)
+	return ocr3DomainSeparatedSum(h)
 }
 
 type AttributedSignedHighestCertifiedTimestamp struct {
@@ -328,19 +342,18 @@ type AttributedSignedHighestCertifiedTimestamp struct {
 	Signer                          commontypes.OracleID
 }
 
-type StartEpochProof struct {
+type EpochStartProof struct {
 	HighestCertified      CertifiedPrepareOrCommit
 	HighestCertifiedProof []AttributedSignedHighestCertifiedTimestamp
 }
 
-func (qc *StartEpochProof) Verify(
-	ocr3ts Timestamp,
+func (qc *EpochStartProof) Verify(
+	ogid OutcomeGenerationID,
 	oracleIdentities []config.OracleIdentity,
-	n int,
-	f int,
+	byzQuorumSize int,
 ) error {
-	if ByzQuorumSize(n, f) != len(qc.HighestCertifiedProof) {
-		return fmt.Errorf("wrong length of HighestCertifiedProof, expected %v for byz. quorum and got %v", ByzQuorumSize(n, f), len(qc.HighestCertifiedProof))
+	if byzQuorumSize != len(qc.HighestCertifiedProof) {
+		return fmt.Errorf("wrong length of HighestCertifiedProof, expected %v for byz. quorum and got %v", byzQuorumSize, len(qc.HighestCertifiedProof))
 	}
 
 	maximumTimestamp := qc.HighestCertifiedProof[0].SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp
@@ -354,7 +367,7 @@ func (qc *StartEpochProof) Verify(
 		if !(0 <= int(ashct.Signer) && int(ashct.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", ashct.Signer)
 		}
-		if err := ashct.SignedHighestCertifiedTimestamp.Verify(ocr3ts, oracleIdentities[ashct.Signer].OffchainPublicKey); err != nil {
+		if err := ashct.SignedHighestCertifiedTimestamp.Verify(ogid, oracleIdentities[ashct.Signer].OffchainPublicKey); err != nil {
 			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify: %w", i, ashct.Signer, oracleIdentities[ashct.Signer].OffchainPublicKey, err)
 		}
 
@@ -367,7 +380,7 @@ func (qc *StartEpochProof) Verify(
 		return fmt.Errorf("mismatch between timestamp of HighestCertified (%v) and the max from HighestCertifiedProof (%v)", qc.HighestCertified.Timestamp(), maximumTimestamp)
 	}
 
-	if err := qc.HighestCertified.Verify(ocr3ts.ConfigDigest, oracleIdentities, n, f); err != nil {
+	if err := qc.HighestCertified.Verify(ogid.ConfigDigest, oracleIdentities, byzQuorumSize); err != nil {
 		return fmt.Errorf("failed to verify HighestCertified: %w", err)
 	}
 
@@ -382,14 +395,14 @@ type CertifiedPrepareOrCommit interface {
 	Verify(
 		_ types.ConfigDigest,
 		_ []config.OracleIdentity,
-		n int,
-		f int,
+		byzQuorumSize int,
 	) error
+	CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool
 }
 
-var _ CertifiedPrepareOrCommit = &CertifiedPrepareOrCommitPrepare{}
+var _ CertifiedPrepareOrCommit = &CertifiedPrepare{}
 
-type CertifiedPrepareOrCommitPrepare struct {
+type CertifiedPrepare struct {
 	PrepareEpoch             uint64
 	SeqNr                    uint64
 	OutcomeInputsDigest      OutcomeInputsDigest
@@ -397,34 +410,33 @@ type CertifiedPrepareOrCommitPrepare struct {
 	PrepareQuorumCertificate []AttributedPrepareSignature
 }
 
-func (hc *CertifiedPrepareOrCommitPrepare) isCertifiedPrepareOrCommit() {}
+func (hc *CertifiedPrepare) isCertifiedPrepareOrCommit() {}
 
-func (hc *CertifiedPrepareOrCommitPrepare) Epoch() uint64 {
+func (hc *CertifiedPrepare) Epoch() uint64 {
 	return uint64(hc.PrepareEpoch)
 }
 
-func (hc *CertifiedPrepareOrCommitPrepare) Timestamp() HighestCertifiedTimestamp {
+func (hc *CertifiedPrepare) Timestamp() HighestCertifiedTimestamp {
 	return HighestCertifiedTimestamp{
 		hc.SeqNr,
 		false,
 	}
 }
 
-func (hc *CertifiedPrepareOrCommitPrepare) IsGenesis() bool {
+func (hc *CertifiedPrepare) IsGenesis() bool {
 	return false
 }
 
-func (hc *CertifiedPrepareOrCommitPrepare) Verify(
+func (hc *CertifiedPrepare) Verify(
 	configDigest types.ConfigDigest,
 	oracleIdentities []config.OracleIdentity,
-	n int,
-	f int,
+	byzQuorumSize int,
 ) error {
-	if ByzQuorumSize(n, f) != len(hc.PrepareQuorumCertificate) {
-		return fmt.Errorf("wrong number of signatures, expected %v for byz. quorum and got %v", ByzQuorumSize(n, f), len(hc.PrepareQuorumCertificate))
+	if byzQuorumSize != len(hc.PrepareQuorumCertificate) {
+		return fmt.Errorf("wrong number of signatures, expected %v for byz. quorum and got %v", byzQuorumSize, len(hc.PrepareQuorumCertificate))
 	}
 
-	ocr3ts := Timestamp{
+	ogid := OutcomeGenerationID{
 		configDigest,
 		hc.PrepareEpoch,
 	}
@@ -438,56 +450,71 @@ func (hc *CertifiedPrepareOrCommitPrepare) Verify(
 		if !(0 <= int(aps.Signer) && int(aps.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", aps.Signer)
 		}
-		if err := aps.Signature.Verify(ocr3ts, hc.SeqNr, hc.OutcomeInputsDigest, MakeOutcomeDigest(hc.Outcome), oracleIdentities[aps.Signer].OffchainPublicKey); err != nil {
+		if err := aps.Signature.Verify(ogid, hc.SeqNr, hc.OutcomeInputsDigest, MakeOutcomeDigest(hc.Outcome), oracleIdentities[aps.Signer].OffchainPublicKey); err != nil {
 			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify: %w", i, aps.Signer, oracleIdentities[aps.Signer].OffchainPublicKey, err)
 		}
 	}
 	return nil
 }
 
-var _ CertifiedPrepareOrCommit = &CertifiedPrepareOrCommitCommit{}
+func (hc *CertifiedPrepare) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if len(hc.Outcome) > limits.MaxOutcomeLength {
+		return false
+	}
+	if len(hc.PrepareQuorumCertificate) != byzquorum.Size(n, f) {
+		return false
+	}
+	for _, aps := range hc.PrepareQuorumCertificate {
+		if len(aps.Signature) != ed25519.SignatureSize {
+			return false
+		}
+	}
+	return true
+}
 
-type CertifiedPrepareOrCommitCommit struct {
+var _ CertifiedPrepareOrCommit = &CertifiedCommit{}
+
+// The empty CertifiedCommit{} is the genesis value
+type CertifiedCommit struct {
 	CommitEpoch             uint64
 	SeqNr                   uint64
 	Outcome                 ocr3types.Outcome
 	CommitQuorumCertificate []AttributedCommitSignature
 }
 
-func (hc *CertifiedPrepareOrCommitCommit) isCertifiedPrepareOrCommit() {}
+func (hc *CertifiedCommit) isCertifiedPrepareOrCommit() {}
 
-func (hc *CertifiedPrepareOrCommitCommit) Epoch() uint64 {
+func (hc *CertifiedCommit) Epoch() uint64 {
 	return uint64(hc.CommitEpoch)
 }
 
-func (hc *CertifiedPrepareOrCommitCommit) Timestamp() HighestCertifiedTimestamp {
+func (hc *CertifiedCommit) Timestamp() HighestCertifiedTimestamp {
 	return HighestCertifiedTimestamp{
 		hc.SeqNr,
 		true,
 	}
 }
 
-func (hc *CertifiedPrepareOrCommitCommit) IsGenesis() bool {
+func (hc *CertifiedCommit) IsGenesis() bool {
+	// We intentionally don't just compare with CertifiedCommit{}, because after
+	// protobuf deserialization, we might end up with hc.Outcome = []byte{}
 	return hc.CommitEpoch == 0 && hc.SeqNr == 0 && len(hc.Outcome) == 0 && len(hc.CommitQuorumCertificate) == 0
 }
 
-func (hc *CertifiedPrepareOrCommitCommit) Verify(
+func (hc *CertifiedCommit) Verify(
 	configDigest types.ConfigDigest,
 	oracleIdentities []config.OracleIdentity,
-	n int,
-	f int,
+	byzQuorumSize int,
 ) error {
-
 	if hc.IsGenesis() {
 		return nil
 	}
 
-	if ByzQuorumSize(n, f) != len(hc.CommitQuorumCertificate) {
-
-		return fmt.Errorf("wrong number of signatures, expected %v for byz. quorum and got %v. hc %+v", ByzQuorumSize(n, f), len(hc.CommitQuorumCertificate), hc)
+	if byzQuorumSize != len(hc.CommitQuorumCertificate) {
+		return fmt.Errorf("wrong number of signatures, expected %d for byz. quorum but got %d", byzQuorumSize, len(hc.CommitQuorumCertificate))
 	}
 
-	ocr3ts := Timestamp{
+	ogid := OutcomeGenerationID{
 		configDigest,
 		hc.CommitEpoch,
 	}
@@ -501,9 +528,28 @@ func (hc *CertifiedPrepareOrCommitCommit) Verify(
 		if !(0 <= int(acs.Signer) && int(acs.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", acs.Signer)
 		}
-		if err := acs.Signature.Verify(ocr3ts, hc.SeqNr, MakeOutcomeDigest(hc.Outcome), oracleIdentities[acs.Signer].OffchainPublicKey); err != nil {
+		if err := acs.Signature.Verify(ogid, hc.SeqNr, MakeOutcomeDigest(hc.Outcome), oracleIdentities[acs.Signer].OffchainPublicKey); err != nil {
 			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify: %w", i, acs.Signer, oracleIdentities[acs.Signer].OffchainPublicKey, err)
 		}
 	}
 	return nil
+}
+
+func (hc *CertifiedCommit) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if hc.IsGenesis() {
+		return true
+	}
+
+	if len(hc.Outcome) > limits.MaxOutcomeLength {
+		return false
+	}
+	if len(hc.CommitQuorumCertificate) != byzquorum.Size(n, f) {
+		return false
+	}
+	for _, acs := range hc.CommitQuorumCertificate {
+		if len(acs.Signature) != ed25519.SignatureSize {
+			return false
+		}
+	}
+	return true
 }

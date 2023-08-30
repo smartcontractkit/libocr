@@ -75,6 +75,7 @@ func NewMercuryOCR3ContractTransmitter(ocr2ContractTransmitter types.ContractTra
 func (t *MercuryOCR3ContractTransmitter) Transmit(
 	ctx context.Context,
 	configDigest types.ConfigDigest,
+	seqNr uint64,
 	reportWithInfo ocr3types.ReportWithInfo[MercuryReportInfo],
 	aoss []types.AttributedOnchainSignature,
 ) error {
@@ -97,12 +98,27 @@ func (t *MercuryOCR3ContractTransmitter) FromAccount() (types.Account, error) {
 	return t.ocr2ContractTransmitter.FromAccount()
 }
 
-type MercuryOCR3Plugin struct {
-	Config ocr3types.OCR3PluginConfig
-	Plugin ocr3types.MercuryPlugin
+func ocr3MaxOutcomeLength(maxReportLength int) int {
+	return 100 + maxReportLength + maxReportLength/2
 }
 
-var _ ocr3types.OCR3Plugin[MercuryReportInfo] = &MercuryOCR3Plugin{}
+func OCR3PluginLimits(mercuryPluginLimits ocr3types.MercuryPluginLimits) ocr3types.ReportingPluginLimits {
+	return ocr3types.ReportingPluginLimits{
+		0,
+		mercuryPluginLimits.MaxObservationLength,
+		ocr3MaxOutcomeLength(mercuryPluginLimits.MaxReportLength),
+		mercuryPluginLimits.MaxReportLength,
+		1,
+	}
+}
+
+type MercuryOCR3Plugin struct {
+	Config       ocr3types.ReportingPluginConfig
+	Plugin       ocr3types.MercuryPlugin
+	PluginLimits ocr3types.MercuryPluginLimits
+}
+
+var _ ocr3types.ReportingPlugin[MercuryReportInfo] = &MercuryOCR3Plugin{}
 
 type mercuryOCR3PluginOutcome struct {
 	Epoch        uint32
@@ -148,6 +164,10 @@ func (p *MercuryOCR3Plugin) Observation(ctx context.Context, outctx ocr3types.Ou
 		return nil, err
 	}
 
+	if !(len(observation) <= p.PluginLimits.MaxObservationLength) {
+		return nil, fmt.Errorf("MercuryOCR3Plugin: underlying plugin returned oversize observation (%v vs %v)", len(observation), p.PluginLimits.MaxObservationLength)
+	}
+
 	return observation, nil
 }
 
@@ -165,6 +185,10 @@ func (p *MercuryOCR3Plugin) Outcome(outctx ocr3types.OutcomeContext, query types
 	shouldReport, report, err := p.Plugin.Report(types.ReportTimestamp{p.Config.ConfigDigest, uint32(outctx.Epoch), uint8(outctx.Round)}, previousOutcomeDeserialized.Report, aos)
 	if err != nil {
 		return nil, err
+	}
+
+	if !(len(report) <= p.PluginLimits.MaxReportLength) {
+		return nil, fmt.Errorf("MercuryOCR3Plugin: underlying plugin returned oversize report (%v vs %v)", len(report), p.PluginLimits.MaxReportLength)
 	}
 
 	if !shouldReport {
@@ -196,7 +220,7 @@ func (p *MercuryOCR3Plugin) Reports(seqNr uint64, outcome ocr3types.Outcome) ([]
 	}
 }
 
-func (p *MercuryOCR3Plugin) ShouldAcceptFinalizedReport(context.Context, uint64, ocr3types.ReportWithInfo[MercuryReportInfo]) (bool, error) {
+func (p *MercuryOCR3Plugin) ShouldAcceptAttestedReport(context.Context, uint64, ocr3types.ReportWithInfo[MercuryReportInfo]) (bool, error) {
 	return true, nil
 }
 

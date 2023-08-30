@@ -934,7 +934,12 @@ func (ho *Host) NewStream(
 		s.sendLoop()
 	})
 
-	streamLogger.Info("NewStream succeeded", nil)
+	streamLogger.Info("NewStream succeeded", commontypes.LogFields{
+		"incomingBufferSize": incomingBufferSize,
+		"maxMessageLength":   maxMessageLength,
+		"messagesLimit":      messagesLimit,
+		"bytesLimit":         bytesLimit,
+	})
 
 	return &s, nil
 }
@@ -1284,12 +1289,18 @@ func authenticatedConnectionReadLoop(
 			}
 		case frameTypeData:
 			if MaxMessageLength < header.PayloadLength {
+				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message exceeds ragep2p message length limit, closing connection", commontypes.LogFields{
+					"payloadLength":           header.PayloadLength,
+					"ragep2pMaxMessageLength": MaxMessageLength,
+				})
 				return
 			}
 			// Cast to int is safe since header.PayloadLength <= MaxMessageLength <= INT_MAX
 			switch demux.ShouldPush(header.StreamID, int(header.PayloadLength)) {
 			case shouldPushResultMessageTooBig:
-				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message too big, closing connection", nil)
+				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message too big, closing connection", commontypes.LogFields{
+					"payloadLength": header.PayloadLength,
+				})
 				return
 			case shouldPushResultMessagesLimitExceeded:
 				limitsExceededTaper.Trigger(func(count uint64) {

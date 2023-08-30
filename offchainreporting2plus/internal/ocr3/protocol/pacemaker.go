@@ -2,7 +2,10 @@ package protocol
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 	"sort"
 	"time"
@@ -11,17 +14,14 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"golang.org/x/crypto/sha3"
 )
 
-// Pacemaker keeps track of the state and message handling for an oracle
-// participating in the off-chain reporting protocol
 func RunPacemaker[RI any](
 	ctx context.Context,
 
 	chNetToPacemaker <-chan MessageToPacemakerWithSender[RI],
-	chPacemakerToReportGeneration chan<- EventToReportGeneration[RI],
-	chReportGenerationToPacemaker <-chan EventToPacemaker[RI],
+	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI],
+	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI],
 	config ocr3config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
@@ -31,23 +31,23 @@ func RunPacemaker[RI any](
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
 
-	restoredEpoch uint64,
+	restoredState PacemakerState,
 ) {
 	pace := makePacemakerState[RI](
 		ctx, chNetToPacemaker,
-		chPacemakerToReportGeneration, chReportGenerationToPacemaker,
+		chPacemakerToOutcomeGeneration, chOutcomeGenerationToPacemaker,
 		config, database,
 		id, localConfig, logger, netSender, offchainKeyring,
 		telemetrySender,
 	)
-	pace.run(restoredEpoch)
+	pace.run(restoredState)
 }
 
 func makePacemakerState[RI any](
 	ctx context.Context,
 	chNetToPacemaker <-chan MessageToPacemakerWithSender[RI],
-	chPacemakerToReportGeneration chan<- EventToReportGeneration[RI],
-	chReportGenerationToPacemaker <-chan EventToPacemaker[RI],
+	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI],
+	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI],
 	config ocr3config.SharedConfig,
 	database Database, id commontypes.OracleID,
 	localConfig types.LocalConfig,
@@ -59,43 +59,43 @@ func makePacemakerState[RI any](
 	return pacemakerState[RI]{
 		ctx: ctx,
 
-		chNetToPacemaker:              chNetToPacemaker,
-		chPacemakerToReportGeneration: chPacemakerToReportGeneration,
-		chReportGenerationToPacemaker: chReportGenerationToPacemaker,
-		config:                        config,
-		database:                      database,
-		id:                            id,
-		localConfig:                   localConfig,
-		logger:                        logger,
-		netSender:                     netSender,
-		offchainKeyring:               offchainKeyring,
-		telemetrySender:               telemetrySender,
+		chNetToPacemaker:               chNetToPacemaker,
+		chPacemakerToOutcomeGeneration: chPacemakerToOutcomeGeneration,
+		chOutcomeGenerationToPacemaker: chOutcomeGenerationToPacemaker,
+		config:                         config,
+		database:                       database,
+		id:                             id,
+		localConfig:                    localConfig,
+		logger:                         logger.MakeUpdated(commontypes.LogFields{"proto": "pacemaker"}),
+		netSender:                      netSender,
+		offchainKeyring:                offchainKeyring,
+		telemetrySender:                telemetrySender,
 
-		newepoch: make([]uint64, config.N()),
+		newEpochWishes: make([]uint64, config.N()),
 	}
 }
 
 type pacemakerState[RI any] struct {
 	ctx context.Context
 
-	chNetToPacemaker              <-chan MessageToPacemakerWithSender[RI]
-	chPacemakerToReportGeneration chan<- EventToReportGeneration[RI]
-	chReportGenerationToPacemaker <-chan EventToPacemaker[RI]
-	config                        ocr3config.SharedConfig
-	database                      Database
-	id                            commontypes.OracleID
-	localConfig                   types.LocalConfig
-	logger                        loghelper.LoggerWithContext
-	netSender                     NetworkSender[RI]
-	offchainKeyring               types.OffchainKeyring
-	telemetrySender               TelemetrySender
+	chNetToPacemaker               <-chan MessageToPacemakerWithSender[RI]
+	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI]
+	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI]
+	config                         ocr3config.SharedConfig
+	database                       Database
+	id                             commontypes.OracleID
+	localConfig                    types.LocalConfig
+	logger                         loghelper.LoggerWithContext
+	netSender                      NetworkSender[RI]
+	offchainKeyring                types.OffchainKeyring
+	telemetrySender                TelemetrySender
 	// Test use only: send testBlocker an event to halt the pacemaker event loop,
 	// send testUnblocker an event to resume it.
 	testBlocker   chan eventTestBlock
 	testUnblocker chan eventTestUnblock
 
-	// ne is the highest epoch number this oracle has broadcast in a newepoch
-	// message, during the current epoch
+	// ne is the highest epoch number this oracle has broadcast in a
+	// NewEpochWish message
 	ne uint64
 
 	// e is the number of the current epoch
@@ -104,42 +104,41 @@ type pacemakerState[RI any] struct {
 	// l is the index of the leader for the current epoch
 	l commontypes.OracleID
 
-	// newepoch[j] is the highest epoch number oracle j has sent in a newepoch
-	// message, during the current epoch.
-	newepoch []uint64
+	// newEpochWishes[j] is the highest epoch number oracle j has sent in a
+	// NewEpochWish message
+	newEpochWishes []uint64
 
-	// tResend is a timeout used by the leader-election protocol to
-	// periodically resend the latest Newepoch message in order to
-	// guard against unreliable network conditions
+	// tResend is a timeout used to periodically resend the latest NewEpochWish
+	// message in order to guard against unreliable network conditions
 	tResend <-chan time.Time
 
-	// tProgress is a timeout used by the leader-election protocol to track
-	// whether the current leader is making adequate progress.
+	// tProgress is a timeout used by the protocol to track whether the current
+	// leader/epoch is making adequate progress.
 	tProgress <-chan time.Time
 
-	notifyReportGenerationOfNewEpoch bool
+	notifyOutcomeGenerationOfNewEpoch bool
 }
 
-func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
-	pace.logger.Info("Running Pacemaker", nil)
+func (pace *pacemakerState[RI]) run(restoredState PacemakerState) {
+	pace.logger.Info("Pacemaker: running", nil)
 
 	// Initialization
 
-	// rounds start with 1, so let's make epochs also start with 1
-	// this also gives us cleaner behavior for the initial epoch, which is otherwise
-	// immediately terminated and superseded due to restoreNeFromTransmitter below
-	pace.e = 1
-	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
-
-	if pace.e <= restoredEpoch {
-		pace.ne = restoredEpoch + 1
+	if restoredState == (PacemakerState{}) {
+		// seqNrs start with 1, so let's make epochs also start with 1
+		pace.ne = 1
+		pace.e = 1
+	} else {
+		pace.ne = restoredState.HighestSentNewEpochWish
+		pace.e = restoredState.Epoch
 	}
+	pace.l = Leader(pace.e, pace.config.N(), pace.config.LeaderSelectionKey())
 
 	pace.tProgress = time.After(pace.config.DeltaProgress)
 
-	pace.sendNewepoch(pace.ne)
+	pace.sendNewEpochWish()
 
-	pace.notifyReportGenerationOfNewEpoch = true
+	pace.notifyOutcomeGenerationOfNewEpoch = true
 
 	// Initialization complete
 
@@ -149,19 +148,19 @@ func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
 
 	// Event Loop
 	for {
-		var nilOrChPacemakerToReportGeneration chan<- EventToReportGeneration[RI]
-		if pace.notifyReportGenerationOfNewEpoch {
-			nilOrChPacemakerToReportGeneration = pace.chPacemakerToReportGeneration
+		var nilOrChPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI]
+		if pace.notifyOutcomeGenerationOfNewEpoch {
+			nilOrChPacemakerToOutcomeGeneration = pace.chPacemakerToOutcomeGeneration
 		} else {
-			nilOrChPacemakerToReportGeneration = nil
+			nilOrChPacemakerToOutcomeGeneration = nil
 		}
 
 		select {
-		case nilOrChPacemakerToReportGeneration <- EventStartNewEpoch[RI]{pace.e}:
-			pace.notifyReportGenerationOfNewEpoch = false
+		case nilOrChPacemakerToOutcomeGeneration <- EventNewEpochStart[RI]{pace.e}:
+			pace.notifyOutcomeGenerationOfNewEpoch = false
 		case msg := <-pace.chNetToPacemaker:
 			msg.msg.processPacemaker(pace, msg.sender)
-		case ev := <-pace.chReportGenerationToPacemaker:
+		case ev := <-pace.chOutcomeGenerationToPacemaker:
 			ev.processPacemaker(pace)
 		case <-pace.tResend:
 			pace.eventTResendTimeout()
@@ -175,8 +174,6 @@ func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
 		// ensure prompt exit
 		select {
 		case <-chDone:
-			pace.logger.Info("Pacemaker: winding down", nil)
-
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:
@@ -184,88 +181,144 @@ func (pace *pacemakerState[RI]) run(restoredEpoch uint64) {
 	}
 }
 
-// eventProgress is called when a "progress" event is emitted by the reporting
-// prototol. It resets the timer which will trigger the oracle to broadcast a
-// "newepoch" message, if it runs out.
 func (pace *pacemakerState[RI]) eventProgress() {
 	pace.tProgress = time.After(pace.config.DeltaProgress)
 }
 
-func (pace *pacemakerState[RI]) sendNewepoch(newEpoch uint64) {
-	pace.netSender.Broadcast(MessageNewEpoch[RI]{newEpoch})
-	if pace.ne != newEpoch {
-		pace.ne = newEpoch
-	}
+func (pace *pacemakerState[RI]) sendNewEpochWish() {
+	pace.netSender.Broadcast(MessageNewEpochWish[RI]{pace.ne})
 	pace.tResend = time.After(pace.config.DeltaResend)
 }
 
 func (pace *pacemakerState[RI]) eventTResendTimeout() {
-	pace.sendNewepoch(pace.ne)
+	pace.sendNewEpochWish()
 }
 
 func (pace *pacemakerState[RI]) eventTProgressTimeout() {
-	pace.logger.Debug("Pacemaker: TProgress expired", nil)
-	pace.eventChangeLeader()
+	pace.logger.Debug("TProgress fired", commontypes.LogFields{
+		"deltaProgress": pace.config.DeltaProgress.String(),
+	})
+	pace.eventNewEpochRequest()
 }
 
-func (pace *pacemakerState[RI]) eventChangeLeader() {
+func (pace *pacemakerState[RI]) eventNewEpochRequest() {
 	pace.tProgress = nil
-	sendEpoch := pace.ne
 	epochPlusOne := pace.e + 1
 	if epochPlusOne <= pace.e {
-		pace.logger.Error("Pacemaker: epoch overflows, cannot change leader", nil)
+		pace.logger.Error("epoch overflows, cannot change leader", nil)
 		return
 	}
 
-	if sendEpoch < epochPlusOne {
-		sendEpoch = epochPlusOne
+	if pace.ne < epochPlusOne { // ne ← max{e + 1, ne}
+		if err := pace.persist(PacemakerState{pace.e, epochPlusOne}); err != nil {
+			pace.logger.Error("could not persist pacemaker state in eventNewEpochRequest", commontypes.LogFields{
+				"error": err,
+			})
+		}
+
+		pace.ne = epochPlusOne
 	}
-	pace.sendNewepoch(sendEpoch)
+	pace.sendNewEpochWish()
 }
 
-func (pace *pacemakerState[RI]) messageNewepoch(msg MessageNewEpoch[RI], sender commontypes.OracleID) {
-	if pace.newepoch[sender] < msg.Epoch {
-		pace.newepoch[sender] = msg.Epoch
-	} else {
-		// neither of the following two "upon" handlers can be triggered
-		return
+func (pace *pacemakerState[RI]) messageNewEpochWish(msg MessageNewEpochWish[RI], sender commontypes.OracleID) {
+	if pace.newEpochWishes[sender] < msg.Epoch {
+		pace.newEpochWishes[sender] = msg.Epoch
 	}
 
-	// upon |{p_j ∈ P | newepoch[j] > ne}| > f do
+	var wishForEpoch uint64
+
+	// upon |{p_j ∈ P | newEpochWishes[j] > ne}| > f do
 	{
-		candidateEpochs := sortedGreaterThan(pace.newepoch, pace.ne)
+		candidateEpochs := sortedGreaterThan(pace.newEpochWishes, pace.ne)
 		if len(candidateEpochs) > pace.config.F {
-			// ē ← max {e' | {p_j ∈ P | newepoch[j] ≥ e' } > f}
-			newEpoch := candidateEpochs[len(candidateEpochs)-(pace.config.F+1)]
-			pace.sendNewepoch(newEpoch)
+			// ē ← max {e' | {p_j ∈ P | newEpochWishes[j] ≥ e' } > f}
+			wishForEpoch = candidateEpochs[len(candidateEpochs)-(pace.config.F+1)]
+			// ne ← max(ne, ē) is superfluous because ē is always greater or
+			// equal ne: this rule is only triggered if there are at least f+1
+			// wishes greater than ne. ē is the greatest wish such that f+1
+			// wishes are greater or equal ē.
+
+			// see "if wishForEpoch != 0 {" for continuation below
 		}
 	}
 
-	// upon |{p_j ∈ P | newepoch[j] > e}| > 2f do
+	var switchToEpoch uint64
+
+	// upon |{p_j ∈ P | newEpochWishes[j] > e}| > 2f do
 	{
-		candidateEpochs := sortedGreaterThan(pace.newepoch, pace.e)
+		candidateEpochs := sortedGreaterThan(pace.newEpochWishes, pace.e)
 		if len(candidateEpochs) > 2*pace.config.F {
-			// ē ← max {e' | {p_j ∈ P | newepoch[j] ≥ e' } > 2f}
+			// ē ← max {e' | {p_j ∈ P | newEpochWishes[j] ≥ e' } > 2f}
 			//
-			// since candidateEpochs contains, in increasing order, the epochs from
-			// the received newepoch messages, this value of newEpoch was sent by at
-			// least 2F+1 processes
-			newEpoch := candidateEpochs[len(candidateEpochs)-(2*pace.config.F+1)]
-			pace.logger.Debug("Moving to epoch, based on candidateEpochs", commontypes.LogFields{
-				"newEpoch":        newEpoch,
-				"candidateEpochs": candidateEpochs,
-			})
-			l := Leader(newEpoch, pace.config.N(), pace.config.LeaderSelectionKey())
-			pace.e, pace.l = newEpoch, l // (e, l) ← (ē, leader(ē))
-			if pace.ne < pace.e {        // ne ← max{ne, e}
-				pace.ne = pace.e
-			}
-
-			pace.notifyReportGenerationOfNewEpoch = true
-
-			pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
+			// since candidateEpochs contains, in increasing order, the epochs
+			// from the received NewEpochWish messages, this value was sent by
+			// at least 2F+1 processes
+			switchToEpoch = candidateEpochs[len(candidateEpochs)-(2*pace.config.F+1)]
+			// see "if switchToEpoch != 0 {" for continuation below
 		}
 	}
+
+	// persist wishForEpoch and switchToEpoch
+	if wishForEpoch != 0 || switchToEpoch != 0 {
+		persistState := PacemakerState{}
+		if wishForEpoch == 0 {
+			persistState.HighestSentNewEpochWish = pace.ne
+		} else {
+			persistState.HighestSentNewEpochWish = wishForEpoch
+		}
+		if switchToEpoch == 0 {
+			persistState.Epoch = pace.e
+		} else {
+			persistState.Epoch = switchToEpoch
+		}
+
+		// needed so that persisted state is consistent with "ne ← max{ne, e}"
+		// statement in agreement rule
+		if persistState.HighestSentNewEpochWish < persistState.Epoch {
+			persistState.HighestSentNewEpochWish = persistState.Epoch
+		}
+
+		if err := pace.persist(persistState); err != nil {
+			pace.logger.Error("could not persist pacemaker state in messageNewEpochWish", commontypes.LogFields{
+				"error": err,
+			})
+		}
+	}
+
+	if wishForEpoch != 0 {
+		pace.ne = wishForEpoch
+		pace.sendNewEpochWish()
+	}
+
+	if switchToEpoch != 0 {
+		pace.logger.Debug("moving to new epoch", commontypes.LogFields{
+			"newEpoch": switchToEpoch,
+		})
+		l := Leader(switchToEpoch, pace.config.N(), pace.config.LeaderSelectionKey())
+		pace.e, pace.l = switchToEpoch, l // (e, l) ← (ē, leader(ē))
+		if pace.ne < pace.e {             // ne ← max{ne, e}
+			pace.ne = pace.e
+		}
+
+		pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
+
+		pace.notifyOutcomeGenerationOfNewEpoch = true // invoke event newEpochStart(e, l)
+	}
+}
+
+func (pace *pacemakerState[RI]) persist(state PacemakerState) error {
+	writeCtx, writeCancel := context.WithTimeout(pace.ctx, pace.localConfig.DatabaseTimeout)
+	defer writeCancel()
+	err := pace.database.WritePacemakerState(
+		writeCtx,
+		pace.config.ConfigDigest,
+		state,
+	)
+	if err != nil {
+		return fmt.Errorf("error while persisting pacemaker state: %w", err)
+	}
+	return nil
 }
 
 // sortedGreaterThan returns the *sorted* elements of xs which are greater than y
@@ -281,20 +334,14 @@ func sortedGreaterThan(xs []uint64, y uint64) (rv []uint64) {
 
 // Leader will produce an oracle id for the given epoch.
 func Leader(epoch uint64, n int, key [16]byte) (leader commontypes.OracleID) {
-	// No need for HMAC. Since we use Keccak256, prepending
-	// with key gives us a PRF already.
-	h := sha3.NewLegacyKeccak256()
-	h.Write(key[:])
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, epoch)
-	h.Write(b)
+	mac := hmac.New(sha256.New, key[:])
+	_ = binary.Write(mac, binary.BigEndian, epoch)
 
-	result := big.NewInt(0)
-	r := big.NewInt(0).SetBytes(h.Sum(nil))
+	r := big.NewInt(0).SetBytes(mac.Sum(nil))
 	// This is biased, but we don't care because the prob of us hitting the bias are
-	// less than 2**5/2**256 = 2**-251.
-	result.Mod(r, big.NewInt(int64(n)))
-	return commontypes.OracleID(result.Int64())
+	// less than 2**5/2**256 = 2**-251 ≈ 0
+	r.Mod(r, big.NewInt(int64(n)))
+	return commontypes.OracleID(r.Int64())
 }
 
 type eventTestBlock struct{}
