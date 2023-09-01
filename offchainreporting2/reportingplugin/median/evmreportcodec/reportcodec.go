@@ -25,6 +25,7 @@ func getReportTypes() abi.Arguments {
 		{Name: "rawObservers", Type: mustNewType("bytes32")},
 		{Name: "observations", Type: mustNewType("int192[]")},
 		{Name: "juelsPerFeeCoin", Type: mustNewType("int192")},
+		// EVM includes tx.gasPrice on chain so we can skip it on the report
 	})
 }
 
