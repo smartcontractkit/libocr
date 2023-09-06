@@ -16,8 +16,7 @@ contract AccessControlledOCR2Aggregator is OCR2Aggregator, SimpleReadAccessContr
     AccessControllerInterface _billingAccessController,
     AccessControllerInterface _requesterAccessController,
     uint8 _decimals,
-    string memory _description,
-    OCR2ConfigurationStore configStore
+    string memory description
   )
     OCR2Aggregator(
       _link,
@@ -26,8 +25,7 @@ contract AccessControlledOCR2Aggregator is OCR2Aggregator, SimpleReadAccessContr
       _billingAccessController,
       _requesterAccessController,
       _decimals,
-      _description,
-      configStore
+      description
     ) {
     }
 

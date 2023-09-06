@@ -8,10 +8,9 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
   // Maximum number of oracles the offchain reporting protocol is designed for
   uint256 constant internal maxNumOracles = 31;
 
-
   /**
    * @notice triggers a new run of the offchain reporting protocol
-   * @param blockNumber block in which the  config was set
+   * @param previousConfigBlockNumber block in which the previous config was set, to simplify historic analysis
    * @param configDigest configDigest of this configuration
    * @param configCount ordinal number of this config setting among all config settings over the life of this contract
    * @param signers ith element is address ith oracle uses to sign a report
@@ -22,7 +21,7 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
    * @param offchainConfig serialized configuration used by the oracles exclusively and only passed through the contract
    */
   event ConfigSet(
-    uint32 blockNumber,
+    uint32 previousConfigBlockNumber,
     bytes32 configDigest,
     uint64 configCount,
     address[] signers,
@@ -69,6 +68,28 @@ abstract contract OCR2Abstract is TypeAndVersionInterface {
       bytes32 configDigest
     );
 
+  function _configDigestFromConfigData(
+    uint256 chainId,
+    address contractAddress,
+    uint64 configCount,
+    address[] memory signers,
+    address[] memory transmitters,
+    uint8 f,
+    bytes memory onchainConfig,
+    uint64 offchainConfigVersion,
+    bytes memory offchainConfig
+  )
+    internal
+    pure
+    returns (bytes32)
+  {
+    uint256 h = uint256(keccak256(abi.encode(chainId, contractAddress, configCount,
+      signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig
+    )));
+    uint256 prefixMask = type(uint256).max << (256-16); // 0xFFFF00..00
+    uint256 prefix = 0x0001 << (256-16); // 0x000100..00
+    return bytes32((prefix & prefixMask) | (h & ~prefixMask));
+  }
 
   /**
   * @notice optionally emitted to indicate the latest configDigest and epoch for

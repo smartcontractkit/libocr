@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 /*
  * @title ConfigDigestUtil
- * @author Michael Fletcher
  * @notice ConfigDigest related utility functions
  */
 library ConfigDigestUtil {

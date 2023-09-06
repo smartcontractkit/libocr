@@ -6,11 +6,8 @@ import "./interfaces/AggregatorV2V3Interface.sol";
 import "./interfaces/AggregatorValidatorInterface.sol";
 import "./interfaces/LinkTokenInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
-import "./OCR2ConfigurationStore.sol";
-import "./lib/ConfigDigestUtil.sol";
 import "./OCR2Abstract.sol";
 import "./OwnerIsCreator.sol";
-import "./OCR2ConfigurationStore.sol";
 
 
 /**
@@ -137,8 +134,6 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   int192 immutable public minAnswer;
   // Highest answer the system is allowed to report in response to transmissions
   int192 immutable public maxAnswer;
-  // The store where configurations are saved
-  OCR2ConfigurationStore immutable public i_configStore;
 
   /***************************************************************************
    * Section: Constructor
@@ -159,8 +154,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     AccessControllerInterface billingAccessController,
     AccessControllerInterface requesterAccessController,
     uint8 decimals_,
-    string memory description_,
-    OCR2ConfigurationStore configStore
+    string memory description_
   ) {
     s_linkToken = link;
     emit LinkTokenSet(LinkTokenInterface(address(0)), link);
@@ -172,7 +166,6 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     setValidatorConfig(AggregatorValidatorInterface(address(0x0)), 0);
     minAnswer = minAnswer_;
     maxAnswer = maxAnswer_;
-    i_configStore = configStore;
   }
 
 
@@ -224,13 +217,13 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     require(signers.length == transmitters.length, "oracle length mismatch");
     require(3*f < signers.length, "faulty-oracle f too high");
     _requirePositiveF(f);
-    require(onchainConfig.length == 0, "onchainConfig must be empty");
+    require(keccak256(onchainConfig) == keccak256(abi.encodePacked(uint8(1) /*version*/, minAnswer, maxAnswer)), "invalid onchainConfig");
 
     SetConfigArgs memory args = SetConfigArgs({
       signers: signers,
       transmitters: transmitters,
       f: f,
-      onchainConfig: abi.encodePacked(uint8(1) /*version*/, minAnswer, maxAnswer),
+      onchainConfig: onchainConfig,
       offchainConfigVersion: offchainConfigVersion,
       offchainConfig: offchainConfig
     });
@@ -273,41 +266,25 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     s_transmittersList = args.transmitters;
 
     s_hotVars.f = args.f;
-
-    ++s_configCount;
-    uint64 configCount = s_configCount;
-
+    uint32 previousConfigBlockNumber = s_latestConfigBlockNumber;
     s_latestConfigBlockNumber = uint32(block.number);
-
-    if(address(i_configStore) != address(0)) {
-      IOCR2ConfigurationStore.Configuration memory config = IOCR2ConfigurationStore.Configuration({
-        configCount: configCount,
-        signers: args.signers,
-        transmitters: args.transmitters,
-        onchainConfig: args.onchainConfig,
-        offchainConfig: args.offchainConfig,
-        offchainConfigVersion: args.offchainConfigVersion,
-        f: args.f
-      });
-
-      s_latestConfigDigest = i_configStore.addConfig(config);
-    } else {
-      s_latestConfigDigest = ConfigDigestUtil.configDigestFromConfigData(
-        block.chainid,
-        address(this),
-        configCount,
-        args.signers,
-        args.transmitters,
-        args.f,
-        args.onchainConfig,
-        args.offchainConfigVersion,
-        args.offchainConfig);
-    }
+    s_configCount += 1;
+    s_latestConfigDigest = _configDigestFromConfigData(
+      block.chainid,
+      address(this),
+      s_configCount,
+      args.signers,
+      args.transmitters,
+      args.f,
+      args.onchainConfig,
+      args.offchainConfigVersion,
+      args.offchainConfig
+    );
 
     emit ConfigSet(
-      uint32(block.number),
+      previousConfigBlockNumber,
       s_latestConfigDigest,
-      configCount,
+      s_configCount,
       args.signers,
       args.transmitters,
       args.f,

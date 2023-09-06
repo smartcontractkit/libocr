@@ -1,7 +1,7 @@
 // Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
-package ocrconfigurationstore
+package ocrconfigurationstoreevmsimple
 
 import (
 	"errors"
@@ -29,22 +29,16 @@ var (
 	_ = abi.ConvertType
 )
 
-// IOCRConfigurationStoreConfiguration is an auto generated low-level Go binding around an user-defined struct.
-type IOCRConfigurationStoreConfiguration struct {
-	ConfigCount           uint32
+// OCRConfigurationStoreEVMSimpleConfigurationEVMSimple is an auto generated low-level Go binding around an user-defined struct.
+type OCRConfigurationStoreEVMSimpleConfigurationEVMSimple struct {
 	Signers               []common.Address
 	Transmitters          []common.Address
 	OnchainConfig         []byte
 	OffchainConfig        []byte
+	ContractAddress       common.Address
 	OffchainConfigVersion uint64
+	ConfigCount           uint32
 	F                     uint8
-}
-
-// IOCRConfigurationStoreExtendedConfiguration is an auto generated low-level Go binding around an user-defined struct.
-type IOCRConfigurationStoreExtendedConfiguration struct {
-	BlockNumber     uint32
-	ContractAddress common.Address
-	Configuration   IOCRConfigurationStoreConfiguration
 }
 
 // ConfigDigestUtilMetaData contains all meta data concerning the ConfigDigestUtil contract.
@@ -1324,293 +1318,9 @@ func (_ConfirmedOwnerWithProposal *ConfirmedOwnerWithProposalFilterer) ParseOwne
 	return event, nil
 }
 
-// IOCRConfigurationStoreMetaData contains all meta data concerning the IOCRConfigurationStore contract.
-var IOCRConfigurationStoreMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configurationParams\",\"type\":\"tuple\"}],\"name\":\"addConfig\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"name\":\"latestConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"internalType\":\"structIOCRConfigurationStore.ExtendedConfiguration\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"name\":\"readConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"internalType\":\"structIOCRConfigurationStore.ExtendedConfiguration\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
-}
-
-// IOCRConfigurationStoreABI is the input ABI used to generate the binding from.
-// Deprecated: Use IOCRConfigurationStoreMetaData.ABI instead.
-var IOCRConfigurationStoreABI = IOCRConfigurationStoreMetaData.ABI
-
-// IOCRConfigurationStore is an auto generated Go binding around an Ethereum contract.
-type IOCRConfigurationStore struct {
-	IOCRConfigurationStoreCaller     // Read-only binding to the contract
-	IOCRConfigurationStoreTransactor // Write-only binding to the contract
-	IOCRConfigurationStoreFilterer   // Log filterer for contract events
-}
-
-// IOCRConfigurationStoreCaller is an auto generated read-only Go binding around an Ethereum contract.
-type IOCRConfigurationStoreCaller struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// IOCRConfigurationStoreTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type IOCRConfigurationStoreTransactor struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// IOCRConfigurationStoreFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type IOCRConfigurationStoreFilterer struct {
-	contract *bind.BoundContract // Generic contract wrapper for the low level calls
-}
-
-// IOCRConfigurationStoreSession is an auto generated Go binding around an Ethereum contract,
-// with pre-set call and transact options.
-type IOCRConfigurationStoreSession struct {
-	Contract     *IOCRConfigurationStore // Generic contract binding to set the session for
-	CallOpts     bind.CallOpts           // Call options to use throughout this session
-	TransactOpts bind.TransactOpts       // Transaction auth options to use throughout this session
-}
-
-// IOCRConfigurationStoreCallerSession is an auto generated read-only Go binding around an Ethereum contract,
-// with pre-set call options.
-type IOCRConfigurationStoreCallerSession struct {
-	Contract *IOCRConfigurationStoreCaller // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts                 // Call options to use throughout this session
-}
-
-// IOCRConfigurationStoreTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
-// with pre-set transact options.
-type IOCRConfigurationStoreTransactorSession struct {
-	Contract     *IOCRConfigurationStoreTransactor // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts                 // Transaction auth options to use throughout this session
-}
-
-// IOCRConfigurationStoreRaw is an auto generated low-level Go binding around an Ethereum contract.
-type IOCRConfigurationStoreRaw struct {
-	Contract *IOCRConfigurationStore // Generic contract binding to access the raw methods on
-}
-
-// IOCRConfigurationStoreCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type IOCRConfigurationStoreCallerRaw struct {
-	Contract *IOCRConfigurationStoreCaller // Generic read-only contract binding to access the raw methods on
-}
-
-// IOCRConfigurationStoreTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type IOCRConfigurationStoreTransactorRaw struct {
-	Contract *IOCRConfigurationStoreTransactor // Generic write-only contract binding to access the raw methods on
-}
-
-// NewIOCRConfigurationStore creates a new instance of IOCRConfigurationStore, bound to a specific deployed contract.
-func NewIOCRConfigurationStore(address common.Address, backend bind.ContractBackend) (*IOCRConfigurationStore, error) {
-	contract, err := bindIOCRConfigurationStore(address, backend, backend, backend)
-	if err != nil {
-		return nil, err
-	}
-	return &IOCRConfigurationStore{IOCRConfigurationStoreCaller: IOCRConfigurationStoreCaller{contract: contract}, IOCRConfigurationStoreTransactor: IOCRConfigurationStoreTransactor{contract: contract}, IOCRConfigurationStoreFilterer: IOCRConfigurationStoreFilterer{contract: contract}}, nil
-}
-
-// NewIOCRConfigurationStoreCaller creates a new read-only instance of IOCRConfigurationStore, bound to a specific deployed contract.
-func NewIOCRConfigurationStoreCaller(address common.Address, caller bind.ContractCaller) (*IOCRConfigurationStoreCaller, error) {
-	contract, err := bindIOCRConfigurationStore(address, caller, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &IOCRConfigurationStoreCaller{contract: contract}, nil
-}
-
-// NewIOCRConfigurationStoreTransactor creates a new write-only instance of IOCRConfigurationStore, bound to a specific deployed contract.
-func NewIOCRConfigurationStoreTransactor(address common.Address, transactor bind.ContractTransactor) (*IOCRConfigurationStoreTransactor, error) {
-	contract, err := bindIOCRConfigurationStore(address, nil, transactor, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &IOCRConfigurationStoreTransactor{contract: contract}, nil
-}
-
-// NewIOCRConfigurationStoreFilterer creates a new log filterer instance of IOCRConfigurationStore, bound to a specific deployed contract.
-func NewIOCRConfigurationStoreFilterer(address common.Address, filterer bind.ContractFilterer) (*IOCRConfigurationStoreFilterer, error) {
-	contract, err := bindIOCRConfigurationStore(address, nil, nil, filterer)
-	if err != nil {
-		return nil, err
-	}
-	return &IOCRConfigurationStoreFilterer{contract: contract}, nil
-}
-
-// bindIOCRConfigurationStore binds a generic wrapper to an already deployed contract.
-func bindIOCRConfigurationStore(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := IOCRConfigurationStoreMetaData.GetAbi()
-	if err != nil {
-		return nil, err
-	}
-	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
-}
-
-// Call invokes the (constant) contract method with params as input values and
-// sets the output to result. The result type might be a single field for simple
-// returns, a slice of interfaces for anonymous returns and a struct for named
-// returns.
-func (_IOCRConfigurationStore *IOCRConfigurationStoreRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _IOCRConfigurationStore.Contract.IOCRConfigurationStoreCaller.contract.Call(opts, result, method, params...)
-}
-
-// Transfer initiates a plain transaction to move funds to the contract, calling
-// its default method if one is available.
-func (_IOCRConfigurationStore *IOCRConfigurationStoreRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.Contract.IOCRConfigurationStoreTransactor.contract.Transfer(opts)
-}
-
-// Transact invokes the (paid) contract method with params as input values.
-func (_IOCRConfigurationStore *IOCRConfigurationStoreRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.Contract.IOCRConfigurationStoreTransactor.contract.Transact(opts, method, params...)
-}
-
-// Call invokes the (constant) contract method with params as input values and
-// sets the output to result. The result type might be a single field for simple
-// returns, a slice of interfaces for anonymous returns and a struct for named
-// returns.
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _IOCRConfigurationStore.Contract.contract.Call(opts, result, method, params...)
-}
-
-// Transfer initiates a plain transaction to move funds to the contract, calling
-// its default method if one is available.
-func (_IOCRConfigurationStore *IOCRConfigurationStoreTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.Contract.contract.Transfer(opts)
-}
-
-// Transact invokes the (paid) contract method with params as input values.
-func (_IOCRConfigurationStore *IOCRConfigurationStoreTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.Contract.contract.Transact(opts, method, params...)
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x9d386827.
-//
-// Solidity: function latestConfig(address contractAddress) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCaller) LatestConfig(opts *bind.CallOpts, contractAddress common.Address) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	var out []interface{}
-	err := _IOCRConfigurationStore.contract.Call(opts, &out, "latestConfig", contractAddress)
-
-	if err != nil {
-		return *new(IOCRConfigurationStoreExtendedConfiguration), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(IOCRConfigurationStoreExtendedConfiguration)).(*IOCRConfigurationStoreExtendedConfiguration)
-
-	return out0, err
-
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x9d386827.
-//
-// Solidity: function latestConfig(address contractAddress) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_IOCRConfigurationStore *IOCRConfigurationStoreSession) LatestConfig(contractAddress common.Address) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _IOCRConfigurationStore.Contract.LatestConfig(&_IOCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x9d386827.
-//
-// Solidity: function latestConfig(address contractAddress) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCallerSession) LatestConfig(contractAddress common.Address) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _IOCRConfigurationStore.Contract.LatestConfig(&_IOCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0xc523c14d.
-//
-// Solidity: function latestConfigDetails(address contractAddress) view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCaller) LatestConfigDetails(opts *bind.CallOpts, contractAddress common.Address) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	var out []interface{}
-	err := _IOCRConfigurationStore.contract.Call(opts, &out, "latestConfigDetails", contractAddress)
-
-	outstruct := new(struct {
-		ConfigCount  uint32
-		BlockNumber  uint32
-		ConfigDigest [32]byte
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.ConfigCount = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.BlockNumber = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.ConfigDigest = *abi.ConvertType(out[2], new([32]byte)).(*[32]byte)
-
-	return *outstruct, err
-
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0xc523c14d.
-//
-// Solidity: function latestConfigDetails(address contractAddress) view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_IOCRConfigurationStore *IOCRConfigurationStoreSession) LatestConfigDetails(contractAddress common.Address) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _IOCRConfigurationStore.Contract.LatestConfigDetails(&_IOCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0xc523c14d.
-//
-// Solidity: function latestConfigDetails(address contractAddress) view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCallerSession) LatestConfigDetails(contractAddress common.Address) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _IOCRConfigurationStore.Contract.LatestConfigDetails(&_IOCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// ReadConfig is a free data retrieval call binding the contract method 0xbc4215dc.
-//
-// Solidity: function readConfig(bytes32 configDigest) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCaller) ReadConfig(opts *bind.CallOpts, configDigest [32]byte) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	var out []interface{}
-	err := _IOCRConfigurationStore.contract.Call(opts, &out, "readConfig", configDigest)
-
-	if err != nil {
-		return *new(IOCRConfigurationStoreExtendedConfiguration), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(IOCRConfigurationStoreExtendedConfiguration)).(*IOCRConfigurationStoreExtendedConfiguration)
-
-	return out0, err
-
-}
-
-// ReadConfig is a free data retrieval call binding the contract method 0xbc4215dc.
-//
-// Solidity: function readConfig(bytes32 configDigest) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_IOCRConfigurationStore *IOCRConfigurationStoreSession) ReadConfig(configDigest [32]byte) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _IOCRConfigurationStore.Contract.ReadConfig(&_IOCRConfigurationStore.CallOpts, configDigest)
-}
-
-// ReadConfig is a free data retrieval call binding the contract method 0xbc4215dc.
-//
-// Solidity: function readConfig(bytes32 configDigest) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_IOCRConfigurationStore *IOCRConfigurationStoreCallerSession) ReadConfig(configDigest [32]byte) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _IOCRConfigurationStore.Contract.ReadConfig(&_IOCRConfigurationStore.CallOpts, configDigest)
-}
-
-// AddConfig is a paid mutator transaction binding the contract method 0xd27bcd60.
-//
-// Solidity: function addConfig((uint32,address[],address[],bytes,bytes,uint64,uint8) configurationParams) returns(bytes32)
-func (_IOCRConfigurationStore *IOCRConfigurationStoreTransactor) AddConfig(opts *bind.TransactOpts, configurationParams IOCRConfigurationStoreConfiguration) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.contract.Transact(opts, "addConfig", configurationParams)
-}
-
-// AddConfig is a paid mutator transaction binding the contract method 0xd27bcd60.
-//
-// Solidity: function addConfig((uint32,address[],address[],bytes,bytes,uint64,uint8) configurationParams) returns(bytes32)
-func (_IOCRConfigurationStore *IOCRConfigurationStoreSession) AddConfig(configurationParams IOCRConfigurationStoreConfiguration) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.Contract.AddConfig(&_IOCRConfigurationStore.TransactOpts, configurationParams)
-}
-
-// AddConfig is a paid mutator transaction binding the contract method 0xd27bcd60.
-//
-// Solidity: function addConfig((uint32,address[],address[],bytes,bytes,uint64,uint8) configurationParams) returns(bytes32)
-func (_IOCRConfigurationStore *IOCRConfigurationStoreTransactorSession) AddConfig(configurationParams IOCRConfigurationStoreConfiguration) (*types.Transaction, error) {
-	return _IOCRConfigurationStore.Contract.AddConfig(&_IOCRConfigurationStore.TransactOpts, configurationParams)
-}
-
 // OCR2AbstractMetaData contains all meta data concerning the OCR2Abstract contract.
 var OCR2AbstractMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmitted\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"latestConfig\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDigestAndEpoch\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"scanLogs\",\"type\":\"bool\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"previousConfigBlockNumber\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"configCount\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"ConfigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"name\":\"Transmitted\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestConfigDigestAndEpoch\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"scanLogs\",\"type\":\"bool\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"epoch\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"}],\"name\":\"setConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[3]\",\"name\":\"reportContext\",\"type\":\"bytes32[3]\"},{\"internalType\":\"bytes\",\"name\":\"report\",\"type\":\"bytes\"},{\"internalType\":\"bytes32[]\",\"name\":\"rs\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"ss\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32\",\"name\":\"rawVs\",\"type\":\"bytes32\"}],\"name\":\"transmit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]",
 }
 
 // OCR2AbstractABI is the input ABI used to generate the binding from.
@@ -1757,86 +1467,6 @@ func (_OCR2Abstract *OCR2AbstractTransactorRaw) Transfer(opts *bind.TransactOpts
 // Transact invokes the (paid) contract method with params as input values.
 func (_OCR2Abstract *OCR2AbstractTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _OCR2Abstract.Contract.contract.Transact(opts, method, params...)
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x0997f9b7.
-//
-// Solidity: function latestConfig() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest, address[] signers, address[] transmitters, bytes onchainConfig, bytes offchainConfig, uint64 offchainConfigVersion, uint8 f)
-func (_OCR2Abstract *OCR2AbstractCaller) LatestConfig(opts *bind.CallOpts) (struct {
-	ConfigCount           uint32
-	BlockNumber           uint32
-	ConfigDigest          [32]byte
-	Signers               []common.Address
-	Transmitters          []common.Address
-	OnchainConfig         []byte
-	OffchainConfig        []byte
-	OffchainConfigVersion uint64
-	F                     uint8
-}, error) {
-	var out []interface{}
-	err := _OCR2Abstract.contract.Call(opts, &out, "latestConfig")
-
-	outstruct := new(struct {
-		ConfigCount           uint32
-		BlockNumber           uint32
-		ConfigDigest          [32]byte
-		Signers               []common.Address
-		Transmitters          []common.Address
-		OnchainConfig         []byte
-		OffchainConfig        []byte
-		OffchainConfigVersion uint64
-		F                     uint8
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.ConfigCount = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.BlockNumber = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.ConfigDigest = *abi.ConvertType(out[2], new([32]byte)).(*[32]byte)
-	outstruct.Signers = *abi.ConvertType(out[3], new([]common.Address)).(*[]common.Address)
-	outstruct.Transmitters = *abi.ConvertType(out[4], new([]common.Address)).(*[]common.Address)
-	outstruct.OnchainConfig = *abi.ConvertType(out[5], new([]byte)).(*[]byte)
-	outstruct.OffchainConfig = *abi.ConvertType(out[6], new([]byte)).(*[]byte)
-	outstruct.OffchainConfigVersion = *abi.ConvertType(out[7], new(uint64)).(*uint64)
-	outstruct.F = *abi.ConvertType(out[8], new(uint8)).(*uint8)
-
-	return *outstruct, err
-
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x0997f9b7.
-//
-// Solidity: function latestConfig() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest, address[] signers, address[] transmitters, bytes onchainConfig, bytes offchainConfig, uint64 offchainConfigVersion, uint8 f)
-func (_OCR2Abstract *OCR2AbstractSession) LatestConfig() (struct {
-	ConfigCount           uint32
-	BlockNumber           uint32
-	ConfigDigest          [32]byte
-	Signers               []common.Address
-	Transmitters          []common.Address
-	OnchainConfig         []byte
-	OffchainConfig        []byte
-	OffchainConfigVersion uint64
-	F                     uint8
-}, error) {
-	return _OCR2Abstract.Contract.LatestConfig(&_OCR2Abstract.CallOpts)
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x0997f9b7.
-//
-// Solidity: function latestConfig() view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest, address[] signers, address[] transmitters, bytes onchainConfig, bytes offchainConfig, uint64 offchainConfigVersion, uint8 f)
-func (_OCR2Abstract *OCR2AbstractCallerSession) LatestConfig() (struct {
-	ConfigCount           uint32
-	BlockNumber           uint32
-	ConfigDigest          [32]byte
-	Signers               []common.Address
-	Transmitters          []common.Address
-	OnchainConfig         []byte
-	OffchainConfig        []byte
-	OffchainConfigVersion uint64
-	F                     uint8
-}, error) {
-	return _OCR2Abstract.Contract.LatestConfig(&_OCR2Abstract.CallOpts)
 }
 
 // LatestConfigDetails is a free data retrieval call binding the contract method 0x81ff7048.
@@ -2081,21 +1711,21 @@ func (it *OCR2AbstractConfigSetIterator) Close() error {
 
 // OCR2AbstractConfigSet represents a ConfigSet event raised by the OCR2Abstract contract.
 type OCR2AbstractConfigSet struct {
-	BlockNumber           uint32
-	ConfigDigest          [32]byte
-	ConfigCount           uint64
-	Signers               []common.Address
-	Transmitters          []common.Address
-	F                     uint8
-	OnchainConfig         []byte
-	OffchainConfigVersion uint64
-	OffchainConfig        []byte
-	Raw                   types.Log // Blockchain specific contextual infos
+	PreviousConfigBlockNumber uint32
+	ConfigDigest              [32]byte
+	ConfigCount               uint64
+	Signers                   []common.Address
+	Transmitters              []common.Address
+	F                         uint8
+	OnchainConfig             []byte
+	OffchainConfigVersion     uint64
+	OffchainConfig            []byte
+	Raw                       types.Log // Blockchain specific contextual infos
 }
 
 // FilterConfigSet is a free log retrieval operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 blockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_OCR2Abstract *OCR2AbstractFilterer) FilterConfigSet(opts *bind.FilterOpts) (*OCR2AbstractConfigSetIterator, error) {
 
 	logs, sub, err := _OCR2Abstract.contract.FilterLogs(opts, "ConfigSet")
@@ -2107,7 +1737,7 @@ func (_OCR2Abstract *OCR2AbstractFilterer) FilterConfigSet(opts *bind.FilterOpts
 
 // WatchConfigSet is a free log subscription operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 blockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_OCR2Abstract *OCR2AbstractFilterer) WatchConfigSet(opts *bind.WatchOpts, sink chan<- *OCR2AbstractConfigSet) (event.Subscription, error) {
 
 	logs, sub, err := _OCR2Abstract.contract.WatchLogs(opts, "ConfigSet")
@@ -2144,7 +1774,7 @@ func (_OCR2Abstract *OCR2AbstractFilterer) WatchConfigSet(opts *bind.WatchOpts, 
 
 // ParseConfigSet is a log parse operation binding the contract event 0x1591690b8638f5fb2dbec82ac741805ac5da8b45dc5263f4875b0496fdce4e05.
 //
-// Solidity: event ConfigSet(uint32 blockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
+// Solidity: event ConfigSet(uint32 previousConfigBlockNumber, bytes32 configDigest, uint64 configCount, address[] signers, address[] transmitters, uint8 f, bytes onchainConfig, uint64 offchainConfigVersion, bytes offchainConfig)
 func (_OCR2Abstract *OCR2AbstractFilterer) ParseConfigSet(log types.Log) (*OCR2AbstractConfigSet, error) {
 	event := new(OCR2AbstractConfigSet)
 	if err := _OCR2Abstract.contract.UnpackLog(event, "ConfigSet", log); err != nil {
@@ -2289,23 +1919,23 @@ func (_OCR2Abstract *OCR2AbstractFilterer) ParseTransmitted(log types.Log) (*OCR
 	return event, nil
 }
 
-// OCRConfigurationStoreMetaData contains all meta data concerning the OCRConfigurationStore contract.
-var OCRConfigurationStoreMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferRequested\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"acceptOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"name\":\"addConfig\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"name\":\"latestConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"internalType\":\"structIOCRConfigurationStore.ExtendedConfiguration\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"}],\"name\":\"latestConfigDetails\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"name\":\"readConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"internalType\":\"structIOCRConfigurationStore.ExtendedConfiguration\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"s_configurations\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"blockNumber\",\"type\":\"uint32\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"components\":[{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structIOCRConfigurationStore.Configuration\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"s_latestConfigurationDigest\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]",
-	Bin: "0x608060405234801561001057600080fd5b5033806000816100675760405162461bcd60e51b815260206004820152601860248201527f43616e6e6f7420736574206f776e657220746f207a65726f000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b0384811691909117909155811615610097576100978161009f565b505050610149565b6001600160a01b0381163314156100f85760405162461bcd60e51b815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c66000000000000000000604482015260640161005e565b600180546001600160a01b0319166001600160a01b0383811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b611877806101586000396000f3fe608060405234801561001057600080fd5b50600436106100be5760003560e01c8063bc4215dc11610076578063d27bcd601161005b578063d27bcd6014610220578063dc2e47cd14610233578063f2fde38b1461025557600080fd5b8063bc4215dc1461018b578063c523c14d1461019e57600080fd5b806379ba5097116100a757806379ba5097146101395780638da5cb5b146101435780639d3868271461016b57600080fd5b8063181f5a77146100c3578063586505cb1461010b575b600080fd5b604080518082018252601b81527f4f4352436f6e66696775726174696f6e53746f726520312e302e300000000000602082015290516101029190611462565b60405180910390f35b61012b61011936600461123f565b60036020526000908152604090205481565b604051908152602001610102565b610141610268565b005b60005460405173ffffffffffffffffffffffffffffffffffffffff9091168152602001610102565b61017e61017936600461123f565b61036a565b6040516101029190611475565b61017e610199366004611261565b610662565b6101fd6101ac36600461123f565b73ffffffffffffffffffffffffffffffffffffffff1660008181526003602081815260408084205480855260028352908420600181015490549590945291905263ffffffff91821693919092169190565b6040805163ffffffff948516815293909216602084015290820152606001610102565b61012b61022e36600461127a565b610801565b610246610241366004611261565b610af0565b6040516101029392919061156d565b61014161026336600461123f565b610d73565b60015473ffffffffffffffffffffffffffffffffffffffff1633146102ee576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601660248201527f4d7573742062652070726f706f736564206f776e65720000000000000000000060448201526064015b60405180910390fd5b60008054337fffffffffffffffffffffffff00000000000000000000000000000000000000008083168217845560018054909116905560405173ffffffffffffffffffffffffffffffffffffffff90921692909183917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a350565b6103be604080516060808201835260008083526020808401829052845160e081018652828152908101839052808501839052808301839052608081019290925260a0820181905260c0820152909182015290565b73ffffffffffffffffffffffffffffffffffffffff80831660009081526003602090815260408083205483526002808352928190208151606081018352815463ffffffff808216835264010000000090910490961681850152825160e08101845260018301805490971681529482018054845181870281018701865281815292979396948801958581019392919083018282801561049257602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610467575b505050505081526020016002820180548060200260200160405190810160405280929190818152602001828054801561050157602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff1681526001909101906020018083116104d6575b5050505050815260200160038201805461051a906117e7565b80601f0160208091040260200160405190810160405280929190818152602001828054610546906117e7565b80156105935780601f1061056857610100808354040283529160200191610593565b820191906000526020600020905b81548152906001019060200180831161057657829003601f168201915b505050505081526020016004820180546105ac906117e7565b80601f01602080910402602001604051908101604052809291908181526020018280546105d8906117e7565b80156106255780601f106105fa57610100808354040283529160200191610625565b820191906000526020600020905b81548152906001019060200180831161060857829003601f168201915b50505091835250506005919091015467ffffffffffffffff8116602083015268010000000000000000900460ff1660409091015290525092915050565b6106b6604080516060808201835260008083526020808401829052845160e081018652828152908101839052808501839052808301839052608081019290925260a0820181905260c0820152909182015290565b6000828152600260208181526040928390208351606081018552815463ffffffff808216835264010000000090910473ffffffffffffffffffffffffffffffffffffffff1682850152855160e0810187526001840180549092168152948301805487518187028101870189528181529397949694880195929385840193909291908301828280156104925760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff1681526001909101906020018083116104675750505050508152602001600282018054806020026020016040519081016040528092919081815260200182805480156105015760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff1681526001909101906020018083116104d6575050505050815260200160038201805461051a906117e7565b600080610943463361081660208701876112b5565b63ffffffff1661082960208801886115b1565b808060200260200160405190810160405280939291908181526020018383602002808284376000920191909152506108689250505060408901896115b1565b808060200260200160405190810160405280939291908181526020018383602002808284376000920191909152506108aa9250505060e08a0160c08b016112eb565b6108b760608b018b611620565b8080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152506108fc9250505060c08c0160a08d016112d0565b61090960808d018d611620565b8080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250610d8792505050565b6040805160608101825263ffffffff43168152336020820152919250810161096a856116fd565b9052600082815260026020818152604092839020845181548684015173ffffffffffffffffffffffffffffffffffffffff16640100000000027fffffffffffffffff00000000000000000000000000000000000000000000000090911663ffffffff92831617178255938501518051600183018054919096167fffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000091909116178555808301518051929591949193610a279392870192910190610fab565b5060408201518051610a43916002840191602090910190610fab565b5060608201518051610a5f916003840191602090910190611035565b5060808201518051610a7b916004840191602090910190611035565b5060a08201516005909101805460c09093015160ff1668010000000000000000027fffffffffffffffffffffffffffffffffffffffffffffff00000000000000000090931667ffffffffffffffff90921691909117919091179055505033600090815260036020526040902081905592915050565b6002602081815260009283526040928390208054845160e08101865260018301805463ffffffff908116835295840180548851818802810188019099528089529684169764010000000090940473ffffffffffffffffffffffffffffffffffffffff169694959294919385840193909290830182828015610ba757602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610b7c575b5050505050815260200160028201805480602002602001604051908101604052809291908181526020018280548015610c1657602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610beb575b50505050508152602001600382018054610c2f906117e7565b80601f0160208091040260200160405190810160405280929190818152602001828054610c5b906117e7565b8015610ca85780601f10610c7d57610100808354040283529160200191610ca8565b820191906000526020600020905b815481529060010190602001808311610c8b57829003601f168201915b50505050508152602001600482018054610cc1906117e7565b80601f0160208091040260200160405190810160405280929190818152602001828054610ced906117e7565b8015610d3a5780601f10610d0f57610100808354040283529160200191610d3a565b820191906000526020600020905b815481529060010190602001808311610d1d57829003601f168201915b50505091835250506005919091015467ffffffffffffffff8116602083015268010000000000000000900460ff16604090910152905083565b610d7b610e32565b610d8481610eb5565b50565b6000808a8a8a8a8a8a8a8a8a604051602001610dab999897969594939291906114c8565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe081840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150509998505050505050505050565b60005473ffffffffffffffffffffffffffffffffffffffff163314610eb3576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601660248201527f4f6e6c792063616c6c61626c65206279206f776e65720000000000000000000060448201526064016102e5565b565b73ffffffffffffffffffffffffffffffffffffffff8116331415610f35576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f43616e6e6f74207472616e7366657220746f2073656c6600000000000000000060448201526064016102e5565b600180547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff83811691821790925560008054604051929316917fed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae12789190a350565b828054828255906000526020600020908101928215611025579160200282015b8281111561102557825182547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff909116178255602090920191600190910190610fcb565b506110319291506110a9565b5090565b828054611041906117e7565b90600052602060002090601f0160209004810192826110635760008555611025565b82601f1061107c57805160ff1916838001178555611025565b82800160010185558215611025579182015b8281111561102557825182559160200191906001019061108e565b5b8082111561103157600081556001016110aa565b803573ffffffffffffffffffffffffffffffffffffffff811681146110e257600080fd5b919050565b600082601f8301126110f857600080fd5b8135602067ffffffffffffffff8211156111145761111461183b565b8160051b6111238282016116ae565b83815282810190868401838801850189101561113e57600080fd5b600093505b8584101561116857611154816110be565b835260019390930192918401918401611143565b50979650505050505050565b600082601f83011261118557600080fd5b813567ffffffffffffffff81111561119f5761119f61183b565b6111d060207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f840116016116ae565b8181528460208386010111156111e557600080fd5b816020850160208301376000918101602001919091529392505050565b803563ffffffff811681146110e257600080fd5b803567ffffffffffffffff811681146110e257600080fd5b803560ff811681146110e257600080fd5b60006020828403121561125157600080fd5b61125a826110be565b9392505050565b60006020828403121561127357600080fd5b5035919050565b60006020828403121561128c57600080fd5b813567ffffffffffffffff8111156112a357600080fd5b820160e0818503121561125a57600080fd5b6000602082840312156112c757600080fd5b61125a82611202565b6000602082840312156112e257600080fd5b61125a82611216565b6000602082840312156112fd57600080fd5b61125a8261122e565b600081518084526020808501945080840160005b8381101561134c57815173ffffffffffffffffffffffffffffffffffffffff168752958201959082019060010161131a565b509495945050505050565b6000815180845260005b8181101561137d57602081850181015186830182015201611361565b8181111561138f576000602083870101525b50601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169290920160200192915050565b63ffffffff81511682526000602082015160e060208501526113e760e0850182611306565b9050604083015184820360408601526114008282611306565b9150506060830151848203606086015261141a8282611357565b915050608083015184820360808601526114348282611357565b91505067ffffffffffffffff60a08401511660a085015260ff60c08401511660c08501528091505092915050565b60208152600061125a6020830184611357565b6020815263ffffffff825116602082015273ffffffffffffffffffffffffffffffffffffffff6020830151166040820152600060408301516060808401526114c060808401826113c2565b949350505050565b60006101208b835273ffffffffffffffffffffffffffffffffffffffff8b16602084015267ffffffffffffffff808b16604085015281606085015261150f8285018b611306565b91508382036080850152611523828a611306565b915060ff881660a085015283820360c08501526115408288611357565b90861660e0850152838103610100850152905061155d8185611357565b9c9b505050505050505050505050565b63ffffffff8416815273ffffffffffffffffffffffffffffffffffffffff831660208201526060604082015260006115a860608301846113c2565b95945050505050565b60008083357fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe18436030181126115e657600080fd5b83018035915067ffffffffffffffff82111561160157600080fd5b6020019150600581901b360382131561161957600080fd5b9250929050565b60008083357fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe184360301811261165557600080fd5b83018035915067ffffffffffffffff82111561167057600080fd5b60200191503681900382131561161957600080fd5b60405160e0810167ffffffffffffffff811182821017156116a8576116a861183b565b60405290565b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016810167ffffffffffffffff811182821017156116f5576116f561183b565b604052919050565b600060e0823603121561170f57600080fd5b611717611685565b61172083611202565b8152602083013567ffffffffffffffff8082111561173d57600080fd5b611749368387016110e7565b6020840152604085013591508082111561176257600080fd5b61176e368387016110e7565b6040840152606085013591508082111561178757600080fd5b61179336838701611174565b606084015260808501359150808211156117ac57600080fd5b506117b936828601611174565b6080830152506117cb60a08401611216565b60a08201526117dc60c0840161122e565b60c082015292915050565b600181811c908216806117fb57607f821691505b60208210811415611835577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b50919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fdfea164736f6c6343000806000a",
+// OCRConfigurationStoreEVMSimpleMetaData contains all meta data concerning the OCRConfigurationStoreEVMSimple contract.
+var OCRConfigurationStoreEVMSimpleMetaData = &bind.MetaData{
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"name\":\"NewConfiguration\",\"type\":\"event\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structOCRConfigurationStoreEVMSimple.ConfigurationEVMSimple\",\"name\":\"configuration\",\"type\":\"tuple\"}],\"name\":\"addConfig\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"configDigest\",\"type\":\"bytes32\"}],\"name\":\"readConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"transmitters\",\"type\":\"address[]\"},{\"internalType\":\"bytes\",\"name\":\"onchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"offchainConfig\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"contractAddress\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"offchainConfigVersion\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"configCount\",\"type\":\"uint32\"},{\"internalType\":\"uint8\",\"name\":\"f\",\"type\":\"uint8\"}],\"internalType\":\"structOCRConfigurationStoreEVMSimple.ConfigurationEVMSimple\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"typeAndVersion\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b50610fe3806100206000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c8063181f5a7714610046578063a6d3ad9e14610064578063bc4215dc14610085575b600080fd5b61004e6100a5565b60405161005b9190610778565b60405180910390f35b610077610072366004610629565b6100c5565b60405190815260200161005b565b610098610093366004610610565b610267565b60405161005b919061078b565b6060604051806060016040528060248152602001610fb360249139905090565b600080610217466100dc60a08601608087016105ec565b6100ec60e0870160c08801610665565b63ffffffff166100fc8780610930565b8080602002602001604051908101604052809392919081815260200183836020028082843760009201919091525061013b925050506020890189610930565b8080602002602001604051908101604052809392919081815260200183836020028082843760009201919091525061017e925050506101008a0160e08b0161069f565b61018b60408b018b61099f565b8080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152506101d09250505060c08c0160a08d01610682565b6101dd60608d018d61099f565b8080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525061054192505050565b600081815260208190526040902090915083906102348282610cef565b505060405181907fb07c231f5a1f53b6761761661dcafa59d063ff6e9929e00ad1fb9cb9c5b02e4490600090a292915050565b60408051610100810182526060808252602082018190529181018290528181019190915260006080820181905260a0820181905260c0820181905260e08201526000828152602081815260409182902082518154610120938102820184019094526101008101848152909391928492849184018282801561031e57602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff1681526001909101906020018083116102f3575b505050505081526020016001820180548060200260200160405190810160405280929190818152602001828054801561038d57602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610362575b505050505081526020016002820180546103a690610c32565b80601f01602080910402602001604051908101604052809291908181526020018280546103d290610c32565b801561041f5780601f106103f45761010080835404028352916020019161041f565b820191906000526020600020905b81548152906001019060200180831161040257829003601f168201915b5050505050815260200160038201805461043890610c32565b80601f016020809104026020016040519081016040528092919081815260200182805461046490610c32565b80156104b15780601f10610486576101008083540402835291602001916104b1565b820191906000526020600020905b81548152906001019060200180831161049457829003601f168201915b5050509183525050600482015473ffffffffffffffffffffffffffffffffffffffff8116602083015274010000000000000000000000000000000000000000810467ffffffffffffffff1660408301527c0100000000000000000000000000000000000000000000000000000000900463ffffffff16606082015260059091015460ff1660809091015292915050565b6000808a8a8a8a8a8a8a8a8a6040516020016105659998979695949392919061088b565b604080517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe081840301815291905280516020909101207dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff167e01000000000000000000000000000000000000000000000000000000000000179150509998505050505050505050565b6000602082840312156105fe57600080fd5b813561060981610f56565b9392505050565b60006020828403121561062257600080fd5b5035919050565b60006020828403121561063b57600080fd5b813567ffffffffffffffff81111561065257600080fd5b8201610100818503121561060957600080fd5b60006020828403121561067757600080fd5b813561060981610f7b565b60006020828403121561069457600080fd5b813561060981610f8d565b6000602082840312156106b157600080fd5b813561060981610fa3565b600081518084526020808501945080840160005b8381101561070257815173ffffffffffffffffffffffffffffffffffffffff16875295820195908201906001016106d0565b509495945050505050565b6000815180845260005b8181101561073357602081850181015186830182015201610717565b81811115610745576000602083870101525b50601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169290920160200192915050565b602081526000610609602083018461070d565b60208152600082516101008060208501526107aa6101208501836106bc565b915060208501517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0808685030160408701526107e684836106bc565b93506040870151915080868503016060870152610803848361070d565b9350606087015191508086850301608087015250610821838261070d565b925050608085015161084b60a086018273ffffffffffffffffffffffffffffffffffffffff169052565b5060a085015167ffffffffffffffff811660c08601525060c085015163ffffffff811660e08601525060e085015160ff8116858301525090949350505050565b60006101208b835273ffffffffffffffffffffffffffffffffffffffff8b16602084015267ffffffffffffffff808b1660408501528160608501526108d28285018b6106bc565b915083820360808501526108e6828a6106bc565b915060ff881660a085015283820360c0850152610903828861070d565b90861660e08501528381036101008501529050610920818561070d565b9c9b505050505050505050505050565b60008083357fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe184360301811261096557600080fd5b83018035915067ffffffffffffffff82111561098057600080fd5b6020019150600581901b360382131561099857600080fd5b9250929050565b60008083357fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe18436030181126109d457600080fd5b83018035915067ffffffffffffffff8211156109ef57600080fd5b60200191503681900382131561099857600080fd5b601f821115610a4057806000526020600020601f840160051c81016020851015610a2b5750805b610a3d601f850160051c830182610a45565b50505b505050565b5b81811015610a5a5760008155600101610a46565b5050565b68010000000000000000831115610a7757610a77610c86565b805483825580841015610a9d57816000526020600020610a9b828201868301610a45565b505b50818160005260208060002060005b86811015610b0f578335610abf81610f56565b82547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff919091161782559282019260019182019101610aac565b50505050505050565b67ffffffffffffffff831115610b3057610b30610c86565b610b4483610b3e8354610c32565b83610a04565b6000601f841160018114610b965760008515610b605750838201355b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600387901b1c1916600186901b178355610a3d565b6000838152602090207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0861690835b82811015610be55786850135825560209485019460019092019101610bc5565b5086821015610c20577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60f88860031b161c19848701351681555b505060018560011b0183555050505050565b600181811c90821680610c4657607f821691505b60208210811415610c80577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b50919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b60008135610cc281610f56565b92915050565b60008135610cc281610f7b565b60008135610cc281610f8d565b60008135610cc281610fa3565b610cf98283610930565b68010000000000000000811115610d1257610d12610c86565b825481845580821015610d3857836000526020600020610d36828201848301610a45565b505b508260005260208060002060005b83811015610da9578435610d5981610f56565b82547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff919091161782559382019360019182019101610d46565b5050610db781860186610930565b9350915050610dca828260018601610a5e565b5050610dd9604083018361099f565b610de7818360028601610b18565b5050610df6606083018361099f565b610e04818360038601610b18565b505060048101610e5b610e1960808501610cb5565b82547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff91909116178255565b610eb7610e6a60a08501610cd5565b82547fffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffff1660a09190911b7bffffffffffffffff000000000000000000000000000000000000000016178255565b610f13610ec660c08501610cc8565b82547bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1660e09190911b7fffffffff0000000000000000000000000000000000000000000000000000000016178255565b50610a5a610f2360e08401610ce2565b6005830160ff82167fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff008254161781555050565b73ffffffffffffffffffffffffffffffffffffffff81168114610f7857600080fd5b50565b63ffffffff81168114610f7857600080fd5b67ffffffffffffffff81168114610f7857600080fd5b60ff81168114610f7857600080fdfe4f4352436f6e66696775726174696f6e53746f726545564d53696d706c6520312e302e30a164736f6c6343000806000a",
 }
 
-// OCRConfigurationStoreABI is the input ABI used to generate the binding from.
-// Deprecated: Use OCRConfigurationStoreMetaData.ABI instead.
-var OCRConfigurationStoreABI = OCRConfigurationStoreMetaData.ABI
+// OCRConfigurationStoreEVMSimpleABI is the input ABI used to generate the binding from.
+// Deprecated: Use OCRConfigurationStoreEVMSimpleMetaData.ABI instead.
+var OCRConfigurationStoreEVMSimpleABI = OCRConfigurationStoreEVMSimpleMetaData.ABI
 
-// OCRConfigurationStoreBin is the compiled bytecode used for deploying new contracts.
-// Deprecated: Use OCRConfigurationStoreMetaData.Bin instead.
-var OCRConfigurationStoreBin = OCRConfigurationStoreMetaData.Bin
+// OCRConfigurationStoreEVMSimpleBin is the compiled bytecode used for deploying new contracts.
+// Deprecated: Use OCRConfigurationStoreEVMSimpleMetaData.Bin instead.
+var OCRConfigurationStoreEVMSimpleBin = OCRConfigurationStoreEVMSimpleMetaData.Bin
 
-// DeployOCRConfigurationStore deploys a new Ethereum contract, binding an instance of OCRConfigurationStore to it.
-func DeployOCRConfigurationStore(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *OCRConfigurationStore, error) {
-	parsed, err := OCRConfigurationStoreMetaData.GetAbi()
+// DeployOCRConfigurationStoreEVMSimple deploys a new Ethereum contract, binding an instance of OCRConfigurationStoreEVMSimple to it.
+func DeployOCRConfigurationStoreEVMSimple(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *OCRConfigurationStoreEVMSimple, error) {
+	parsed, err := OCRConfigurationStoreEVMSimpleMetaData.GetAbi()
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -2313,111 +1943,111 @@ func DeployOCRConfigurationStore(auth *bind.TransactOpts, backend bind.ContractB
 		return common.Address{}, nil, nil, errors.New("GetABI returned nil")
 	}
 
-	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(OCRConfigurationStoreBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(OCRConfigurationStoreEVMSimpleBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	return address, tx, &OCRConfigurationStore{OCRConfigurationStoreCaller: OCRConfigurationStoreCaller{contract: contract}, OCRConfigurationStoreTransactor: OCRConfigurationStoreTransactor{contract: contract}, OCRConfigurationStoreFilterer: OCRConfigurationStoreFilterer{contract: contract}}, nil
+	return address, tx, &OCRConfigurationStoreEVMSimple{OCRConfigurationStoreEVMSimpleCaller: OCRConfigurationStoreEVMSimpleCaller{contract: contract}, OCRConfigurationStoreEVMSimpleTransactor: OCRConfigurationStoreEVMSimpleTransactor{contract: contract}, OCRConfigurationStoreEVMSimpleFilterer: OCRConfigurationStoreEVMSimpleFilterer{contract: contract}}, nil
 }
 
-// OCRConfigurationStore is an auto generated Go binding around an Ethereum contract.
-type OCRConfigurationStore struct {
-	OCRConfigurationStoreCaller     // Read-only binding to the contract
-	OCRConfigurationStoreTransactor // Write-only binding to the contract
-	OCRConfigurationStoreFilterer   // Log filterer for contract events
+// OCRConfigurationStoreEVMSimple is an auto generated Go binding around an Ethereum contract.
+type OCRConfigurationStoreEVMSimple struct {
+	OCRConfigurationStoreEVMSimpleCaller     // Read-only binding to the contract
+	OCRConfigurationStoreEVMSimpleTransactor // Write-only binding to the contract
+	OCRConfigurationStoreEVMSimpleFilterer   // Log filterer for contract events
 }
 
-// OCRConfigurationStoreCaller is an auto generated read-only Go binding around an Ethereum contract.
-type OCRConfigurationStoreCaller struct {
+// OCRConfigurationStoreEVMSimpleCaller is an auto generated read-only Go binding around an Ethereum contract.
+type OCRConfigurationStoreEVMSimpleCaller struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// OCRConfigurationStoreTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type OCRConfigurationStoreTransactor struct {
+// OCRConfigurationStoreEVMSimpleTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type OCRConfigurationStoreEVMSimpleTransactor struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// OCRConfigurationStoreFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type OCRConfigurationStoreFilterer struct {
+// OCRConfigurationStoreEVMSimpleFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type OCRConfigurationStoreEVMSimpleFilterer struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// OCRConfigurationStoreSession is an auto generated Go binding around an Ethereum contract,
+// OCRConfigurationStoreEVMSimpleSession is an auto generated Go binding around an Ethereum contract,
 // with pre-set call and transact options.
-type OCRConfigurationStoreSession struct {
-	Contract     *OCRConfigurationStore // Generic contract binding to set the session for
-	CallOpts     bind.CallOpts          // Call options to use throughout this session
-	TransactOpts bind.TransactOpts      // Transaction auth options to use throughout this session
+type OCRConfigurationStoreEVMSimpleSession struct {
+	Contract     *OCRConfigurationStoreEVMSimple // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts                   // Call options to use throughout this session
+	TransactOpts bind.TransactOpts               // Transaction auth options to use throughout this session
 }
 
-// OCRConfigurationStoreCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// OCRConfigurationStoreEVMSimpleCallerSession is an auto generated read-only Go binding around an Ethereum contract,
 // with pre-set call options.
-type OCRConfigurationStoreCallerSession struct {
-	Contract *OCRConfigurationStoreCaller // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts                // Call options to use throughout this session
+type OCRConfigurationStoreEVMSimpleCallerSession struct {
+	Contract *OCRConfigurationStoreEVMSimpleCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts                         // Call options to use throughout this session
 }
 
-// OCRConfigurationStoreTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// OCRConfigurationStoreEVMSimpleTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
 // with pre-set transact options.
-type OCRConfigurationStoreTransactorSession struct {
-	Contract     *OCRConfigurationStoreTransactor // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts                // Transaction auth options to use throughout this session
+type OCRConfigurationStoreEVMSimpleTransactorSession struct {
+	Contract     *OCRConfigurationStoreEVMSimpleTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts                         // Transaction auth options to use throughout this session
 }
 
-// OCRConfigurationStoreRaw is an auto generated low-level Go binding around an Ethereum contract.
-type OCRConfigurationStoreRaw struct {
-	Contract *OCRConfigurationStore // Generic contract binding to access the raw methods on
+// OCRConfigurationStoreEVMSimpleRaw is an auto generated low-level Go binding around an Ethereum contract.
+type OCRConfigurationStoreEVMSimpleRaw struct {
+	Contract *OCRConfigurationStoreEVMSimple // Generic contract binding to access the raw methods on
 }
 
-// OCRConfigurationStoreCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type OCRConfigurationStoreCallerRaw struct {
-	Contract *OCRConfigurationStoreCaller // Generic read-only contract binding to access the raw methods on
+// OCRConfigurationStoreEVMSimpleCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type OCRConfigurationStoreEVMSimpleCallerRaw struct {
+	Contract *OCRConfigurationStoreEVMSimpleCaller // Generic read-only contract binding to access the raw methods on
 }
 
-// OCRConfigurationStoreTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type OCRConfigurationStoreTransactorRaw struct {
-	Contract *OCRConfigurationStoreTransactor // Generic write-only contract binding to access the raw methods on
+// OCRConfigurationStoreEVMSimpleTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type OCRConfigurationStoreEVMSimpleTransactorRaw struct {
+	Contract *OCRConfigurationStoreEVMSimpleTransactor // Generic write-only contract binding to access the raw methods on
 }
 
-// NewOCRConfigurationStore creates a new instance of OCRConfigurationStore, bound to a specific deployed contract.
-func NewOCRConfigurationStore(address common.Address, backend bind.ContractBackend) (*OCRConfigurationStore, error) {
-	contract, err := bindOCRConfigurationStore(address, backend, backend, backend)
+// NewOCRConfigurationStoreEVMSimple creates a new instance of OCRConfigurationStoreEVMSimple, bound to a specific deployed contract.
+func NewOCRConfigurationStoreEVMSimple(address common.Address, backend bind.ContractBackend) (*OCRConfigurationStoreEVMSimple, error) {
+	contract, err := bindOCRConfigurationStoreEVMSimple(address, backend, backend, backend)
 	if err != nil {
 		return nil, err
 	}
-	return &OCRConfigurationStore{OCRConfigurationStoreCaller: OCRConfigurationStoreCaller{contract: contract}, OCRConfigurationStoreTransactor: OCRConfigurationStoreTransactor{contract: contract}, OCRConfigurationStoreFilterer: OCRConfigurationStoreFilterer{contract: contract}}, nil
+	return &OCRConfigurationStoreEVMSimple{OCRConfigurationStoreEVMSimpleCaller: OCRConfigurationStoreEVMSimpleCaller{contract: contract}, OCRConfigurationStoreEVMSimpleTransactor: OCRConfigurationStoreEVMSimpleTransactor{contract: contract}, OCRConfigurationStoreEVMSimpleFilterer: OCRConfigurationStoreEVMSimpleFilterer{contract: contract}}, nil
 }
 
-// NewOCRConfigurationStoreCaller creates a new read-only instance of OCRConfigurationStore, bound to a specific deployed contract.
-func NewOCRConfigurationStoreCaller(address common.Address, caller bind.ContractCaller) (*OCRConfigurationStoreCaller, error) {
-	contract, err := bindOCRConfigurationStore(address, caller, nil, nil)
+// NewOCRConfigurationStoreEVMSimpleCaller creates a new read-only instance of OCRConfigurationStoreEVMSimple, bound to a specific deployed contract.
+func NewOCRConfigurationStoreEVMSimpleCaller(address common.Address, caller bind.ContractCaller) (*OCRConfigurationStoreEVMSimpleCaller, error) {
+	contract, err := bindOCRConfigurationStoreEVMSimple(address, caller, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &OCRConfigurationStoreCaller{contract: contract}, nil
+	return &OCRConfigurationStoreEVMSimpleCaller{contract: contract}, nil
 }
 
-// NewOCRConfigurationStoreTransactor creates a new write-only instance of OCRConfigurationStore, bound to a specific deployed contract.
-func NewOCRConfigurationStoreTransactor(address common.Address, transactor bind.ContractTransactor) (*OCRConfigurationStoreTransactor, error) {
-	contract, err := bindOCRConfigurationStore(address, nil, transactor, nil)
+// NewOCRConfigurationStoreEVMSimpleTransactor creates a new write-only instance of OCRConfigurationStoreEVMSimple, bound to a specific deployed contract.
+func NewOCRConfigurationStoreEVMSimpleTransactor(address common.Address, transactor bind.ContractTransactor) (*OCRConfigurationStoreEVMSimpleTransactor, error) {
+	contract, err := bindOCRConfigurationStoreEVMSimple(address, nil, transactor, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &OCRConfigurationStoreTransactor{contract: contract}, nil
+	return &OCRConfigurationStoreEVMSimpleTransactor{contract: contract}, nil
 }
 
-// NewOCRConfigurationStoreFilterer creates a new log filterer instance of OCRConfigurationStore, bound to a specific deployed contract.
-func NewOCRConfigurationStoreFilterer(address common.Address, filterer bind.ContractFilterer) (*OCRConfigurationStoreFilterer, error) {
-	contract, err := bindOCRConfigurationStore(address, nil, nil, filterer)
+// NewOCRConfigurationStoreEVMSimpleFilterer creates a new log filterer instance of OCRConfigurationStoreEVMSimple, bound to a specific deployed contract.
+func NewOCRConfigurationStoreEVMSimpleFilterer(address common.Address, filterer bind.ContractFilterer) (*OCRConfigurationStoreEVMSimpleFilterer, error) {
+	contract, err := bindOCRConfigurationStoreEVMSimple(address, nil, nil, filterer)
 	if err != nil {
 		return nil, err
 	}
-	return &OCRConfigurationStoreFilterer{contract: contract}, nil
+	return &OCRConfigurationStoreEVMSimpleFilterer{contract: contract}, nil
 }
 
-// bindOCRConfigurationStore binds a generic wrapper to an already deployed contract.
-func bindOCRConfigurationStore(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := OCRConfigurationStoreMetaData.GetAbi()
+// bindOCRConfigurationStoreEVMSimple binds a generic wrapper to an already deployed contract.
+func bindOCRConfigurationStoreEVMSimple(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := OCRConfigurationStoreEVMSimpleMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
@@ -2428,164 +2058,52 @@ func bindOCRConfigurationStore(address common.Address, caller bind.ContractCalle
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_OCRConfigurationStore *OCRConfigurationStoreRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _OCRConfigurationStore.Contract.OCRConfigurationStoreCaller.contract.Call(opts, result, method, params...)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _OCRConfigurationStoreEVMSimple.Contract.OCRConfigurationStoreEVMSimpleCaller.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_OCRConfigurationStore *OCRConfigurationStoreRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.OCRConfigurationStoreTransactor.contract.Transfer(opts)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.OCRConfigurationStoreEVMSimpleTransactor.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_OCRConfigurationStore *OCRConfigurationStoreRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.OCRConfigurationStoreTransactor.contract.Transact(opts, method, params...)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.OCRConfigurationStoreEVMSimpleTransactor.contract.Transact(opts, method, params...)
 }
 
 // Call invokes the (constant) contract method with params as input values and
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _OCRConfigurationStore.Contract.contract.Call(opts, result, method, params...)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _OCRConfigurationStoreEVMSimple.Contract.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.contract.Transfer(opts)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.contract.Transact(opts, method, params...)
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x9d386827.
-//
-// Solidity: function latestConfig(address contractAddress) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) LatestConfig(opts *bind.CallOpts, contractAddress common.Address) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "latestConfig", contractAddress)
-
-	if err != nil {
-		return *new(IOCRConfigurationStoreExtendedConfiguration), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(IOCRConfigurationStoreExtendedConfiguration)).(*IOCRConfigurationStoreExtendedConfiguration)
-
-	return out0, err
-
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x9d386827.
-//
-// Solidity: function latestConfig(address contractAddress) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) LatestConfig(contractAddress common.Address) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _OCRConfigurationStore.Contract.LatestConfig(&_OCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// LatestConfig is a free data retrieval call binding the contract method 0x9d386827.
-//
-// Solidity: function latestConfig(address contractAddress) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) LatestConfig(contractAddress common.Address) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _OCRConfigurationStore.Contract.LatestConfig(&_OCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0xc523c14d.
-//
-// Solidity: function latestConfigDetails(address contractAddress) view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) LatestConfigDetails(opts *bind.CallOpts, contractAddress common.Address) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "latestConfigDetails", contractAddress)
-
-	outstruct := new(struct {
-		ConfigCount  uint32
-		BlockNumber  uint32
-		ConfigDigest [32]byte
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.ConfigCount = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.BlockNumber = *abi.ConvertType(out[1], new(uint32)).(*uint32)
-	outstruct.ConfigDigest = *abi.ConvertType(out[2], new([32]byte)).(*[32]byte)
-
-	return *outstruct, err
-
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0xc523c14d.
-//
-// Solidity: function latestConfigDetails(address contractAddress) view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) LatestConfigDetails(contractAddress common.Address) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _OCRConfigurationStore.Contract.LatestConfigDetails(&_OCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// LatestConfigDetails is a free data retrieval call binding the contract method 0xc523c14d.
-//
-// Solidity: function latestConfigDetails(address contractAddress) view returns(uint32 configCount, uint32 blockNumber, bytes32 configDigest)
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) LatestConfigDetails(contractAddress common.Address) (struct {
-	ConfigCount  uint32
-	BlockNumber  uint32
-	ConfigDigest [32]byte
-}, error) {
-	return _OCRConfigurationStore.Contract.LatestConfigDetails(&_OCRConfigurationStore.CallOpts, contractAddress)
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "owner")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) Owner() (common.Address, error) {
-	return _OCRConfigurationStore.Contract.Owner(&_OCRConfigurationStore.CallOpts)
-}
-
-// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
-//
-// Solidity: function owner() view returns(address)
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) Owner() (common.Address, error) {
-	return _OCRConfigurationStore.Contract.Owner(&_OCRConfigurationStore.CallOpts)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.contract.Transact(opts, method, params...)
 }
 
 // ReadConfig is a free data retrieval call binding the contract method 0xbc4215dc.
 //
-// Solidity: function readConfig(bytes32 configDigest) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) ReadConfig(opts *bind.CallOpts, configDigest [32]byte) (IOCRConfigurationStoreExtendedConfiguration, error) {
+// Solidity: function readConfig(bytes32 configDigest) view returns((address[],address[],bytes,bytes,address,uint64,uint32,uint8))
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleCaller) ReadConfig(opts *bind.CallOpts, configDigest [32]byte) (OCRConfigurationStoreEVMSimpleConfigurationEVMSimple, error) {
 	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "readConfig", configDigest)
+	err := _OCRConfigurationStoreEVMSimple.contract.Call(opts, &out, "readConfig", configDigest)
 
 	if err != nil {
-		return *new(IOCRConfigurationStoreExtendedConfiguration), err
+		return *new(OCRConfigurationStoreEVMSimpleConfigurationEVMSimple), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(IOCRConfigurationStoreExtendedConfiguration)).(*IOCRConfigurationStoreExtendedConfiguration)
+	out0 := *abi.ConvertType(out[0], new(OCRConfigurationStoreEVMSimpleConfigurationEVMSimple)).(*OCRConfigurationStoreEVMSimpleConfigurationEVMSimple)
 
 	return out0, err
 
@@ -2593,105 +2111,24 @@ func (_OCRConfigurationStore *OCRConfigurationStoreCaller) ReadConfig(opts *bind
 
 // ReadConfig is a free data retrieval call binding the contract method 0xbc4215dc.
 //
-// Solidity: function readConfig(bytes32 configDigest) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) ReadConfig(configDigest [32]byte) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _OCRConfigurationStore.Contract.ReadConfig(&_OCRConfigurationStore.CallOpts, configDigest)
+// Solidity: function readConfig(bytes32 configDigest) view returns((address[],address[],bytes,bytes,address,uint64,uint32,uint8))
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleSession) ReadConfig(configDigest [32]byte) (OCRConfigurationStoreEVMSimpleConfigurationEVMSimple, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.ReadConfig(&_OCRConfigurationStoreEVMSimple.CallOpts, configDigest)
 }
 
 // ReadConfig is a free data retrieval call binding the contract method 0xbc4215dc.
 //
-// Solidity: function readConfig(bytes32 configDigest) view returns((uint32,address,(uint32,address[],address[],bytes,bytes,uint64,uint8)))
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) ReadConfig(configDigest [32]byte) (IOCRConfigurationStoreExtendedConfiguration, error) {
-	return _OCRConfigurationStore.Contract.ReadConfig(&_OCRConfigurationStore.CallOpts, configDigest)
-}
-
-// SConfigurations is a free data retrieval call binding the contract method 0xdc2e47cd.
-//
-// Solidity: function s_configurations(bytes32 ) view returns(uint32 blockNumber, address contractAddress, (uint32,address[],address[],bytes,bytes,uint64,uint8) configuration)
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) SConfigurations(opts *bind.CallOpts, arg0 [32]byte) (struct {
-	BlockNumber     uint32
-	ContractAddress common.Address
-	Configuration   IOCRConfigurationStoreConfiguration
-}, error) {
-	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "s_configurations", arg0)
-
-	outstruct := new(struct {
-		BlockNumber     uint32
-		ContractAddress common.Address
-		Configuration   IOCRConfigurationStoreConfiguration
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.BlockNumber = *abi.ConvertType(out[0], new(uint32)).(*uint32)
-	outstruct.ContractAddress = *abi.ConvertType(out[1], new(common.Address)).(*common.Address)
-	outstruct.Configuration = *abi.ConvertType(out[2], new(IOCRConfigurationStoreConfiguration)).(*IOCRConfigurationStoreConfiguration)
-
-	return *outstruct, err
-
-}
-
-// SConfigurations is a free data retrieval call binding the contract method 0xdc2e47cd.
-//
-// Solidity: function s_configurations(bytes32 ) view returns(uint32 blockNumber, address contractAddress, (uint32,address[],address[],bytes,bytes,uint64,uint8) configuration)
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) SConfigurations(arg0 [32]byte) (struct {
-	BlockNumber     uint32
-	ContractAddress common.Address
-	Configuration   IOCRConfigurationStoreConfiguration
-}, error) {
-	return _OCRConfigurationStore.Contract.SConfigurations(&_OCRConfigurationStore.CallOpts, arg0)
-}
-
-// SConfigurations is a free data retrieval call binding the contract method 0xdc2e47cd.
-//
-// Solidity: function s_configurations(bytes32 ) view returns(uint32 blockNumber, address contractAddress, (uint32,address[],address[],bytes,bytes,uint64,uint8) configuration)
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) SConfigurations(arg0 [32]byte) (struct {
-	BlockNumber     uint32
-	ContractAddress common.Address
-	Configuration   IOCRConfigurationStoreConfiguration
-}, error) {
-	return _OCRConfigurationStore.Contract.SConfigurations(&_OCRConfigurationStore.CallOpts, arg0)
-}
-
-// SLatestConfigurationDigest is a free data retrieval call binding the contract method 0x586505cb.
-//
-// Solidity: function s_latestConfigurationDigest(address ) view returns(bytes32)
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) SLatestConfigurationDigest(opts *bind.CallOpts, arg0 common.Address) ([32]byte, error) {
-	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "s_latestConfigurationDigest", arg0)
-
-	if err != nil {
-		return *new([32]byte), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
-
-	return out0, err
-
-}
-
-// SLatestConfigurationDigest is a free data retrieval call binding the contract method 0x586505cb.
-//
-// Solidity: function s_latestConfigurationDigest(address ) view returns(bytes32)
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) SLatestConfigurationDigest(arg0 common.Address) ([32]byte, error) {
-	return _OCRConfigurationStore.Contract.SLatestConfigurationDigest(&_OCRConfigurationStore.CallOpts, arg0)
-}
-
-// SLatestConfigurationDigest is a free data retrieval call binding the contract method 0x586505cb.
-//
-// Solidity: function s_latestConfigurationDigest(address ) view returns(bytes32)
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) SLatestConfigurationDigest(arg0 common.Address) ([32]byte, error) {
-	return _OCRConfigurationStore.Contract.SLatestConfigurationDigest(&_OCRConfigurationStore.CallOpts, arg0)
+// Solidity: function readConfig(bytes32 configDigest) view returns((address[],address[],bytes,bytes,address,uint64,uint32,uint8))
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleCallerSession) ReadConfig(configDigest [32]byte) (OCRConfigurationStoreEVMSimpleConfigurationEVMSimple, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.ReadConfig(&_OCRConfigurationStoreEVMSimple.CallOpts, configDigest)
 }
 
 // TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
 //
 // Solidity: function typeAndVersion() pure returns(string)
-func (_OCRConfigurationStore *OCRConfigurationStoreCaller) TypeAndVersion(opts *bind.CallOpts) (string, error) {
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleCaller) TypeAndVersion(opts *bind.CallOpts) (string, error) {
 	var out []interface{}
-	err := _OCRConfigurationStore.contract.Call(opts, &out, "typeAndVersion")
+	err := _OCRConfigurationStoreEVMSimple.contract.Call(opts, &out, "typeAndVersion")
 
 	if err != nil {
 		return *new(string), err
@@ -2706,83 +2143,41 @@ func (_OCRConfigurationStore *OCRConfigurationStoreCaller) TypeAndVersion(opts *
 // TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
 //
 // Solidity: function typeAndVersion() pure returns(string)
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) TypeAndVersion() (string, error) {
-	return _OCRConfigurationStore.Contract.TypeAndVersion(&_OCRConfigurationStore.CallOpts)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleSession) TypeAndVersion() (string, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.TypeAndVersion(&_OCRConfigurationStoreEVMSimple.CallOpts)
 }
 
 // TypeAndVersion is a free data retrieval call binding the contract method 0x181f5a77.
 //
 // Solidity: function typeAndVersion() pure returns(string)
-func (_OCRConfigurationStore *OCRConfigurationStoreCallerSession) TypeAndVersion() (string, error) {
-	return _OCRConfigurationStore.Contract.TypeAndVersion(&_OCRConfigurationStore.CallOpts)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleCallerSession) TypeAndVersion() (string, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.TypeAndVersion(&_OCRConfigurationStoreEVMSimple.CallOpts)
 }
 
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
+// AddConfig is a paid mutator transaction binding the contract method 0xa6d3ad9e.
 //
-// Solidity: function acceptOwnership() returns()
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactor) AcceptOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OCRConfigurationStore.contract.Transact(opts, "acceptOwnership")
+// Solidity: function addConfig((address[],address[],bytes,bytes,address,uint64,uint32,uint8) configuration) returns(bytes32)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleTransactor) AddConfig(opts *bind.TransactOpts, configuration OCRConfigurationStoreEVMSimpleConfigurationEVMSimple) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.contract.Transact(opts, "addConfig", configuration)
 }
 
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
+// AddConfig is a paid mutator transaction binding the contract method 0xa6d3ad9e.
 //
-// Solidity: function acceptOwnership() returns()
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) AcceptOwnership() (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.AcceptOwnership(&_OCRConfigurationStore.TransactOpts)
+// Solidity: function addConfig((address[],address[],bytes,bytes,address,uint64,uint32,uint8) configuration) returns(bytes32)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleSession) AddConfig(configuration OCRConfigurationStoreEVMSimpleConfigurationEVMSimple) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.AddConfig(&_OCRConfigurationStoreEVMSimple.TransactOpts, configuration)
 }
 
-// AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
+// AddConfig is a paid mutator transaction binding the contract method 0xa6d3ad9e.
 //
-// Solidity: function acceptOwnership() returns()
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactorSession) AcceptOwnership() (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.AcceptOwnership(&_OCRConfigurationStore.TransactOpts)
+// Solidity: function addConfig((address[],address[],bytes,bytes,address,uint64,uint32,uint8) configuration) returns(bytes32)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleTransactorSession) AddConfig(configuration OCRConfigurationStoreEVMSimpleConfigurationEVMSimple) (*types.Transaction, error) {
+	return _OCRConfigurationStoreEVMSimple.Contract.AddConfig(&_OCRConfigurationStoreEVMSimple.TransactOpts, configuration)
 }
 
-// AddConfig is a paid mutator transaction binding the contract method 0xd27bcd60.
-//
-// Solidity: function addConfig((uint32,address[],address[],bytes,bytes,uint64,uint8) configuration) returns(bytes32)
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactor) AddConfig(opts *bind.TransactOpts, configuration IOCRConfigurationStoreConfiguration) (*types.Transaction, error) {
-	return _OCRConfigurationStore.contract.Transact(opts, "addConfig", configuration)
-}
-
-// AddConfig is a paid mutator transaction binding the contract method 0xd27bcd60.
-//
-// Solidity: function addConfig((uint32,address[],address[],bytes,bytes,uint64,uint8) configuration) returns(bytes32)
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) AddConfig(configuration IOCRConfigurationStoreConfiguration) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.AddConfig(&_OCRConfigurationStore.TransactOpts, configuration)
-}
-
-// AddConfig is a paid mutator transaction binding the contract method 0xd27bcd60.
-//
-// Solidity: function addConfig((uint32,address[],address[],bytes,bytes,uint64,uint8) configuration) returns(bytes32)
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactorSession) AddConfig(configuration IOCRConfigurationStoreConfiguration) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.AddConfig(&_OCRConfigurationStore.TransactOpts, configuration)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactor) TransferOwnership(opts *bind.TransactOpts, to common.Address) (*types.Transaction, error) {
-	return _OCRConfigurationStore.contract.Transact(opts, "transferOwnership", to)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCRConfigurationStore *OCRConfigurationStoreSession) TransferOwnership(to common.Address) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.TransferOwnership(&_OCRConfigurationStore.TransactOpts, to)
-}
-
-// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
-//
-// Solidity: function transferOwnership(address to) returns()
-func (_OCRConfigurationStore *OCRConfigurationStoreTransactorSession) TransferOwnership(to common.Address) (*types.Transaction, error) {
-	return _OCRConfigurationStore.Contract.TransferOwnership(&_OCRConfigurationStore.TransactOpts, to)
-}
-
-// OCRConfigurationStoreOwnershipTransferRequestedIterator is returned from FilterOwnershipTransferRequested and is used to iterate over the raw logs and unpacked data for OwnershipTransferRequested events raised by the OCRConfigurationStore contract.
-type OCRConfigurationStoreOwnershipTransferRequestedIterator struct {
-	Event *OCRConfigurationStoreOwnershipTransferRequested // Event containing the contract specifics and raw log
+// OCRConfigurationStoreEVMSimpleNewConfigurationIterator is returned from FilterNewConfiguration and is used to iterate over the raw logs and unpacked data for NewConfiguration events raised by the OCRConfigurationStoreEVMSimple contract.
+type OCRConfigurationStoreEVMSimpleNewConfigurationIterator struct {
+	Event *OCRConfigurationStoreEVMSimpleNewConfiguration // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -2796,7 +2191,7 @@ type OCRConfigurationStoreOwnershipTransferRequestedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *OCRConfigurationStoreOwnershipTransferRequestedIterator) Next() bool {
+func (it *OCRConfigurationStoreEVMSimpleNewConfigurationIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -2805,7 +2200,7 @@ func (it *OCRConfigurationStoreOwnershipTransferRequestedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(OCRConfigurationStoreOwnershipTransferRequested)
+			it.Event = new(OCRConfigurationStoreEVMSimpleNewConfiguration)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -2820,7 +2215,7 @@ func (it *OCRConfigurationStoreOwnershipTransferRequestedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(OCRConfigurationStoreOwnershipTransferRequested)
+		it.Event = new(OCRConfigurationStoreEVMSimpleNewConfiguration)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -2836,60 +2231,51 @@ func (it *OCRConfigurationStoreOwnershipTransferRequestedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCRConfigurationStoreOwnershipTransferRequestedIterator) Error() error {
+func (it *OCRConfigurationStoreEVMSimpleNewConfigurationIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *OCRConfigurationStoreOwnershipTransferRequestedIterator) Close() error {
+func (it *OCRConfigurationStoreEVMSimpleNewConfigurationIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// OCRConfigurationStoreOwnershipTransferRequested represents a OwnershipTransferRequested event raised by the OCRConfigurationStore contract.
-type OCRConfigurationStoreOwnershipTransferRequested struct {
-	From common.Address
-	To   common.Address
-	Raw  types.Log // Blockchain specific contextual infos
+// OCRConfigurationStoreEVMSimpleNewConfiguration represents a NewConfiguration event raised by the OCRConfigurationStoreEVMSimple contract.
+type OCRConfigurationStoreEVMSimpleNewConfiguration struct {
+	ConfigDigest [32]byte
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterOwnershipTransferRequested is a free log retrieval operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
+// FilterNewConfiguration is a free log retrieval operation binding the contract event 0xb07c231f5a1f53b6761761661dcafa59d063ff6e9929e00ad1fb9cb9c5b02e44.
 //
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) FilterOwnershipTransferRequested(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*OCRConfigurationStoreOwnershipTransferRequestedIterator, error) {
+// Solidity: event NewConfiguration(bytes32 indexed configDigest)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleFilterer) FilterNewConfiguration(opts *bind.FilterOpts, configDigest [][32]byte) (*OCRConfigurationStoreEVMSimpleNewConfigurationIterator, error) {
 
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
+	var configDigestRule []interface{}
+	for _, configDigestItem := range configDigest {
+		configDigestRule = append(configDigestRule, configDigestItem)
 	}
 
-	logs, sub, err := _OCRConfigurationStore.contract.FilterLogs(opts, "OwnershipTransferRequested", fromRule, toRule)
+	logs, sub, err := _OCRConfigurationStoreEVMSimple.contract.FilterLogs(opts, "NewConfiguration", configDigestRule)
 	if err != nil {
 		return nil, err
 	}
-	return &OCRConfigurationStoreOwnershipTransferRequestedIterator{contract: _OCRConfigurationStore.contract, event: "OwnershipTransferRequested", logs: logs, sub: sub}, nil
+	return &OCRConfigurationStoreEVMSimpleNewConfigurationIterator{contract: _OCRConfigurationStoreEVMSimple.contract, event: "NewConfiguration", logs: logs, sub: sub}, nil
 }
 
-// WatchOwnershipTransferRequested is a free log subscription operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
+// WatchNewConfiguration is a free log subscription operation binding the contract event 0xb07c231f5a1f53b6761761661dcafa59d063ff6e9929e00ad1fb9cb9c5b02e44.
 //
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) WatchOwnershipTransferRequested(opts *bind.WatchOpts, sink chan<- *OCRConfigurationStoreOwnershipTransferRequested, from []common.Address, to []common.Address) (event.Subscription, error) {
+// Solidity: event NewConfiguration(bytes32 indexed configDigest)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleFilterer) WatchNewConfiguration(opts *bind.WatchOpts, sink chan<- *OCRConfigurationStoreEVMSimpleNewConfiguration, configDigest [][32]byte) (event.Subscription, error) {
 
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
+	var configDigestRule []interface{}
+	for _, configDigestItem := range configDigest {
+		configDigestRule = append(configDigestRule, configDigestItem)
 	}
 
-	logs, sub, err := _OCRConfigurationStore.contract.WatchLogs(opts, "OwnershipTransferRequested", fromRule, toRule)
+	logs, sub, err := _OCRConfigurationStoreEVMSimple.contract.WatchLogs(opts, "NewConfiguration", configDigestRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2899,8 +2285,8 @@ func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) WatchOwnershipTrans
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(OCRConfigurationStoreOwnershipTransferRequested)
-				if err := _OCRConfigurationStore.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
+				event := new(OCRConfigurationStoreEVMSimpleNewConfiguration)
+				if err := _OCRConfigurationStoreEVMSimple.contract.UnpackLog(event, "NewConfiguration", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -2921,165 +2307,12 @@ func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) WatchOwnershipTrans
 	}), nil
 }
 
-// ParseOwnershipTransferRequested is a log parse operation binding the contract event 0xed8889f560326eb138920d842192f0eb3dd22b4f139c87a2c57538e05bae1278.
+// ParseNewConfiguration is a log parse operation binding the contract event 0xb07c231f5a1f53b6761761661dcafa59d063ff6e9929e00ad1fb9cb9c5b02e44.
 //
-// Solidity: event OwnershipTransferRequested(address indexed from, address indexed to)
-func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) ParseOwnershipTransferRequested(log types.Log) (*OCRConfigurationStoreOwnershipTransferRequested, error) {
-	event := new(OCRConfigurationStoreOwnershipTransferRequested)
-	if err := _OCRConfigurationStore.contract.UnpackLog(event, "OwnershipTransferRequested", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// OCRConfigurationStoreOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the OCRConfigurationStore contract.
-type OCRConfigurationStoreOwnershipTransferredIterator struct {
-	Event *OCRConfigurationStoreOwnershipTransferred // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *OCRConfigurationStoreOwnershipTransferredIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(OCRConfigurationStoreOwnershipTransferred)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(OCRConfigurationStoreOwnershipTransferred)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *OCRConfigurationStoreOwnershipTransferredIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *OCRConfigurationStoreOwnershipTransferredIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// OCRConfigurationStoreOwnershipTransferred represents a OwnershipTransferred event raised by the OCRConfigurationStore contract.
-type OCRConfigurationStoreOwnershipTransferred struct {
-	From common.Address
-	To   common.Address
-	Raw  types.Log // Blockchain specific contextual infos
-}
-
-// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*OCRConfigurationStoreOwnershipTransferredIterator, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCRConfigurationStore.contract.FilterLogs(opts, "OwnershipTransferred", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return &OCRConfigurationStoreOwnershipTransferredIterator{contract: _OCRConfigurationStore.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
-}
-
-// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *OCRConfigurationStoreOwnershipTransferred, from []common.Address, to []common.Address) (event.Subscription, error) {
-
-	var fromRule []interface{}
-	for _, fromItem := range from {
-		fromRule = append(fromRule, fromItem)
-	}
-	var toRule []interface{}
-	for _, toItem := range to {
-		toRule = append(toRule, toItem)
-	}
-
-	logs, sub, err := _OCRConfigurationStore.contract.WatchLogs(opts, "OwnershipTransferred", fromRule, toRule)
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(OCRConfigurationStoreOwnershipTransferred)
-				if err := _OCRConfigurationStore.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
-//
-// Solidity: event OwnershipTransferred(address indexed from, address indexed to)
-func (_OCRConfigurationStore *OCRConfigurationStoreFilterer) ParseOwnershipTransferred(log types.Log) (*OCRConfigurationStoreOwnershipTransferred, error) {
-	event := new(OCRConfigurationStoreOwnershipTransferred)
-	if err := _OCRConfigurationStore.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+// Solidity: event NewConfiguration(bytes32 indexed configDigest)
+func (_OCRConfigurationStoreEVMSimple *OCRConfigurationStoreEVMSimpleFilterer) ParseNewConfiguration(log types.Log) (*OCRConfigurationStoreEVMSimpleNewConfiguration, error) {
+	event := new(OCRConfigurationStoreEVMSimpleNewConfiguration)
+	if err := _OCRConfigurationStoreEVMSimple.contract.UnpackLog(event, "NewConfiguration", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
