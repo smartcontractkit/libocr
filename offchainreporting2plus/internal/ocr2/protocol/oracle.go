@@ -249,7 +249,6 @@ func (o *oracleState) epochChanged(e uint32) {
 				o.logger.Debug("epochChanged: unbuffered and dropped message", commontypes.LogFields{
 					"remoteOracleID": id,
 					"epoch":          e,
-					"message":        *msg,
 				})
 			} else if msgEpoch == e {
 				// remove from buffer
@@ -258,7 +257,6 @@ func (o *oracleState) epochChanged(e uint32) {
 				o.logger.Trace("epochChanged: unbuffered messages for new epoch", commontypes.LogFields{
 					"remoteOracleID": id,
 					"epoch":          e,
-					"message":        *msg,
 				})
 				o.chNetToReportGeneration <- MessageToReportGenerationWithSender{
 					*msg,
@@ -283,7 +281,6 @@ func (o *oracleState) reportGenerationMessage(msg MessageToReportGeneration, sen
 		o.logger.Debug("oracle: dropping message for past epoch", commontypes.LogFields{
 			"epoch":  o.epoch,
 			"sender": sender,
-			"msg":    msg,
 		})
 	} else if msgEpoch == o.epoch {
 		o.chNetToReportGeneration <- MessageToReportGenerationWithSender{msg, sender}
@@ -292,7 +289,6 @@ func (o *oracleState) reportGenerationMessage(msg MessageToReportGeneration, sen
 		o.logger.Trace("oracle: buffering message for future epoch", commontypes.LogFields{
 			"epoch":  o.epoch,
 			"sender": sender,
-			"msg":    msg,
 		})
 	}
 }

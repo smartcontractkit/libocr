@@ -88,7 +88,7 @@ type leaderState[RI any] struct {
 
 	epochStartRequests map[commontypes.OracleID]*epochStartRequest[RI]
 
-	readyToStartRound bool
+	readyToStartRound bool // TODO: explain meaning of this vs design doc
 	tRound            <-chan time.Time
 
 	query        types.Query
@@ -133,6 +133,7 @@ type sharedState struct {
 
 	firstSeqNrOfEpoch uint64
 	seqNr             uint64
+	observationQuorum *int
 	committedSeqNr    uint64
 	committedOutcome  ocr3types.Outcome
 }
@@ -174,6 +175,7 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 
 		0,
 		0,
+		nil,
 		0,
 		nil,
 	}
@@ -235,13 +237,9 @@ func (outgen *outcomeGenerationState[RI]) unbufferMessages() {
 	})
 	for i, buffer := range outgen.bufferedMessages {
 		sender := commontypes.OracleID(i)
-		for {
+		for buffer.Length() > 0 {
 			msg := buffer.Peek()
-			if msg == nil {
-				// no messages left in buffer
-				break
-			}
-			msgEpoch := (*msg).epoch()
+			msgEpoch := msg.epoch()
 			if msgEpoch < outgen.sharedState.e {
 				buffer.Pop()
 				outgen.logger.Debug("unbuffered and dropped message", commontypes.LogFields{
@@ -256,7 +254,7 @@ func (outgen *outcomeGenerationState[RI]) unbufferMessages() {
 					"msgEpoch": msgEpoch,
 					"sender":   sender,
 				})
-				(*msg).processOutcomeGeneration(outgen, sender)
+				msg.processOutcomeGeneration(outgen, sender)
 			} else { // msgEpoch > e
 				// this and all subsequent messages are for future epochs
 				// leave them in the buffer
@@ -353,6 +351,55 @@ func (outgen *outcomeGenerationState[RI]) OutcomeCtx(seqNr uint64) ocr3types.Out
 		uint64(outgen.sharedState.e),
 		seqNr - outgen.sharedState.firstSeqNrOfEpoch + 1,
 	}
+}
+
+func (outgen *outcomeGenerationState[RI]) ObservationQuorum(query types.Query) (quorum int, ok bool) {
+	if outgen.sharedState.observationQuorum != nil {
+		return *outgen.sharedState.observationQuorum, true
+	}
+
+	observationQuorum, ok := callPluginFromOutcomeGeneration[ocr3types.Quorum](
+		outgen,
+		"ObservationQuorum",
+		0, // pure function
+		outgen.OutcomeCtx(outgen.sharedState.seqNr),
+		func(ctx context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Quorum, error) {
+			return outgen.reportingPlugin.ObservationQuorum(outctx, query)
+		},
+	)
+
+	if !ok {
+		return 0, false
+	}
+
+	nMinusF := outgen.config.N() - outgen.config.F
+
+	switch observationQuorum {
+	case ocr3types.QuorumFPlusOne:
+		quorum = outgen.config.F + 1
+	case ocr3types.QuorumTwoFPlusOne:
+		quorum = 2*outgen.config.F + 1
+	case ocr3types.QuorumByzQuorum:
+		quorum = outgen.config.ByzQuorumSize()
+	case ocr3types.QuorumNMinusF:
+		quorum = nMinusF
+	default:
+		quorum = int(observationQuorum)
+	}
+
+	if !(0 < quorum && int(quorum) <= nMinusF) {
+		outgen.logger.Error("invalid observation quorum", commontypes.LogFields{
+			"quorum":  quorum,
+			"n":       outgen.config.N(),
+			"f":       outgen.config.F,
+			"nMinusF": nMinusF,
+		})
+		return 0, false
+	}
+
+	outgen.sharedState.observationQuorum = &quorum
+
+	return quorum, true
 }
 
 func callPluginFromOutcomeGeneration[T any, RI any](

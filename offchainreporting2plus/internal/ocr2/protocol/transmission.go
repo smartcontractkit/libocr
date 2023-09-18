@@ -140,7 +140,8 @@ func (t *transmissionState) restoreFromDatabase() {
 // eventTransmit is called when the local process sends a transmit event
 func (t *transmissionState) eventTransmit(ev EventTransmit) {
 	t.logger.Debug("Received transmit event", commontypes.LogFields{
-		"event": ev,
+		"epoch": ev.Epoch,
+		"round": ev.Round,
 	})
 
 	ts := types.ReportTimestamp{t.config.ConfigDigest, ev.Epoch, ev.Round}
@@ -153,7 +154,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 			t.config.MaxDurationShouldAcceptFinalizedReport+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				t.logger.Error("Transmission: ReportingPlugin.ShouldAcceptFinalizedReport is taking too long", commontypes.LogFields{
-					"event": ev, "maxDuration": t.config.MaxDurationShouldAcceptFinalizedReport,
+					"epoch": ev.Epoch, "round": ev.Round, "maxDuration": t.config.MaxDurationShouldAcceptFinalizedReport,
 				})
 			},
 		)
@@ -169,14 +170,16 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 		if err != nil {
 			t.logger.Error("eventTransmit(ev): error in ReportingPlugin.ShouldAcceptFinalizedReport", commontypes.LogFields{
 				"error": err,
-				"ev":    ev,
+				"epoch": ev.Epoch,
+				"round": ev.Round,
 			})
 			return
 		}
 
 		if !shouldAccept {
 			t.logger.Debug("eventTransmit(ev): ReportingPlugin.ShouldAcceptFinalizedReport returned false", commontypes.LogFields{
-				"ev": ev,
+				"epoch": ev.Epoch,
+				"round": ev.Round,
 			})
 			return
 		}

@@ -8,19 +8,19 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-// LimitCheckOCR3Plugin wraps another plugin and checks that its outputs respect
+// LimitCheckOCR3ReportingPlugin wraps another plugin and checks that its outputs respect
 // limits. We use it to surface violations to authors of plugins as early as
 // possible.
 //
 // It does not check inputs since those are checked by the SerializingEndpoint.
-type LimitCheckOCR3Plugin[RI any] struct {
+type LimitCheckOCR3ReportingPlugin[RI any] struct {
 	Plugin ocr3types.ReportingPlugin[RI]
 	Limits ocr3types.ReportingPluginLimits
 }
 
-var _ ocr3types.ReportingPlugin[struct{}] = LimitCheckOCR3Plugin[struct{}]{}
+var _ ocr3types.ReportingPlugin[struct{}] = LimitCheckOCR3ReportingPlugin[struct{}]{}
 
-func (rp LimitCheckOCR3Plugin[RI]) Query(ctx context.Context, outctx ocr3types.OutcomeContext) (types.Query, error) {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Query(ctx context.Context, outctx ocr3types.OutcomeContext) (types.Query, error) {
 	query, err := rp.Plugin.Query(ctx, outctx)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,11 @@ func (rp LimitCheckOCR3Plugin[RI]) Query(ctx context.Context, outctx ocr3types.O
 	return query, nil
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) Observation(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query) (types.Observation, error) {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ObservationQuorum(outctx ocr3types.OutcomeContext, query types.Query) (ocr3types.Quorum, error) {
+	return rp.Plugin.ObservationQuorum(outctx, query)
+}
+
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Observation(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query) (types.Observation, error) {
 	observation, err := rp.Plugin.Observation(ctx, outctx, query)
 	if err != nil {
 		return nil, err
@@ -42,11 +46,11 @@ func (rp LimitCheckOCR3Plugin[RI]) Observation(ctx context.Context, outctx ocr3t
 	return observation, nil
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) ValidateObservation(outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ValidateObservation(outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
 	return rp.Plugin.ValidateObservation(outctx, query, ao)
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) Outcome(outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
 	outcome, err := rp.Plugin.Outcome(outctx, query, aos)
 	if err != nil {
 		return nil, err
@@ -57,7 +61,7 @@ func (rp LimitCheckOCR3Plugin[RI]) Outcome(outctx ocr3types.OutcomeContext, quer
 	return outcome, nil
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) Reports(seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[RI], error) {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Reports(seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[RI], error) {
 	reports, err := rp.Plugin.Reports(seqNr, outcome)
 	if err != nil {
 		return nil, err
@@ -73,14 +77,14 @@ func (rp LimitCheckOCR3Plugin[RI]) Reports(seqNr uint64, outcome ocr3types.Outco
 	return reports, nil
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) ShouldAcceptAttestedReport(ctx context.Context, seqNr uint64, report ocr3types.ReportWithInfo[RI]) (bool, error) {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ShouldAcceptAttestedReport(ctx context.Context, seqNr uint64, report ocr3types.ReportWithInfo[RI]) (bool, error) {
 	return rp.Plugin.ShouldAcceptAttestedReport(ctx, seqNr, report)
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) ShouldTransmitAcceptedReport(ctx context.Context, seqNr uint64, report ocr3types.ReportWithInfo[RI]) (bool, error) {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ShouldTransmitAcceptedReport(ctx context.Context, seqNr uint64, report ocr3types.ReportWithInfo[RI]) (bool, error) {
 	return rp.Plugin.ShouldTransmitAcceptedReport(ctx, seqNr, report)
 }
 
-func (rp LimitCheckOCR3Plugin[RI]) Close() error {
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Close() error {
 	return rp.Plugin.Close()
 }

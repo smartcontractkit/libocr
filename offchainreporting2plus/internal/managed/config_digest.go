@@ -25,7 +25,7 @@ func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.
 	}
 
 	if !prefix.IsPrefixOf(cd) {
-		return types.ConfigDigest{}, fmt.Errorf("ConfigDigest has prefix %v, but wanted prefix %v", cd[:2], prefix)
+		return types.ConfigDigest{}, fmt.Errorf("ConfigDigest has prefix %s, but wanted prefix %s", types.ConfigDigestPrefixFromConfigDigest(cd), prefix)
 	}
 
 	return cd, nil

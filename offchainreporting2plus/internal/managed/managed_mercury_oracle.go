@@ -123,15 +123,15 @@ func RunManagedMercuryOracle(
 				return
 			}
 
-			ocr3PluginLimits := mercuryshim.OCR3PluginLimits(mercuryPluginInfo.Limits)
+			reportingPluginLimits := mercuryshim.ReportingPluginLimits(mercuryPluginInfo.Limits)
 
-			lims, err := limits.OCR3Limits(sharedConfig.PublicConfig, ocr3PluginLimits, onchainKeyring.MaxSignatureLength())
+			lims, err := limits.OCR3Limits(sharedConfig.PublicConfig, reportingPluginLimits, onchainKeyring.MaxSignatureLength())
 			if err != nil {
 				logger.Error("ManagedMercuryOracle: error during limits", commontypes.LogFields{
-					"error":            err,
-					"publicConfig":     sharedConfig.PublicConfig,
-					"ocr3PluginLimits": ocr3PluginLimits,
-					"maxSigLen":        onchainKeyring.MaxSignatureLength(),
+					"error":                 err,
+					"publicConfig":          sharedConfig.PublicConfig,
+					"reportingPluginLimits": reportingPluginLimits,
+					"maxSigLen":             onchainKeyring.MaxSignatureLength(),
 				})
 				return
 			}
@@ -159,7 +159,7 @@ func RunManagedMercuryOracle(
 				binNetEndpoint,
 				onchainKeyring.MaxSignatureLength(),
 				childLogger,
-				ocr3PluginLimits,
+				reportingPluginLimits,
 				sharedConfig.N(),
 				sharedConfig.F,
 			)
@@ -176,7 +176,7 @@ func RunManagedMercuryOracle(
 				"ManagedMercuryOracle: error during netEndpoint.Close()",
 			)
 
-			ocr3PluginConfig := ocr3types.ReportingPluginConfig{
+			reportingPluginConfig := ocr3types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),
@@ -189,8 +189,8 @@ func RunManagedMercuryOracle(
 				sharedConfig.MaxDurationShouldAcceptAttestedReport,
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
 			}
-			ocr3Plugin := &mercuryshim.MercuryOCR3Plugin{
-				ocr3PluginConfig,
+			reportingPlugin := &mercuryshim.MercuryReportingPlugin{
+				reportingPluginConfig,
 				mercuryPlugin,
 				mercuryPluginInfo.Limits,
 			}
@@ -206,7 +206,7 @@ func RunManagedMercuryOracle(
 				netEndpoint,
 				offchainKeyring,
 				ocr3OnchainKeyring,
-				shim.LimitCheckOCR3Plugin[mercuryshim.MercuryReportInfo]{ocr3Plugin, ocr3PluginLimits},
+				shim.LimitCheckOCR3ReportingPlugin[mercuryshim.MercuryReportInfo]{reportingPlugin, reportingPluginLimits},
 				shim.MakeOCR3TelemetrySender(chTelemetrySend, childLogger),
 			)
 		},
