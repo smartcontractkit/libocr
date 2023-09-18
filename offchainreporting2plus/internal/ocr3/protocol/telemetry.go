@@ -9,7 +9,8 @@ type TelemetrySender interface {
 	RoundStarted(
 		configDigest types.ConfigDigest,
 		epoch uint64,
-		round uint8,
+		seqNr uint64,
+		round uint64,
 		leader commontypes.OracleID,
 	)
 }

@@ -106,6 +106,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 
 		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr + 1
 		outgen.sharedState.seqNr = prepareQc.SeqNr
+		outgen.sharedState.observationQuorum = nil
 
 		outgen.followerState.phase = outgenFollowerPhaseSentPrepare
 		outgen.followerState.outcome = outcomeAndDigests{
@@ -126,6 +127,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 
 func (outgen *outcomeGenerationState[RI]) startSubsequentFollowerRound() {
 	outgen.sharedState.seqNr = outgen.sharedState.committedSeqNr + 1
+	outgen.sharedState.observationQuorum = nil
 
 	outgen.followerState.phase = outgenFollowerPhaseNewRound
 	outgen.followerState.query = nil
@@ -196,11 +198,21 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 
 	outgen.followerState.query = &msg.Query
 
+	outctx := outgen.OutcomeCtx(outgen.sharedState.seqNr)
+
+	outgen.telemetrySender.RoundStarted(
+		outgen.config.ConfigDigest,
+		outctx.Epoch,
+		outctx.SeqNr,
+		outctx.Round,
+		outgen.sharedState.l,
+	)
+
 	o, ok := callPluginFromOutcomeGeneration[types.Observation](
 		outgen,
 		"Observation",
 		outgen.config.MaxDurationObservation,
-		outgen.OutcomeCtx(outgen.sharedState.seqNr),
+		outctx,
 		func(ctx context.Context, outctx ocr3types.OutcomeContext) (types.Observation, error) {
 			return outgen.reportingPlugin.Observation(ctx, outctx, *outgen.followerState.query)
 		},
@@ -301,9 +313,15 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 	attributedObservations := []types.AttributedObservation{}
 	{
-		if len(msg.AttributedSignedObservations) <= 2*outgen.config.F {
+		quorum, ok := outgen.ObservationQuorum(*outgen.followerState.query)
+		if !ok {
+			return
+		}
+
+		if len(msg.AttributedSignedObservations) < quorum {
 			outgen.logger.Warn("dropping MessageProposal that contains too few signed observations", commontypes.LogFields{
 				"attributedSignedObservationsCount": len(msg.AttributedSignedObservations),
+				"quorum":                            quorum,
 			})
 			return
 		}
@@ -324,8 +342,29 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 			seen[aso.Observer] = true
 
 			if err := aso.SignedObservation.Verify(outgen.ID(), outgen.sharedState.seqNr, *outgen.followerState.query, outgen.config.OracleIdentities[aso.Observer].OffchainPublicKey); err != nil {
-				outgen.logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", nil)
+				outgen.logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", commontypes.LogFields{
+					"error": err,
+				})
 				return
+			}
+
+			err, ok := callPluginFromOutcomeGeneration[error](
+				outgen,
+				"ValidateObservation",
+				0, // ValidateObservation is a pure function and should finish "instantly"
+				outgen.OutcomeCtx(outgen.sharedState.seqNr),
+				func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
+					return outgen.reportingPlugin.ValidateObservation(
+						outctx,
+						*outgen.followerState.query,
+						types.AttributedObservation{aso.SignedObservation.Observation, aso.Observer},
+					), nil
+				},
+			)
+			if !ok || err != nil {
+				outgen.logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
+					"error": err,
+				})
 			}
 
 			attributedObservations = append(attributedObservations, types.AttributedObservation{
@@ -430,9 +469,6 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 	}
 
 	for sender, preparePoolEntry := range poolEntries {
-		if preparePoolEntry == nil {
-			continue
-		}
 		if preparePoolEntry.Verified != nil {
 			continue
 		}
@@ -546,9 +582,6 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 	}
 
 	for sender, commitPoolEntry := range poolEntries {
-		if commitPoolEntry == nil {
-			continue
-		}
 		if commitPoolEntry.Verified != nil {
 			continue
 		}
@@ -595,8 +628,9 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 
 	if uint64(outgen.config.RMax) <= outgen.sharedState.seqNr-outgen.sharedState.firstSeqNrOfEpoch+1 {
 		outgen.logger.Debug("epoch has been going on for too long, sending EventChangeLeader to Pacemaker", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"rMax":  outgen.config.RMax,
+			"firstSeqNrOfEpoch": outgen.sharedState.firstSeqNrOfEpoch,
+			"seqNr":             outgen.sharedState.seqNr,
+			"rMax":              outgen.config.RMax,
 		})
 		select {
 		case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{}:

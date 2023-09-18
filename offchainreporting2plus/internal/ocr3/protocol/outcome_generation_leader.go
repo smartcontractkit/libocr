@@ -262,6 +262,31 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 		return
 	}
 
+	err, ok := callPluginFromOutcomeGeneration[error](
+		outgen,
+		"ValidateObservation",
+		0, // ValidateObservation is a pure function and should finish "instantly"
+		outgen.OutcomeCtx(outgen.sharedState.seqNr),
+		func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
+			return outgen.reportingPlugin.ValidateObservation(
+				outctx,
+				outgen.leaderState.query,
+				types.AttributedObservation{msg.SignedObservation.Observation, sender},
+			), nil
+		},
+	)
+	if !ok || err != nil {
+		outgen.logger.Warn("dropping MessageObservation carrying invalid Observation", commontypes.LogFields{
+			"sender": sender,
+			"error":  err,
+		})
+	}
+
+	quorum, ok := outgen.ObservationQuorum(outgen.leaderState.query)
+	if !ok {
+		return
+	}
+
 	outgen.logger.Debug("got valid MessageObservation", commontypes.LogFields{
 		"seqNr": outgen.sharedState.seqNr,
 	})
@@ -274,9 +299,10 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 			observationCount++
 		}
 	}
-	if observationCount == 2*outgen.config.F+1 {
-		outgen.logger.Debug("starting observation grace period", commontypes.LogFields{
-			"deltaGrace": outgen.config.DeltaGrace.String(),
+	if observationCount == quorum {
+		outgen.logger.Debug("reached observation quorum, starting observation grace period", commontypes.LogFields{
+			"deltaGrace":        outgen.config.DeltaGrace.String(),
+			"observationQuorum": quorum,
 		})
 		outgen.leaderState.phase = outgenLeaderPhaseGrace
 		outgen.leaderState.tGrace = time.After(outgen.config.DeltaGrace)

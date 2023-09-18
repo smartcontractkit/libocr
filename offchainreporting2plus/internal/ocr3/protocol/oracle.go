@@ -192,8 +192,8 @@ func (o *oracleState[RI]) run() {
 			o.childCtx,
 
 			chNetToReportAttestation,
-			chReportAttestationToTransmission,
 			chOutcomeGenerationToReportAttestation,
+			chReportAttestationToTransmission,
 			o.config,
 			o.contractTransmitter,
 			o.logger,

@@ -220,7 +220,6 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 		repgen.logger.Error("messageReportReq: could not validate report sent by leader", commontypes.LogFields{
 			"round": repgen.followerState.r,
 			"error": err,
-			"msg":   msg,
 		})
 		return
 	}
@@ -263,7 +262,6 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 				"round": repgen.followerState.r,
 				"error": err,
 				"id":    repgen.id,
-				"msg":   msg,
 			})
 			return
 		}
@@ -284,11 +282,10 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			// Can't really do much here except logging as much detail as possible to
 			// aid reproduction, and praying it won't happen again
 			repgen.logger.Error("messageReportReq: failed to sign report", commontypes.LogFields{
-				"round":          repgen.followerState.r,
-				"error":          err,
-				"id":             repgen.id,
-				"attestedReport": attestedReport,
-				"pubkey":         repgen.onchainKeyring.PublicKey(),
+				"round":  repgen.followerState.r,
+				"error":  err,
+				"id":     repgen.id,
+				"pubkey": repgen.onchainKeyring.PublicKey(),
 			})
 			return
 		}
@@ -309,11 +306,10 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 
 		if err != nil {
 			repgen.logger.Error("could not verify my own signature", commontypes.LogFields{
-				"round":          repgen.followerState.r,
-				"error":          err,
-				"id":             repgen.id,
-				"attestedReport": attestedReport, // includes sig
-				"pubkey":         repgen.onchainKeyring.PublicKey()})
+				"round":  repgen.followerState.r,
+				"error":  err,
+				"id":     repgen.id,
+				"pubkey": repgen.onchainKeyring.PublicKey()})
 			return
 		}
 	}
@@ -360,7 +356,6 @@ func (repgen *reportGenerationState) messageFinal(
 		repgen.logger.Error("could not validate signatures on attested report in MessageFinal",
 			commontypes.LogFields{
 				"error":  err,
-				"msg":    msg,
 				"sender": sender,
 			})
 		return

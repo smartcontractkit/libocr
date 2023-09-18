@@ -30,9 +30,13 @@ const (
 	_                      ConfigDigestPrefix = 0xFFFF // reserved for future use
 )
 
+func ConfigDigestPrefixFromConfigDigest(configDigest ConfigDigest) ConfigDigestPrefix {
+	return ConfigDigestPrefix(binary.BigEndian.Uint16(configDigest[:2]))
+}
+
 // Checks whether a ConfigDigestPrefix is actually a prefix of a ConfigDigest.
 func (prefix ConfigDigestPrefix) IsPrefixOf(configDigest ConfigDigest) bool {
-	return uint16(prefix) == binary.BigEndian.Uint16(configDigest[:2])
+	return prefix == ConfigDigestPrefixFromConfigDigest(configDigest)
 }
 
 var _ fmt.Stringer = ConfigDigestPrefix(0)

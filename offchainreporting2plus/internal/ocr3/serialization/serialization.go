@@ -463,24 +463,11 @@ func CertifiedPrepareOrCommitFromProtoMessage(m *CertifiedPrepareOrCommit) (prot
 	}
 	switch poc := m.PrepareOrCommit.(type) {
 	case *CertifiedPrepareOrCommit_Prepare:
-		prepareQuorumCertificate := make([]protocol.AttributedPrepareSignature, 0, len(poc.Prepare.GetPrepareQuorumCertificate()))
-		for _, aps := range poc.Prepare.GetPrepareQuorumCertificate() {
-			prepareQuorumCertificate = append(prepareQuorumCertificate, protocol.AttributedPrepareSignature{
-				aps.GetSignature(),
-				commontypes.OracleID(aps.GetSigner()),
-			})
+		cpocp, err := certifiedPrepareFromProtoMessage(poc.Prepare)
+		if err != nil {
+			return nil, err
 		}
-
-		var outcomeInputsDigest protocol.OutcomeInputsDigest
-		copy(outcomeInputsDigest[:], poc.Prepare.OutcomeInputsDigest)
-
-		return &protocol.CertifiedPrepare{
-			poc.Prepare.PrepareEpoch,
-			poc.Prepare.SeqNr,
-			outcomeInputsDigest,
-			poc.Prepare.Outcome,
-			prepareQuorumCertificate,
-		}, nil
+		return &cpocp, nil
 	case *CertifiedPrepareOrCommit_Commit:
 		cpocc, err := certifiedCommitFromProtoMessage(poc.Commit)
 		if err != nil {
@@ -490,6 +477,29 @@ func CertifiedPrepareOrCommitFromProtoMessage(m *CertifiedPrepareOrCommit) (prot
 	default:
 		return nil, fmt.Errorf("unknown case of CertifiedPrepareOrCommit")
 	}
+}
+
+func certifiedPrepareFromProtoMessage(m *CertifiedPrepare) (protocol.CertifiedPrepare, error) {
+	if m == nil {
+		return protocol.CertifiedPrepare{}, fmt.Errorf("unable to extract a CertifiedPrepare value")
+	}
+	var outcomeInputsDigest protocol.OutcomeInputsDigest
+	copy(outcomeInputsDigest[:], m.OutcomeInputsDigest)
+	prepareQuorumCertificate := make([]protocol.AttributedPrepareSignature, 0, len(m.PrepareQuorumCertificate))
+	for _, aps := range m.PrepareQuorumCertificate {
+		prepareQuorumCertificate = append(prepareQuorumCertificate, protocol.AttributedPrepareSignature{
+			aps.GetSignature(),
+			commontypes.OracleID(aps.GetSigner()),
+		})
+	}
+	return protocol.CertifiedPrepare{
+		m.PrepareEpoch,
+		m.SeqNr,
+		outcomeInputsDigest,
+		m.Outcome,
+		prepareQuorumCertificate,
+	}, nil
+
 }
 
 func certifiedCommitFromProtoMessage(m *CertifiedCommit) (protocol.CertifiedCommit, error) {
@@ -512,12 +522,26 @@ func certifiedCommitFromProtoMessage(m *CertifiedCommit) (protocol.CertifiedComm
 }
 
 func signedHighestCertifiedTimestampFromProtoMessage(m *SignedHighestCertifiedTimestamp) (protocol.SignedHighestCertifiedTimestamp, error) {
+	if m == nil {
+		return protocol.SignedHighestCertifiedTimestamp{}, fmt.Errorf("unable to extract a SignedHighestCertifiedTimestamp value")
+	}
+	hct, err := highestCertifiedTimestampFromProtoMessage(m.HighestCertifiedTimestamp)
+	if err != nil {
+		return protocol.SignedHighestCertifiedTimestamp{}, err
+	}
 	return protocol.SignedHighestCertifiedTimestamp{
-		protocol.HighestCertifiedTimestamp{
-			m.GetHighestCertifiedTimestamp().GetSeqNr(),
-			m.HighestCertifiedTimestamp.GetCommittedElsePrepared(),
-		},
-		m.GetSignature(),
+		hct,
+		m.Signature,
+	}, nil
+}
+
+func highestCertifiedTimestampFromProtoMessage(m *HighestCertifiedTimestamp) (protocol.HighestCertifiedTimestamp, error) {
+	if m == nil {
+		return protocol.HighestCertifiedTimestamp{}, fmt.Errorf("unable to extract a HighestCertifiedTimestamp value")
+	}
+	return protocol.HighestCertifiedTimestamp{
+		m.SeqNr,
+		m.CommittedElsePrepared,
 	}, nil
 }
 

@@ -39,16 +39,18 @@ func (ts OCR3TelemetrySender) send(t *serialization.TelemetryWrapper) {
 func (ts OCR3TelemetrySender) RoundStarted(
 	configDigest types.ConfigDigest,
 	epoch uint64,
-	round uint8,
+	seqNr uint64,
+	round uint64,
 	leader commontypes.OracleID,
 ) {
 	ts.send(&serialization.TelemetryWrapper{
 		Wrapped: &serialization.TelemetryWrapper_RoundStarted{&serialization.TelemetryRoundStarted{
 			ConfigDigest: configDigest[:],
-			Epoch:        uint64(epoch),
-			Round:        uint64(round),
+			Epoch:        epoch,
+			Round:        round,
 			Leader:       uint64(leader),
 			Time:         uint64(time.Now().UnixNano()),
+			SeqNr:        seqNr,
 		}},
 		UnixTimeNanoseconds: time.Now().UnixNano(),
 	})

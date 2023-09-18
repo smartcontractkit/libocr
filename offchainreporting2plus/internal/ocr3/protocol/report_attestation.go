@@ -22,8 +22,8 @@ func RunReportAttestation[RI any](
 	ctx context.Context,
 
 	chNetToReportAttestation <-chan MessageToReportAttestationWithSender[RI],
-	chReportAttestationToTransmission chan<- EventToTransmission[RI],
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI],
+	chReportAttestationToTransmission chan<- EventToTransmission[RI],
 	config ocr3config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	logger loghelper.LoggerWithContext,
@@ -35,7 +35,7 @@ func RunReportAttestation[RI any](
 	defer sched.Close()
 
 	newReportAttestationState(ctx, chNetToReportAttestation,
-		chReportAttestationToTransmission, chOutcomeGenerationToReportAttestation,
+		chOutcomeGenerationToReportAttestation, chReportAttestationToTransmission,
 		config, contractTransmitter, logger, netSender, onchainKeyring, reportingPlugin, sched).run()
 }
 
@@ -51,8 +51,8 @@ type reportAttestationState[RI any] struct {
 	ctx context.Context
 
 	chNetToReportAttestation               <-chan MessageToReportAttestationWithSender[RI]
-	chReportAttestationToTransmission      chan<- EventToTransmission[RI]
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI]
+	chReportAttestationToTransmission      chan<- EventToTransmission[RI]
 	config                                 ocr3config.SharedConfig
 	contractTransmitter                    ocr3types.ContractTransmitter[RI]
 	logger                                 loghelper.LoggerWithContext
@@ -64,7 +64,9 @@ type reportAttestationState[RI any] struct {
 	// reap() is used to prevent unbounded state growth of rounds
 	rounds map[uint64]*round[RI]
 	// highest sequence number for which we have attested reports
-	highestAttestedSeqNr         uint64
+	highestAttestedSeqNr uint64
+	// highest sequence number for which we have received report signatures
+	// from each oracle
 	highestReportSignaturesSeqNr []uint64
 }
 
@@ -232,12 +234,12 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 		return
 	}
 
-	repatt.logger.Debug("triggering eventDeliver based on valid MessageCertifiedCommit", commontypes.LogFields{
+	repatt.logger.Debug("received valid MessageCertifiedCommit", commontypes.LogFields{
 		"seqNr":  msg.CertifiedCommit.SeqNr,
 		"sender": sender,
 	})
 
-	repatt.eventCommittedOutcome(EventCommittedOutcome[RI]{msg.CertifiedCommit})
+	repatt.receivedCertifiedCommit(msg.CertifiedCommit)
 }
 
 func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64) {
@@ -420,9 +422,13 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 }
 
 func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommittedOutcome[RI]) {
-	if repatt.rounds[ev.CertifiedCommit.SeqNr] != nil && repatt.rounds[ev.CertifiedCommit.SeqNr].reportsWithInfo != nil {
-		repatt.logger.Debug("dropping EventCommittedOutcome for which we already have reports", commontypes.LogFields{
-			"seqNr": ev.CertifiedCommit.SeqNr,
+	repatt.receivedCertifiedCommit(ev.CertifiedCommit)
+}
+
+func (repatt *reportAttestationState[RI]) receivedCertifiedCommit(certifiedCommit CertifiedCommit) {
+	if repatt.rounds[certifiedCommit.SeqNr] != nil && repatt.rounds[certifiedCommit.SeqNr].reportsWithInfo != nil {
+		repatt.logger.Debug("dropping CertifiedCommit for which we already have reports", commontypes.LogFields{
+			"seqNr": certifiedCommit.SeqNr,
 		})
 		return
 	}
@@ -430,13 +436,13 @@ func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommitte
 	reportsWithInfo, ok := callPlugin[[]ocr3types.ReportWithInfo[RI]](
 		repatt.ctx,
 		repatt.logger,
-		commontypes.LogFields{"seqNr": ev.CertifiedCommit.SeqNr},
+		commontypes.LogFields{"seqNr": certifiedCommit.SeqNr},
 		"Reports",
 		0, // Reports is a pure function and should finish "instantly"
 		func(context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
 			return repatt.reportingPlugin.Reports(
-				ev.CertifiedCommit.SeqNr,
-				ev.CertifiedCommit.Outcome,
+				certifiedCommit.SeqNr,
+				certifiedCommit.Outcome,
 			)
 		},
 	)
@@ -446,17 +452,17 @@ func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommitte
 
 	if reportsWithInfo == nil {
 		repatt.logger.Info("ReportingPlugin.Reports returned no reports, skipping", commontypes.LogFields{
-			"seqNr": ev.CertifiedCommit.SeqNr,
+			"seqNr": certifiedCommit.SeqNr,
 		})
 		return
 	}
 
 	var sigs [][]byte
 	for i, reportWithInfo := range reportsWithInfo {
-		sig, err := repatt.onchainKeyring.Sign(repatt.config.ConfigDigest, ev.CertifiedCommit.SeqNr, reportWithInfo)
+		sig, err := repatt.onchainKeyring.Sign(repatt.config.ConfigDigest, certifiedCommit.SeqNr, reportWithInfo)
 		if err != nil {
 			repatt.logger.Error("error while signing report", commontypes.LogFields{
-				"seqNr": ev.CertifiedCommit.SeqNr,
+				"seqNr": certifiedCommit.SeqNr,
 				"index": i,
 				"error": err,
 			})
@@ -465,8 +471,8 @@ func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommitte
 		sigs = append(sigs, sig)
 	}
 
-	if _, ok := repatt.rounds[ev.CertifiedCommit.SeqNr]; !ok {
-		repatt.rounds[ev.CertifiedCommit.SeqNr] = &round[RI]{
+	if _, ok := repatt.rounds[certifiedCommit.SeqNr]; !ok {
+		repatt.rounds[certifiedCommit.SeqNr] = &round[RI]{
 			nil,
 			nil,
 			make([]oracle, repatt.config.N()),
@@ -474,15 +480,15 @@ func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommitte
 			false,
 		}
 	}
-	repatt.rounds[ev.CertifiedCommit.SeqNr].certifiedCommit = &ev.CertifiedCommit
-	repatt.rounds[ev.CertifiedCommit.SeqNr].reportsWithInfo = reportsWithInfo
+	repatt.rounds[certifiedCommit.SeqNr].certifiedCommit = &certifiedCommit
+	repatt.rounds[certifiedCommit.SeqNr].reportsWithInfo = reportsWithInfo
 
 	repatt.logger.Debug("broadcasting MessageReportSignatures", commontypes.LogFields{
-		"seqNr": ev.CertifiedCommit.SeqNr,
+		"seqNr": certifiedCommit.SeqNr,
 	})
 
 	repatt.netSender.Broadcast(MessageReportSignatures[RI]{
-		ev.CertifiedCommit.SeqNr,
+		certifiedCommit.SeqNr,
 		sigs,
 	})
 
@@ -559,8 +565,8 @@ func newReportAttestationState[RI any](
 	ctx context.Context,
 
 	chNetToReportAttestation <-chan MessageToReportAttestationWithSender[RI],
-	chReportAttestationToTransmission chan<- EventToTransmission[RI],
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI],
+	chReportAttestationToTransmission chan<- EventToTransmission[RI],
 	config ocr3config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	logger loghelper.LoggerWithContext,
@@ -573,8 +579,8 @@ func newReportAttestationState[RI any](
 		ctx,
 
 		chNetToReportAttestation,
-		chReportAttestationToTransmission,
 		chOutcomeGenerationToReportAttestation,
+		chReportAttestationToTransmission,
 		config,
 		contractTransmitter,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "repatt"}),

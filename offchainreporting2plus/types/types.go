@@ -420,6 +420,11 @@ type OnchainKeyring interface {
 	PublicKey() OnchainPublicKey
 
 	// Sign returns a signature over ReportContext and Report.
+	//
+	// Reports may contain secret information.
+	// Implementations of this function should be careful to not leak
+	// the report's contents, e.g. by logging them or including them in
+	// returned errors.
 	Sign(ReportContext, Report) (signature []byte, err error)
 
 	// Verify verifies a signature over ReportContext and Report allegedly

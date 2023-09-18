@@ -112,7 +112,7 @@ type MercuryPlugin interface {
 	// previousReport is empty.
 	//
 	// You may assume that the sequence of epochs and the sequence of rounds
-	// within an epoch are strictly monotonically increasing during the lifetime
+	// within an epoch are monotonically increasing during the lifetime
 	// of an instance of this interface.
 	Observation(ctx context.Context, repts types.ReportTimestamp, previousReport types.Report) (types.Observation, error)
 
@@ -125,7 +125,7 @@ type MercuryPlugin interface {
 	// previousReport is empty.
 	//
 	// You may assume that the sequence of epochs and the sequence of rounds
-	// within an epoch are strictly monotonically increasing during the lifetime
+	// within an epoch are monotonically increasing during the lifetime
 	// of an instance of this interface.
 	Report(repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error)
 

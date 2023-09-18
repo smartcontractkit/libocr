@@ -136,7 +136,6 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender c
 		repgen.logger.Warn("Non-leader received MessageObserve", commontypes.LogFields{
 			"round":  repgen.leaderState.r,
 			"sender": sender,
-			"msg":    msg,
 		})
 		return
 	}
@@ -170,7 +169,6 @@ func (repgen *reportGenerationState) messageObserve(msg MessageObserve, sender c
 		repgen.logger.Warn("MessageObserve carries invalid SignedObservation", commontypes.LogFields{
 			"round":  repgen.leaderState.r,
 			"sender": sender,
-			"msg":    msg,
 			"error":  err,
 		})
 		return
@@ -278,7 +276,7 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 	}
 	if repgen.leaderState.report[sender] != nil {
 		repgen.logger.Warn(dropPrefix+"having already received sender's report",
-			commontypes.LogFields{"round": repgen.leaderState.r, "sender": sender, "msg": msg})
+			commontypes.LogFields{"round": repgen.leaderState.r, "sender": sender})
 		return
 	}
 
@@ -294,7 +292,6 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 		repgen.logger.Error("could not validate signature", commontypes.LogFields{
 			"round": repgen.leaderState.r,
 			"error": err,
-			"msg":   msg,
 		})
 		return
 	}
@@ -317,7 +314,6 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 				repgen.logger.Warn("received disparate reports messages", commontypes.LogFields{
 					"round":          repgen.leaderState.r,
 					"previousReport": report,
-					"msgReport":      msg,
 				})
 			}
 		}

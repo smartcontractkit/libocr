@@ -44,7 +44,7 @@ func (ev EventNewEpochStart[RI]) processOutcomeGeneration(outgen *outcomeGenerat
 }
 
 type EventToReportAttestation[RI any] interface {
-	processReportAttestation(repfin *reportAttestationState[RI])
+	processReportAttestation(repatt *reportAttestationState[RI])
 }
 
 type EventToTransmission[RI any] interface {
@@ -96,7 +96,7 @@ type MessageToOutcomeGenerationWithSender[RI any] struct {
 type MessageToReportAttestation[RI any] interface {
 	Message[RI]
 
-	processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID)
+	processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID)
 }
 
 type MessageToReportAttestationWithSender[RI any] struct {
@@ -362,8 +362,8 @@ func (msg MessageReportSignatures[RI]) process(o *oracleState[RI], sender common
 	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageReportSignatures[RI]) processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID) {
-	repfin.messageReportSignatures(msg, sender)
+func (msg MessageReportSignatures[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
+	repatt.messageReportSignatures(msg, sender)
 }
 
 type MessageCertifiedCommitRequest[RI any] struct {
@@ -380,8 +380,8 @@ func (msg MessageCertifiedCommitRequest[RI]) process(o *oracleState[RI], sender 
 	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageCertifiedCommitRequest[RI]) processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID) {
-	repfin.messageCertifiedCommitRequest(msg, sender)
+func (msg MessageCertifiedCommitRequest[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
+	repatt.messageCertifiedCommitRequest(msg, sender)
 }
 
 type MessageCertifiedCommit[RI any] struct {
@@ -398,8 +398,8 @@ func (msg MessageCertifiedCommit[RI]) process(o *oracleState[RI], sender commont
 	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageCertifiedCommit[RI]) processReportAttestation(repfin *reportAttestationState[RI], sender commontypes.OracleID) {
-	repfin.messageCertifiedCommit(msg, sender)
+func (msg MessageCertifiedCommit[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
+	repatt.messageCertifiedCommit(msg, sender)
 }
 
 type EventMissingOutcome[RI any] struct {
@@ -408,8 +408,8 @@ type EventMissingOutcome[RI any] struct {
 
 var _ EventToReportAttestation[struct{}] = EventMissingOutcome[struct{}]{} // implements EventToReportAttestation
 
-func (ev EventMissingOutcome[RI]) processReportAttestation(repfin *reportAttestationState[RI]) {
-	repfin.eventMissingOutcome(ev)
+func (ev EventMissingOutcome[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
+	repatt.eventMissingOutcome(ev)
 }
 
 type EventCommittedOutcome[RI any] struct {
@@ -418,8 +418,8 @@ type EventCommittedOutcome[RI any] struct {
 
 var _ EventToReportAttestation[struct{}] = EventCommittedOutcome[struct{}]{} // implements EventToReportAttestation
 
-func (ev EventCommittedOutcome[RI]) processReportAttestation(repfin *reportAttestationState[RI]) {
-	repfin.eventCommittedOutcome(ev)
+func (ev EventCommittedOutcome[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
+	repatt.eventCommittedOutcome(ev)
 }
 
 type EventAttestedReport[RI any] struct {

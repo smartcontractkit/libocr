@@ -331,7 +331,7 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 
 	sumMaxDurationsOutcomeGeneration := cfg.MaxDurationQuery + cfg.MaxDurationObservation + cfg.DeltaGrace
 	if !(sumMaxDurationsOutcomeGeneration < cfg.DeltaProgress) {
-		return fmt.Errorf("sum of MaxDurationQuery/MaxDurationQuery/DeltaGrace (%v) must be less than DeltaProgress (%v)",
+		return fmt.Errorf("sum of MaxDurationQuery/MaxDurationObservation/DeltaGrace (%v) must be less than DeltaProgress (%v)",
 			sumMaxDurationsOutcomeGeneration, cfg.DeltaProgress)
 	}
 
@@ -362,8 +362,8 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 }
 
 func checkResourceExhaustion(cfg PublicConfig) error {
-	// Sending a NewEpoch more than every 200ms shouldn't be necessary in any
-	// realistic WAN deployment and could cause resource exhaustion
+	// Sending a NewEpoch more frequently than this shouldn't be necessary in
+	// any realistic WAN deployment and could cause resource exhaustion
 	const safeInterval = 100 * time.Millisecond
 	if cfg.DeltaProgress < safeInterval {
 		return fmt.Errorf("DeltaProgress (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaProgress, safeInterval)

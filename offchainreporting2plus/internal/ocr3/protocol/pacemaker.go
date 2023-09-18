@@ -205,7 +205,7 @@ func (pace *pacemakerState[RI]) eventNewEpochRequest() {
 	pace.tProgress = nil
 	epochPlusOne := pace.e + 1
 	if epochPlusOne <= pace.e {
-		pace.logger.Error("epoch overflows, cannot change leader", nil)
+		pace.logger.Critical("epoch overflows, cannot change leader", nil)
 		return
 	}
 
