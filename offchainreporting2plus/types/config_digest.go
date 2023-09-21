@@ -16,7 +16,7 @@ type ConfigDigestPrefix uint16
 // whatever chain you're targeting.
 const (
 	_                            ConfigDigestPrefix = 0 // reserved to prevent errors where a zero-default creeps through somewhere
-	ConfigDigestPrefixEVM        ConfigDigestPrefix = 1
+	ConfigDigestPrefixEVM        ConfigDigestPrefix = 1 // TODO: rename to ConfigDigestPrefixEVMSimple in the future
 	ConfigDigestPrefixTerra      ConfigDigestPrefix = 2
 	ConfigDigestPrefixSolana     ConfigDigestPrefix = 3
 	ConfigDigestPrefixStarknet   ConfigDigestPrefix = 4

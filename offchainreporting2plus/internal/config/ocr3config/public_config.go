@@ -362,8 +362,9 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 }
 
 func checkResourceExhaustion(cfg PublicConfig) error {
-	// Sending a NewEpoch more frequently than this shouldn't be necessary in
-	// any realistic WAN deployment and could cause resource exhaustion
+	// Sending messages related to epoch changes and missing certified commits
+	// shouldn't be necessary in any realistic WAN deployment and could cause
+	// resource exhaustion
 	const safeInterval = 100 * time.Millisecond
 	if cfg.DeltaProgress < safeInterval {
 		return fmt.Errorf("DeltaProgress (%v) is set below the resource exhaustion safe interval (%v)", cfg.DeltaProgress, safeInterval)

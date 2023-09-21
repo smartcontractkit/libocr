@@ -77,6 +77,10 @@ func (db *SerializingOCR3Database) ReadCert(ctx context.Context, configDigest ty
 
 // Writing with an empty value is the same as deleting.
 func (db *SerializingOCR3Database) WriteCert(ctx context.Context, configDigest types.ConfigDigest, cert protocol.CertifiedPrepareOrCommit) error {
+	if cert == nil {
+		return db.BinaryDb.WriteProtocolState(ctx, configDigest, certKey, nil)
+	}
+
 	p := serialization.CertifiedPrepareOrCommitToProtoMessage(cert)
 
 	raw, err := proto.Marshal(p)
