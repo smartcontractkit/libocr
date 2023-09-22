@@ -25,6 +25,8 @@ func ocr3DomainSeparatedSum(h hash.Hash) []byte {
 	return h.Sum(result)
 }
 
+const signedObservationDomainSeparator = "ocr3 SignedObservation"
+
 type SignedObservation struct {
 	Observation types.Observation
 	Signature   []byte
@@ -66,7 +68,7 @@ func (so SignedObservation) Verify(ogid OutcomeGenerationID, seqNr uint64, query
 func signedObservationMsg(ogid OutcomeGenerationID, seqNr uint64, query types.Query, observation types.Observation) []byte {
 	h := sha256.New()
 
-	_, _ = h.Write([]byte(prepareSignatureDomainSeparator))
+	_, _ = h.Write([]byte(signedObservationDomainSeparator))
 
 	// ogid
 	_, _ = h.Write(ogid.ConfigDigest[:])
@@ -91,8 +93,6 @@ type AttributedSignedObservation struct {
 	SignedObservation SignedObservation
 	Observer          commontypes.OracleID
 }
-
-const prepareSignatureDomainSeparator = "ocr3 PrepareSignature"
 
 type OutcomeInputsDigest [32]byte
 
@@ -127,10 +127,6 @@ func MakeOutcomeInputsDigest(
 
 	var result OutcomeInputsDigest
 	h.Sum(result[:0])
-
-	if result == (OutcomeInputsDigest{}) {
-		panic("wtf")
-	}
 	return result
 }
 
@@ -143,11 +139,10 @@ func MakeOutcomeDigest(outcome ocr3types.Outcome) OutcomeDigest {
 
 	var result OutcomeDigest
 	h.Sum(result[:0])
-	if result == (OutcomeDigest{}) {
-		panic("wtf")
-	}
 	return result
 }
+
+const prepareSignatureDomainSeparator = "ocr3 PrepareSignature"
 
 type PrepareSignature []byte
 

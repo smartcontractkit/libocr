@@ -109,6 +109,7 @@ func ocr3limits(cfg ocr3config.PublicConfig, pluginLimits ocr3types.ReportingPlu
 
 	bytesCapacity := mul(add(
 		maxLenMsgNewEpoch,
+		maxLenMsgNewEpoch,
 		maxLenMsgEpochStartRequest,
 		maxLenMsgEpochStart,
 		maxLenMsgRoundStart,

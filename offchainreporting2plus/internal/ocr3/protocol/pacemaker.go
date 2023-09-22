@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"sort"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/smartcontractkit/libocr/permutation"
 )
 
 func RunPacemaker[RI any](
@@ -334,14 +334,16 @@ func sortedGreaterThan(xs []uint64, y uint64) (rv []uint64) {
 
 // Leader will produce an oracle id for the given epoch.
 func Leader(epoch uint64, n int, key [16]byte) (leader commontypes.OracleID) {
-	mac := hmac.New(sha256.New, key[:])
-	_ = binary.Write(mac, binary.BigEndian, epoch)
+	span := epoch / uint64(n)
+	epochInSpan := epoch % uint64(n)
 
-	r := big.NewInt(0).SetBytes(mac.Sum(nil))
-	// This is biased, but we don't care because the prob of us hitting the bias are
-	// less than 2**5/2**256 = 2**-251 ≈ 0
-	r.Mod(r, big.NewInt(int64(n)))
-	return commontypes.OracleID(r.Int64())
+	mac := hmac.New(sha256.New, key[:])
+	_ = binary.Write(mac, binary.BigEndian, span)
+
+	var permutationKey [16]byte
+	copy(permutationKey[:], mac.Sum(nil))
+	pi := permutation.Permutation(n, permutationKey)
+	return commontypes.OracleID(pi[epochInSpan])
 }
 
 type eventTestBlock struct{}

@@ -217,13 +217,13 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     require(signers.length == transmitters.length, "oracle length mismatch");
     require(3*f < signers.length, "faulty-oracle f too high");
     _requirePositiveF(f);
-    require(onchainConfig.length == 0, "onchainConfig must be empty");
+    require(keccak256(onchainConfig) == keccak256(abi.encodePacked(uint8(1) /*version*/, minAnswer, maxAnswer)), "invalid onchainConfig");
 
     SetConfigArgs memory args = SetConfigArgs({
       signers: signers,
       transmitters: transmitters,
       f: f,
-      onchainConfig: abi.encodePacked(uint8(1) /*version*/, minAnswer, maxAnswer),
+      onchainConfig: onchainConfig,
       offchainConfigVersion: offchainConfigVersion,
       offchainConfig: offchainConfig
     });
