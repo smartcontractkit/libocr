@@ -27,5 +27,3 @@ The nodes then attempt to transmit the final report to the smart contract accord
 ├── permutation: helper package for generating permutations
 └── subprocesses: helper package for managing go routines
 ```
-
-Please note that **OCR3 & Mercury are currently in an alpha stage. Do not use them in production** lest you wish to be confronted with the BFT equivalent of Lovecraftian horrors.
