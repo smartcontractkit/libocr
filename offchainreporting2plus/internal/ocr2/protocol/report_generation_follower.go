@@ -170,8 +170,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	}
 
 	repgen.logger.Debug("sent observation to leader", commontypes.LogFields{
-		"round":       repgen.followerState.r,
-		"observation": o,
+		"round": repgen.followerState.r,
 	})
 	repgen.netSender.SendTo(MessageObserve{
 		repgen.e,
