@@ -21,7 +21,6 @@ import (
 func RunManagedOracle(
 	ctx context.Context,
 
-	v1bootstrappers []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
 	configOverrider types.ConfigOverrider,
 	configTracker types.ContractConfigTracker,
@@ -37,7 +36,6 @@ func RunManagedOracle(
 	mo := managedOracleState{
 		ctx: ctx,
 
-		v1bootstrappers:     v1bootstrappers,
 		v2bootstrappers:     v2bootstrappers,
 		configOverrider:     configOverrider,
 		configTracker:       configTracker,
@@ -56,7 +54,6 @@ func RunManagedOracle(
 type managedOracleState struct {
 	ctx context.Context
 
-	v1bootstrappers     []string
 	v2bootstrappers     []commontypes.BootstrapperLocator
 	config              config.SharedConfig
 	configOverrider     types.ConfigOverrider
@@ -185,14 +182,14 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 	})
 
 	binNetEndpoint, err := mo.netEndpointFactory.NewEndpoint(mo.config.ConfigDigest, peerIDs,
-		mo.v1bootstrappers, mo.v2bootstrappers, mo.config.F, computeTokenBucketRefillRate(mo.config.PublicConfig),
+		mo.v2bootstrappers, mo.config.F, computeTokenBucketRefillRate(mo.config.PublicConfig),
 		computeTokenBucketSize())
 	if err != nil {
 		mo.logger.Error("ManagedOracle: error during NewEndpoint", commontypes.LogFields{
 			"error":           err,
 			"configDigest":    mo.config.ConfigDigest,
 			"peerIDs":         peerIDs,
-			"v1bootstrappers": mo.v1bootstrappers,
+			"v2bootstrappers": mo.v2bootstrappers,
 		})
 		return
 	}

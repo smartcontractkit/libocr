@@ -35,6 +35,8 @@ type EndpointConfigV2 struct {
 	OutgoingMessageBufferSize int
 }
 
+type ocrEndpointState int
+
 // ocrEndpointV2 represents a member of a particular feed oracle group
 type ocrEndpointV2 struct {
 	// configuration and settings
@@ -74,6 +76,16 @@ func reverseMappingV2(m map[commontypes.OracleID]ragetypes.PeerID) map[ragetypes
 	}
 	return n
 }
+
+const (
+	ocrEndpointUnstarted = iota
+	ocrEndpointStarted
+	ocrEndpointClosed
+
+	// sendToSelfBufferSize is how many messages we will keep in memory that
+	// are sent to ourself before we start dropping
+	sendToSelfBufferSize = 20
+)
 
 func newOCREndpointV2(
 	logger loghelper.LoggerWithContext,

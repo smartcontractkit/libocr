@@ -16,6 +16,14 @@ var (
 	_ commontypes.Bootstrapper = &bootstrapperV2{}
 )
 
+type bootstrapperState int
+
+const (
+	bootstrapperUnstarted = iota
+	bootstrapperStarted
+	bootstrapperClosed
+)
+
 type bootstrapperV2 struct {
 	peer            *concretePeerV2
 	v2peerIDs       []ragetypes.PeerID

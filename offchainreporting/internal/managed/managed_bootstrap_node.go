@@ -16,7 +16,6 @@ func RunManagedBootstrapNode(
 	ctx context.Context,
 
 	bootstrapperFactory types.BootstrapperFactory,
-	v1bootstrappers []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
 	contractConfigTracker types.ContractConfigTracker,
 	database types.Database,
@@ -27,7 +26,6 @@ func RunManagedBootstrapNode(
 		ctx: ctx,
 
 		bootstrapperFactory: bootstrapperFactory,
-		v1bootstrappers:     v1bootstrappers,
 		v2bootstrappers:     v2bootstrappers,
 		configTracker:       contractConfigTracker,
 		database:            database,
@@ -40,7 +38,6 @@ func RunManagedBootstrapNode(
 type managedBootstrapNodeState struct {
 	ctx context.Context
 
-	v1bootstrappers     []string
 	v2bootstrappers     []commontypes.BootstrapperLocator
 	bootstrapperFactory types.BootstrapperFactory
 	configTracker       types.ContractConfigTracker
@@ -133,13 +130,13 @@ func (mb *managedBootstrapNodeState) configChanged(cc types.ContractConfig) {
 		peerIDs = append(peerIDs, pcKey.PeerID)
 	}
 
-	bootstrapper, err := mb.bootstrapperFactory.NewBootstrapper(mb.config.ConfigDigest, peerIDs, mb.v1bootstrappers, mb.v2bootstrappers, mb.config.F)
+	bootstrapper, err := mb.bootstrapperFactory.NewBootstrapper(mb.config.ConfigDigest, peerIDs, mb.v2bootstrappers, mb.config.F)
 	if err != nil {
 		mb.logger.Error("ManagedBootstrapNode: error during NewBootstrapper", commontypes.LogFields{
 			"error":           err,
 			"configDigest":    mb.config.ConfigDigest,
 			"peerIDs":         peerIDs,
-			"v1bootstrappers": mb.v1bootstrappers,
+			"v2bootstrappers": mb.v2bootstrappers,
 		})
 		return
 	}
