@@ -26,7 +26,8 @@ func callPlugin[T any](
 		maxDuration+ReportingPluginTimeoutWarningGracePeriod,
 		func() {
 			logger.MakeChild(logFields).Error(fmt.Sprintf("call to ReportingPlugin.%s is taking too long", name), commontypes.LogFields{
-				"maxDuration": maxDuration,
+				"maxDuration": maxDuration.String(),
+				"gracePeriod": ReportingPluginTimeoutWarningGracePeriod.String(),
 			})
 		},
 	)

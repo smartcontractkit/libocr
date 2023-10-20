@@ -245,7 +245,12 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64) {
 	candidates := make([]commontypes.OracleID, 0, repatt.config.N())
 	for oracleID, oracle := range repatt.rounds[seqNr].oracles {
+		// avoid duplicate requests
 		if oracle.weRequested {
+			continue
+		}
+		// avoid requesting from oracles that haven't sent MessageReportSignatures
+		if len(oracle.signatures) == 0 {
 			continue
 		}
 		candidates = append(candidates, commontypes.OracleID(oracleID))
@@ -298,7 +303,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 			})
 		} else if !repatt.rounds[seqNr].startedFetch {
 			repatt.rounds[seqNr].startedFetch = true
-			repatt.tryRequestCertifiedCommit(seqNr)
+			repatt.scheduler.ScheduleDelay(EventMissingOutcome[RI]{seqNr}, repatt.config.DeltaCertifiedCommitRequest)
 		}
 		return
 	}
