@@ -153,7 +153,7 @@ func (outgen *outcomeGenerationState[RI]) messageRoundStart(msg MessageRoundStar
 	}
 
 	if putResult := outgen.followerState.roundStartPool.Put(msg.SeqNr, sender, msg); putResult != pool.PutResultOK {
-		outgen.logger.Warn("dropping MessageRoundStart", commontypes.LogFields{
+		outgen.logger.Debug("dropping MessageRoundStart", commontypes.LogFields{
 			"sender": sender,
 			"seqNr":  msg.SeqNr,
 			"reason": putResult,
@@ -269,7 +269,7 @@ func (outgen *outcomeGenerationState[RI]) messageProposal(msg MessageProposal[RI
 	}
 
 	if putResult := outgen.followerState.proposalPool.Put(msg.SeqNr, sender, msg); putResult != pool.PutResultOK {
-		outgen.logger.Warn("dropping MessageProposal", commontypes.LogFields{
+		outgen.logger.Debug("dropping MessageProposal", commontypes.LogFields{
 			"sender": sender,
 			"seqNr":  msg.SeqNr,
 			"reason": putResult,
