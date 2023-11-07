@@ -249,6 +249,7 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		43113:           {"Avalanche Testnet Fuji", chainTypePublicTestnet},
 		8453:            {"Base", chainTypeFastUpdates},
 		84531:           {"Base Testnet Goerli", chainTypePublicTestnet},
+		84532:           {"Base Testnet Sepolia", chainTypePublicTestnet},
 		56:              {"BSC", chainTypeFastUpdates},
 		97:              {"BSC Testnet", chainTypePublicTestnet},
 		42220:           {"Celo", chainTypeModerateUpdates},
@@ -295,6 +296,8 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		534352:          {"Scroll Mainnet", chainTypeFastUpdates},
 		534351:          {"Scroll Testnet Sepolia", chainTypePublicTestnet},
 		100:             {"xDai", chainTypeModerateUpdates},
+		324:             {"zkSync Mainnet", chainTypeFastUpdates},
+		280:             {"zkSync Testnet Goerli", chainTypePublicTestnet},
 	}[chainID.Uint64()]
 	if !ok {
 		// "fail-closed" design. If we don't know the chain, we assume that
