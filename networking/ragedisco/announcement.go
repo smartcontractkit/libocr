@@ -9,8 +9,6 @@ import (
 
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
-	"github.com/pkg/errors"
-
 	"github.com/smartcontractkit/libocr/networking/ragedisco/serialization"
 	"google.golang.org/protobuf/proto"
 )
@@ -191,7 +189,7 @@ func (uann unsignedAnnouncement) sign(sk ed25519.PrivateKey) (Announcement, erro
 
 	epk, ok := sk.Public().(ed25519.PublicKey)
 	if !ok {
-		return Announcement{}, errors.New("public key is not ed25519 public key")
+		return Announcement{}, fmt.Errorf("public key is not ed25519 public key")
 	}
 
 	return Announcement{
@@ -211,7 +209,7 @@ func (ann Announcement) verify() error {
 	}
 
 	if !ed25519.Verify(ann.PublicKey, msg, ann.Sig) {
-		return errors.New("invalid signature")
+		return fmt.Errorf("invalid signature")
 	}
 
 	return nil
@@ -286,7 +284,7 @@ func fromProtoWrappedBytes(b []byte) (WrappableMessage, error) {
 		}
 		return &ann, nil
 	default:
-		return nil, errors.Errorf("Unrecognised Msg type %T", msg)
+		return nil, fmt.Errorf("unrecognised message type %T", msg)
 	}
 }
 

@@ -15,7 +15,6 @@ import (
 
 type BootstrapNodeArgs struct {
 	BootstrapperFactory   types.BootstrapperFactory
-	V1Bootstrappers       []string
 	V2Bootstrappers       []commontypes.BootstrapperLocator
 	ContractConfigTracker types.ContractConfigTracker
 	Database              types.Database
@@ -82,7 +81,6 @@ func (b *BootstrapNode) Start() error {
 			ctx,
 
 			b.bootstrapArgs.BootstrapperFactory,
-			b.bootstrapArgs.V1Bootstrappers,
 			b.bootstrapArgs.V2Bootstrappers,
 			b.bootstrapArgs.ContractConfigTracker,
 			b.bootstrapArgs.Database,
