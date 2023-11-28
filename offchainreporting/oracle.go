@@ -23,9 +23,6 @@ type OracleArgs struct {
 	// communicate with other participating nodes.
 	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
 
-	// V1Bootstrappers is the list of bootstrap node addresses & IDs in the multiaddr format for the v1 networking stack
-	V1Bootstrappers []string
-
 	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack
 	V2Bootstrappers []commontypes.BootstrapperLocator
 
@@ -116,7 +113,6 @@ func (o *Oracle) Start() error {
 		managed.RunManagedOracle(
 			ctx,
 
-			o.oracleArgs.V1Bootstrappers,
 			o.oracleArgs.V2Bootstrappers,
 			o.oracleArgs.ConfigOverrider,
 			o.oracleArgs.ContractConfigTracker,

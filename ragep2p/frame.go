@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
 var errWrongLength = fmt.Errorf("frameHeader must have exactly %v bytes", frameHeaderEncodedSize)
-var errUnknownFrameType = errors.New("frameHeader has unknown frameType")
+var errUnknownFrameType = fmt.Errorf("frameHeader has unknown frameType")
 
 type frameType uint8
 

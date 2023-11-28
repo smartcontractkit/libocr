@@ -7,7 +7,7 @@ import (
 )
 
 type ocr1BinaryNetworkEndpointFactory struct {
-	*concretePeer
+	*concretePeerV2
 }
 
 var _ ocr1types.BinaryNetworkEndpointFactory = (*ocr1BinaryNetworkEndpointFactory)(nil)
@@ -23,17 +23,14 @@ const (
 func (o *ocr1BinaryNetworkEndpointFactory) NewEndpoint(
 	configDigest ocr1types.ConfigDigest,
 	pids []string,
-	v1bootstrappers []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
 	f int,
 	messagesRatePerOracle float64,
 	messagesCapacityPerOracle int,
 ) (commontypes.BinaryNetworkEndpoint, error) {
 	return o.newEndpoint(
-		o.networkingStack,
 		configdigesthelper.OCR1ToOCR2(configDigest),
 		pids,
-		v1bootstrappers,
 		v2bootstrappers,
 		f,
 		BinaryNetworkEndpointLimits{
@@ -47,21 +44,18 @@ func (o *ocr1BinaryNetworkEndpointFactory) NewEndpoint(
 }
 
 type ocr1BootstrapperFactory struct {
-	*concretePeer
+	*concretePeerV2
 }
 
 func (o *ocr1BootstrapperFactory) NewBootstrapper(
 	configDigest ocr1types.ConfigDigest,
 	peerIDs []string,
-	v1bootstrappers []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
 	f int,
 ) (commontypes.Bootstrapper, error) {
 	return o.newBootstrapper(
-		o.networkingStack,
 		configdigesthelper.OCR1ToOCR2(configDigest),
 		peerIDs,
-		v1bootstrappers,
 		v2bootstrappers,
 		f,
 	)

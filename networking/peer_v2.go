@@ -4,16 +4,41 @@ import (
 	"crypto/ed25519"
 	"fmt"
 	"sync"
+	"time"
 
-	"github.com/pkg/errors"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
+	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"go.uber.org/multierr"
 )
+
+type PeerConfig struct {
+	PrivKey ed25519.PrivateKey
+	Logger  commontypes.Logger
+
+	// V2ListenAddresses contains the addresses the peer will listen to on the network in <ip>:<port> form as
+	// accepted by net.Listen.
+	V2ListenAddresses []string
+
+	// V2AnnounceAddresses contains the addresses the peer will advertise on the network in <host>:<port> form as
+	// accepted by net.Dial. The addresses should be reachable by peers of interest.
+	// May be left unspecified, in which case the announce addresses are auto-detected based on V2ListenAddresses.
+	V2AnnounceAddresses []string
+
+	// Every V2DeltaReconcile a Reconcile message is sent to every peer.
+	V2DeltaReconcile time.Duration
+
+	// Dial attempts will be at least V2DeltaDial apart.
+	V2DeltaDial time.Duration
+
+	V2DiscovererDatabase nettypes.DiscovererDatabase
+
+	V2EndpointConfig EndpointConfigV2
+}
 
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
 type concretePeerV2 struct {
@@ -24,18 +49,14 @@ type concretePeerV2 struct {
 	endpointConfig EndpointConfigV2
 }
 
-func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
-
-	rawPriv, err := c.PrivKey.Raw()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get raw private key to use for v2: %w", err)
-	}
-	ed25519Priv := ed25519.PrivateKey(rawPriv)
-	if err := ed25519SanityCheck(ed25519Priv); err != nil {
+// Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
+// Close() on the peer itself.
+func NewPeer(c PeerConfig) (*concretePeerV2, error) {
+	if err := ed25519SanityCheck(c.PrivKey); err != nil {
 		return nil, fmt.Errorf("ed25519 sanity check failed: %w", err)
 	}
 
-	peerID, err := ragetypes.PeerIDFromPrivateKey(ed25519Priv)
+	peerID, err := ragetypes.PeerIDFromPrivateKey(c.PrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("error extracting v2 peer ID from private key: %w", err)
 	}
@@ -52,7 +73,7 @@ func newPeerV2(c PeerConfig) (*concretePeerV2, error) {
 	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase)
 	host, err := ragep2p.NewHost(
 		ragep2p.HostConfig{c.V2DeltaDial},
-		ed25519Priv,
+		c.PrivKey,
 		c.V2ListenAddresses,
 		discoverer,
 		c.Logger,
@@ -157,11 +178,11 @@ func (p2 *concretePeerV2) newEndpoint(
 	limits BinaryNetworkEndpointLimits,
 ) (commontypes.BinaryNetworkEndpoint, error) {
 	if f <= 0 {
-		return nil, errors.New("can't set F to 0 or smaller")
+		return nil, fmt.Errorf("can't set f to zero or smaller")
 	}
 
 	if len(v2bootstrappers) < 1 {
-		return nil, errors.New("requires at least one v2 bootstrapper")
+		return nil, fmt.Errorf("requires at least one v2 bootstrapper")
 	}
 
 	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
@@ -207,7 +228,7 @@ func (p2 *concretePeerV2) newBootstrapper(
 	f int,
 ) (commontypes.Bootstrapper, error) {
 	if f <= 0 {
-		return nil, errors.New("can't set f to zero or smaller")
+		return nil, fmt.Errorf("can't set f to zero or smaller")
 	}
 
 	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
@@ -231,4 +252,20 @@ func (p2 *concretePeerV2) newBootstrapper(
 		return nil, multierr.Combine(err, registration.Close())
 	}
 	return bootstrapper, nil
+}
+
+func (p2 *concretePeerV2) OCR1BinaryNetworkEndpointFactory() *ocr1BinaryNetworkEndpointFactory {
+	return &ocr1BinaryNetworkEndpointFactory{p2}
+}
+
+func (p2 *concretePeerV2) OCR2BinaryNetworkEndpointFactory() *ocr2BinaryNetworkEndpointFactory {
+	return &ocr2BinaryNetworkEndpointFactory{p2}
+}
+
+func (p2 *concretePeerV2) OCR1BootstrapperFactory() *ocr1BootstrapperFactory {
+	return &ocr1BootstrapperFactory{p2}
+}
+
+func (p2 *concretePeerV2) OCR2BootstrapperFactory() *ocr2BootstrapperFactory {
+	return &ocr2BootstrapperFactory{p2}
 }

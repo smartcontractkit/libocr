@@ -20,6 +20,15 @@ var (
 	_ commontypes.BinaryNetworkEndpoint = &ocrEndpointV2{}
 )
 
+type ocrEndpointState int
+
+const (
+	_ ocrEndpointState = iota
+	ocrEndpointUnstarted
+	ocrEndpointStarted
+	ocrEndpointClosed
+)
+
 type EndpointConfigV2 struct {
 	// IncomingMessageBufferSize is the per-remote number of incoming
 	// messages to buffer. Any additional messages received on top of those
@@ -74,6 +83,10 @@ func reverseMappingV2(m map[commontypes.OracleID]ragetypes.PeerID) map[ragetypes
 	}
 	return n
 }
+
+// sendToSelfBufferSize is how many messages we will keep in memory that
+// are sent to ourself before we start dropping
+const sendToSelfBufferSize = 20
 
 func newOCREndpointV2(
 	logger loghelper.LoggerWithContext,
