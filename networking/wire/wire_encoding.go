@@ -3,9 +3,9 @@ package wire
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"golang.org/x/time/rate"
 )
 
@@ -33,19 +33,19 @@ func (w *Wire) ReadOneFromWire(r io.Reader) (payload []byte, err error) {
 	lenBuf := make([]byte, 4)
 	_, err = io.ReadFull(r, lenBuf)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading message length")
+		return nil, fmt.Errorf("error reading message length: %w", err)
 	}
 
 	msgLength := binary.BigEndian.Uint32(lenBuf)
 	if msgLength > w.maxMsgLength {
 		// This does not need to skip the reader pointer because the returned error will trigger a reconnection.
-		return nil, errors.Errorf("message length of %v exceeds max allowed message length of %v", msgLength, w.maxMsgLength)
+		return nil, fmt.Errorf("message length of %v exceeds max allowed message length of %v", msgLength, w.maxMsgLength)
 	}
 
 	payload = make([]byte, msgLength)
 	_, err = io.ReadFull(r, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading blob from wire")
+		return nil, fmt.Errorf("error reading blob from wire: %w", err)
 	}
 	return payload, nil
 }
@@ -58,7 +58,7 @@ func (w *Wire) ReadOneFromWire(r io.Reader) (payload []byte, err error) {
 func (w *Wire) IsNextMessageAllowed(r *bufio.Reader, l *rate.Limiter) (bool, error) {
 	lenBuf, err := r.Peek(4)
 	if err != nil {
-		return false, errors.Wrap(err, "error reading the next message's length")
+		return false, fmt.Errorf("error reading the next message's length: %w", err)
 	}
 	if l.Allow() {
 		return true, nil

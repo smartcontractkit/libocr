@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"encoding"
 	"fmt"
@@ -48,19 +49,26 @@ func (p *PeerID) UnmarshalText(text []byte) error {
 	return p.UnmarshalBinary(b58)
 }
 
+// This magic value comes from libp2p's encoding of peer ids, see https://docs.libp2p.io/concepts/peer-id/
+func libp2pMagic() []byte {
+	return []byte{0x00, 0x24, 0x08, 0x01, 0x12, 0x20}
+}
+
 func (p PeerID) MarshalBinary() (data []byte, err error) {
-	// this magic value comes from libp2p's encoding of peer ids, see
-	// https://docs.libp2p.io/concepts/peer-id/
-	return append([]byte{0x00, 0x24, 0x08, 0x01, 0x12, 0x20}, p[:]...), nil
+	return append(libp2pMagic(), p[:]...), nil
 }
 
 func (p *PeerID) UnmarshalBinary(data []byte) error {
-	const libp2pMagicLength = 6
-	const expectedLength = 32 + libp2pMagicLength
+	expectedMagic := libp2pMagic()
+	expectedLength := len(expectedMagic) + len(PeerID{})
 	if len(data) != expectedLength {
-		return fmt.Errorf("wrong size of data (was %d, expected %d)", len(data), expectedLength)
+		return fmt.Errorf("unexpected peerid length (was %d, expected %d)", len(data), expectedLength)
 	}
-	copy(p[:], data[libp2pMagicLength:])
+	actualMagic := data[:len(expectedMagic)]
+	if !bytes.Equal(actualMagic, expectedMagic) {
+		return fmt.Errorf("unexpected peerid magic (was %x, expected %x)", actualMagic, expectedMagic)
+	}
+	copy(p[:], data[len(expectedMagic):])
 	return nil
 }
 

@@ -39,7 +39,7 @@ func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 // All its functions should be thread-safe.
 type BinaryNetworkEndpointFactory interface {
 	NewEndpoint(cd ConfigDigest, peerIDs []string,
-		v1bootstrappers []string, v2bootstrappers []commontypes.BootstrapperLocator,
+		v2bootstrappers []commontypes.BootstrapperLocator,
 		failureThreshold int, tokenBucketRefillRate float64, tokenBucketSize int,
 	) (commontypes.BinaryNetworkEndpoint, error)
 	PeerID() string
@@ -50,7 +50,7 @@ type BinaryNetworkEndpointFactory interface {
 // All its functions should be thread-safe.
 type BootstrapperFactory interface {
 	NewBootstrapper(cd ConfigDigest, peerIDs []string,
-		v1bootstrappers []string, v2bootstrappers []commontypes.BootstrapperLocator,
+		v2bootstrappers []commontypes.BootstrapperLocator,
 		failureThreshold int,
 	) (commontypes.Bootstrapper, error)
 }

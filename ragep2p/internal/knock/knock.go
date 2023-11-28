@@ -46,7 +46,7 @@ var (
 // returns the PeerId of the sender. Otherwise returns nil and an error.
 func VerifyKnock(self types.PeerID, knock []byte) (*types.PeerID, error) {
 	if len(knock) != KnockSize {
-		return nil, fmt.Errorf("knock hash wrong length %v, expected %v", len(knock), KnockSize)
+		return nil, fmt.Errorf("knock has wrong length %v, expected %v", len(knock), KnockSize)
 	}
 
 	if knock[0] != version {
