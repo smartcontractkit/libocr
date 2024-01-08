@@ -3,9 +3,11 @@ package managed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	metricspackage "github.com/smartcontractkit/libocr/internal/metrics"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
@@ -15,6 +17,8 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 	"go.uber.org/multierr"
 )
+
+const MetricFlushInterval = 2 * time.Second
 
 // RunManagedOCR2Oracle runs a "managed" version of protocol.RunOracle. It handles
 // setting up telemetry, garbage collection, configuration updates, translating
@@ -29,6 +33,7 @@ func RunManagedOCR2Oracle(
 	database types.Database,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
@@ -47,6 +52,17 @@ func RunManagedOCR2Oracle(
 			forwardTelemetry(ctx, logger, monitoringEndpoint, chTelemetry)
 		})
 	}
+
+	nonblockingMetricsWrapper := metricspackage.NewNonblockingMetricsWrapper(
+		logger,
+		metrics,
+		MetricFlushInterval,
+	)
+	subs.Go(func() {
+		<-ctx.Done()
+		nonblockingMetricsWrapper.Close()
+		logger.Info("ManagedOCR2Oracle: closed metrics wrapper", nil)
+	})
 
 	subs.Go(func() {
 		collectGarbage(ctx, database, localConfig, logger)
@@ -201,6 +217,7 @@ func RunManagedOCR2Oracle(
 				oid,
 				localConfig,
 				childLogger,
+				nonblockingMetricsWrapper,
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,

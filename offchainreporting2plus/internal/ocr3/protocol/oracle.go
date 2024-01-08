@@ -27,6 +27,7 @@ func RunOracle[RI any](
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	netEndpoint NetworkEndpoint[RI],
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring ocr3types.OnchainKeyring[RI],
@@ -42,6 +43,7 @@ func RunOracle[RI any](
 		id:                  id,
 		localConfig:         localConfig,
 		logger:              logger,
+		metrics:             metrics,
 		netEndpoint:         netEndpoint,
 		offchainKeyring:     offchainKeyring,
 		onchainKeyring:      onchainKeyring,
@@ -60,6 +62,7 @@ type oracleState[RI any] struct {
 	id                  commontypes.OracleID
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
+	metrics             commontypes.Metrics
 	netEndpoint         NetworkEndpoint[RI]
 	offchainKeyring     types.OffchainKeyring
 	onchainKeyring      ocr3types.OnchainKeyring[RI]
@@ -158,6 +161,7 @@ func (o *oracleState[RI]) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
+			o.metrics,
 			o.netEndpoint,
 			o.offchainKeyring,
 			o.telemetrySender,

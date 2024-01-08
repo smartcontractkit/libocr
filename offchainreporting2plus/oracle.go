@@ -46,6 +46,9 @@ type OCR2OracleArgs struct {
 	// Logger logs stuff.
 	Logger commontypes.Logger
 
+	// Enables adding metrics to track. This may be nil.
+	Metrics commontypes.Metrics
+
 	// Used to send logs to a monitor.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
 
@@ -81,6 +84,7 @@ func (args OCR2OracleArgs) runManaged(ctx context.Context) {
 		args.Database,
 		args.LocalConfig,
 		logger,
+		args.Metrics,
 		args.MonitoringEndpoint,
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
@@ -117,6 +121,9 @@ type MercuryOracleArgs struct {
 	// Logger logs stuff.
 	Logger commontypes.Logger
 
+	// Enables adding metrics to track. This may be nil.
+	Metrics commontypes.Metrics
+
 	// Used to send logs to a monitor.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
 
@@ -152,6 +159,7 @@ func (args MercuryOracleArgs) runManaged(ctx context.Context) {
 		args.Database,
 		args.LocalConfig,
 		logger,
+		args.Metrics,
 		args.MonitoringEndpoint,
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
@@ -182,6 +190,9 @@ type OCR3OracleArgs[RI any] struct {
 	// LocalConfig contains oracle-specific configuration details which are not
 	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig.
 	LocalConfig types.LocalConfig
+
+	// Enables adding metrics to track. This may be nil.
+	Metrics commontypes.Metrics
 
 	// Logger logs stuff.
 	Logger commontypes.Logger
@@ -221,6 +232,7 @@ func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 		args.Database,
 		args.LocalConfig,
 		logger,
+		args.Metrics,
 		args.MonitoringEndpoint,
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,

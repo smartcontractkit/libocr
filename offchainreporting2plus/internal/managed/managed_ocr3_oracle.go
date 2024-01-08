@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	metricspackage "github.com/smartcontractkit/libocr/internal/metrics"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -30,6 +31,7 @@ func RunManagedOCR3Oracle[RI any](
 	database ocr3types.Database,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
@@ -48,6 +50,17 @@ func RunManagedOCR3Oracle[RI any](
 			forwardTelemetry(ctx, logger, monitoringEndpoint, chTelemetry)
 		})
 	}
+
+	nonblockingMetricsWrapper := metricspackage.NewNonblockingMetricsWrapper(
+		logger,
+		metrics,
+		MetricFlushInterval,
+	)
+	subs.Go(func() {
+		<-ctx.Done()
+		nonblockingMetricsWrapper.Close()
+		logger.Info("ManagedOCR2Oracle: closed metrics wrapper", nil)
+	})
 
 	runWithContractConfig(
 		ctx,
@@ -183,6 +196,7 @@ func RunManagedOCR3Oracle[RI any](
 				oid,
 				localConfig,
 				childLogger,
+				nonblockingMetricsWrapper,
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,

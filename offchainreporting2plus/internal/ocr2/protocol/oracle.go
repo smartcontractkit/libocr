@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"context"
-
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
@@ -26,6 +25,7 @@ func RunOracle(
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	netEndpoint NetworkEndpoint,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
@@ -42,6 +42,7 @@ func RunOracle(
 		id:                  id,
 		localConfig:         localConfig,
 		logger:              logger,
+		metrics:             metrics,
 		netEndpoint:         netEndpoint,
 		offchainKeyring:     offchainKeyring,
 		onchainKeyring:      onchainKeyring,
@@ -61,6 +62,7 @@ type oracleState struct {
 	id                  commontypes.OracleID
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
+	metrics             commontypes.Metrics
 	netEndpoint         NetworkEndpoint
 	offchainKeyring     types.OffchainKeyring
 	onchainKeyring      types.OnchainKeyring
@@ -157,6 +159,7 @@ func (o *oracleState) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
+			o.metrics,
 			o.netEndpoint,
 			o.offchainKeyring,
 			o.onchainKeyring,

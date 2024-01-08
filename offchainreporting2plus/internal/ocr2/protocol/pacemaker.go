@@ -37,6 +37,7 @@ func RunPacemaker(
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	netSender NetworkSender,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
@@ -47,7 +48,7 @@ func RunPacemaker(
 	pace := makePacemakerState(
 		ctx, subprocesses, chNetToPacemaker, chNetToReportGeneration, chPacemakerToOracle,
 		chReportGenerationToReportFinalization, config, contractTransmitter, database,
-		id, localConfig, logger, netSender, offchainKeyring, onchainKeyring, reportingPlugin,
+		id, localConfig, logger, metrics, netSender, offchainKeyring, onchainKeyring, reportingPlugin,
 		reportQuorum, telemetrySender,
 	)
 	pace.run()
@@ -63,6 +64,7 @@ func makePacemakerState(
 	config ocr2config.SharedConfig, contractTransmitter types.ContractTransmitter,
 	database types.Database, id commontypes.OracleID,
 	localConfig types.LocalConfig, logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	netSender NetworkSender,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
@@ -70,6 +72,8 @@ func makePacemakerState(
 	reportQuorum int,
 	telemetrySender TelemetrySender,
 ) pacemakerState {
+	pacemakerMetrics := newPacemakerMetricsOrNoop(metrics, id, logger)
+
 	return pacemakerState{
 		ctx:          ctx,
 		subprocesses: subprocesses,
@@ -83,6 +87,7 @@ func makePacemakerState(
 		database:                               database,
 		id:                                     id,
 		localConfig:                            localConfig,
+		localMetrics:                           pacemakerMetrics,
 		logger:                                 logger,
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
@@ -109,6 +114,7 @@ type pacemakerState struct {
 	database                               types.Database
 	id                                     commontypes.OracleID
 	localConfig                            types.LocalConfig
+	localMetrics                           pacemakerMetrics
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender
 	offchainKeyring                        types.OffchainKeyring
@@ -444,6 +450,8 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender commonty
 				pace.ne = pace.e
 			}
 			pace.persist()
+
+			pace.localMetrics.newEpochsCount.Inc()
 
 			// abort instance [...], initialize instance (e,l) of report generation
 			pace.spawnReportGeneration()

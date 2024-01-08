@@ -27,6 +27,7 @@ func RunPacemaker[RI any](
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
@@ -37,7 +38,7 @@ func RunPacemaker[RI any](
 		ctx, chNetToPacemaker,
 		chPacemakerToOutcomeGeneration, chOutcomeGenerationToPacemaker,
 		config, database,
-		id, localConfig, logger, netSender, offchainKeyring,
+		id, localConfig, logger, metrics, netSender, offchainKeyring,
 		telemetrySender,
 	)
 	pace.run(restoredState)
@@ -52,10 +53,12 @@ func makePacemakerState[RI any](
 	database Database, id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
 ) pacemakerState[RI] {
+	pacemakerMetrics := newPacemakerMetricsOrNoop(metrics, id, logger)
 	return pacemakerState[RI]{
 		ctx: ctx,
 
@@ -66,6 +69,7 @@ func makePacemakerState[RI any](
 		database:                       database,
 		id:                             id,
 		localConfig:                    localConfig,
+		localMetrics:                   pacemakerMetrics,
 		logger:                         logger.MakeUpdated(commontypes.LogFields{"proto": "pacemaker"}),
 		netSender:                      netSender,
 		offchainKeyring:                offchainKeyring,
@@ -85,6 +89,7 @@ type pacemakerState[RI any] struct {
 	database                       Database
 	id                             commontypes.OracleID
 	localConfig                    types.LocalConfig
+	localMetrics                   pacemakerMetrics
 	logger                         loghelper.LoggerWithContext
 	netSender                      NetworkSender[RI]
 	offchainKeyring                types.OffchainKeyring
@@ -300,6 +305,8 @@ func (pace *pacemakerState[RI]) messageNewEpochWish(msg MessageNewEpochWish[RI],
 		if pace.ne < pace.e {             // ne ← max{ne, e}
 			pace.ne = pace.e
 		}
+
+		pace.localMetrics.newEpochsCount.Inc()
 
 		pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/internal/metrics"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -15,6 +16,8 @@ import (
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"go.uber.org/multierr"
 )
+
+const MetricFlushInterval = 2 * time.Second
 
 type PeerConfig struct {
 	PrivKey ed25519.PrivateKey
@@ -38,6 +41,8 @@ type PeerConfig struct {
 	V2DiscovererDatabase nettypes.DiscovererDatabase
 
 	V2EndpointConfig EndpointConfigV2
+
+	Metrics commontypes.Metrics
 }
 
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
@@ -45,6 +50,7 @@ type concretePeerV2 struct {
 	peerID         ragetypes.PeerID
 	host           *ragep2p.Host
 	discoverer     *ragedisco.Ragep2pDiscoverer
+	metricsWrapper *metrics.NonblockingMetricsWrapper
 	logger         loghelper.LoggerWithContext
 	endpointConfig EndpointConfigV2
 }
@@ -52,6 +58,8 @@ type concretePeerV2 struct {
 // Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
 // Close() on the peer itself.
 func NewPeer(c PeerConfig) (*concretePeerV2, error) {
+	success := false
+
 	if err := ed25519SanityCheck(c.PrivKey); err != nil {
 		return nil, fmt.Errorf("ed25519 sanity check failed: %w", err)
 	}
@@ -70,17 +78,28 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 	if len(c.V2AnnounceAddresses) == 0 {
 		announceAddresses = c.V2ListenAddresses
 	}
-	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase)
+
+	nonblockingMetricsWrapper := metrics.NewNonblockingMetricsWrapper(
+		logger,
+		c.Metrics,
+		MetricFlushInterval,
+	)
+	defer loghelper.CloseLogErrorUnlessSuccess(&success, nonblockingMetricsWrapper, logger, "failed to close metrics wrapper in failed newPeerV2")
+
+	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase, nonblockingMetricsWrapper)
+
 	host, err := ragep2p.NewHost(
 		ragep2p.HostConfig{c.V2DeltaDial},
 		c.PrivKey,
 		c.V2ListenAddresses,
 		discoverer,
 		c.Logger,
+		nonblockingMetricsWrapper,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct ragep2p host: %w", err)
 	}
+
 	err = host.Start()
 	if err != nil {
 		return nil, fmt.Errorf("failed to start ragep2p host: %w", err)
@@ -88,10 +107,12 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 
 	logger.Info("PeerV2: ragep2p host booted", nil)
 
+	success = true
 	return &concretePeerV2{
 		peerID,
 		host,
 		discoverer,
+		nonblockingMetricsWrapper,
 		logger,
 		c.V2EndpointConfig,
 	}, nil
@@ -136,8 +157,11 @@ func (p2 *concretePeerV2) PeerID() string {
 }
 
 func (p2 *concretePeerV2) Close() error {
-	return p2.host.Close()
+	return multierr.Append(
+		p2.host.Close(),
+		p2.metricsWrapper.Close())
 }
+
 func decodev2Bootstrappers(v2bootstrappers []commontypes.BootstrapperLocator) (infos []ragetypes.PeerInfo, err error) {
 	for _, b := range v2bootstrappers {
 		addrs := make([]ragetypes.Address, len(b.Addrs))

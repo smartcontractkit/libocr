@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	metricspackage "github.com/smartcontractkit/libocr/internal/metrics"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -31,6 +32,7 @@ func RunManagedMercuryOracle(
 	database ocr3types.Database,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
@@ -49,6 +51,17 @@ func RunManagedMercuryOracle(
 			forwardTelemetry(ctx, logger, monitoringEndpoint, chTelemetry)
 		})
 	}
+
+	nonblockingMetricsWrapper := metricspackage.NewNonblockingMetricsWrapper(
+		logger,
+		metrics,
+		MetricFlushInterval,
+	)
+	subs.Go(func() {
+		<-ctx.Done()
+		nonblockingMetricsWrapper.Close()
+		logger.Info("ManagedOCR2Oracle: closed metrics wrapper", nil)
+	})
 
 	runWithContractConfig(
 		ctx,
@@ -203,6 +216,7 @@ func RunManagedMercuryOracle(
 				oid,
 				localConfig,
 				childLogger,
+				nonblockingMetricsWrapper,
 				netEndpoint,
 				offchainKeyring,
 				ocr3OnchainKeyring,

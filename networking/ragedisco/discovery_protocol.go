@@ -67,10 +67,49 @@ type discoveryProtocol struct {
 
 	db nettypes.DiscovererDatabase
 
-	processes subprocesses.Subprocesses
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	logger    loghelper.LoggerWithContext
+	processes       subprocesses.Subprocesses
+	ctx             context.Context
+	ctxCancel       context.CancelFunc
+	logger          loghelper.LoggerWithContext
+	protocolMetrics discoveryProtocolMetrics
+}
+
+type discoveryProtocolMetrics struct {
+	peersCount        commontypes.Metric
+	peersUndiscovered commontypes.Metric
+	peersDiscovered   commontypes.Metric
+}
+
+func newDiscoveryProtocolMetrics(metrics commontypes.Metrics, peerID string) (discoveryProtocolMetrics, error) {
+	peersCountVec, err := metrics.NewMetricVec("ragedisco_peers_count", "The total number of peers in network discovery", "peerID")
+	if err != nil {
+		return discoveryProtocolMetrics{}, err
+	}
+	peersCount, err := peersCountVec.GetMetricWith(map[string]string{"peerID": peerID})
+	if err != nil {
+		return discoveryProtocolMetrics{}, err
+	}
+	peersUndiscoveredVec, err := metrics.NewMetricVec("ragedisco_peers_undiscovered", "The number of undiscovered peers in network discovery", "peerID")
+	if err != nil {
+		return discoveryProtocolMetrics{}, err
+	}
+	peersUndiscovered, err := peersUndiscoveredVec.GetMetricWith(map[string]string{"peerID": peerID})
+	if err != nil {
+		return discoveryProtocolMetrics{}, err
+	}
+	peersDiscoveredVec, err := metrics.NewMetricVec("ragedisco_peers_discovered", "The number of discovered peers in network discovery", "peerID")
+	if err != nil {
+		return discoveryProtocolMetrics{}, err
+	}
+	peersDiscovered, err := peersDiscoveredVec.GetMetricWith(map[string]string{"peerID": peerID})
+	if err != nil {
+		return discoveryProtocolMetrics{}, err
+	}
+	return discoveryProtocolMetrics{
+		peersCount,
+		peersUndiscovered,
+		peersDiscovered,
+	}, nil
 }
 
 const (
@@ -90,12 +129,16 @@ func newDiscoveryProtocol(
 	ownAddrs []ragetypes.Address,
 	db nettypes.DiscovererDatabase,
 	logger loghelper.LoggerWithContext,
+	metrics commontypes.Metrics,
 ) (*discoveryProtocol, error) {
 	ownID, err := ragetypes.PeerIDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain peer id from private key: %w", err)
 	}
-
+	protocolMetrics, err := newDiscoveryProtocolMetrics(metrics, ownID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize discovery protocol metrics: %w", err)
+	}
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &discoveryProtocol{
 		sync.Mutex{},
@@ -121,6 +164,7 @@ func newDiscoveryProtocol(
 		ctx,
 		ctxCancel,
 		logger.MakeChild(commontypes.LogFields{"id": "discoveryProtocol"}),
+		protocolMetrics,
 	}, nil
 }
 
@@ -182,21 +226,28 @@ func (p *discoveryProtocol) statusReportLoop() {
 			func() {
 				p.lock.RLock()
 				defer p.lock.RUnlock()
-				uniquePeersToDetect := make(map[ragetypes.PeerID]struct{})
+				uniquePeersToDiscover := make(map[ragetypes.PeerID]struct{})
 				for id, cnt := range p.locked.numGroupsByOracle {
 					if cnt == 0 {
 						continue
 					}
-					uniquePeersToDetect[id] = struct{}{}
+					uniquePeersToDiscover[id] = struct{}{}
 				}
 
-				reportStr, undetected := formatAnnouncementsForReport(uniquePeersToDetect, p.locked.bestAnnouncement)
+				reportStr, peersUndiscovered := formatAnnouncementsForReport(uniquePeersToDiscover, p.locked.bestAnnouncement)
+				peersCount := len(uniquePeersToDiscover)
+				peersDiscovered := len(uniquePeersToDiscover) - peersUndiscovered
 				p.logger.Info("DiscoveryProtocol: Status report", commontypes.LogFields{
-					"statusByPeer":    reportStr,
-					"peersToDetect":   len(uniquePeersToDetect),
-					"peersUndetected": undetected,
-					"peersDetected":   len(uniquePeersToDetect) - undetected,
+					"statusByPeer":      reportStr,
+					"peersCount":        peersCount,
+					"peersUndiscovered": peersUndiscovered,
+					"peersDiscovered":   peersDiscovered,
 				})
+
+				p.protocolMetrics.peersCount.Set(float64(peersCount))
+				p.protocolMetrics.peersUndiscovered.Set(float64(peersUndiscovered))
+				p.protocolMetrics.peersDiscovered.Set(float64(peersDiscovered))
+
 				timer = time.After(reportInterval)
 			}()
 		case <-chDone:
