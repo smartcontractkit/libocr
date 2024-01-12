@@ -88,7 +88,7 @@ type ReportingPluginFactory interface {
 	// Creates a new reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
+	NewReportingPlugin(context.Context, ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
@@ -327,7 +327,7 @@ type ContractTransmitter interface {
 	)
 
 	// Account from which the transmitter invokes the contract
-	FromAccount() (Account, error)
+	FromAccount(context.Context) (Account, error)
 }
 
 // ContractConfigTracker tracks configuration changes of the OCR contract
