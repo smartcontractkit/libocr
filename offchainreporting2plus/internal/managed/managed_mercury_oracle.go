@@ -63,7 +63,7 @@ func RunManagedMercuryOracle(
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount()
+			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
 				logger.Error("ManagedMercuryOracle: error getting FromAccount", commontypes.LogFields{
 					"error": err,
