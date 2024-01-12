@@ -1,6 +1,7 @@
 package evmutil
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,7 @@ type EVMOffchainConfigDigester struct {
 	ContractAddress common.Address
 }
 
-func (d EVMOffchainConfigDigester) ConfigDigest(cc types.ContractConfig) (types.ConfigDigest, error) {
+func (d EVMOffchainConfigDigester) ConfigDigest(ctx context.Context, cc types.ContractConfig) (types.ConfigDigest, error) {
 	signers := []common.Address{}
 	for i, signer := range cc.Signers {
 		if len(signer) != 20 {
@@ -46,6 +47,6 @@ func (d EVMOffchainConfigDigester) ConfigDigest(cc types.ContractConfig) (types.
 	), nil
 }
 
-func (d EVMOffchainConfigDigester) ConfigDigestPrefix() (types.ConfigDigestPrefix, error) {
+func (d EVMOffchainConfigDigester) ConfigDigestPrefix(context.Context) (types.ConfigDigestPrefix, error) {
 	return types.ConfigDigestPrefixEVMSimple, nil
 }

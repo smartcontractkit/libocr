@@ -38,7 +38,7 @@ type TitleRequestPluginFactory struct {
 	Contract *ocr2titlerequest.OCR2TitleRequest
 }
 
-func (fac *TitleRequestPluginFactory) NewReportingPlugin(config types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
+func (fac *TitleRequestPluginFactory) NewReportingPlugin(ctx context.Context, config types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
 	return &TitleRequestPlugin{
 			config.F,
 			fac.Client,

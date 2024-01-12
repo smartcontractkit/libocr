@@ -97,7 +97,7 @@ func (t *MercuryOCR3ContractTransmitter) Transmit(
 }
 
 func (t *MercuryOCR3ContractTransmitter) FromAccount() (types.Account, error) {
-	return t.ocr2ContractTransmitter.FromAccount()
+	return t.ocr2ContractTransmitter.FromAccount(context.Background())
 }
 
 func ocr3MaxOutcomeLength(maxReportLength int) int {
