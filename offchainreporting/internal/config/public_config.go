@@ -298,6 +298,7 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		100:             {"xDai", chainTypeModerateUpdates},
 		324:             {"zkSync Mainnet", chainTypeFastUpdates},
 		280:             {"zkSync Testnet Goerli", chainTypePublicTestnet},
+		300:             {"zkSync Testnet Sepolia", chainTypePublicTestnet},
 	}[chainID.Uint64()]
 	if !ok {
 		// "fail-closed" design. If we don't know the chain, we assume that
