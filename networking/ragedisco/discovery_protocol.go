@@ -10,12 +10,12 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
-	nettypes "github.com/smartcontractkit/libocr/networking/types"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
-
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
@@ -71,6 +71,7 @@ type discoveryProtocol struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	logger    loghelper.LoggerWithContext
+	metrics   discoveryProtocolMetrics
 }
 
 const (
@@ -90,6 +91,7 @@ func newDiscoveryProtocol(
 	ownAddrs []ragetypes.Address,
 	db nettypes.DiscovererDatabase,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 ) (*discoveryProtocol, error) {
 	ownID, err := ragetypes.PeerIDFromPrivateKey(privKey)
 	if err != nil {
@@ -121,6 +123,7 @@ func newDiscoveryProtocol(
 		ctx,
 		ctxCancel,
 		logger.MakeChild(commontypes.LogFields{"id": "discoveryProtocol"}),
+		newDiscoveryProtocolMetrics(metricsRegisterer, ownID.String(), logger),
 	}, nil
 }
 
@@ -231,10 +234,20 @@ func (p *discoveryProtocol) lockedAllowedPeers(ann Announcement) (ps []ragetypes
 	return
 }
 
+func (p *discoveryProtocol) lockedSetMetrics() {
+	// We assume that the following mappings do not contain zero values
+	// thus it is correct to take their length.
+	p.metrics.peers.Set(float64(len(p.locked.numGroupsByOracle)))
+	p.metrics.bootstrappers.Set(float64(len(p.locked.numGroupsByBootstrapper)))
+	p.metrics.peersDiscovered.Set(float64(len(p.locked.bestAnnouncement)))
+}
+
 func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error {
 	var newPeerIDs []ragetypes.PeerID
 	p.lock.Lock()
 	defer p.lock.Unlock()
+
+	defer p.lockedSetMetrics()
 
 	if _, exists := p.locked.groups[digest]; exists {
 		return fmt.Errorf("asked to add group with digest we already have (digest: %s)", digest.Hex())
@@ -374,6 +387,8 @@ func (p *discoveryProtocol) removeGroup(digest types.ConfigDigest) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	defer p.lockedSetMetrics()
+
 	goneGroup, exists := p.locked.groups[digest]
 	if !exists {
 		return fmt.Errorf("can't remove group that is not registered (digest: %s)", digest.Hex())
@@ -494,6 +509,8 @@ func (p *discoveryProtocol) processAnnouncement(ann Announcement) error {
 
 // lockedProcessAnnouncement requires lock to be held.
 func (p *discoveryProtocol) lockedProcessAnnouncement(ann Announcement) error {
+	defer p.lockedSetMetrics()
+
 	logger := p.logger.MakeChild(commontypes.LogFields{
 		"in":           "processAnnouncement",
 		"announcement": ann,
@@ -631,6 +648,9 @@ func (p *discoveryProtocol) lockedBumpOwnAnnouncement() (*Announcement, bool, er
 
 func (p *discoveryProtocol) Close() error {
 	logger := p.logger.MakeChild(commontypes.LogFields{"in": "Close"})
+
+	p.metrics.Close()
+
 	p.stateMu.Lock()
 	defer p.stateMu.Unlock()
 	if p.state != discoveryProtocolStarted {

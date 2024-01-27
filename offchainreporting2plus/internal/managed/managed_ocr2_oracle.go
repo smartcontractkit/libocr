@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/internal/metricshelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
@@ -29,6 +31,7 @@ func RunManagedOCR2Oracle(
 	database types.Database,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
@@ -48,6 +51,7 @@ func RunManagedOCR2Oracle(
 		})
 	}
 
+	metricsRegistererWrapper := metricshelper.NewPrometheusRegistererWrapper(metricsRegisterer, logger)
 	subs.Go(func() {
 		collectGarbage(ctx, database, localConfig, logger)
 	})
@@ -82,6 +86,8 @@ func RunManagedOCR2Oracle(
 				})
 				return
 			}
+
+			metricsRegistererWrapper.WrapRegistererWith(prometheus.Labels{"configDigest": sharedConfig.ConfigDigest.String()})
 
 			// Run with new config
 			peerIDs := []string{}
@@ -201,6 +207,7 @@ func RunManagedOCR2Oracle(
 				oid,
 				localConfig,
 				childLogger,
+				metricsRegistererWrapper,
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,

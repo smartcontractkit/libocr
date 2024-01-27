@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
@@ -27,6 +28,7 @@ func RunPacemaker[RI any](
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
@@ -37,7 +39,7 @@ func RunPacemaker[RI any](
 		ctx, chNetToPacemaker,
 		chPacemakerToOutcomeGeneration, chOutcomeGenerationToPacemaker,
 		config, database,
-		id, localConfig, logger, netSender, offchainKeyring,
+		id, localConfig, logger, metricsRegisterer, netSender, offchainKeyring,
 		telemetrySender,
 	)
 	pace.run(restoredState)
@@ -52,6 +54,7 @@ func makePacemakerState[RI any](
 	database Database, id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
@@ -66,6 +69,7 @@ func makePacemakerState[RI any](
 		database:                       database,
 		id:                             id,
 		localConfig:                    localConfig,
+		localMetrics:                   newPacemakerMetrics(metricsRegisterer, id, logger),
 		logger:                         logger.MakeUpdated(commontypes.LogFields{"proto": "pacemaker"}),
 		netSender:                      netSender,
 		offchainKeyring:                offchainKeyring,
@@ -85,6 +89,7 @@ type pacemakerState[RI any] struct {
 	database                       Database
 	id                             commontypes.OracleID
 	localConfig                    types.LocalConfig
+	localMetrics                   pacemakerMetrics
 	logger                         loghelper.LoggerWithContext
 	netSender                      NetworkSender[RI]
 	offchainKeyring                types.OffchainKeyring
@@ -174,6 +179,7 @@ func (pace *pacemakerState[RI]) run(restoredState PacemakerState) {
 		// ensure prompt exit
 		select {
 		case <-chDone:
+			pace.localMetrics.Close()
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:
@@ -300,7 +306,8 @@ func (pace *pacemakerState[RI]) messageNewEpochWish(msg MessageNewEpochWish[RI],
 		if pace.ne < pace.e {             // ne ← max{ne, e}
 			pace.ne = pace.e
 		}
-
+		pace.localMetrics.epoch.Set(float64(pace.e))
+		pace.localMetrics.leader.Set(float64(pace.l))
 		pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 
 		pace.notifyOutcomeGenerationOfNewEpoch = true // invoke event newEpochStart(e, l)

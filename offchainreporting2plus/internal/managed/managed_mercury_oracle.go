@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/internal/metricshelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/mercuryshim"
@@ -31,6 +33,7 @@ func RunManagedMercuryOracle(
 	database ocr3types.Database,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
@@ -49,6 +52,8 @@ func RunManagedMercuryOracle(
 			forwardTelemetry(ctx, logger, monitoringEndpoint, chTelemetry)
 		})
 	}
+
+	metricsRegistererWrapper := metricshelper.NewPrometheusRegistererWrapper(metricsRegisterer, logger)
 
 	runWithContractConfig(
 		ctx,
@@ -114,6 +119,8 @@ func RunManagedMercuryOracle(
 				logger,
 				"ManagedMercuryOracle: error during reportingPlugin.Close()",
 			)
+
+			metricsRegistererWrapper.WrapRegistererWith(prometheus.Labels{"configDigest": sharedConfig.ConfigDigest.String()})
 
 			if err := validateMercuryPluginLimits(mercuryPluginInfo.Limits); err != nil {
 				logger.Error("ManagedMercuryOracle: invalid MercuryPluginInfo", commontypes.LogFields{
@@ -203,6 +210,7 @@ func RunManagedMercuryOracle(
 				oid,
 				localConfig,
 				childLogger,
+				metricsRegistererWrapper,
 				netEndpoint,
 				offchainKeyring,
 				ocr3OnchainKeyring,

@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
-
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/knock"
+	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/mtls"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimit"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimitedconn"
@@ -39,6 +39,10 @@ const newConnTokens = MaxStreamsPerPeer * (frameHeaderEncodedSize + MaxStreamNam
 
 // assumes we re-open every stream every ten minutes during regular operation
 const controlRate = MaxStreamsPerPeer / (10.0 * 60) * (frameHeaderEncodedSize + MaxStreamNameLength)
+
+// The 5 second value is cribbed from go standard library's tls package as of version 1.16 and later
+// https://cs.opensource.google/go/go/+/master:src/crypto/tls/conn.go;drc=059a9eedf45f4909db6a24242c106be15fb27193;l=1454
+const netTimeout = 5 * time.Second
 
 type hostState uint8
 
@@ -143,11 +147,12 @@ type HostConfig struct {
 // limiting.
 type Host struct {
 	// Constructor args
-	config          HostConfig
-	secretKey       ed25519.PrivateKey
-	listenAddresses []string
-	discoverer      Discoverer
-	logger          loghelper.LoggerWithContext
+	config            HostConfig
+	secretKey         ed25519.PrivateKey
+	listenAddresses   []string
+	discoverer        Discoverer
+	logger            loghelper.LoggerWithContext
+	metricsRegisterer prometheus.Registerer
 
 	// Derived from secretKey
 	id      types.PeerID
@@ -176,6 +181,7 @@ func NewHost(
 	listenAddresses []string,
 	discoverer Discoverer,
 	logger commontypes.Logger,
+	metricsRegisterer prometheus.Registerer,
 ) (*Host, error) {
 	if len(listenAddresses) == 0 {
 		return nil, fmt.Errorf("no listen addresses provided")
@@ -194,6 +200,7 @@ func NewHost(
 		discoverer,
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
 		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": types.PeerID(id)}),
+		metricsRegisterer,
 
 		id,
 		mtls.NewMinimalX509CertFromPrivateKey(secretKey),
@@ -595,9 +602,6 @@ func (ho *Host) dialLoop() {
 					return
 				}
 
-				dialer := net.Dialer{
-					Timeout: ho.config.DurationBetweenDials,
-				}
 				address := string(addresses[ds.next%uint(len(addresses))])
 
 				// We used to increment this only on dial error but a connection might fail after the Dial itself has
@@ -607,6 +611,10 @@ func (ho *Host) dialLoop() {
 				ds.next++
 
 				logger := p.logger.MakeChild(commontypes.LogFields{"direction": "out", "remoteAddr": address})
+
+				dialer := net.Dialer{
+					Timeout: ho.config.DurationBetweenDials,
+				}
 				conn, err := dialer.DialContext(ho.ctx, "tcp", address)
 				if err != nil {
 					logger.Warn("Dial error", commontypes.LogFields{"error": err})
@@ -663,7 +671,7 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 	}()
 
 	knck := knock.BuildKnock(other, ho.id, ho.secretKey)
-	if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+	if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
 		logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
 		return
 	}
@@ -706,7 +714,7 @@ func (ho *Host) handleIncomingConnection(conn net.Conn) {
 	}()
 
 	knck := make([]byte, knock.KnockSize)
-	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+	if err := conn.SetReadDeadline(time.Now().Add(netTimeout)); err != nil {
 		logger.Warn("Closing connection, error during SetReadDeadline", commontypes.LogFields{"error": err})
 		return
 	}
@@ -762,7 +770,7 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 	}()
 
 	// Handshake reads and write to the connection. Set a deadline to prevent tarpitting
-	if err := tlsConn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+	if err := tlsConn.SetDeadline(time.Now().Add(netTimeout)); err != nil {
 		logger.Warn("Closing connection, error during SetDeadline", commontypes.LogFields{"error": err})
 		return
 	}
@@ -1388,7 +1396,7 @@ func authenticatedConnectionWriteLoop(
 	for {
 		select {
 		case data := <-chWriteData:
-			if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+			if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
 				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
 				return
 			}
@@ -1404,7 +1412,7 @@ func authenticatedConnectionWriteLoop(
 				return
 			}
 		case notification := <-chSelfStreamStateNotification:
-			if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+			if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
 				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
 				return
 			}
@@ -1439,9 +1447,8 @@ func authenticatedConnectionWriteLoop(
 // gotta be careful about closing tls connections to make sure we don't get
 // tarpitted
 func safeClose(conn net.Conn) error {
-	// 5 seconds matches the behavior in the go standard library, starting with 1.16.
 	// This isn't needed in more recent versions of go, but better safe than sorry!
-	errDeadline := conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	errDeadline := conn.SetWriteDeadline(time.Now().Add(netTimeout))
 	errClose := conn.Close()
 	if errClose != nil {
 		return errClose
