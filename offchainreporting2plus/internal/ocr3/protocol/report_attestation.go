@@ -451,8 +451,9 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 		commontypes.LogFields{"seqNr": certifiedCommit.SeqNr},
 		"Reports",
 		0, // Reports is a pure function and should finish "instantly"
-		func(context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
+		func(ctx context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
 			return repatt.reportingPlugin.Reports(
+				ctx,
 				certifiedCommit.SeqNr,
 				certifiedCommit.Outcome,
 			)

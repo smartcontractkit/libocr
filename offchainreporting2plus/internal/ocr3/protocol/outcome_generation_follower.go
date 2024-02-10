@@ -367,6 +367,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 				outgen.OutcomeCtx(outgen.sharedState.seqNr),
 				func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
 					return outgen.reportingPlugin.ValidateObservation(
+						ctx,
 						outctx,
 						*outgen.followerState.query,
 						types.AttributedObservation{aso.SignedObservation.Observation, aso.Observer},
@@ -413,8 +414,8 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 		"Outcome",
 		0, // Outcome is a pure function and should finish "instantly"
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(_ context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
-			return outgen.reportingPlugin.Outcome(outctx, *outgen.followerState.query, attributedObservations)
+		func(ctx context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
+			return outgen.reportingPlugin.Outcome(ctx, outctx, *outgen.followerState.query, attributedObservations)
 		},
 	)
 	if !ok {
