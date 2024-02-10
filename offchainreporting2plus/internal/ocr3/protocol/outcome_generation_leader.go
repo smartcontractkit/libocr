@@ -288,6 +288,7 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
 		func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
 			return outgen.reportingPlugin.ValidateObservation(
+				ctx,
 				outctx,
 				outgen.leaderState.query,
 				types.AttributedObservation{msg.SignedObservation.Observation, sender},

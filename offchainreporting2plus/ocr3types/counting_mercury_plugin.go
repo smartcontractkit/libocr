@@ -18,7 +18,7 @@ func (p *CountingMercuryPlugin) Observation(ctx context.Context, repts types.Rep
 	return []byte{byte(rand.Int() % 2)}, nil
 }
 
-func (p *CountingMercuryPlugin) Report(repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error) {
+func (p *CountingMercuryPlugin) Report(ctx context.Context, repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error) {
 	report := make([]byte, 4)
 	if len(previousReport) == 0 {
 		if p.initializedReport {

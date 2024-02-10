@@ -14,7 +14,7 @@ type ReportingPluginFactory[RI any] interface {
 	// Creates a new reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin[RI], ReportingPluginInfo, error)
+	NewReportingPlugin(context.Context, ReportingPluginConfig) (ReportingPlugin[RI], ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
@@ -179,7 +179,7 @@ type ReportingPlugin[RI any] interface {
 	// *not* strictly) across the lifetime of a protocol instance and that
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
-	ValidateObservation(outctx OutcomeContext, query types.Query, ao types.AttributedObservation) error
+	ValidateObservation(ctx context.Context, outctx OutcomeContext, query types.Query, ao types.AttributedObservation) error
 
 	// ObservationQuorum returns the minimum number of valid (according to
 	// ValidateObservation) observations needed to construct an outcome.
@@ -189,7 +189,7 @@ type ReportingPlugin[RI any] interface {
 	// This is an advanced feature. The "default" approach (what OCR1 & OCR2
 	// did) is to have an empty ValidateObservation function and return
 	// QuorumTwoFPlusOne from this function.
-	ObservationQuorum(outctx OutcomeContext, query types.Query) (Quorum, error)
+	ObservationQuorum(ctx context.Context, outctx OutcomeContext, query types.Query) (Quorum, error)
 
 	// Generates an outcome for a seqNr, typically based on the previous
 	// outcome, the current query, and the current set of attributed
@@ -204,7 +204,7 @@ type ReportingPlugin[RI any] interface {
 	//
 	// You may assume that all provided observations have been validated by
 	// ValidateObservation.
-	Outcome(outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
+	Outcome(ctx context.Context, outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
 
 	// Generates a (possibly empty) list of reports from an outcome. Each report
 	// will be signed and possibly be transmitted to the contract. (Depending on
@@ -219,7 +219,7 @@ type ReportingPlugin[RI any] interface {
 	// *not* strictly) across the lifetime of a protocol instance and that
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
-	Reports(seqNr uint64, outcome Outcome) ([]ReportWithInfo[RI], error)
+	Reports(ctx context.Context, seqNr uint64, outcome Outcome) ([]ReportWithInfo[RI], error)
 
 	// Decides whether a report should be accepted for transmission. Any report
 	// passed to this function will have been attested, i.e. signed by f+1
