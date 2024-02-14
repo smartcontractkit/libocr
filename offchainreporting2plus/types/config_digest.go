@@ -21,6 +21,7 @@ const (
 	ConfigDigestPrefixSolana     ConfigDigestPrefix = 3
 	ConfigDigestPrefixStarknet   ConfigDigestPrefix = 4
 	ConfigDigestPrefixMercuryV02 ConfigDigestPrefix = 6
+	ConfigDigestPrefixLLO        ConfigDigestPrefix = 9
 
 	// Prefixes for running Threshold/S4 plugins as part of another product under one contract.
 	ConfigDigestPrefixEVMThresholdDecryption ConfigDigestPrefix = 7
