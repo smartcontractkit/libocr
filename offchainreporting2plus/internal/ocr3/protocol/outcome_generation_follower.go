@@ -21,7 +21,8 @@ const (
 )
 
 func (outgen *outcomeGenerationState[RI]) eventTInitialTimeout() {
-	outgen.logger.Debug("Tinitial fired", commontypes.LogFields{
+	outgen.logger.Debug("TInitial fired", commontypes.LogFields{
+		"seqNr":        outgen.sharedState.seqNr,
 		"deltaInitial": outgen.config.DeltaInitial.String(),
 	})
 	select {
@@ -49,8 +50,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 
 	if outgen.followerState.phase != outgenFollowerPhaseNewEpoch {
 		outgen.logger.Warn("dropping MessageEpochStart for wrong phase", commontypes.LogFields{
-			"sender": sender,
-			"phase":  outgen.followerState.phase,
+			"phase": outgen.followerState.phase,
 		})
 		return
 	}
@@ -63,8 +63,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		)
 		if err != nil {
 			outgen.logger.Warn("dropping MessageEpochStart containing invalid StartRoundQuorumCertificate", commontypes.LogFields{
-				"sender": sender,
-				"error":  err,
+				"error": err,
 			})
 			return
 		}
@@ -99,6 +98,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		)
 		if err != nil {
 			outgen.logger.Critical("failed to sign Prepare", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
 				"error": err,
 			})
 			return
@@ -115,7 +115,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 			outcomeDigest,
 		}
 		outgen.logger.Debug("broadcasting MessagePrepare (reproposal)", commontypes.LogFields{
-			"seqNr": prepareQc.SeqNr,
+			"seqNr": outgen.sharedState.seqNr,
 		})
 		outgen.netSender.Broadcast(MessagePrepare[RI]{
 			outgen.sharedState.e,
@@ -140,30 +140,33 @@ func (outgen *outcomeGenerationState[RI]) messageRoundStart(msg MessageRoundStar
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessageRoundStart for wrong epoch", commontypes.LogFields{
 			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
 			"msgEpoch": msg.Epoch,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if sender != outgen.sharedState.l {
 		outgen.logger.Warn("dropping MessageRoundStart from non-leader", commontypes.LogFields{
-			"sender": sender,
+			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if putResult := outgen.followerState.roundStartPool.Put(msg.SeqNr, sender, msg); putResult != pool.PutResultOK {
 		outgen.logger.Debug("dropping MessageRoundStart", commontypes.LogFields{
-			"sender": sender,
-			"seqNr":  msg.SeqNr,
-			"reason": putResult,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
+			"reason":   putResult,
 		})
 		return
 	}
 
 	outgen.logger.Debug("pooled MessageRoundStart", commontypes.LogFields{
-		"sender": sender,
-		"seqNr":  msg.SeqNr,
+		"seqNr": outgen.sharedState.seqNr,
 	})
 
 	outgen.tryProcessRoundStartPool()
@@ -172,6 +175,7 @@ func (outgen *outcomeGenerationState[RI]) messageRoundStart(msg MessageRoundStar
 func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 	if outgen.followerState.phase != outgenFollowerPhaseNewRound {
 		outgen.logger.Debug("cannot process RoundStartPool, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.followerState.phase,
 		})
 		return
@@ -255,31 +259,33 @@ func (outgen *outcomeGenerationState[RI]) messageProposal(msg MessageProposal[RI
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessageProposal for wrong epoch", commontypes.LogFields{
 			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
 			"msgEpoch": msg.Epoch,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if sender != outgen.sharedState.l {
 		outgen.logger.Warn("dropping MessageProposal from non-leader", commontypes.LogFields{
-			"msgSeqNr": msg.SeqNr,
 			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if putResult := outgen.followerState.proposalPool.Put(msg.SeqNr, sender, msg); putResult != pool.PutResultOK {
 		outgen.logger.Debug("dropping MessageProposal", commontypes.LogFields{
-			"sender": sender,
-			"seqNr":  msg.SeqNr,
-			"reason": putResult,
+			"seqNr":        outgen.sharedState.seqNr,
+			"messageSeqNr": msg.SeqNr,
+			"reason":       putResult,
 		})
 		return
 	}
 
 	outgen.logger.Debug("pooled MessageProposal", commontypes.LogFields{
-		"sender": sender,
-		"seqNr":  msg.SeqNr,
+		"seqNr": outgen.sharedState.seqNr,
 	})
 
 	outgen.tryProcessProposalPool()
@@ -288,6 +294,7 @@ func (outgen *outcomeGenerationState[RI]) messageProposal(msg MessageProposal[RI
 func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 	if outgen.followerState.phase != outgenFollowerPhaseSentObservation {
 		outgen.logger.Debug("cannot process ProposalPool, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.followerState.phase,
 		})
 		return
@@ -304,7 +311,6 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 	if msg.SeqNr <= outgen.sharedState.committedSeqNr {
 		outgen.logger.Critical("MessageProposal contains invalid SeqNr", commontypes.LogFields{
-			"sender":         outgen.sharedState.l,
 			"msgSeqNr":       msg.SeqNr,
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
@@ -320,6 +326,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 		if len(msg.AttributedSignedObservations) < quorum {
 			outgen.logger.Warn("dropping MessageProposal that contains too few signed observations", commontypes.LogFields{
+				"seqNr":                             outgen.sharedState.seqNr,
 				"attributedSignedObservationsCount": len(msg.AttributedSignedObservations),
 				"quorum":                            quorum,
 			})
@@ -329,13 +336,16 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 		for _, aso := range msg.AttributedSignedObservations {
 			if !(0 <= int(aso.Observer) && int(aso.Observer) <= outgen.config.N()) {
 				outgen.logger.Warn("dropping MessageProposal that contains signed observation with invalid observer", commontypes.LogFields{
+					"seqNr":           outgen.sharedState.seqNr,
 					"invalidObserver": aso.Observer,
 				})
 				return
 			}
 
 			if seen[aso.Observer] {
-				outgen.logger.Warn("dropping MessageProposal that contains duplicate signed observation", nil)
+				outgen.logger.Warn("dropping MessageProposal that contains duplicate signed observation", commontypes.LogFields{
+					"seqNr": outgen.sharedState.seqNr,
+				})
 				return
 			}
 
@@ -343,6 +353,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 			if err := aso.SignedObservation.Verify(outgen.ID(), outgen.sharedState.seqNr, *outgen.followerState.query, outgen.config.OracleIdentities[aso.Observer].OffchainPublicKey); err != nil {
 				outgen.logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", commontypes.LogFields{
+					"seqNr": outgen.sharedState.seqNr,
 					"error": err,
 				})
 				return
@@ -363,6 +374,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 			)
 			if !ok || err != nil {
 				outgen.logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
+					"seqNr": outgen.sharedState.seqNr,
 					"error": err,
 				})
 			}
@@ -406,6 +418,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 	)
 	if err != nil {
 		outgen.logger.Critical("failed to sign Prepare", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"error": err,
 		})
 		return
@@ -432,23 +445,27 @@ func (outgen *outcomeGenerationState[RI]) messagePrepare(msg MessagePrepare[RI],
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessagePrepare for wrong epoch", commontypes.LogFields{
 			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
 			"msgEpoch": msg.Epoch,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if putResult := outgen.followerState.preparePool.Put(msg.SeqNr, sender, msg.Signature); putResult != pool.PutResultOK {
 		outgen.logger.Debug("dropping MessagePrepare", commontypes.LogFields{
-			"sender": sender,
-			"seqNr":  msg.SeqNr,
-			"reason": putResult,
+			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
+			"reason":   putResult,
 		})
 		return
 	}
 
 	outgen.logger.Debug("pooled MessagePrepare", commontypes.LogFields{
-		"sender": sender,
-		"seqNr":  msg.SeqNr,
+		"sender":   sender,
+		"seqNr":    outgen.sharedState.seqNr,
+		"msgSeqNr": msg.SeqNr,
 	})
 
 	outgen.tryProcessPreparePool()
@@ -457,6 +474,7 @@ func (outgen *outcomeGenerationState[RI]) messagePrepare(msg MessagePrepare[RI],
 func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 	if outgen.followerState.phase != outgenFollowerPhaseSentPrepare {
 		outgen.logger.Debug("cannot process PreparePool, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.followerState.phase,
 		})
 		return
@@ -515,6 +533,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 	)
 	if err != nil {
 		outgen.logger.Critical("failed to sign Commit", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"error": err,
 		})
 		return
@@ -533,7 +552,9 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 
 	outgen.followerState.phase = outgenFollowerPhaseSentCommit
 
-	outgen.logger.Debug("broadcasting MessageCommit", commontypes.LogFields{})
+	outgen.logger.Debug("broadcasting MessageCommit", commontypes.LogFields{
+		"seqNr": outgen.sharedState.seqNr,
+	})
 	outgen.netSender.Broadcast(MessageCommit[RI]{
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
@@ -545,23 +566,27 @@ func (outgen *outcomeGenerationState[RI]) messageCommit(msg MessageCommit[RI], s
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessageCommit for wrong epoch", commontypes.LogFields{
 			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
 			"msgEpoch": msg.Epoch,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if putResult := outgen.followerState.commitPool.Put(msg.SeqNr, sender, msg.Signature); putResult != pool.PutResultOK {
 		outgen.logger.Debug("dropping MessageCommit", commontypes.LogFields{
-			"sender": sender,
-			"seqNr":  msg.SeqNr,
-			"reason": putResult,
+			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
+			"reason":   putResult,
 		})
 		return
 	}
 
 	outgen.logger.Debug("pooled MessageCommit", commontypes.LogFields{
-		"sender": sender,
-		"seqNr":  msg.SeqNr,
+		"sender":   sender,
+		"seqNr":    outgen.sharedState.seqNr,
+		"msgSeqNr": msg.SeqNr,
 	})
 
 	outgen.tryProcessCommitPool()
@@ -570,6 +595,7 @@ func (outgen *outcomeGenerationState[RI]) messageCommit(msg MessageCommit[RI], s
 func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 	if outgen.followerState.phase != outgenFollowerPhaseSentCommit {
 		outgen.logger.Debug("cannot process CommitPool, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.followerState.phase,
 		})
 		return
@@ -669,7 +695,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 	if commit.SeqNr <= outgen.sharedState.committedSeqNr {
 
 		outgen.logger.Debug("skipping commit of already committed outcome", commontypes.LogFields{
-			"seqNr":          commit.SeqNr,
+			"commitSeqNr ":   commit.SeqNr,
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
 	} else {
@@ -703,6 +729,7 @@ func (outgen *outcomeGenerationState[RI]) persistCert() (ok bool) {
 	defer cancel()
 	if err := outgen.database.WriteCert(ctx, outgen.config.ConfigDigest, outgen.followerState.cert); err != nil {
 		outgen.logger.Error("error persisting cert to database, cannot safely continue current round", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"error": err,
 		})
 		return false

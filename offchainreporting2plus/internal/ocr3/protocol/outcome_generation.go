@@ -224,7 +224,6 @@ func (outgen *outcomeGenerationState[RI]) messageToOutcomeGeneration(msg Message
 	} else {
 		outgen.bufferedMessages[msg.sender].Push(msg.msg)
 		outgen.logger.Trace("buffering message for future epoch", commontypes.LogFields{
-			"epoch":    outgen.sharedState.e,
 			"msgEpoch": msgEpoch,
 			"sender":   msg.sender,
 		})
@@ -232,9 +231,7 @@ func (outgen *outcomeGenerationState[RI]) messageToOutcomeGeneration(msg Message
 }
 
 func (outgen *outcomeGenerationState[RI]) unbufferMessages() {
-	outgen.logger.Trace("getting messages for new epoch", commontypes.LogFields{
-		"epoch": outgen.sharedState.e,
-	})
+	outgen.logger.Trace("getting messages for new epoch", nil)
 	for i, buffer := range outgen.bufferedMessages {
 		sender := commontypes.OracleID(i)
 		for buffer.Length() > 0 {
@@ -243,14 +240,12 @@ func (outgen *outcomeGenerationState[RI]) unbufferMessages() {
 			if msgEpoch < outgen.sharedState.e {
 				buffer.Pop()
 				outgen.logger.Debug("unbuffered and dropped message", commontypes.LogFields{
-					"epoch":    outgen.sharedState.e,
 					"msgEpoch": msgEpoch,
 					"sender":   sender,
 				})
 			} else if msgEpoch == outgen.sharedState.e {
 				buffer.Pop()
-				outgen.logger.Trace("unbuffered messages for new epoch", commontypes.LogFields{
-					"epoch":    outgen.sharedState.e,
+				outgen.logger.Trace("unbuffered message for new epoch", commontypes.LogFields{
 					"msgEpoch": msgEpoch,
 					"sender":   sender,
 				})
@@ -262,9 +257,7 @@ func (outgen *outcomeGenerationState[RI]) unbufferMessages() {
 			}
 		}
 	}
-	outgen.logger.Trace("done unbuffering messages for new epoch", commontypes.LogFields{
-		"epoch": outgen.sharedState.e,
-	})
+	outgen.logger.Trace("done unbuffering messages for new epoch", nil)
 }
 
 func (outgen *outcomeGenerationState[RI]) eventNewEpochStart(ev EventNewEpochStart[RI]) {
@@ -316,8 +309,6 @@ func (outgen *outcomeGenerationState[RI]) eventNewEpochStart(ev EventNewEpochSta
 	}
 
 	outgen.logger.Info("sending MessageEpochStartRequest to leader", commontypes.LogFields{
-		"epoch":                     ev.Epoch,
-		"leader":                    outgen.sharedState.l,
 		"highestCertifiedTimestamp": highestCertifiedTimestamp,
 	})
 	outgen.netSender.SendTo(MessageEpochStartRequest[RI]{
