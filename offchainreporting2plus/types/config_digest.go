@@ -15,16 +15,16 @@ type ConfigDigestPrefix uint16
 // prefix and add it to this list before you build an OffchainConfigDigester for
 // whatever chain you're targeting.
 const (
-	_                            ConfigDigestPrefix = 0 // reserved to prevent errors where a zero-default creeps through somewhere
-	ConfigDigestPrefixEVM        ConfigDigestPrefix = 1 // TODO: rename to ConfigDigestPrefixEVMSimple in the future
-	ConfigDigestPrefixTerra      ConfigDigestPrefix = 2
-	ConfigDigestPrefixSolana     ConfigDigestPrefix = 3
-	ConfigDigestPrefixStarknet   ConfigDigestPrefix = 4
-	ConfigDigestPrefixMercuryV02 ConfigDigestPrefix = 6
-
-	// Prefixes for running Threshold/S4 plugins as part of another product under one contract.
-	ConfigDigestPrefixEVMThresholdDecryption ConfigDigestPrefix = 7
-	ConfigDigestPrefixEVMS4                  ConfigDigestPrefix = 8
+	_                                        ConfigDigestPrefix = 0 // reserved to prevent errors where a zero-default creeps through somewhere
+	ConfigDigestPrefixEVM                    ConfigDigestPrefix = 1 // TODO: rename to ConfigDigestPrefixEVMSimple in the future
+	ConfigDigestPrefixTerra                  ConfigDigestPrefix = 2
+	ConfigDigestPrefixSolana                 ConfigDigestPrefix = 3
+	ConfigDigestPrefixStarknet               ConfigDigestPrefix = 4
+	_                                                           = 5 // reserved, not sure for what
+	ConfigDigestPrefixMercuryV02             ConfigDigestPrefix = 6 // Mercury v0.2 and v0.3
+	ConfigDigestPrefixEVMThresholdDecryption ConfigDigestPrefix = 7 // Run Threshold/S4 plugins as part of another product under one contract.
+	ConfigDigestPrefixEVMS4                  ConfigDigestPrefix = 8 // Run Threshold/S4 plugins as part of another product under one contract.
+	ConfigDigestPrefixLLO                    ConfigDigestPrefix = 9 // Mercury v1
 
 	ConfigDigestPrefixOCR1 ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
 	_                      ConfigDigestPrefix = 0xFFFF // reserved for future use

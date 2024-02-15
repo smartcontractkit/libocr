@@ -65,6 +65,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
+	// Note that the MessageEpochStartRequest might still be invalid, e.g. if its HighestCertified is invalid.
+	outgen.logger.Debug("got MessageEpochStartRequest with valid SignedHighestCertifiedTimestamp", commontypes.LogFields{
+		"sender":                       sender,
+		"msgHighestCertifiedTimestamp": msg.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp,
+	})
+
 	outgen.leaderState.epochStartRequests[sender].message = msg
 
 	if len(outgen.leaderState.epochStartRequests) < outgen.config.ByzQuorumSize() {
@@ -115,6 +121,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 	}
 
 	highestCertifiedProof := make([]AttributedSignedHighestCertifiedTimestamp, 0, outgen.config.ByzQuorumSize())
+	contributors := make([]commontypes.OracleID, 0, outgen.config.ByzQuorumSize())
 	for sender, epochStartRequest := range outgen.leaderState.epochStartRequests {
 		if epochStartRequest.bad {
 			continue
@@ -123,6 +130,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 			epochStartRequest.message.SignedHighestCertifiedTimestamp,
 			sender,
 		})
+		contributors = append(contributors, sender)
 		// not necessary, but hopefully helps with readability
 		if len(highestCertifiedProof) == outgen.config.ByzQuorumSize() {
 			break
@@ -145,7 +153,9 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 
 	outgen.leaderState.phase = outgenLeaderPhaseSentEpochStart
 
-	outgen.logger.Info("broadcasting MessageEpochStart", nil)
+	outgen.logger.Info("broadcasting MessageEpochStart", commontypes.LogFields{
+		"contributors": contributors,
+	})
 
 	outgen.netSender.Broadcast(MessageEpochStart[RI]{
 		outgen.sharedState.e,
@@ -170,7 +180,9 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 
 func (outgen *outcomeGenerationState[RI]) eventTRoundTimeout() {
 	outgen.logger.Debug("TRound fired", commontypes.LogFields{
-		"deltaRound": outgen.config.DeltaRound.String(),
+		"seqNr":          outgen.sharedState.seqNr,
+		"committedSeqNr": outgen.sharedState.committedSeqNr,
+		"deltaRound":     outgen.config.DeltaRound.String(),
 	})
 	outgen.startSubsequentLeaderRound()
 }
@@ -217,22 +229,28 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessageObservation for wrong epoch", commontypes.LogFields{
 			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
 			"msgEpoch": msg.Epoch,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if outgen.sharedState.l != outgen.id {
 		outgen.logger.Warn("dropping MessageObservation to non-leader", commontypes.LogFields{
-			"sender": sender,
+			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
 
 	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart && outgen.leaderState.phase != outgenLeaderPhaseGrace {
 		outgen.logger.Debug("dropping MessageObservation for wrong phase", commontypes.LogFields{
-			"sender": sender,
-			"phase":  outgen.leaderState.phase,
+			"sender":   sender,
+			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
+			"phase":    outgen.leaderState.phase,
 		})
 		return
 	}
@@ -240,8 +258,8 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 	if msg.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("dropping MessageObservation with invalid SeqNr", commontypes.LogFields{
 			"sender":   sender,
-			"msgSeqNr": msg.SeqNr,
 			"seqNr":    outgen.sharedState.seqNr,
+			"msgSeqNr": msg.SeqNr,
 		})
 		return
 	}
@@ -257,6 +275,7 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 	if err := msg.SignedObservation.Verify(outgen.ID(), outgen.sharedState.seqNr, outgen.leaderState.query, outgen.config.OracleIdentities[sender].OffchainPublicKey); err != nil {
 		outgen.logger.Warn("dropping MessageObservation carrying invalid SignedObservation", commontypes.LogFields{
 			"sender": sender,
+			"seqNr":  outgen.sharedState.seqNr,
 			"error":  err,
 		})
 		return
@@ -278,6 +297,7 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 	if !ok || err != nil {
 		outgen.logger.Warn("dropping MessageObservation carrying invalid Observation", commontypes.LogFields{
 			"sender": sender,
+			"seqNr":  outgen.sharedState.seqNr,
 			"error":  err,
 		})
 	}
@@ -288,7 +308,8 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 	}
 
 	outgen.logger.Debug("got valid MessageObservation", commontypes.LogFields{
-		"seqNr": outgen.sharedState.seqNr,
+		"sender": sender,
+		"seqNr":  outgen.sharedState.seqNr,
 	})
 
 	outgen.leaderState.observations[sender] = &msg.SignedObservation
@@ -301,6 +322,7 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 	}
 	if observationCount == quorum {
 		outgen.logger.Debug("reached observation quorum, starting observation grace period", commontypes.LogFields{
+			"seqNr":             outgen.sharedState.seqNr,
 			"deltaGrace":        outgen.config.DeltaGrace.String(),
 			"observationQuorum": quorum,
 		})
@@ -312,24 +334,29 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 func (outgen *outcomeGenerationState[RI]) eventTGraceTimeout() {
 	if outgen.leaderState.phase != outgenLeaderPhaseGrace {
 		outgen.logger.Error("leader's phase conflicts TGrace timeout", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.leaderState.phase,
 		})
 		return
 	}
-	asos := []AttributedSignedObservation{}
+	asos := make([]AttributedSignedObservation, 0, outgen.config.N())
+	contributors := make([]commontypes.OracleID, 0, outgen.config.N())
 	for oid, so := range outgen.leaderState.observations {
 		if so != nil {
 			asos = append(asos, AttributedSignedObservation{
 				*so,
 				commontypes.OracleID(oid),
 			})
+			contributors = append(contributors, commontypes.OracleID(oid))
 		}
 	}
 
 	outgen.leaderState.phase = outgenLeaderPhaseSentProposal
 
 	outgen.logger.Debug("broadcasting MessageProposal after TGrace fired", commontypes.LogFields{
-		"deltaGrace": outgen.config.DeltaGrace.String(),
+		"seqNr":        outgen.sharedState.seqNr,
+		"contributors": contributors,
+		"deltaGrace":   outgen.config.DeltaGrace.String(),
 	})
 	outgen.netSender.Broadcast(MessageProposal[RI]{
 		outgen.sharedState.e,
