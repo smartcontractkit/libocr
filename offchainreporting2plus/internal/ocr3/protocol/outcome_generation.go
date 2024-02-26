@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -33,6 +34,7 @@ func RunOutcomeGeneration[RI any](
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	reportingPlugin ocr3types.ReportingPlugin[RI],
@@ -52,6 +54,7 @@ func RunOutcomeGeneration[RI any](
 		id:                                     id,
 		localConfig:                            localConfig,
 		logger:                                 logger.MakeUpdated(commontypes.LogFields{"proto": "outgen"}),
+		metrics:                                newOutcomeGenerationMetrics(metricsRegisterer, logger),
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
 		reportingPlugin:                        reportingPlugin,
@@ -72,6 +75,7 @@ type outcomeGenerationState[RI any] struct {
 	id                                     commontypes.OracleID
 	localConfig                            types.LocalConfig
 	logger                                 loghelper.LoggerWithContext
+	metrics                                outcomeGenerationMetrics
 	netSender                              NetworkSender[RI]
 	offchainKeyring                        types.OffchainKeyring
 	reportingPlugin                        ocr3types.ReportingPlugin[RI]
@@ -200,6 +204,7 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		// ensure prompt exit
 		select {
 		case <-chDone:
+			outgen.metrics.Close()
 			outgen.logger.Info("OutcomeGeneration: exiting", commontypes.LogFields{
 				"e": outgen.sharedState.e,
 				"l": outgen.sharedState.l,

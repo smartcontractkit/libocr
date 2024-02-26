@@ -120,7 +120,15 @@ func RunManagedMercuryOracle(
 				"ManagedMercuryOracle: error during reportingPlugin.Close()",
 			)
 
-			metricsRegistererWrapper.WrapRegistererWith(prometheus.Labels{"configDigest": sharedConfig.ConfigDigest.String()})
+			registerer := prometheus.WrapRegistererWith(
+				prometheus.Labels{
+					// disambiguate different protocol instances by configDigest
+					"configDigest": sharedConfig.ConfigDigest.String(),
+					// disambiguate different oracle instances by offchainPublicKey
+					"offchainPublicKey": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
+				},
+				metricsRegistererWrapper,
+			)
 
 			if err := validateMercuryPluginLimits(mercuryPluginInfo.Limits); err != nil {
 				logger.Error("ManagedMercuryOracle: invalid MercuryPluginInfo", commontypes.LogFields{
@@ -210,7 +218,7 @@ func RunManagedMercuryOracle(
 				oid,
 				localConfig,
 				childLogger,
-				metricsRegistererWrapper,
+				registerer,
 				netEndpoint,
 				offchainKeyring,
 				ocr3OnchainKeyring,

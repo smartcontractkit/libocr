@@ -183,6 +183,7 @@ func (o *oracleState[RI]) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
+			o.metricsRegisterer,
 			o.netEndpoint,
 			o.offchainKeyring,
 			o.reportingPlugin,

@@ -237,9 +237,9 @@ func (p *discoveryProtocol) lockedAllowedPeers(ann Announcement) (ps []ragetypes
 func (p *discoveryProtocol) lockedSetMetrics() {
 	// We assume that the following mappings do not contain zero values
 	// thus it is correct to take their length.
-	p.metrics.peers.Set(float64(len(p.locked.numGroupsByOracle)))
+	p.metrics.registeredPeers.Set(float64(len(p.locked.numGroupsByOracle)))
 	p.metrics.bootstrappers.Set(float64(len(p.locked.numGroupsByBootstrapper)))
-	p.metrics.peersDiscovered.Set(float64(len(p.locked.bestAnnouncement)))
+	p.metrics.discoveredPeers.Set(float64(len(p.locked.bestAnnouncement)))
 }
 
 func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error {

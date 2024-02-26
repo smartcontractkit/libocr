@@ -86,8 +86,8 @@ func makePacemakerState(
 		database:                               database,
 		id:                                     id,
 		localConfig:                            localConfig,
-		localMetrics:                           newPacemakerMetrics(metricsRegisterer, id, logger),
 		logger:                                 logger,
+		metrics:                                newPacemakerMetrics(metricsRegisterer, logger),
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
 		onchainKeyring:                         onchainKeyring,
@@ -113,8 +113,8 @@ type pacemakerState struct {
 	database                               types.Database
 	id                                     commontypes.OracleID
 	localConfig                            types.LocalConfig
-	localMetrics                           pacemakerMetrics
 	logger                                 loghelper.LoggerWithContext
+	metrics                                pacemakerMetrics
 	netSender                              NetworkSender
 	offchainKeyring                        types.OffchainKeyring
 	onchainKeyring                         types.OnchainKeyring
@@ -233,7 +233,7 @@ func (pace *pacemakerState) run() {
 		case <-chDone:
 			pace.logger.Info("Pacemaker: winding down", nil)
 			pace.reportGenerationSubprocess.Wait()
-			pace.localMetrics.Close()
+			pace.metrics.Close()
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:
@@ -449,8 +449,8 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender commonty
 			if pace.ne < pace.e {        // ne ← max{ne, e}
 				pace.ne = pace.e
 			}
-			pace.localMetrics.epoch.Set(float64(pace.e))
-			pace.localMetrics.leader.Set(float64(pace.l))
+			pace.metrics.epoch.Set(float64(pace.e))
+			pace.metrics.leader.Set(float64(pace.l))
 			pace.persist()
 
 			// abort instance [...], initialize instance (e,l) of report generation

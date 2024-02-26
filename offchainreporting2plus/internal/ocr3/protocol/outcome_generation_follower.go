@@ -680,6 +680,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 
 		outgen.sharedState.committedSeqNr = commit.SeqNr
 		outgen.sharedState.committedOutcome = commit.Outcome
+		outgen.metrics.committedSeqNr.Set(float64(commit.SeqNr))
 
 		outgen.logger.Debug("✅ committed outcome", commontypes.LogFields{
 			"seqNr": commit.SeqNr,

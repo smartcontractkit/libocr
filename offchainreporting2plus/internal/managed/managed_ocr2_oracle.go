@@ -52,6 +52,7 @@ func RunManagedOCR2Oracle(
 	}
 
 	metricsRegistererWrapper := metricshelper.NewPrometheusRegistererWrapper(metricsRegisterer, logger)
+
 	subs.Go(func() {
 		collectGarbage(ctx, database, localConfig, logger)
 	})
@@ -87,7 +88,15 @@ func RunManagedOCR2Oracle(
 				return
 			}
 
-			metricsRegistererWrapper.WrapRegistererWith(prometheus.Labels{"configDigest": sharedConfig.ConfigDigest.String()})
+			registerer := prometheus.WrapRegistererWith(
+				prometheus.Labels{
+					// disambiguate different protocol instances by configDigest
+					"configDigest": sharedConfig.ConfigDigest.String(),
+					// disambiguate different oracle instances by offchainPublicKey
+					"offchainPublicKey": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
+				},
+				metricsRegistererWrapper,
+			)
 
 			// Run with new config
 			peerIDs := []string{}
@@ -207,7 +216,7 @@ func RunManagedOCR2Oracle(
 				oid,
 				localConfig,
 				childLogger,
-				metricsRegistererWrapper,
+				registerer,
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,

@@ -8,48 +8,50 @@ import (
 
 type discoveryProtocolMetrics struct {
 	registerer      prometheus.Registerer
-	peers           prometheus.Gauge
-	peersDiscovered prometheus.Gauge
+	registeredPeers prometheus.Gauge
+	discoveredPeers prometheus.Gauge
 	bootstrappers   prometheus.Gauge
 }
 
 func newDiscoveryProtocolMetrics(registerer prometheus.Registerer, peerID string, logger commontypes.Logger) discoveryProtocolMetrics {
 	labels := map[string]string{"peerID": peerID}
 
-	peers := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        "ragedisco_peers",
-		Help:        "The total number of peers in network discovery",
+	registeredPeers := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:        "ragedisco_registered_peers",
+		Help:        "The number of registered peers in peer discovery",
 		ConstLabels: labels,
 	})
 
-	metricshelper.RegisterOrLogError(logger, registerer, peers, "ragedisco_peers")
+	metricshelper.RegisterOrLogError(logger, registerer, registeredPeers, "ragedisco_registered_peers")
 
-	peersDiscovered := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:        "ragedisco_peers_discovered",
-		Help:        "The number of discovered peers in network discovery",
+	discoveredPeers := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "ragedisco_discovered_peers",
+		Help: "The number of discovered peers in peer discovery. A peer " +
+			"is considered discovered if we have obtained a valid announcement for it. " +
+			"Note that a valid announcement may still contain an incorrect address.",
 		ConstLabels: labels,
 	})
 
-	metricshelper.RegisterOrLogError(logger, registerer, peersDiscovered, "ragedisco_peers_discovered")
+	metricshelper.RegisterOrLogError(logger, registerer, discoveredPeers, "ragedisco_discovered_peers")
 
-	bootstappers := prometheus.NewGauge(prometheus.GaugeOpts{
+	bootstrappers := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "ragedisco_bootstappers",
-		Help:        "The number of undiscovered peers in network discover",
+		Help:        "The number of bootstrappers in peer discovery",
 		ConstLabels: labels,
 	})
 
-	metricshelper.RegisterOrLogError(logger, registerer, bootstappers, "ragedisco_bootstappers")
+	metricshelper.RegisterOrLogError(logger, registerer, bootstrappers, "ragedisco_bootstappers")
 
 	return discoveryProtocolMetrics{
 		registerer,
-		peers,
-		peersDiscovered,
-		bootstappers,
+		registeredPeers,
+		discoveredPeers,
+		bootstrappers,
 	}
 }
 
 func (dpm *discoveryProtocolMetrics) Close() {
-	dpm.registerer.Unregister(dpm.peers)
+	dpm.registerer.Unregister(dpm.registeredPeers)
 	dpm.registerer.Unregister(dpm.bootstrappers)
-	dpm.registerer.Unregister(dpm.peersDiscovered)
+	dpm.registerer.Unregister(dpm.discoveredPeers)
 }

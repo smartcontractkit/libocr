@@ -11,13 +11,15 @@ type PrometheusRegistererWrapper struct {
 	logger     commontypes.Logger
 }
 
-func NewPrometheusRegistererWrapper(registererImpl prometheus.Registerer, logger commontypes.Logger) *PrometheusRegistererWrapper {
+func NewPrometheusRegistererWrapper(registerer prometheus.Registerer, logger commontypes.Logger) *PrometheusRegistererWrapper {
 	prw := &PrometheusRegistererWrapper{
-		registerer: registererImpl,
+		registerer: registerer,
 		logger:     logger,
 	}
 	return prw
 }
+
+var _ prometheus.Registerer = (*PrometheusRegistererWrapper)(nil)
 
 func (prw *PrometheusRegistererWrapper) Register(collector prometheus.Collector) error {
 	prw.logger.Debug("Registering collector", nil)
@@ -31,7 +33,7 @@ func (prw *PrometheusRegistererWrapper) Register(collector prometheus.Collector)
 }
 
 func (prw *PrometheusRegistererWrapper) MustRegister(collectors ...prometheus.Collector) {
-	prw.logger.Warn("Should use the Register method instead! Registering collectors with MustRegister will panic if not successful", nil)
+	prw.logger.Critical("Should use the Register method instead! Registering collectors with MustRegister will panic if not successful", nil)
 	prw.registerer.MustRegister(collectors...)
 }
 
@@ -57,11 +59,4 @@ func RegisterOrLogError(logger commontypes.Logger,
 		logger.Error("PrometheusMetrics: Could not register collector",
 			commontypes.LogFields{"name": name, "error": err})
 	}
-}
-
-func (prw *PrometheusRegistererWrapper) WrapRegistererWith(labels prometheus.Labels) {
-	if prw.registerer == nil {
-		prw.logger.Warn("Nil registerer implementation", nil)
-	}
-	prw.registerer = prometheus.WrapRegistererWith(labels, prw.registerer)
 }

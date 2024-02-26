@@ -69,8 +69,8 @@ func makePacemakerState[RI any](
 		database:                       database,
 		id:                             id,
 		localConfig:                    localConfig,
-		localMetrics:                   newPacemakerMetrics(metricsRegisterer, id, logger),
 		logger:                         logger.MakeUpdated(commontypes.LogFields{"proto": "pacemaker"}),
+		metrics:                        newPacemakerMetrics(metricsRegisterer, logger),
 		netSender:                      netSender,
 		offchainKeyring:                offchainKeyring,
 		telemetrySender:                telemetrySender,
@@ -89,8 +89,8 @@ type pacemakerState[RI any] struct {
 	database                       Database
 	id                             commontypes.OracleID
 	localConfig                    types.LocalConfig
-	localMetrics                   pacemakerMetrics
 	logger                         loghelper.LoggerWithContext
+	metrics                        pacemakerMetrics
 	netSender                      NetworkSender[RI]
 	offchainKeyring                types.OffchainKeyring
 	telemetrySender                TelemetrySender
@@ -179,7 +179,7 @@ func (pace *pacemakerState[RI]) run(restoredState PacemakerState) {
 		// ensure prompt exit
 		select {
 		case <-chDone:
-			pace.localMetrics.Close()
+			pace.metrics.Close()
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:
@@ -306,8 +306,8 @@ func (pace *pacemakerState[RI]) messageNewEpochWish(msg MessageNewEpochWish[RI],
 		if pace.ne < pace.e {             // ne ← max{ne, e}
 			pace.ne = pace.e
 		}
-		pace.localMetrics.epoch.Set(float64(pace.e))
-		pace.localMetrics.leader.Set(float64(pace.l))
+		pace.metrics.epoch.Set(float64(pace.e))
+		pace.metrics.leader.Set(float64(pace.l))
 		pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 
 		pace.notifyOutcomeGenerationOfNewEpoch = true // invoke event newEpochStart(e, l)

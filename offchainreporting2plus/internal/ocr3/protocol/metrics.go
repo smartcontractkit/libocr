@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
@@ -14,35 +13,52 @@ type pacemakerMetrics struct {
 }
 
 func newPacemakerMetrics(registerer prometheus.Registerer,
-	oracleID commontypes.OracleID,
 	logger commontypes.Logger) pacemakerMetrics {
-	newEpochsNum := prometheus.NewGauge(prometheus.GaugeOpts{
+
+	epoch := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_epoch",
 		Help: "The total number of initialized epochs",
-		ConstLabels: prometheus.Labels{
-			"oracleID": fmt.Sprintf("%d", oracleID),
-		},
 	})
-
-	metricshelper.RegisterOrLogError(logger, registerer, newEpochsNum, "ocr3_epoch")
+	metricshelper.RegisterOrLogError(logger, registerer, epoch, "ocr3_epoch")
 
 	leader := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_experimental_leader_oid",
 		Help: "The leader oracle id",
-		ConstLabels: prometheus.Labels{
-			"oracleID": fmt.Sprintf("%d", oracleID),
-		},
 	})
-
 	metricshelper.RegisterOrLogError(logger, registerer, leader, "ocr3_experimental_leader_oid")
 
 	return pacemakerMetrics{
 		registerer,
-		newEpochsNum,
+		epoch,
 		leader,
 	}
 }
 
 func (pm *pacemakerMetrics) Close() {
 	pm.registerer.Unregister(pm.epoch)
+	pm.registerer.Unregister(pm.leader)
+}
+
+type outcomeGenerationMetrics struct {
+	registerer     prometheus.Registerer
+	committedSeqNr prometheus.Gauge
+}
+
+func newOutcomeGenerationMetrics(registerer prometheus.Registerer,
+	logger commontypes.Logger) outcomeGenerationMetrics {
+
+	committedSeqNr := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "ocr3_committed_sequence_number",
+		Help: "The total number of committed sequence numbers",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, committedSeqNr, "ocr3_committed_sequence_number")
+
+	return outcomeGenerationMetrics{
+		registerer,
+		committedSeqNr,
+	}
+}
+
+func (om *outcomeGenerationMetrics) Close() {
+	om.registerer.Unregister(om.committedSeqNr)
 }
