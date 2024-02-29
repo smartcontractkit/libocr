@@ -6,8 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/internal/metricshelper"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -38,15 +40,18 @@ type PeerConfig struct {
 	V2DiscovererDatabase nettypes.DiscovererDatabase
 
 	V2EndpointConfig EndpointConfigV2
+
+	MetricsRegisterer prometheus.Registerer
 }
 
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
 type concretePeerV2 struct {
-	peerID         ragetypes.PeerID
-	host           *ragep2p.Host
-	discoverer     *ragedisco.Ragep2pDiscoverer
-	logger         loghelper.LoggerWithContext
-	endpointConfig EndpointConfigV2
+	peerID            ragetypes.PeerID
+	host              *ragep2p.Host
+	discoverer        *ragedisco.Ragep2pDiscoverer
+	metricsRegisterer prometheus.Registerer
+	logger            loghelper.LoggerWithContext
+	endpointConfig    EndpointConfigV2
 }
 
 // Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
@@ -70,13 +75,17 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 	if len(c.V2AnnounceAddresses) == 0 {
 		announceAddresses = c.V2ListenAddresses
 	}
-	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase)
+
+	metricsRegistererWrapper := metricshelper.NewPrometheusRegistererWrapper(c.MetricsRegisterer, c.Logger)
+
+	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase, metricsRegistererWrapper)
 	host, err := ragep2p.NewHost(
 		ragep2p.HostConfig{c.V2DeltaDial},
 		c.PrivKey,
 		c.V2ListenAddresses,
 		discoverer,
 		c.Logger,
+		metricsRegistererWrapper,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct ragep2p host: %w", err)
@@ -92,6 +101,7 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 		peerID,
 		host,
 		discoverer,
+		metricsRegistererWrapper,
 		logger,
 		c.V2EndpointConfig,
 	}, nil

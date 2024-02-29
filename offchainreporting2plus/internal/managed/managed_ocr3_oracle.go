@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/internal/metricshelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol"
@@ -30,6 +32,7 @@ func RunManagedOCR3Oracle[RI any](
 	database ocr3types.Database,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	monitoringEndpoint commontypes.MonitoringEndpoint,
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
@@ -48,6 +51,8 @@ func RunManagedOCR3Oracle[RI any](
 			forwardTelemetry(ctx, logger, monitoringEndpoint, chTelemetry)
 		})
 	}
+
+	metricsRegistererWrapper := metricshelper.NewPrometheusRegistererWrapper(metricsRegisterer, logger)
 
 	runWithContractConfig(
 		ctx,
@@ -79,6 +84,16 @@ func RunManagedOCR3Oracle[RI any](
 				})
 				return
 			}
+
+			registerer := prometheus.WrapRegistererWith(
+				prometheus.Labels{
+					// disambiguate different protocol instances by configDigest
+					"configDigest": sharedConfig.ConfigDigest.String(),
+					// disambiguate different oracle instances by offchainPublicKey
+					"offchainPublicKey": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
+				},
+				metricsRegistererWrapper,
+			)
 
 			// Run with new config
 			peerIDs := []string{}
@@ -124,13 +139,14 @@ func RunManagedOCR3Oracle[RI any](
 				return
 			}
 
-			lims, err := limits.OCR3Limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, onchainKeyring.MaxSignatureLength())
+			maxSigLen := onchainKeyring.MaxSignatureLength()
+			lims, err := limits.OCR3Limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, maxSigLen)
 			if err != nil {
 				logger.Error("ManagedOCR3Oracle: error during limits", commontypes.LogFields{
 					"error":                 err,
 					"publicConfig":          sharedConfig.PublicConfig,
 					"reportingPluginLimits": reportingPluginInfo.Limits,
-					"maxSigLen":             onchainKeyring.MaxSignatureLength(),
+					"maxSigLen":             maxSigLen,
 				})
 				return
 			}
@@ -156,7 +172,7 @@ func RunManagedOCR3Oracle[RI any](
 				chTelemetrySend,
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
-				onchainKeyring.MaxSignatureLength(),
+				maxSigLen,
 				childLogger,
 				reportingPluginInfo.Limits,
 				sharedConfig.N(),
@@ -183,6 +199,7 @@ func RunManagedOCR3Oracle[RI any](
 				oid,
 				localConfig,
 				childLogger,
+				registerer,
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,

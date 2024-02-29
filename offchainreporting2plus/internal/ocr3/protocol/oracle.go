@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
@@ -27,6 +28,7 @@ func RunOracle[RI any](
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netEndpoint NetworkEndpoint[RI],
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring ocr3types.OnchainKeyring[RI],
@@ -42,6 +44,7 @@ func RunOracle[RI any](
 		id:                  id,
 		localConfig:         localConfig,
 		logger:              logger,
+		metricsRegisterer:   metricsRegisterer,
 		netEndpoint:         netEndpoint,
 		offchainKeyring:     offchainKeyring,
 		onchainKeyring:      onchainKeyring,
@@ -60,6 +63,7 @@ type oracleState[RI any] struct {
 	id                  commontypes.OracleID
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
+	metricsRegisterer   prometheus.Registerer
 	netEndpoint         NetworkEndpoint[RI]
 	offchainKeyring     types.OffchainKeyring
 	onchainKeyring      ocr3types.OnchainKeyring[RI]
@@ -158,6 +162,7 @@ func (o *oracleState[RI]) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
+			o.metricsRegisterer,
 			o.netEndpoint,
 			o.offchainKeyring,
 			o.telemetrySender,
@@ -178,6 +183,7 @@ func (o *oracleState[RI]) run() {
 			o.id,
 			o.localConfig,
 			o.logger,
+			o.metricsRegisterer,
 			o.netEndpoint,
 			o.offchainKeyring,
 			o.reportingPlugin,

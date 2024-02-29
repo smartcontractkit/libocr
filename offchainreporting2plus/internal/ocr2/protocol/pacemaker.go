@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
@@ -37,6 +38,7 @@ func RunPacemaker(
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
@@ -47,7 +49,7 @@ func RunPacemaker(
 	pace := makePacemakerState(
 		ctx, subprocesses, chNetToPacemaker, chNetToReportGeneration, chPacemakerToOracle,
 		chReportGenerationToReportFinalization, config, contractTransmitter, database,
-		id, localConfig, logger, netSender, offchainKeyring, onchainKeyring, reportingPlugin,
+		id, localConfig, logger, metricsRegisterer, netSender, offchainKeyring, onchainKeyring, reportingPlugin,
 		reportQuorum, telemetrySender,
 	)
 	pace.run()
@@ -63,6 +65,7 @@ func makePacemakerState(
 	config ocr2config.SharedConfig, contractTransmitter types.ContractTransmitter,
 	database types.Database, id commontypes.OracleID,
 	localConfig types.LocalConfig, logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
@@ -84,6 +87,7 @@ func makePacemakerState(
 		id:                                     id,
 		localConfig:                            localConfig,
 		logger:                                 logger,
+		metrics:                                newPacemakerMetrics(metricsRegisterer, logger),
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
 		onchainKeyring:                         onchainKeyring,
@@ -110,6 +114,7 @@ type pacemakerState struct {
 	id                                     commontypes.OracleID
 	localConfig                            types.LocalConfig
 	logger                                 loghelper.LoggerWithContext
+	metrics                                pacemakerMetrics
 	netSender                              NetworkSender
 	offchainKeyring                        types.OffchainKeyring
 	onchainKeyring                         types.OnchainKeyring
@@ -228,6 +233,7 @@ func (pace *pacemakerState) run() {
 		case <-chDone:
 			pace.logger.Info("Pacemaker: winding down", nil)
 			pace.reportGenerationSubprocess.Wait()
+			pace.metrics.Close()
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:
@@ -443,6 +449,8 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender commonty
 			if pace.ne < pace.e {        // ne ← max{ne, e}
 				pace.ne = pace.e
 			}
+			pace.metrics.epoch.Set(float64(pace.e))
+			pace.metrics.leader.Set(float64(pace.l))
 			pace.persist()
 
 			// abort instance [...], initialize instance (e,l) of report generation
