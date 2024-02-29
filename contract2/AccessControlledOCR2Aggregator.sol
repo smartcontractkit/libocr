@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.19;
 
 import "./OCR2Aggregator.sol";
 import "./SimpleReadAccessController.sol";
@@ -40,7 +40,7 @@ contract AccessControlledOCR2Aggregator is OCR2Aggregator, SimpleReadAccessContr
     virtual
     returns (string memory)
   {
-    return "AccessControlledOCR2Aggregator 1.0.0-alpha";
+    return "AccessControlledOCR2Aggregator 1.0.0";
   }
 
 

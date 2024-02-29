@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
-
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/knock"
+	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/mtls"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimit"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimitedconn"
@@ -147,11 +147,12 @@ type HostConfig struct {
 // limiting.
 type Host struct {
 	// Constructor args
-	config          HostConfig
-	secretKey       ed25519.PrivateKey
-	listenAddresses []string
-	discoverer      Discoverer
-	logger          loghelper.LoggerWithContext
+	config            HostConfig
+	secretKey         ed25519.PrivateKey
+	listenAddresses   []string
+	discoverer        Discoverer
+	logger            loghelper.LoggerWithContext
+	metricsRegisterer prometheus.Registerer
 
 	// Derived from secretKey
 	id      types.PeerID
@@ -180,6 +181,7 @@ func NewHost(
 	listenAddresses []string,
 	discoverer Discoverer,
 	logger commontypes.Logger,
+	metricsRegisterer prometheus.Registerer,
 ) (*Host, error) {
 	if len(listenAddresses) == 0 {
 		return nil, fmt.Errorf("no listen addresses provided")
@@ -198,6 +200,7 @@ func NewHost(
 		discoverer,
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
 		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": types.PeerID(id)}),
+		metricsRegisterer,
 
 		id,
 		mtls.NewMinimalX509CertFromPrivateKey(secretKey),

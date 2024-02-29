@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.19;
 
 import "./interfaces/AccessControllerInterface.sol";
 import "./interfaces/AggregatorV2V3Interface.sol";
@@ -1596,7 +1596,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     virtual
     returns (string memory)
   {
-    return "OCR2Aggregator 1.0.0-alpha";
+    return "OCR2Aggregator 1.0.0";
   }
 
   /***************************************************************************

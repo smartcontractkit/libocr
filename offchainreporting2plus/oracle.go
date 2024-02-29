@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed"
@@ -49,6 +50,9 @@ type OCR2OracleArgs struct {
 	// Used to send logs to a monitor.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
 
+	// Enables adding metrics to track. This may be nil.
+	MetricsRegisterer prometheus.Registerer
+
 	// Computes a config digest using purely offchain logic.
 	OffchainConfigDigester types.OffchainConfigDigester
 
@@ -81,6 +85,7 @@ func (args OCR2OracleArgs) runManaged(ctx context.Context) {
 		args.Database,
 		args.LocalConfig,
 		logger,
+		args.MetricsRegisterer,
 		args.MonitoringEndpoint,
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
@@ -117,6 +122,9 @@ type MercuryOracleArgs struct {
 	// Logger logs stuff.
 	Logger commontypes.Logger
 
+	// Enables adding metrics to track. This may be nil.
+	MetricsRegisterer prometheus.Registerer
+
 	// Used to send logs to a monitor.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
 
@@ -152,6 +160,7 @@ func (args MercuryOracleArgs) runManaged(ctx context.Context) {
 		args.Database,
 		args.LocalConfig,
 		logger,
+		args.MetricsRegisterer,
 		args.MonitoringEndpoint,
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
@@ -185,6 +194,9 @@ type OCR3OracleArgs[RI any] struct {
 
 	// Logger logs stuff.
 	Logger commontypes.Logger
+
+	// Enables adding metrics to track. This may be nil.
+	MetricsRegisterer prometheus.Registerer
 
 	// Used to send logs to a monitor.
 	MonitoringEndpoint commontypes.MonitoringEndpoint
@@ -221,6 +233,7 @@ func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 		args.Database,
 		args.LocalConfig,
 		logger,
+		args.MetricsRegisterer,
 		args.MonitoringEndpoint,
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
