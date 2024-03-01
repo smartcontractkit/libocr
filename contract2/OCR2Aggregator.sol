@@ -600,7 +600,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
     4 + // function selector
     32 * 3 + // 3 words containing reportContext
     32 + // word containing start location of abiencoded report value
-    32 + // word containing location start of abiencoded rs value
+    32 + // word containing start location of abiencoded rs value
     32 + // word containing start location of abiencoded ss value
     32 + // rawVs value
     32 + // word containing length of report
@@ -622,7 +622,7 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   {
     // calldata will never be big enough to make this overflow
     uint256 expected = TRANSMIT_MSGDATA_CONSTANT_LENGTH_COMPONENT +
-      report.length + // one byte pure entry in report
+      report.length + // one byte per entry in report
       rs.length * 32 + // 32 bytes per entry in rs
       ss.length * 32 + // 32 bytes per entry in ss
       0; // placeholder
@@ -764,7 +764,11 @@ contract OCR2Aggregator is OCR2Abstract, OwnerIsCreator, AggregatorV2V3Interface
   {
     Report memory report = _decodeReport(rawReport);
 
+
     require(report.observations.length <= maxNumOracles, "num observations out of bounds");
+    // Offchain logic ensures that a quorum of oracles is operating on a matching set of at least
+    // 2f+1 observations. By assumption, up to f of those can be faulty, which includes being
+    // malformed. Conversely, more than f observations have to be well-formed and sent on chain.
     require(hotVars.f < report.observations.length, "too few values to trust median");
 
     hotVars.latestEpochAndRound = epochAndRound;

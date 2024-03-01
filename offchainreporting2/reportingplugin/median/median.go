@@ -426,7 +426,9 @@ func (nm *numericalMedian) Report(ctx context.Context, repts types.ReportTimesta
 
 	paos := parseAttributedObservations(nm.logger, aos)
 
-	// By assumption, we have at most f malicious oracles, so there should be at least f+1 valid paos
+	// The Report function is guaranteed to receive at least 2f+1 distinct attributed
+	// observations. By assumption, up to f of these may be faulty, which includes
+	// being malformed. Conversely, there have to be at least f+1 valid paos.
 	if !(nm.f+1 <= len(paos)) {
 		return false, nil, fmt.Errorf("only received %v valid attributed observations, but need at least f+1 (%v)", len(paos), nm.f+1)
 	}
