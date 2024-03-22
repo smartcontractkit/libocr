@@ -243,6 +243,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 	}
 
 	outgen.followerState.phase = outgenFollowerPhaseSentObservation
+	outgen.metrics.sentObservationsTotal.Inc()
 	outgen.logger.Debug("sent MessageObservation to leader", commontypes.LogFields{
 		"seqNr": outgen.sharedState.seqNr,
 	})
@@ -359,13 +360,13 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 				return
 			}
 
-			err, ok := callPluginFromOutcomeGeneration[error](
+			err, ok := callPluginWithLOOPPContextFromOutcomeGeneration[error](
 				outgen,
 				"ValidateObservation",
-				0, // ValidateObservation is a pure function and should finish "instantly"
 				outgen.OutcomeCtx(outgen.sharedState.seqNr),
-				func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
+				func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (error, error) {
 					return outgen.reportingPlugin.ValidateObservation(
+						looppctx,
 						outctx,
 						*outgen.followerState.query,
 						types.AttributedObservation{aso.SignedObservation.Observation, aso.Observer},
@@ -377,6 +378,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 					"seqNr": outgen.sharedState.seqNr,
 					"error": err,
 				})
+			}
+
+			if aso.Observer == outgen.id {
+				outgen.metrics.includedObservationsTotal.Inc()
 			}
 
 			attributedObservations = append(attributedObservations, types.AttributedObservation{
@@ -394,13 +399,12 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 		attributedObservations,
 	)
 
-	outcome, ok := callPluginFromOutcomeGeneration[ocr3types.Outcome](
+	outcome, ok := callPluginWithLOOPPContextFromOutcomeGeneration[ocr3types.Outcome](
 		outgen,
 		"Outcome",
-		0, // Outcome is a pure function and should finish "instantly"
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(_ context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
-			return outgen.reportingPlugin.Outcome(outctx, *outgen.followerState.query, attributedObservations)
+		func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
+			return outgen.reportingPlugin.Outcome(looppctx, outctx, *outgen.followerState.query, attributedObservations)
 		},
 	)
 	if !ok {
@@ -651,6 +655,9 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		outgen.followerState.outcome.Outcome,
 		commitQuorumCertificate,
 	})
+	if outgen.id == outgen.sharedState.l {
+		outgen.metrics.ledCommittedRoundsTotal.Inc()
+	}
 
 	if uint64(outgen.config.RMax) <= outgen.sharedState.seqNr-outgen.sharedState.firstSeqNrOfEpoch+1 {
 		outgen.logger.Debug("epoch has been going on for too long, sending EventChangeLeader to Pacemaker", commontypes.LogFields{

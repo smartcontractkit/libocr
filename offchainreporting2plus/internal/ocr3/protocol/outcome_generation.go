@@ -2,8 +2,9 @@ package protocol
 
 import (
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -75,7 +76,7 @@ type outcomeGenerationState[RI any] struct {
 	id                                     commontypes.OracleID
 	localConfig                            types.LocalConfig
 	logger                                 loghelper.LoggerWithContext
-	metrics                                outcomeGenerationMetrics
+	metrics                                *outcomeGenerationMetrics
 	netSender                              NetworkSender[RI]
 	offchainKeyring                        types.OffchainKeyring
 	reportingPlugin                        ocr3types.ReportingPlugin[RI]
@@ -358,13 +359,12 @@ func (outgen *outcomeGenerationState[RI]) ObservationQuorum(query types.Query) (
 		return *outgen.sharedState.observationQuorum, true
 	}
 
-	observationQuorum, ok := callPluginFromOutcomeGeneration[ocr3types.Quorum](
+	observationQuorum, ok := callPluginWithLOOPPContextFromOutcomeGeneration[ocr3types.Quorum](
 		outgen,
 		"ObservationQuorum",
-		0, // pure function
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(ctx context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Quorum, error) {
-			return outgen.reportingPlugin.ObservationQuorum(outctx, query)
+		func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (ocr3types.Quorum, error) {
+			return outgen.reportingPlugin.ObservationQuorum(looppctx, outctx, query)
 		},
 	)
 
@@ -375,13 +375,13 @@ func (outgen *outcomeGenerationState[RI]) ObservationQuorum(query types.Query) (
 	nMinusF := outgen.config.N() - outgen.config.F
 
 	switch observationQuorum {
-	case ocr3types.QuorumFPlusOne:
+	case ocr3types.QuorumFPlusOne, ocr3types.OldQuorumFPlusOne:
 		quorum = outgen.config.F + 1
-	case ocr3types.QuorumTwoFPlusOne:
+	case ocr3types.QuorumTwoFPlusOne, ocr3types.OldQuorumTwoFPlusOne:
 		quorum = 2*outgen.config.F + 1
-	case ocr3types.QuorumByzQuorum:
+	case ocr3types.QuorumByzQuorum, ocr3types.OldQuorumByzQuorum:
 		quorum = outgen.config.ByzQuorumSize()
-	case ocr3types.QuorumNMinusF:
+	case ocr3types.QuorumNMinusF, ocr3types.OldQuorumNMinusF:
 		quorum = nMinusF
 	default:
 		quorum = int(observationQuorum)
@@ -420,6 +420,32 @@ func callPluginFromOutcomeGeneration[T any, RI any](
 		maxDuration,
 		func(ctx context.Context) (T, error) {
 			return f(ctx, outctx)
+		},
+	)
+}
+
+func callPluginWithLOOPPContextFromOutcomeGeneration[T any, RI any](
+	outgen *outcomeGenerationState[RI],
+	name string,
+	outctx ocr3types.OutcomeContext,
+	f func(types.LOOPPContext, ocr3types.OutcomeContext) (T, error),
+) (T, bool) {
+	return callPlugin[T](
+		outgen.ctx,
+		outgen.logger,
+		commontypes.LogFields{
+			"seqNr": outctx.SeqNr,
+			"round": outctx.Round, // nolint: staticcheck
+		},
+		name,
+		// Setting to 0 because we don't pass this context to the plugin
+		// function and we expect functions that receive a LOOPPContext to
+		// return "immediately". callPlugin will log an error if the plugin
+		// function takes longer than ReportingPluginTimeoutWarningGracePeriod.
+		0,
+		func(_ context.Context) (T, error) {
+			// Important: we use outgen.ctx here
+			return f(types.LOOPPContext(outgen.ctx), outctx)
 		},
 	)
 }

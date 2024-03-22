@@ -13,13 +13,13 @@ type prefixCheckConfigDigester struct {
 
 // ConfigDigest method that checks that the computed ConfigDigest's prefix is
 // consistent with OffchainConfigDigester.ConfigDigestPrefix
-func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.ConfigDigest, error) {
-	prefix, err := d.offchainConfigDigester.ConfigDigestPrefix()
+func (d prefixCheckConfigDigester) ConfigDigest(looppctx types.LOOPPContext, cc types.ContractConfig) (types.ConfigDigest, error) {
+	prefix, err := d.offchainConfigDigester.ConfigDigestPrefix(looppctx)
 	if err != nil {
 		return types.ConfigDigest{}, err
 	}
 
-	cd, err := d.offchainConfigDigester.ConfigDigest(cc)
+	cd, err := d.offchainConfigDigester.ConfigDigest(looppctx, cc)
 	if err != nil {
 		return types.ConfigDigest{}, err
 	}
@@ -33,8 +33,8 @@ func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.
 
 // Check that the ContractConfig's ConfigDigest matches the one computed
 // offchain
-func (d prefixCheckConfigDigester) CheckContractConfig(cc types.ContractConfig) error {
-	goodConfigDigest, err := d.ConfigDigest(cc)
+func (d prefixCheckConfigDigester) CheckContractConfig(looppctx types.LOOPPContext, cc types.ContractConfig) error {
+	goodConfigDigest, err := d.ConfigDigest(looppctx, cc)
 	if err != nil {
 		return err
 	}

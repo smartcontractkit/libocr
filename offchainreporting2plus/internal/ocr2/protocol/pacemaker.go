@@ -91,6 +91,7 @@ func makePacemakerState(
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
 		onchainKeyring:                         onchainKeyring,
+		reportGenerationMetrics:                newReportGenerationMetrics(metricsRegisterer, logger),
 		reportingPlugin:                        reportingPlugin,
 		reportQuorum:                           reportQuorum,
 		telemetrySender:                        telemetrySender,
@@ -114,10 +115,11 @@ type pacemakerState struct {
 	id                                     commontypes.OracleID
 	localConfig                            types.LocalConfig
 	logger                                 loghelper.LoggerWithContext
-	metrics                                pacemakerMetrics
+	metrics                                *pacemakerMetrics
 	netSender                              NetworkSender
 	offchainKeyring                        types.OffchainKeyring
 	onchainKeyring                         types.OnchainKeyring
+	reportGenerationMetrics                *reportGenerationMetrics
 	reportingPlugin                        types.ReportingPlugin
 	reportQuorum                           int
 	telemetrySender                        TelemetrySender
@@ -234,6 +236,7 @@ func (pace *pacemakerState) run() {
 			pace.logger.Info("Pacemaker: winding down", nil)
 			pace.reportGenerationSubprocess.Wait()
 			pace.metrics.Close()
+			pace.reportGenerationMetrics.Close()
 			pace.logger.Info("Pacemaker: exiting", nil)
 			return
 		default:
@@ -493,6 +496,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 			netSender,
 			offchainKeyring,
 			onchainKeyring,
+			reportGenerationMetrics,
 			reportingPlugin,
 			reportQuorum,
 			telemetrySender := pace.subprocesses,
@@ -508,6 +512,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 			pace.netSender,
 			pace.offchainKeyring,
 			pace.onchainKeyring,
+			pace.reportGenerationMetrics,
 			pace.reportingPlugin,
 			pace.reportQuorum,
 			pace.telemetrySender
@@ -531,6 +536,7 @@ func (pace *pacemakerState) spawnReportGeneration() {
 				netSender,
 				offchainKeyring,
 				onchainKeyring,
+				reportGenerationMetrics,
 				reportingPlugin,
 				reportQuorum,
 				telemetrySender,

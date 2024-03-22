@@ -132,7 +132,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 			repgen.config.MaxDurationObservation+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				repgen.logger.Error("ReportGeneration: ReportingPlugin.Observation is taking too long", commontypes.LogFields{
-					"round": repgen.followerState.r, "maxDuration": repgen.config.MaxDurationObservation,
+					"round": repgen.followerState.r, "maxDuration": repgen.config.MaxDurationObservation.String(),
 				})
 			},
 		)
@@ -169,6 +169,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 		return
 	}
 
+	repgen.reportGenerationMetrics.sentObservationsTotal.Inc()
 	repgen.logger.Debug("sent observation to leader", commontypes.LogFields{
 		"round": repgen.followerState.r,
 	})
@@ -229,6 +230,9 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			aso.SignedObservation.Observation,
 			aso.Observer,
 		})
+		if aso.Observer == repgen.id {
+			repgen.reportGenerationMetrics.includedObservationsTotal.Inc()
+		}
 	}
 
 	var shouldReport bool
@@ -241,7 +245,7 @@ func (repgen *reportGenerationState) messageReportReq(msg MessageReportReq, send
 			repgen.config.MaxDurationReport+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				repgen.logger.Error("ReportGeneration: ReportingPlugin.Report is taking too long", commontypes.LogFields{
-					"round": repgen.followerState.r, "maxDuration": repgen.config.MaxDurationReport,
+					"round": repgen.followerState.r, "maxDuration": repgen.config.MaxDurationReport.String(),
 				})
 			},
 		)
@@ -372,6 +376,10 @@ func (repgen *reportGenerationState) messageFinal(
 // the current leader should not be transmitted to the on-chain smart contract,
 // or by initiating the transmission protocol with this report.
 func (repgen *reportGenerationState) completeRound() {
+	if repgen.followerState.completedRound {
+		return
+	}
+	repgen.reportGenerationMetrics.completedRoundsTotal.Inc()
 	repgen.logger.Debug("ReportGeneration: completed round", commontypes.LogFields{
 		"round": repgen.followerState.r,
 	})

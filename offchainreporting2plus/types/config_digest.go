@@ -98,8 +98,8 @@ func (c ConfigDigest) MarshalText() (text []byte, err error) {
 type OffchainConfigDigester interface {
 	// Compute ConfigDigest for the given ContractConfig. The first two bytes of the
 	// ConfigDigest must be the big-endian encoding of ConfigDigestPrefix!
-	ConfigDigest(ContractConfig) (ConfigDigest, error)
+	ConfigDigest(LOOPPContext, ContractConfig) (ConfigDigest, error)
 
 	// This should return the same constant value on every invocation
-	ConfigDigestPrefix() (ConfigDigestPrefix, error)
+	ConfigDigestPrefix(LOOPPContext) (ConfigDigestPrefix, error)
 }

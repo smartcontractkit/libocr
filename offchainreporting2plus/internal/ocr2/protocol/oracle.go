@@ -115,8 +115,8 @@ type oracleState struct {
 // to Pacemaker and ReportGeneration. It will then cancel o.childCtx,
 // making all children exit. To prevent deadlocks, all channel sends and
 // receives in Oracle, Pacemaker, ReportGeneration, Transmission, etc...
-// are contained in select{} statements that also contain a case for context
-// cancellation.
+// are (1) contained in select{} statements that also contain a case for context
+// cancellation or (2) guaranteed to occur before o.childCtx is cancelled.
 //
 // Finally, all sub-goroutines spawned in the protocol are attached to o.subprocesses
 // (with the exception of ReportGeneration which is explicitly managed by Pacemaker).
@@ -143,6 +143,8 @@ func (o *oracleState) run() {
 
 	chReportFinalizationToTransmission := make(chan EventToTransmission)
 
+	// be careful if you want to change anything here.
+	// chNetTo* sends in message.go assume that their recipients are running.
 	o.childCtx, o.childCancel = context.WithCancel(context.Background())
 	defer o.childCancel()
 

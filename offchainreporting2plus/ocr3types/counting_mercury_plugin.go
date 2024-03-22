@@ -18,7 +18,7 @@ func (p *CountingMercuryPlugin) Observation(ctx context.Context, repts types.Rep
 	return []byte{byte(rand.Int() % 2)}, nil
 }
 
-func (p *CountingMercuryPlugin) Report(repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error) {
+func (p *CountingMercuryPlugin) Report(looppctx types.LOOPPContext, repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error) {
 	report := make([]byte, 4)
 	if len(previousReport) == 0 {
 		if p.initializedReport {
@@ -58,7 +58,7 @@ func (p *CountingMercuryPlugin) Close() error {
 
 type CountingMercuryPluginFactory struct{}
 
-func (fac *CountingMercuryPluginFactory) NewMercuryPlugin(_ MercuryPluginConfig) (MercuryPlugin, MercuryPluginInfo, error) {
+func (fac *CountingMercuryPluginFactory) NewMercuryPlugin(_ types.LOOPPContext, _ MercuryPluginConfig) (MercuryPlugin, MercuryPluginInfo, error) {
 	return &CountingMercuryPlugin{},
 		MercuryPluginInfo{
 			"CountingMercuryPlugin", MercuryPluginLimits{

@@ -29,6 +29,7 @@ func RunReportGeneration(
 	netSender NetworkSender,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring types.OnchainKeyring,
+	reportGenerationMetrics *reportGenerationMetrics,
 	reportingPlugin types.ReportingPlugin,
 	reportQuorum int,
 	telemetrySender TelemetrySender,
@@ -50,6 +51,7 @@ func RunReportGeneration(
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
 		onchainKeyring:                         onchainKeyring,
+		reportGenerationMetrics:                reportGenerationMetrics,
 		reportingPlugin:                        reportingPlugin,
 		reportQuorum:                           reportQuorum,
 		telemetrySender:                        telemetrySender,
@@ -74,6 +76,7 @@ type reportGenerationState struct {
 	netSender                              NetworkSender
 	offchainKeyring                        types.OffchainKeyring
 	onchainKeyring                         types.OnchainKeyring
+	reportGenerationMetrics                *reportGenerationMetrics
 	reportingPlugin                        types.ReportingPlugin
 	reportQuorum                           int
 	telemetrySender                        TelemetrySender

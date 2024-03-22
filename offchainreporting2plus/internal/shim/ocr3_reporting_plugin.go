@@ -31,8 +31,8 @@ func (rp LimitCheckOCR3ReportingPlugin[RI]) Query(ctx context.Context, outctx oc
 	return query, nil
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) ObservationQuorum(outctx ocr3types.OutcomeContext, query types.Query) (ocr3types.Quorum, error) {
-	return rp.Plugin.ObservationQuorum(outctx, query)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ObservationQuorum(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext, query types.Query) (ocr3types.Quorum, error) {
+	return rp.Plugin.ObservationQuorum(looppctx, outctx, query)
 }
 
 func (rp LimitCheckOCR3ReportingPlugin[RI]) Observation(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query) (types.Observation, error) {
@@ -46,12 +46,12 @@ func (rp LimitCheckOCR3ReportingPlugin[RI]) Observation(ctx context.Context, out
 	return observation, nil
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) ValidateObservation(outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
-	return rp.Plugin.ValidateObservation(outctx, query, ao)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ValidateObservation(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
+	return rp.Plugin.ValidateObservation(looppctx, outctx, query, ao)
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
-	outcome, err := rp.Plugin.Outcome(outctx, query, aos)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
+	outcome, err := rp.Plugin.Outcome(looppctx, outctx, query, aos)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +61,8 @@ func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(outctx ocr3types.OutcomeCont
 	return outcome, nil
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) Reports(seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[RI], error) {
-	reports, err := rp.Plugin.Reports(seqNr, outcome)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Reports(looppctx types.LOOPPContext, seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[RI], error) {
+	reports, err := rp.Plugin.Reports(looppctx, seqNr, outcome)
 	if err != nil {
 		return nil, err
 	}

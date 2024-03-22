@@ -85,4 +85,43 @@
 // Stream.Close(), Stream.SendMessage(), and Stream.Receive() return immediately
 // and do any potential resulting communication asynchronously in the
 // background. Host.Close() terminates after at most a few seconds.
+//
+// # Metrics
+//
+// ragep2p exposes prometheus metrics. Their names are prefixed with "ragep2p_".
+// The audience for these metrics are operators of software using ragep2p and
+// developers building on top of ragep2p.
+//
+// # Suggested Health Checks
+//
+// The following example health checks in PromQL enable operators to monitor
+// connectivity to remote peers and health of connections with them. We
+// suggest monitoring *all* of these metrics. These examples only serve as a
+// starting point, operators are encouraged to adjust thresholds empirically
+// and come up with more sophisticated queries.
+//
+// Is my ragep2p host receiving data from the remote peer? If not, there is a
+// connectivity problem.
+//
+//	rate(ragep2p_peer_conn_read_processed_bytes_total[5m]) > 0
+//
+// Is my ragep2p host sending data to the remote peer? If not, there is a
+// connectivity problem.
+//
+//	rate(ragep2p_peer_conn_written_bytes_total[5m]) > 0
+//
+// Is connection churn reasonable (e.g. less than one new connection every 3m)?
+// If not, this may point to infrastructure or ISP problems.
+//
+//	rate(ragep2p_peer_conn_established_total[10m]) < 1/(3 * 60)
+//
+// Is my ragep2p host not skipping any data received from the remote peer? if
+// not, this may point to bugs in the software running on top of ragep2p.
+//
+//	rate(ragep2p_peer_conn_read_skipped_bytes_total[5m]) == 0
+//
+// Is my ragep2p host receiving inbound dials at all? If not, this may point
+// to a misconfiguration in my infrastructure.
+//
+//	rate(ragep2p_host_inbound_dials_total[48h]) > 0
 package ragep2p
