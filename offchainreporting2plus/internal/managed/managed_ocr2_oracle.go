@@ -65,7 +65,7 @@ func RunManagedOCR2Oracle(
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount()
+			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
 				logger.Error("ManagedOCR2Oracle: error getting FromAccount", commontypes.LogFields{
 					"error": err,
@@ -91,9 +91,9 @@ func RunManagedOCR2Oracle(
 			registerer := prometheus.WrapRegistererWith(
 				prometheus.Labels{
 					// disambiguate different protocol instances by configDigest
-					"configDigest": sharedConfig.ConfigDigest.String(),
+					"config_digest": sharedConfig.ConfigDigest.String(),
 					// disambiguate different oracle instances by offchainPublicKey
-					"offchainPublicKey": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
+					"offchain_public_key": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
 				},
 				metricsRegistererWrapper,
 			)
@@ -108,7 +108,7 @@ func RunManagedOCR2Oracle(
 				"oid": oid,
 			})
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(types.ReportingPluginConfig{
+			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(ctx, types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),

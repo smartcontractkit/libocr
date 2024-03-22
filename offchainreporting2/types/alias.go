@@ -3,6 +3,8 @@ package types
 
 import "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 
+type LOOPPContext = types.LOOPPContext
+
 type ConfigDigestPrefix = types.ConfigDigestPrefix
 
 const (

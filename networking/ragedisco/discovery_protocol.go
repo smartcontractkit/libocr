@@ -71,7 +71,7 @@ type discoveryProtocol struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	logger    loghelper.LoggerWithContext
-	metrics   discoveryProtocolMetrics
+	metrics   *discoveryProtocolMetrics
 }
 
 const (
@@ -123,7 +123,7 @@ func newDiscoveryProtocol(
 		ctx,
 		ctxCancel,
 		logger.MakeChild(commontypes.LogFields{"id": "discoveryProtocol"}),
-		newDiscoveryProtocolMetrics(metricsRegisterer, ownID.String(), logger),
+		newDiscoveryProtocolMetrics(metricsRegisterer, logger, ownID),
 	}, nil
 }
 

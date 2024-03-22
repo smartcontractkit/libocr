@@ -4,6 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
+	"github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
 type discoveryProtocolMetrics struct {
@@ -13,8 +14,8 @@ type discoveryProtocolMetrics struct {
 	bootstrappers   prometheus.Gauge
 }
 
-func newDiscoveryProtocolMetrics(registerer prometheus.Registerer, peerID string, logger commontypes.Logger) discoveryProtocolMetrics {
-	labels := map[string]string{"peerID": peerID}
+func newDiscoveryProtocolMetrics(registerer prometheus.Registerer, logger commontypes.Logger, peerID types.PeerID) *discoveryProtocolMetrics {
+	labels := map[string]string{"peer_id": peerID.String()}
 
 	registeredPeers := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:        "ragedisco_registered_peers",
@@ -42,7 +43,7 @@ func newDiscoveryProtocolMetrics(registerer prometheus.Registerer, peerID string
 
 	metricshelper.RegisterOrLogError(logger, registerer, bootstrappers, "ragedisco_bootstappers")
 
-	return discoveryProtocolMetrics{
+	return &discoveryProtocolMetrics{
 		registerer,
 		registeredPeers,
 		discoveredPeers,

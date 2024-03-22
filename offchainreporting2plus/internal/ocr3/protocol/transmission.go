@@ -187,7 +187,7 @@ func (t *transmissionState[RI]) scheduled(ev EventAttestedReport[RI]) {
 			t.localConfig.ContractTransmitterTransmitTimeout+ContractTransmitterTimeoutWarningGracePeriod,
 			func() {
 				t.logger.Error("ContractTransmitter.Transmit is taking too long", commontypes.LogFields{
-					"maxDuration": t.localConfig.ContractTransmitterTransmitTimeout,
+					"maxDuration": t.localConfig.ContractTransmitterTransmitTimeout.String(),
 					"seqNr":       ev.SeqNr,
 					"index":       ev.Index,
 				})

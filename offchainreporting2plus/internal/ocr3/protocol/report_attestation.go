@@ -443,9 +443,15 @@ func (repatt *reportAttestationState[RI]) receivedCertifiedCommit(certifiedCommi
 		repatt.logger,
 		commontypes.LogFields{"seqNr": certifiedCommit.SeqNr},
 		"Reports",
-		0, // Reports is a pure function and should finish "instantly"
-		func(context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
+		// Setting to 0 because we don't pass this context to the plugin
+		// function and we expect functions that receive a LOOPPContext to
+		// return "immediately". callPlugin will log an error if the plugin
+		// function takes longer than ReportingPluginTimeoutWarningGracePeriod.
+		0,
+		func(_ context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
 			return repatt.reportingPlugin.Reports(
+				// Important: we use repatt.ctx here
+				types.LOOPPContext(repatt.ctx),
 				certifiedCommit.SeqNr,
 				certifiedCommit.Outcome,
 			)

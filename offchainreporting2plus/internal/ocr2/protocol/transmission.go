@@ -154,7 +154,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 			t.config.MaxDurationShouldAcceptFinalizedReport+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				t.logger.Error("Transmission: ReportingPlugin.ShouldAcceptFinalizedReport is taking too long", commontypes.LogFields{
-					"epoch": ev.Epoch, "round": ev.Round, "maxDuration": t.config.MaxDurationShouldAcceptFinalizedReport,
+					"epoch": ev.Epoch, "round": ev.Round, "maxDuration": t.config.MaxDurationShouldAcceptFinalizedReport.String(),
 				})
 			},
 		)
@@ -251,7 +251,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 			t.config.MaxDurationShouldTransmitAcceptedReport+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				t.logger.Error("Transmission: ReportingPlugin.ShouldTransmitAcceptedReport is taking too long", commontypes.LogFields{
-					"item": item, "maxDuration": t.config.MaxDurationShouldTransmitAcceptedReport,
+					"item": item, "maxDuration": t.config.MaxDurationShouldTransmitAcceptedReport.String(),
 				})
 			},
 		)
@@ -291,7 +291,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 			t.localConfig.ContractTransmitterTransmitTimeout+ContractTransmitterTimeoutWarningGracePeriod,
 			func() {
 				t.logger.Error("Transmission: ContractTransmitter.Transmit is taking too long", commontypes.LogFields{
-					"item": item, "maxDuration": t.localConfig.ContractTransmitterTransmitTimeout,
+					"item": item, "maxDuration": t.localConfig.ContractTransmitterTransmitTimeout.String(),
 				})
 			},
 		)

@@ -14,7 +14,7 @@ type ReportingPluginFactory[RI any] interface {
 	// Creates a new reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin[RI], ReportingPluginInfo, error)
+	NewReportingPlugin(types.LOOPPContext, ReportingPluginConfig) (ReportingPlugin[RI], ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
@@ -81,14 +81,29 @@ type OutcomeContext struct {
 type Quorum int
 
 const (
+	// We choose an offset of 1_000_000 because:
+	// - it will always fit into an int
+	// - it will always be greater than the number of oracles supported by OCR3
+
 	// Guarantees at least one honest observation
-	QuorumFPlusOne Quorum = types.MaxOracles + 1 + iota
+	QuorumFPlusOne Quorum = 1_000_000 + iota
 	// Guarantees an honest majority of observations
 	QuorumTwoFPlusOne
 	// Guarantees that all sets of observations overlap in at least one honest oracle
 	QuorumByzQuorum
 	// Maximal number of observations we can rely on being available
 	QuorumNMinusF
+)
+
+const (
+	// Deprecated: Old version of QuorumFPlusOne
+	OldQuorumFPlusOne Quorum = types.MaxOracles + 1 + iota
+	// Deprecated: Old version of QuorumTwoFPlusOne
+	OldQuorumTwoFPlusOne
+	// Deprecated: Old version of QuorumByzQuorum
+	OldQuorumByzQuorum
+	// Deprecated: Old version of QuorumNMinusF
+	OldQuorumNMinusF
 )
 
 // A ReportingPlugin allows plugging custom logic into the OCR3 protocol. The
@@ -179,7 +194,7 @@ type ReportingPlugin[RI any] interface {
 	// *not* strictly) across the lifetime of a protocol instance and that
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
-	ValidateObservation(outctx OutcomeContext, query types.Query, ao types.AttributedObservation) error
+	ValidateObservation(looppctx types.LOOPPContext, outctx OutcomeContext, query types.Query, ao types.AttributedObservation) error
 
 	// ObservationQuorum returns the minimum number of valid (according to
 	// ValidateObservation) observations needed to construct an outcome.
@@ -189,7 +204,7 @@ type ReportingPlugin[RI any] interface {
 	// This is an advanced feature. The "default" approach (what OCR1 & OCR2
 	// did) is to have an empty ValidateObservation function and return
 	// QuorumTwoFPlusOne from this function.
-	ObservationQuorum(outctx OutcomeContext, query types.Query) (Quorum, error)
+	ObservationQuorum(looppctx types.LOOPPContext, outctx OutcomeContext, query types.Query) (Quorum, error)
 
 	// Generates an outcome for a seqNr, typically based on the previous
 	// outcome, the current query, and the current set of attributed
@@ -204,7 +219,7 @@ type ReportingPlugin[RI any] interface {
 	//
 	// You may assume that all provided observations have been validated by
 	// ValidateObservation.
-	Outcome(outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
+	Outcome(looppctx types.LOOPPContext, outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
 
 	// Generates a (possibly empty) list of reports from an outcome. Each report
 	// will be signed and possibly be transmitted to the contract. (Depending on
@@ -219,7 +234,7 @@ type ReportingPlugin[RI any] interface {
 	// *not* strictly) across the lifetime of a protocol instance and that
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
-	Reports(seqNr uint64, outcome Outcome) ([]ReportWithInfo[RI], error)
+	Reports(looppctx types.LOOPPContext, seqNr uint64, outcome Outcome) ([]ReportWithInfo[RI], error)
 
 	// Decides whether a report should be accepted for transmission. Any report
 	// passed to this function will have been attested, i.e. signed by f+1

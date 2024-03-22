@@ -87,7 +87,7 @@ func (repgen *reportGenerationState) startRound() {
 			actualMaxDurationQuery+ReportingPluginTimeoutWarningGracePeriod,
 			func() {
 				repgen.logger.Error("ReportGeneration: ReportingPlugin.Query is taking too long", commontypes.LogFields{
-					"round": repgen.leaderState.r, "maxDuration": actualMaxDurationQuery,
+					"round": repgen.leaderState.r, "maxDuration": actualMaxDurationQuery.String(),
 				})
 			},
 		)
@@ -318,6 +318,11 @@ func (repgen *reportGenerationState) messageReport(msg MessageReport, sender com
 		}
 
 		if repgen.reportQuorum <= len(ass) {
+			repgen.reportGenerationMetrics.ledCompletedRoundsTotal.Inc()
+			repgen.logger.Info("led round to completion", commontypes.LogFields{
+				"skip":  msg.AttestedReport.Skip,
+				"round": repgen.leaderState.r,
+			})
 			if !msg.AttestedReport.Skip {
 				repgen.netSender.Broadcast(MessageFinal{
 					repgen.e,

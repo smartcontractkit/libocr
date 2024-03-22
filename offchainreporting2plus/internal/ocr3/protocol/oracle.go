@@ -79,45 +79,54 @@ type oracleState[RI any] struct {
 	subprocesses             subprocesses.Subprocesses
 }
 
-// TODO: This comment is outdated
 // run ensures safe shutdown of the Oracle's "child routines",
-// (Pacemaker, OutcomeGeneration and Transmission) upon o.ctx.Done()
-// being closed.
+// (Pacemaker, OutcomeGeneration, ReportAttestation and Transmission) upon
+// o.ctx.Done()
 //
 // Here is a graph of the various channels involved and what they
 // transport.
 //
-//	    ┌────────────epoch changes──────────────┐
-//	    ▼                                       │
-//	┌──────┐                               ┌────┴────┐
-//	│Oracle├─────pacemaker messages───────►│Pacemaker│
-//	└──┬─┬─┘                               └─────────┘
-//	   │ │                                       ▲
-//	   │ └───────rep. gen. messages───────────┐  │
-//	   │rep. fin. messages                    │  │
-//	   ▼                                      ▼  │progress events
-//	┌──────────────────┐                   ┌─────┴──────────┐
-//	│ReportAttestation│◄───final events───┤OutcomeGeneration│
-//	└────────┬─────────┘                   └────────────────┘
-//	         │
-//	         │transmit events
-//	         ▼
-//	    ┌────────────┐
-//	    │Transmission│
-//	    └────────────┘
+//	                      ┌─────────┐
+//	   ┌─────────────────►│Pacemaker│
+//	   │     pacemaker    └──────┬──┘
+//	   │     message         ▲   │
+//	   │                     │   │
+//	   │             progress│   │epoch
+//	   │              /change│   │start
+//	   │                epoch│   │notification
+//	   │              request│   │
+//	   ▼                     │   ▼
+//	┌──────┐              ┌──┴───────────────┐
+//	│Oracle│◄────────────►│Outcome Generation│
+//	└──────┘  out.gen.    └──────┬───────────┘
+//	   ▲      message            │
+//	   │                         │committed
+//	   │                         │outcome
+//	   │                         │
+//	   │                         ▼
+//	   │                  ┌──────────────────┐
+//	   └─────────────────►│Report Attestation│
+//	          rep.att.    └──────┬───────────┘
+//	          message            │
+//	                             │attested
+//	                             │report
+//	                             │
+//	                             ▼
+//	                      ┌────────────┐
+//	                      │Transmission│
+//	                      └────────────┘
 //
 // All channels are unbuffered.
 //
-// Once o.ctx.Done() is closed, the Oracle runloop will enter the
-// corresponding select case and no longer forward network messages
-// to Pacemaker and OutcomeGeneration. It will then cancel o.childCtx,
-// making all children exit. To prevent deadlocks, all channel sends and
-// receives in Oracle, Pacemaker, OutcomeGeneration, Transmission, etc...
-// are contained in select{} statements that also contain a case for context
-// cancellation.
+// Once o.ctx.Done() is closed, the Oracle runloop will enter the corresponding
+// select case and no longer forward network messages to Pacemaker,
+// OutcomeGeneration, etc... It will then cancel o.childCtx, making all children
+// exit. To prevent deadlocks, all channel sends and receives in Oracle,
+// Pacemaker, OutcomeGeneration, etc... are (1) contained in select{} statements
+// that also contain a case for context cancellation or (2) guaranteed to occur
+// before o.childCtx is cancelled.
 //
 // Finally, all sub-goroutines spawned in the protocol are attached to o.subprocesses
-// (with the exception of OutcomeGeneration which is explicitly managed by Pacemaker).
 // This enables us to wait for their completion before exiting.
 func (o *oracleState[RI]) run() {
 	o.logger.Info("Running", nil)
@@ -139,6 +148,8 @@ func (o *oracleState[RI]) run() {
 
 	chReportAttestationToTransmission := make(chan EventToTransmission[RI])
 
+	// be careful if you want to change anything here.
+	// chNetTo* sends in message.go assume that their recipients are running.
 	o.childCtx, o.childCancel = context.WithCancel(context.Background())
 	defer o.childCancel()
 

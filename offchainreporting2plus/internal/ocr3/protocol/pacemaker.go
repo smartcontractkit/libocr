@@ -90,7 +90,7 @@ type pacemakerState[RI any] struct {
 	id                             commontypes.OracleID
 	localConfig                    types.LocalConfig
 	logger                         loghelper.LoggerWithContext
-	metrics                        pacemakerMetrics
+	metrics                        *pacemakerMetrics
 	netSender                      NetworkSender[RI]
 	offchainKeyring                types.OffchainKeyring
 	telemetrySender                TelemetrySender

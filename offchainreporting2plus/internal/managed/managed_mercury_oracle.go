@@ -63,7 +63,7 @@ func RunManagedMercuryOracle(
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount()
+			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
 				logger.Error("ManagedMercuryOracle: error getting FromAccount", commontypes.LogFields{
 					"error": err,
@@ -98,7 +98,7 @@ func RunManagedMercuryOracle(
 				"oid": oid,
 			})
 
-			mercuryPlugin, mercuryPluginInfo, err := mercuryPluginFactory.NewMercuryPlugin(ocr3types.MercuryPluginConfig{
+			mercuryPlugin, mercuryPluginInfo, err := mercuryPluginFactory.NewMercuryPlugin(ctx, ocr3types.MercuryPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),
@@ -123,9 +123,9 @@ func RunManagedMercuryOracle(
 			registerer := prometheus.WrapRegistererWith(
 				prometheus.Labels{
 					// disambiguate different protocol instances by configDigest
-					"configDigest": sharedConfig.ConfigDigest.String(),
+					"config_digest": sharedConfig.ConfigDigest.String(),
 					// disambiguate different oracle instances by offchainPublicKey
-					"offchainPublicKey": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
+					"offchain_public_key": fmt.Sprintf("%x", offchainKeyring.OffchainPublicKey()),
 				},
 				metricsRegistererWrapper,
 			)

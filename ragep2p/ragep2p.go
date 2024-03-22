@@ -112,6 +112,8 @@ type peer struct {
 	other  types.PeerID
 	logger loghelper.LoggerWithContext
 
+	metrics *peerMetrics
+
 	incomingConnsLimiterMu sync.Mutex
 	incomingConnsLimiter   *ratelimit.TokenBucket
 
@@ -153,6 +155,8 @@ type Host struct {
 	discoverer        Discoverer
 	logger            loghelper.LoggerWithContext
 	metricsRegisterer prometheus.Registerer
+
+	hostMetrics *hostMetrics
 
 	// Derived from secretKey
 	id      types.PeerID
@@ -201,6 +205,8 @@ func NewHost(
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
 		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": types.PeerID(id)}),
 		metricsRegisterer,
+
+		newHostMetrics(metricsRegisterer, logger, types.PeerID(id)),
 
 		id,
 		mtls.NewMinimalX509CertFromPrivateKey(secretKey),
@@ -267,6 +273,8 @@ func (ho *Host) findOrCreatePeer(other types.PeerID) *peer {
 	if _, ok := ho.peers[other]; !ok {
 		logger := ho.logger.MakeChild(remotePeerIDField(other))
 
+		metrics := newPeerMetrics(ho.metricsRegisterer, logger, ho.id, other)
+
 		chDone := make(chan struct{})
 
 		chConnTerminated := make(chan struct{})
@@ -290,12 +298,15 @@ func (ho *Host) findOrCreatePeer(other types.PeerID) *peer {
 
 		connRateLimiter := newConnRateLimiter(logger)
 		connRateLimiter.AddStream(TokenBucketParams{}, TokenBucketParams{controlRate, newConnTokens})
+		metrics.SetConnRateLimit(connRateLimiter.TokenBucketParams())
 
 		p := peer{
 			chDone,
 
 			other,
 			logger,
+
+			metrics,
 
 			sync.Mutex{},
 			incomingConnsLimiter,
@@ -339,6 +350,7 @@ func (ho *Host) findOrCreatePeer(other types.PeerID) *peer {
 				chStreamCloseRequest,
 				chStreamCloseResponse,
 				logger,
+				metrics,
 			)
 		})
 	}
@@ -358,9 +370,12 @@ func peerLoop(
 	chStreamCloseRequest <-chan peerStreamCloseRequest,
 	chStreamCloseResponse chan<- peerStreamCloseResponse,
 	logger loghelper.LoggerWithContext,
+	metrics *peerMetrics,
 ) {
 	defer close(chDone)
 	defer logger.Info("peerLoop exiting", nil)
+
+	defer metrics.Close()
 
 	type stream struct {
 		name                      string
@@ -406,6 +421,7 @@ func peerLoop(
 			logger.Trace("New connection, creating pending notifications of all streams", nil)
 
 			connRateLimiter.AddTokens(newConnTokens)
+			metrics.SetConnRateLimit(connRateLimiter.TokenBucketParams())
 
 			chConnTerminated = notification.chConnTerminated
 			for streamID := range streams {
@@ -475,6 +491,7 @@ func peerLoop(
 				}
 			} else {
 				connRateLimiter.AddStream(req.messagesLimit, req.bytesLimit)
+				metrics.SetConnRateLimit(connRateLimiter.TokenBucketParams())
 				if !demux.AddStream(req.streamID, req.incomingBufferSize, req.maxMessageLength, req.messagesLimit, req.bytesLimit) {
 					logger.Warn("Assumption violation. Failed to add already existing stream to demuxer", commontypes.LogFields{
 						"streamOpenRequest": req,
@@ -503,6 +520,7 @@ func peerLoop(
 		case req := <-chStreamCloseRequest:
 			if s, ok := streams[req.streamID]; ok {
 				connRateLimiter.RemoveStream(s.messagesLimit, s.bytesLimit)
+				metrics.SetConnRateLimit(connRateLimiter.TokenBucketParams())
 				demux.RemoveStream(req.streamID)
 				delete(streams, req.streamID)
 				if chConnTerminated != nil {
@@ -544,6 +562,7 @@ func (ho *Host) Close() error {
 	ho.state = hostStateClosed
 	ho.cancel()
 	ho.subprocesses.Wait()
+	ho.hostMetrics.Close()
 	ho.logger.Info("Host exiting", nil)
 	if err != nil {
 		return fmt.Errorf("failed to close discoverer: %w", err)
@@ -650,6 +669,7 @@ func (ho *Host) listenLoop(ln net.Listener) {
 
 	for {
 		conn, err := ln.Accept()
+		ho.hostMetrics.inboundDialsTotal.Inc()
 		if err != nil {
 			ho.logger.Info("Exiting Host.listenLoop due to error while Accepting", commontypes.LogFields{"error": err})
 			return
@@ -691,7 +711,7 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 
 	shouldClose = false
 
-	rlConn := ratelimitedconn.NewRateLimitedConn(conn, peer.connRateLimiter, logger)
+	rlConn := ratelimitedconn.NewRateLimitedConn(conn, peer.connRateLimiter, logger, peer.metrics.rawconnReadBytesTotal, peer.metrics.rawconnWrittenBytesTotal)
 
 	tlsConfig := newTLSConfig(
 		ho.tlsCert,
@@ -747,7 +767,7 @@ func (ho *Host) handleIncomingConnection(conn net.Conn) {
 	}
 	logger = peer.logger.MakeChild(remoteAddrLogFields) // introduce remotePeerID in our logs since we now know it
 	rl := peer.connRateLimiter
-	rlConn := ratelimitedconn.NewRateLimitedConn(conn, rl, logger)
+	rlConn := ratelimitedconn.NewRateLimitedConn(conn, rl, logger, peer.metrics.rawconnReadBytesTotal, peer.metrics.rawconnWrittenBytesTotal)
 
 	shouldClose = false
 
@@ -812,6 +832,10 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 	rlConn.EnableRateLimiting()
 
 	logger.Info("Connection established", nil)
+	peer.metrics.connEstablishedTotal.Inc()
+	if incoming {
+		peer.metrics.connEstablishedInboundTotal.Inc()
+	}
 
 	// the lock here ensures there is at most one active connection at any time.
 	// it also prevents races on connLifeCycle.connSubs.
@@ -833,6 +857,7 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 			peer.chStreamToConn,
 			chConnTerminated,
 			logger,
+			peer.metrics,
 		)
 	})
 	peer.connLifeCycleMu.Unlock()
@@ -1144,6 +1169,7 @@ func authenticatedConnectionLoop(
 	chWriteData <-chan streamIDAndData,
 	chTerminated chan<- struct{},
 	logger loghelper.LoggerWithContext,
+	metrics *peerMetrics,
 ) {
 	defer func() {
 		close(chTerminated)
@@ -1171,6 +1197,7 @@ func authenticatedConnectionLoop(
 			demux,
 			chReadTerminated,
 			logger,
+			metrics,
 		)
 	})
 
@@ -1183,6 +1210,7 @@ func authenticatedConnectionLoop(
 			chWriteData,
 			chWriteTerminated,
 			logger,
+			metrics,
 		)
 	})
 
@@ -1202,6 +1230,7 @@ func authenticatedConnectionReadLoop(
 	demux *demuxer,
 	chReadTerminated chan<- struct{},
 	logger loghelper.LoggerWithContext,
+	metrics *peerMetrics,
 ) {
 	defer close(chReadTerminated)
 
@@ -1211,6 +1240,7 @@ func authenticatedConnectionReadLoop(
 			logger.Warn("Error reading from connection", commontypes.LogFields{"error": err})
 			return false
 		}
+		metrics.connReadProcessedBytesTotal.Add(float64(len(buf)))
 		return true
 	}
 
@@ -1220,6 +1250,7 @@ func authenticatedConnectionReadLoop(
 			logger.Warn("Error reading from connection", commontypes.LogFields{"error": err})
 			return false
 		}
+		metrics.connReadSkippedBytesTotal.Add(float64(n))
 		return true
 	}
 
@@ -1378,6 +1409,7 @@ func authenticatedConnectionWriteLoop(
 	chWriteData <-chan streamIDAndData,
 	chWriteTerminated chan<- struct{},
 	logger loghelper.LoggerWithContext,
+	metrics *peerMetrics,
 ) {
 	writeInternal := func(buf []byte) bool {
 		_, err := conn.Write(buf)
@@ -1390,6 +1422,7 @@ func authenticatedConnectionWriteLoop(
 			close(chWriteTerminated)
 			return false
 		}
+		metrics.connWrittenBytesTotal.Add(float64(len(buf)))
 		return true
 	}
 
@@ -1411,6 +1444,7 @@ func authenticatedConnectionWriteLoop(
 			if !writeInternal(data.Data) {
 				return
 			}
+			metrics.messageBytes.Observe(float64(len(data.Data)))
 		case notification := <-chSelfStreamStateNotification:
 			if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
 				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})

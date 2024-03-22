@@ -281,13 +281,13 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 		return
 	}
 
-	err, ok := callPluginFromOutcomeGeneration[error](
+	err, ok := callPluginWithLOOPPContextFromOutcomeGeneration[error](
 		outgen,
 		"ValidateObservation",
-		0, // ValidateObservation is a pure function and should finish "instantly"
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
+		func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (error, error) {
 			return outgen.reportingPlugin.ValidateObservation(
+				looppctx,
 				outctx,
 				outgen.leaderState.query,
 				types.AttributedObservation{msg.SignedObservation.Observation, sender},

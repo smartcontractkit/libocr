@@ -26,8 +26,8 @@ type OnchainConfig struct {
 }
 
 type OnchainConfigCodec interface {
-	Encode(OnchainConfig) ([]byte, error)
-	Decode([]byte) (OnchainConfig, error)
+	Encode(types.LOOPPContext, OnchainConfig) ([]byte, error)
+	Decode(types.LOOPPContext, []byte) (OnchainConfig, error)
 }
 
 var _ OnchainConfigCodec = StandardOnchainConfigCodec{}
@@ -41,7 +41,7 @@ var _ OnchainConfigCodec = StandardOnchainConfigCodec{}
 // returned by EncodeValue.
 type StandardOnchainConfigCodec struct{}
 
-func (StandardOnchainConfigCodec) Decode(b []byte) (OnchainConfig, error) {
+func (StandardOnchainConfigCodec) Decode(looppctx types.LOOPPContext, b []byte) (OnchainConfig, error) {
 	if len(b) != onchainConfigEncodedLength {
 		return OnchainConfig{}, fmt.Errorf("unexpected length of OnchainConfig, expected %v, got %v", onchainConfigEncodedLength, len(b))
 	}
@@ -66,7 +66,7 @@ func (StandardOnchainConfigCodec) Decode(b []byte) (OnchainConfig, error) {
 	return OnchainConfig{min, max}, nil
 }
 
-func (StandardOnchainConfigCodec) Encode(c OnchainConfig) ([]byte, error) {
+func (StandardOnchainConfigCodec) Encode(looppctx types.LOOPPContext, c OnchainConfig) ([]byte, error) {
 	minBytes, err := EncodeValue(c.Min)
 	if err != nil {
 		return nil, err
@@ -210,17 +210,17 @@ type ReportCodec interface {
 	// ParsedAttributedObservation per observer, and that all observers are
 	// valid. However, observation values, timestamps, etc... should all be
 	// treated as untrusted.
-	BuildReport([]ParsedAttributedObservation) (types.Report, error)
+	BuildReport(types.LOOPPContext, []ParsedAttributedObservation) (types.Report, error)
 
 	// Gets the "median" (the n//2-th ranked element to be more precise where n
 	// is the length of the list) observation from the report. The input to this
 	// function should be an output of BuildReport in the benign case.
 	// Nevertheless, make sure to treat the input to this function as untrusted.
-	MedianFromReport(types.Report) (*big.Int, error)
+	MedianFromReport(types.LOOPPContext, types.Report) (*big.Int, error)
 
 	// Returns the maximum length of a report based on n, the number of oracles.
 	// The output of BuildReport must respect this maximum length.
-	MaxReportLength(n int) (int, error)
+	MaxReportLength(looppctx types.LOOPPContext, n int) (int, error)
 }
 
 var _ types.ReportingPluginFactory = NumericalMedianFactory{}
@@ -239,14 +239,14 @@ type NumericalMedianFactory struct {
 	ReportCodec               ReportCodec
 }
 
-func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
+func (fac NumericalMedianFactory) NewReportingPlugin(looppctx types.LOOPPContext, configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
 
 	offchainConfig, err := DecodeOffchainConfig(configuration.OffchainConfig)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
 	}
 
-	onchainConfig, err := fac.OnchainConfigCodec.Decode(configuration.OnchainConfig)
+	onchainConfig, err := fac.OnchainConfigCodec.Decode(looppctx, configuration.OnchainConfig)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
 	}
@@ -256,7 +256,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 		"reportingPlugin": "NumericalMedian",
 	})
 
-	maxReportLength, err := fac.ReportCodec.MaxReportLength(configuration.N)
+	maxReportLength, err := fac.ReportCodec.MaxReportLength(looppctx, configuration.N)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
 	}
@@ -440,7 +440,7 @@ func (nm *numericalMedian) Report(ctx context.Context, repts types.ReportTimesta
 	if !should {
 		return false, nil, nil
 	}
-	report, err := nm.reportCodec.BuildReport(paos)
+	report, err := nm.reportCodec.BuildReport(ctx, paos)
 	if err != nil {
 		return false, nil, err
 	}
@@ -617,7 +617,7 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		return false, nil
 	}
 
-	reportMedian, err := nm.reportCodec.MedianFromReport(report)
+	reportMedian, err := nm.reportCodec.MedianFromReport(ctx, report)
 	if err != nil {
 		return false, fmt.Errorf("error during MedianFromReport: %w", err)
 	}

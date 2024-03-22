@@ -2,6 +2,7 @@ package metricshelper
 
 import (
 	"fmt"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 )
@@ -22,7 +23,7 @@ func NewPrometheusRegistererWrapper(registerer prometheus.Registerer, logger com
 var _ prometheus.Registerer = (*PrometheusRegistererWrapper)(nil)
 
 func (prw *PrometheusRegistererWrapper) Register(collector prometheus.Collector) error {
-	prw.logger.Debug("Registering collector", nil)
+	prw.logger.Trace("Registering collector", nil)
 	if collector == nil {
 		return fmt.Errorf("tried to register nil collector")
 	}
@@ -38,7 +39,7 @@ func (prw *PrometheusRegistererWrapper) MustRegister(collectors ...prometheus.Co
 }
 
 func (prw *PrometheusRegistererWrapper) Unregister(collector prometheus.Collector) bool {
-	prw.logger.Debug("Unregistering collector", nil)
+	prw.logger.Trace("Unregistering collector", nil)
 	if collector == nil {
 		prw.logger.Warn("Unregistering nil collector", nil)
 		return false

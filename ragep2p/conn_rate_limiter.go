@@ -57,6 +57,16 @@ func (crl *connRateLimiter) AddTokens(n uint32) {
 	crl.limiter.AddTokens(n)
 }
 
+func (crl *connRateLimiter) TokenBucketParams() TokenBucketParams {
+	crl.mutex.Lock()
+	defer crl.mutex.Unlock()
+
+	return TokenBucketParams{
+		float64(crl.limiter.Rate()) / 1000, // millitokens per second -> tokens per second
+		crl.limiter.Capacity(),
+	}
+}
+
 func (crl *connRateLimiter) addRemoveStream(add bool, messagesLimit TokenBucketParams, bytesLimit TokenBucketParams) {
 	if crl.infiniteRate {
 		// we're already in absorbing overflow state, nothing to be done
