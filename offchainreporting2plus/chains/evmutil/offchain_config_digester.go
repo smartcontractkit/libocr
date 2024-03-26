@@ -15,7 +15,7 @@ type EVMOffchainConfigDigester struct {
 	ContractAddress common.Address
 }
 
-func (d EVMOffchainConfigDigester) ConfigDigest(looppctx types.LOOPPContext, cc types.ContractConfig) (types.ConfigDigest, error) {
+func (d EVMOffchainConfigDigester) ConfigDigest(cc types.ContractConfig) (types.ConfigDigest, error) {
 	signers := []common.Address{}
 	for i, signer := range cc.Signers {
 		if len(signer) != 20 {
@@ -46,6 +46,6 @@ func (d EVMOffchainConfigDigester) ConfigDigest(looppctx types.LOOPPContext, cc 
 	), nil
 }
 
-func (d EVMOffchainConfigDigester) ConfigDigestPrefix(types.LOOPPContext) (types.ConfigDigestPrefix, error) {
+func (d EVMOffchainConfigDigester) ConfigDigestPrefix() (types.ConfigDigestPrefix, error) {
 	return types.ConfigDigestPrefixEVM, nil
 }

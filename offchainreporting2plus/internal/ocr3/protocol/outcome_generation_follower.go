@@ -360,13 +360,13 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 				return
 			}
 
-			err, ok := callPluginWithLOOPPContextFromOutcomeGeneration[error](
+			err, ok := callPluginFromOutcomeGeneration[error](
 				outgen,
 				"ValidateObservation",
+				0, // ValidateObservation is a pure function and should finish "instantly"
 				outgen.OutcomeCtx(outgen.sharedState.seqNr),
-				func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (error, error) {
+				func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
 					return outgen.reportingPlugin.ValidateObservation(
-						looppctx,
 						outctx,
 						*outgen.followerState.query,
 						types.AttributedObservation{aso.SignedObservation.Observation, aso.Observer},
@@ -399,12 +399,13 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 		attributedObservations,
 	)
 
-	outcome, ok := callPluginWithLOOPPContextFromOutcomeGeneration[ocr3types.Outcome](
+	outcome, ok := callPluginFromOutcomeGeneration[ocr3types.Outcome](
 		outgen,
 		"Outcome",
+		0, // Outcome is a pure function and should finish "instantly"
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
-			return outgen.reportingPlugin.Outcome(looppctx, outctx, *outgen.followerState.query, attributedObservations)
+		func(_ context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
+			return outgen.reportingPlugin.Outcome(outctx, *outgen.followerState.query, attributedObservations)
 		},
 	)
 	if !ok {

@@ -359,12 +359,13 @@ func (outgen *outcomeGenerationState[RI]) ObservationQuorum(query types.Query) (
 		return *outgen.sharedState.observationQuorum, true
 	}
 
-	observationQuorum, ok := callPluginWithLOOPPContextFromOutcomeGeneration[ocr3types.Quorum](
+	observationQuorum, ok := callPluginFromOutcomeGeneration[ocr3types.Quorum](
 		outgen,
 		"ObservationQuorum",
+		0, // pure function
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext) (ocr3types.Quorum, error) {
-			return outgen.reportingPlugin.ObservationQuorum(looppctx, outctx, query)
+		func(ctx context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Quorum, error) {
+			return outgen.reportingPlugin.ObservationQuorum(outctx, query)
 		},
 	)
 
@@ -420,32 +421,6 @@ func callPluginFromOutcomeGeneration[T any, RI any](
 		maxDuration,
 		func(ctx context.Context) (T, error) {
 			return f(ctx, outctx)
-		},
-	)
-}
-
-func callPluginWithLOOPPContextFromOutcomeGeneration[T any, RI any](
-	outgen *outcomeGenerationState[RI],
-	name string,
-	outctx ocr3types.OutcomeContext,
-	f func(types.LOOPPContext, ocr3types.OutcomeContext) (T, error),
-) (T, bool) {
-	return callPlugin[T](
-		outgen.ctx,
-		outgen.logger,
-		commontypes.LogFields{
-			"seqNr": outctx.SeqNr,
-			"round": outctx.Round, // nolint: staticcheck
-		},
-		name,
-		// Setting to 0 because we don't pass this context to the plugin
-		// function and we expect functions that receive a LOOPPContext to
-		// return "immediately". callPlugin will log an error if the plugin
-		// function takes longer than ReportingPluginTimeoutWarningGracePeriod.
-		0,
-		func(_ context.Context) (T, error) {
-			// Important: we use outgen.ctx here
-			return f(types.LOOPPContext(outgen.ctx), outctx)
 		},
 	)
 }
