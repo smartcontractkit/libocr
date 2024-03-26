@@ -12,7 +12,7 @@ type MercuryPluginFactory interface {
 	// Creates a new mercury-specific reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewMercuryPlugin(types.LOOPPContext, MercuryPluginConfig) (MercuryPlugin, MercuryPluginInfo, error)
+	NewMercuryPlugin(MercuryPluginConfig) (MercuryPlugin, MercuryPluginInfo, error)
 }
 
 type MercuryPluginConfig struct {
@@ -127,7 +127,7 @@ type MercuryPlugin interface {
 	// You may assume that the sequence of epochs and the sequence of rounds
 	// within an epoch are monotonically increasing during the lifetime
 	// of an instance of this interface.
-	Report(looppctx types.LOOPPContext, repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error)
+	Report(repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error)
 
 	// If Close is called a second time, it may return an error but must not
 	// panic. This will always be called when a ReportingPlugin is no longer

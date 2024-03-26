@@ -65,7 +65,7 @@ func RunManagedOCR2Oracle(
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount(ctx)
+			fromAccount, err := contractTransmitter.FromAccount()
 			if err != nil {
 				logger.Error("ManagedOCR2Oracle: error getting FromAccount", commontypes.LogFields{
 					"error": err,
@@ -108,7 +108,7 @@ func RunManagedOCR2Oracle(
 				"oid": oid,
 			})
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(ctx, types.ReportingPluginConfig{
+			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),

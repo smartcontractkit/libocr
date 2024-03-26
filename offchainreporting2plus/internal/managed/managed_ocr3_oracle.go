@@ -62,7 +62,7 @@ func RunManagedOCR3Oracle[RI any](
 		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount(ctx)
+			fromAccount, err := contractTransmitter.FromAccount()
 			if err != nil {
 				logger.Error("ManagedOCR3Oracle: error getting FromAccount", commontypes.LogFields{
 					"error": err,
@@ -105,7 +105,7 @@ func RunManagedOCR3Oracle[RI any](
 				"oid": oid,
 			})
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(ctx, ocr3types.ReportingPluginConfig{
+			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(ocr3types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),

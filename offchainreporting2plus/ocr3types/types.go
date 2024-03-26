@@ -27,7 +27,7 @@ type ContractTransmitter[RI any] interface {
 	) error
 
 	// Account from which the transmitter invokes the contract
-	FromAccount(types.LOOPPContext) (types.Account, error)
+	FromAccount() (types.Account, error)
 }
 
 // OnchainKeyring provides cryptographic signatures that need to be verifiable

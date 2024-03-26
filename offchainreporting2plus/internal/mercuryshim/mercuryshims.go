@@ -94,8 +94,8 @@ func (t *MercuryOCR3ContractTransmitter) Transmit(
 	)
 }
 
-func (t *MercuryOCR3ContractTransmitter) FromAccount(looppctx types.LOOPPContext) (types.Account, error) {
-	return t.ocr2ContractTransmitter.FromAccount(looppctx)
+func (t *MercuryOCR3ContractTransmitter) FromAccount() (types.Account, error) {
+	return t.ocr2ContractTransmitter.FromAccount()
 }
 
 func ocr3MaxOutcomeLength(maxReportLength int) int {
@@ -171,22 +171,22 @@ func (p *MercuryReportingPlugin) Observation(ctx context.Context, outctx ocr3typ
 	return observation, nil
 }
 
-func (p *MercuryReportingPlugin) ValidateObservation(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
+func (p *MercuryReportingPlugin) ValidateObservation(outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
 	return nil
 }
 
-func (p *MercuryReportingPlugin) ObservationQuorum(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext, query types.Query) (ocr3types.Quorum, error) {
+func (p *MercuryReportingPlugin) ObservationQuorum(outctx ocr3types.OutcomeContext, query types.Query) (ocr3types.Quorum, error) {
 	return ocr3types.QuorumTwoFPlusOne, nil
 }
 
-func (p *MercuryReportingPlugin) Outcome(looppctx types.LOOPPContext, outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
+func (p *MercuryReportingPlugin) Outcome(outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
 	previousOutcomeDeserialized, err := deserializeMercuryReportingPluginOutcome(outctx.PreviousOutcome)
 	if err != nil {
 		return nil, err
 	}
 
 	//nolint:staticcheck
-	shouldReport, report, err := p.Plugin.Report(looppctx, types.ReportTimestamp{p.Config.ConfigDigest, uint32(outctx.Epoch), uint8(outctx.Round)}, previousOutcomeDeserialized.Report, aos)
+	shouldReport, report, err := p.Plugin.Report(types.ReportTimestamp{p.Config.ConfigDigest, uint32(outctx.Epoch), uint8(outctx.Round)}, previousOutcomeDeserialized.Report, aos)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (p *MercuryReportingPlugin) Outcome(looppctx types.LOOPPContext, outctx ocr
 	return serializeMercuryReportingPluginOutcome(outcomeDeserialized), nil
 }
 
-func (p *MercuryReportingPlugin) Reports(looppctx types.LOOPPContext, seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[MercuryReportInfo], error) {
+func (p *MercuryReportingPlugin) Reports(seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[MercuryReportInfo], error) {
 	outcomeDeserialized, err := deserializeMercuryReportingPluginOutcome(outcome)
 	if err != nil {
 		return nil, err

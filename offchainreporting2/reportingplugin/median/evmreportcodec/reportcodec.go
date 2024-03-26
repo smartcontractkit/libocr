@@ -32,7 +32,7 @@ var _ median.ReportCodec = ReportCodec{}
 
 type ReportCodec struct{}
 
-func (ReportCodec) BuildReport(looppctx types.LOOPPContext, paos []median.ParsedAttributedObservation) (types.Report, error) {
+func (ReportCodec) BuildReport(paos []median.ParsedAttributedObservation) (types.Report, error) {
 	if len(paos) == 0 {
 		return nil, fmt.Errorf("cannot build report from empty attributed observations")
 	}
@@ -69,7 +69,7 @@ func (ReportCodec) BuildReport(looppctx types.LOOPPContext, paos []median.Parsed
 	return types.Report(reportBytes), err
 }
 
-func (ReportCodec) MedianFromReport(looppctx types.LOOPPContext, report types.Report) (*big.Int, error) {
+func (ReportCodec) MedianFromReport(report types.Report) (*big.Int, error) {
 	reportElems := map[string]interface{}{}
 	if err := reportTypes.UnpackIntoMap(reportElems, report); err != nil {
 		return nil, fmt.Errorf("error during unpack: %w", err)
@@ -97,7 +97,7 @@ func (ReportCodec) MedianFromReport(looppctx types.LOOPPContext, report types.Re
 	return median, nil
 }
 
-func (ReportCodec) MaxReportLength(looppctx types.LOOPPContext, n int) (int, error) {
+func (ReportCodec) MaxReportLength(n int) (int, error) {
 	return 32 /* timestamp */ + 32 /* rawObservers */ + (2*32 + n*32) /*observations*/ + 32 /* juelsPerFeeCoin */, nil
 }
 
