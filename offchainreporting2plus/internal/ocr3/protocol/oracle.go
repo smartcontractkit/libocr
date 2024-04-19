@@ -129,7 +129,10 @@ type oracleState[RI any] struct {
 // Finally, all sub-goroutines spawned in the protocol are attached to o.subprocesses
 // This enables us to wait for their completion before exiting.
 func (o *oracleState[RI]) run() {
-	o.logger.Info("Running", nil)
+	o.logger.Info("Oracle: running", commontypes.LogFields{
+		"localConfig":  fmt.Sprintf("%+v", o.localConfig),
+		"publicConfig": fmt.Sprintf("%+v", o.config.PublicConfig),
+	})
 
 	chNetToPacemaker := make(chan MessageToPacemakerWithSender[RI])
 	o.chNetToPacemaker = chNetToPacemaker

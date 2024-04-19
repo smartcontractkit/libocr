@@ -18,9 +18,9 @@ type unsignedAnnouncement struct {
 	Counter uint64              // counter
 }
 
-// Announcement is a signed message in which a peer attests to their network addresses.
-// An Announcement needs to adhere to some validity rules, found in validate(),
-// which are enforced on calls to sign() and verify().
+// Announcement is a signed message in which a peer attests to their network
+// addresses. An Announcement needs to adhere to some syntactic validity rules,
+// found in checkWellFormed(), which are enforced on calls to verify().
 type Announcement struct {
 	unsignedAnnouncement
 	PublicKey ed25519.PublicKey // PublicKey used to verify Sig
@@ -32,20 +32,20 @@ type reconcile struct {
 }
 
 const (
-	// The maximum number of addr an Announcement may broadcast
+	// The maximum number of addresses an Announcement may contain
 	maxAddrsInAnnouncement = 10
 	// Domain separator for signatures
 	announcementDomainSeparator = "announcement for chainlink peer discovery v2.0.0"
-	// Maximum message size over all message types. Should be able to
-	// handle the equivalent of a reconcile with 1000 announcements of 1
-	// address each. Considering our committees are typically of size 32
-	// and we limit to 10 addresses per announcement we are overshooting by
-	// (at the very least) ~3x. We have a test which asserts the tightness
-	// of this bound.
-	maxMessageLength = 110000
+	// Maximum message size over all message types. The worst case message is a
+	// reconcile message with the maximum number of announcements (one per
+	// oracle, capped at MaxOracles), with each announcement containing the
+	// maximum number (maxAddrsInAnnouncement) of the maximum length addresses
+	// (maxAddrPortValidForAnnouncementSize). We have a test which asserts this
+	// bound.
+	maxMessageLength = 110_000
 )
 
-// Validate and serialize an Announcement. Return error on invalid announcements.
+// Does NOT check if the announcement is well-formed.
 func (ann Announcement) serialize() ([]byte, error) {
 	pm, err := ann.toProto()
 	if err != nil {
@@ -70,7 +70,7 @@ func (ann Announcement) toProto() (*serialization.SignedAnnouncement, error) {
 	return &pm, nil
 }
 
-func (uann unsignedAnnouncement) validate() error {
+func (uann unsignedAnnouncement) checkWellFormed() error {
 	if len(uann.Addrs) == 0 || len(uann.Addrs) > maxAddrsInAnnouncement {
 		return fmt.Errorf("invalid length of addresses (was %d, min is 1, max is %d)", len(uann.Addrs), maxAddrsInAnnouncement)
 	}
@@ -82,8 +82,8 @@ func (uann unsignedAnnouncement) validate() error {
 	return nil
 }
 
-func (ann Announcement) validate() error {
-	if err := ann.unsignedAnnouncement.validate(); err != nil {
+func (ann Announcement) checkWellFormed() error {
+	if err := ann.unsignedAnnouncement.checkWellFormed(); err != nil {
 		return err
 	}
 	const expectedPublicKeySize = ed25519.PublicKeySize
@@ -92,6 +92,20 @@ func (ann Announcement) validate() error {
 	}
 	if ann.Sig == nil {
 		return fmt.Errorf("nil sig")
+	}
+	return nil
+}
+
+// Does NOT guarantee that the announcements in the reconcile contain signatures
+// that verify. This must be checked independently for each announcement.
+func (r reconcile) checkWellFormed() error {
+	if len(r.Anns) > MaxOracles {
+		return fmt.Errorf("unexpectedly many announcements (expect at most %d, actual %d)", MaxOracles, len(r.Anns))
+	}
+	for i, ann := range r.Anns {
+		if err := ann.checkWellFormed(); err != nil {
+			return fmt.Errorf("failed to validate announcement %v with index %d in reconcile: %w", ann, i, err)
+		}
 	}
 	return nil
 }
@@ -148,7 +162,7 @@ func (r reconcile) String() string {
 // will return an error for an invalid unsignedAnnouncement
 func (uann unsignedAnnouncement) digest() ([]byte, error) {
 	// serialize only addrs and the counter
-	if err := uann.validate(); err != nil {
+	if err := uann.checkWellFormed(); err != nil {
 		return nil, err
 	}
 
@@ -200,7 +214,7 @@ func (uann unsignedAnnouncement) sign(sk ed25519.PrivateKey) (Announcement, erro
 }
 
 func (ann Announcement) verify() error {
-	if err := ann.validate(); err != nil {
+	if err := ann.checkWellFormed(); err != nil {
 		return err
 	}
 	msg, err := ann.digest()

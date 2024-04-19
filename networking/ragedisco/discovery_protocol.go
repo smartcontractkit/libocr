@@ -19,6 +19,11 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
+// Maximum number of distinct oracles that we can have across groups.
+// The exact number is chosen arbitrarily. Better to have an arbitrary limit
+// than no limit.
+const MaxOracles = 165
+
 type incomingMessage struct {
 	payload WrappableMessage
 	from    ragetypes.PeerID
@@ -243,23 +248,36 @@ func (p *discoveryProtocol) lockedSetMetrics() {
 }
 
 func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetypes.PeerID, bnodes []ragetypes.PeerInfo) error {
-	var newPeerIDs []ragetypes.PeerID
+	var newOraclePeerIDs []ragetypes.PeerID
 	p.lock.Lock()
 	defer p.lock.Unlock()
+
+	// Until we determine that we will not error out, mutating p.locked is
+	// forbidden.
 
 	defer p.lockedSetMetrics()
 
 	if _, exists := p.locked.groups[digest]; exists {
 		return fmt.Errorf("asked to add group with digest we already have (digest: %s)", digest.Hex())
 	}
+	for _, oid := range onodes {
+		if p.locked.numGroupsByOracle[oid] == 0 {
+			newOraclePeerIDs = append(newOraclePeerIDs, oid)
+		}
+	}
+	if len(p.locked.numGroupsByOracle)+len(newOraclePeerIDs) > MaxOracles {
+		return fmt.Errorf("ragedisco cannot add group: known oracles (%d) + new oracles (%d) exceed total oracle limit (%d)", len(p.locked.numGroupsByOracle), len(newOraclePeerIDs), MaxOracles)
+	}
+
+	// We have determined that we will not error out. Mutating p.locked is only
+	// permitted after this point.
+
 	newGroup := group{oracleNodes: onodes, bootstrapperNodes: bnodes}
 	p.locked.groups[digest] = &newGroup
 	for _, oid := range onodes {
-		if p.locked.numGroupsByOracle[oid] == 0 {
-			newPeerIDs = append(newPeerIDs, oid)
-		}
 		p.locked.numGroupsByOracle[oid]++
 	}
+
 	for _, bs := range bnodes {
 		p.locked.numGroupsByBootstrapper[bs.ID]++
 		for _, addr := range bs.Addrs {
@@ -279,7 +297,7 @@ func (p *discoveryProtocol) addGroup(digest types.ConfigDigest, onodes []ragetyp
 	}
 
 	// we hold lock here
-	if err := p.lockedLoadFromDB(newPeerIDs); err != nil {
+	if err := p.lockedLoadFromDB(newOraclePeerIDs); err != nil {
 		// db-level errors are not prohibitive
 		p.logger.Warn("DiscoveryProtocol: Failed to load announcements from db", commontypes.LogFields{"configDigest": digest, "error": err})
 	}
@@ -483,6 +501,14 @@ func (p *discoveryProtocol) recvLoop() {
 			case *reconcile:
 				reconcile := *v
 				// logger.Trace("Received reconcile", commontypes.LogFields{"reconcile": reconcile})
+
+				if err := reconcile.checkWellFormed(); err != nil {
+					logger.Warn("Received reconcile that is not well-formed, ignoring", commontypes.LogFields{
+						"reconcile": reconcile,
+						"error":     err,
+					})
+					break // select
+				}
 				for _, ann := range reconcile.Anns {
 					if err := p.processAnnouncement(ann); err != nil {
 

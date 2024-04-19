@@ -171,7 +171,8 @@ func (sig PrepareSignature) Verify(
 
 	ok := ed25519.Verify(pk, prepareSignatureMsg(ogid, seqNr, outcomeInputsDigest, outcomeDigest), sig)
 	if !ok {
-		return fmt.Errorf("PrepareSignature failed to verify")
+		// Other less common causes include leader equivocation or actually invalid signatures.
+		return fmt.Errorf("PrepareSignature failed to verify. This is commonly caused by non-determinism in the ReportingPlugin")
 	}
 
 	return nil

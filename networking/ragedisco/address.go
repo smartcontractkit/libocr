@@ -98,15 +98,11 @@ func dedup(addrs []ragetypes.Address) []ragetypes.Address {
 	return ret
 }
 
-func parseAddrPortForAnnouncement(s string) (netip.AddrPort, error) {
-	const maxAddrPortSize = 1 + // opening bracket [
-		39 + // max IPv6 string representation, len("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
-		1 + // closing bracket ]
-		1 + // port separator :
-		5 // max port, len("65535")
-	if len(s) > maxAddrPortSize {
-		return netip.AddrPort{}, fmt.Errorf("address %q larger than %d bytes", s, maxAddrPortSize)
-	}
+const maxAddrPortValidForAnnouncementSize = len("[0000:0000:0000:0000:0000:ffff:255.255.255.255]:65535")
+
+// Decoupled to aid in fuzzing, to ensure that really
+// maxAddrPortValidForAnnouncementSize is the correct size limit.
+func parseAddrPortForAnnouncementNoSizeLimit(s string) (netip.AddrPort, error) {
 	addrPort, err := netip.ParseAddrPort(s)
 	if err != nil {
 		return netip.AddrPort{}, err
@@ -119,6 +115,13 @@ func parseAddrPortForAnnouncement(s string) (netip.AddrPort, error) {
 		return netip.AddrPort{}, fmt.Errorf("address %q should be either IPv4 or IPv6", s)
 	}
 	return addrPort, err
+}
+
+func parseAddrPortForAnnouncement(s string) (netip.AddrPort, error) {
+	if len(s) > maxAddrPortValidForAnnouncementSize {
+		return netip.AddrPort{}, fmt.Errorf("address %q larger than %d bytes", s, maxAddrPortValidForAnnouncementSize)
+	}
+	return parseAddrPortForAnnouncementNoSizeLimit(s)
 }
 
 // isValidForAnnouncement checks that the provided address is in the form ip:port.

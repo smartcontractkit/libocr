@@ -142,9 +142,12 @@ const (
 	MaxMaxMercuryReportLength      = 2 * mib
 )
 
+// Limits for data returned by the MercuryPlugin.
+// Used for computing rate limits and defending against outsized messages.
+// Messages are checked against these values during (de)serialization. Be
+// careful when changing these values, they could lead to different versions
+// of a MercuryPlugin being unable to communicate with each other.
 type MercuryPluginLimits struct {
-	// Maximum length in bytes of Observation, Report returned by the
-	// MercuryPlugin. Used for defending against spam attacks.
 	MaxObservationLength int
 	MaxReportLength      int
 }

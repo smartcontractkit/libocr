@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -122,7 +123,10 @@ type oracleState struct {
 // (with the exception of ReportGeneration which is explicitly managed by Pacemaker).
 // This enables us to wait for their completion before exiting.
 func (o *oracleState) run() {
-	o.logger.Info("Running", nil)
+	o.logger.Info("Oracle: running", commontypes.LogFields{
+		"localConfig":  fmt.Sprintf("%+v", o.localConfig),
+		"publicConfig": fmt.Sprintf("%+v", o.config.PublicConfig),
+	})
 
 	for i := 0; i < o.config.N(); i++ {
 		o.bufferedMessages = append(o.bufferedMessages, NewMessageBuffer(futureMessageBufferSize))

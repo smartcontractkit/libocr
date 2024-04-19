@@ -159,7 +159,10 @@ const (
 // of an ReportingPlugin, e.g. due to software restarts. If you need
 // ReportingPlugin state to survive across restarts, you should store it in the
 // Outcome or persist it. An ReportingPlugin instance will only ever serve a
-// single protocol instance.
+// single protocol instance. Outcomes and other state are are not preserved
+// between protocol instances. A fresh protocol instance will start with a clean
+// state. Carrying state between different protocol instances is up to the
+// ReportingPlugin logic.
 type ReportingPlugin[RI any] interface {
 	// Query creates a Query that is sent from the leader to all follower nodes
 	// as part of the request for an observation. Be careful! A malicious leader
@@ -280,9 +283,12 @@ const (
 	MaxMaxReportCount       = 2000
 )
 
+// Limits for data returned by the ReportingPlugin.
+// Used for computing rate limits and defending against outsized messages.
+// Messages are checked against these values during (de)serialization. Be
+// careful when changing these values, they could lead to different versions
+// of a ReportingPlugin being unable to communicate with each other.
 type ReportingPluginLimits struct {
-	// Maximum length in bytes of data returned by the plugin. Used for
-	// defending against spam attacks.
 	MaxQueryLength       int
 	MaxObservationLength int
 	MaxOutcomeLength     int

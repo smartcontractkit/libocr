@@ -143,6 +143,7 @@ func (n *OCR3SerializingEndpoint[RI]) Start() error {
 				if err != nil {
 					n.logger.Error("OCR3SerializingEndpoint: Failed to deserialize", commontypes.LogFields{
 						"message": raw,
+						"error":   err,
 					})
 					n.sendTelemetry(&serialization.TelemetryWrapper{
 						Wrapped: &serialization.TelemetryWrapper_AssertionViolation{&serialization.TelemetryAssertionViolation{
