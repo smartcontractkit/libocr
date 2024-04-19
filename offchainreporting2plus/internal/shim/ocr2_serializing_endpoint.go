@@ -137,6 +137,7 @@ func (n *OCR2SerializingEndpoint) Start() error {
 				if err != nil {
 					n.logger.Error("OCR2SerializingEndpoint: Failed to deserialize", commontypes.LogFields{
 						"message": raw,
+						"error":   err,
 					})
 					n.sendTelemetry(&serialization.TelemetryWrapper{
 						Wrapped: &serialization.TelemetryWrapper_AssertionViolation{&serialization.TelemetryAssertionViolation{

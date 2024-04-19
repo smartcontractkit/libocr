@@ -275,9 +275,12 @@ const (
 	MaxMaxReportLength      = twoHundredFiftySixMiB // 256 MiB
 )
 
+// Limits for data returned by the ReportingPlugin.
+// Used for computing rate limits and defending against outsized messages.
+// Messages are checked against these values during (de)serialization. Be
+// careful when changing these values, they could lead to different versions
+// of a ReportingPlugin being unable to communicate with each other.
 type ReportingPluginLimits struct {
-	// Maximum length in bytes of Query, Observation, Report returned by the
-	// ReportingPlugin. Used for defending against spam attacks.
 	MaxQueryLength       int
 	MaxObservationLength int
 	MaxReportLength      int

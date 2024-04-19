@@ -228,15 +228,29 @@ var _ types.ReportingPluginFactory = NumericalMedianFactory{}
 const maxObservationLength = 4 /* timestamp */ +
 	byteWidth /* observation */ +
 	byteWidth /* juelsPerFeeCoin */ +
+	byteWidth /* gasPriceSubunits */ +
 	16 /* overapprox. of protobuf overhead */
 
 type NumericalMedianFactory struct {
 	ContractTransmitter       MedianContract
 	DataSource                DataSource
 	JuelsPerFeeCoinDataSource DataSource
-	Logger                    commontypes.Logger
-	OnchainConfigCodec        OnchainConfigCodec
-	ReportCodec               ReportCodec
+	// The Observe() function of the following DataSource returns a non-zero value if the underlying
+	// chain does not support reading tx.gasPrice during execution. This is useful e.g. on Starknet.
+	// The returned price is expected to be in subunits of the coin used for gas. E.g. on chains that
+	// use Ether for gas this would be denominated in Wei.
+	GasPriceSubunitsDataSource DataSource
+	// Set this to false unless you need GasPriceSubunits to be included in reports
+	// for the chain you're targeting.
+	// Be careful! Older versions of the ReportingPlugin will discard observations
+	// made by newer versions of the ReportingPlugin with this value
+	// set to true. This could lead to liveness failures. Only set this to true if all
+	// oracles in the protocol instance are running the newer version of the
+	// ReportingPlugin.
+	IncludeGasPriceSubunitsInObservation bool
+	Logger                               commontypes.Logger
+	OnchainConfigCodec                   OnchainConfigCodec
+	ReportCodec                          ReportCodec
 }
 
 func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
@@ -267,6 +281,8 @@ func (fac NumericalMedianFactory) NewReportingPlugin(configuration types.Reporti
 			fac.ContractTransmitter,
 			fac.DataSource,
 			fac.JuelsPerFeeCoinDataSource,
+			fac.GasPriceSubunitsDataSource,
+			fac.IncludeGasPriceSubunitsInObservation,
 			logger,
 			fac.ReportCodec,
 
@@ -308,13 +324,15 @@ func Deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
 
 type numericalMedian struct {
-	offchainConfig            OffchainConfig
-	onchainConfig             OnchainConfig
-	contractTransmitter       MedianContract
-	dataSource                DataSource
-	juelsPerFeeCoinDataSource DataSource
-	logger                    loghelper.LoggerWithContext
-	reportCodec               ReportCodec
+	offchainConfig                       OffchainConfig
+	onchainConfig                        OnchainConfig
+	contractTransmitter                  MedianContract
+	dataSource                           DataSource
+	juelsPerFeeCoinDataSource            DataSource
+	gasPriceSubunitsDataSource           DataSource
+	includeGasPriceSubunitsInObservation bool
+	logger                               loghelper.LoggerWithContext
+	reportCodec                          ReportCodec
 
 	configDigest             types.ConfigDigest
 	f                        int
@@ -334,11 +352,12 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 
 	observe := func(dataSource DataSource, name string) ([]byte, error) {
 		value, err := dataSource.Observe(ctx, repts)
+
 		if err != nil {
 			return nil, fmt.Errorf("%v.Observe returned an error: %w", name, err)
 		}
 		if value == nil {
-			return nil, fmt.Errorf("%v.Observe returned nil big.Int which should never happen", name)
+			return nil, fmt.Errorf("%v.Observe returned unexpected nil big.Int", name)
 		}
 		encoded, err := EncodeValue(value)
 		if err != nil {
@@ -347,19 +366,26 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 		return encoded, nil
 	}
 	var subs subprocesses.Subprocesses
-	var value, juelsPerFeeCoin []byte
-	var valueErr, juelsPerFeeCoinErr error
+	var value, juelsPerFeeCoin, gasPriceSubunits []byte
+	var valueErr, juelsPerFeeCoinErr, gasPriceSubunitsErr error
 	subs.Go(func() {
 		value, valueErr = observe(nm.dataSource, "DataSource")
 	})
 	subs.Go(func() {
 		juelsPerFeeCoin, juelsPerFeeCoinErr = observe(nm.juelsPerFeeCoinDataSource, "JuelsPerFeeCoinDataSource")
 	})
+	subs.Go(func() {
+		gasPriceSubunits, gasPriceSubunitsErr = observe(nm.gasPriceSubunitsDataSource, "GasPriceSubunitsDataSource")
+	})
 	subs.Wait()
 
-	err := multierr.Combine(valueErr, juelsPerFeeCoinErr)
+	err := multierr.Combine(valueErr, juelsPerFeeCoinErr, gasPriceSubunitsErr)
 	if err != nil {
 		return nil, fmt.Errorf("error in Observation: %w", err)
+	}
+
+	if !nm.includeGasPriceSubunitsInObservation {
+		gasPriceSubunits = nil
 	}
 
 	return proto.Marshal(&NumericalMedianObservationProto{
@@ -371,14 +397,16 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 		uint32(time.Now().Unix()),
 		value,
 		juelsPerFeeCoin,
+		gasPriceSubunits,
 	})
 }
 
 type ParsedAttributedObservation struct {
-	Timestamp       uint32
-	Value           *big.Int
-	JuelsPerFeeCoin *big.Int
-	Observer        commontypes.OracleID
+	Timestamp        uint32
+	Value            *big.Int
+	JuelsPerFeeCoin  *big.Int
+	GasPriceSubunits *big.Int
+	Observer         commontypes.OracleID
 }
 
 func parseAttributedObservation(ao types.AttributedObservation) (ParsedAttributedObservation, error) {
@@ -394,10 +422,24 @@ func parseAttributedObservation(ao types.AttributedObservation) (ParsedAttribute
 	if err != nil {
 		return ParsedAttributedObservation{}, fmt.Errorf("attributed observation with juelsPerFeeCoin that cannot be converted to big.Int: %w", err)
 	}
+	var gasPriceSubunits *big.Int
+	if len(observationProto.GasPriceSubunits) == 0 {
+		// "gasPriceSubunits" may not be sent by nodes in the DON
+		// if they are using an older version of the median reporting plugin
+		// or in newer versions if IncludeGasPriceSubunitsInObservation is false
+		gasPriceSubunits = new(big.Int)
+	} else {
+		gasPriceSubunits, err = DecodeValue(observationProto.GasPriceSubunits)
+		if err != nil {
+			return ParsedAttributedObservation{}, fmt.Errorf("attributed observation with gasPriceSubunits that cannot be converted to big.Int: %w", err)
+		}
+	}
+
 	return ParsedAttributedObservation{
 		observationProto.Timestamp,
 		value,
 		juelsPerFeeCoin,
+		gasPriceSubunits,
 		ao.Observer,
 	}, nil
 }

@@ -43,15 +43,17 @@ type LocalConfig struct {
 	// CONFIRMED
 	ContractConfigConfirmations uint16
 
-	// SkipContractConfigConfirmations allows to disable the confirmations check entirely
+	// SkipContractConfigConfirmations allows to disable the confirmations check entirely.
 	// This can be useful in some cases e.g. L2 which has instant finality and
 	// where local block numbers do not match the on-chain value returned from
-	// block.number
+	// block.number.
 	SkipContractConfigConfirmations bool
 
 	// Polling interval at which ContractConfigTracker is queried for
-	// updated on-chain configurations. Recommended values are between
-	// fifteen seconds and two minutes.
+	// updated on-chain configurations. On Ethereum, recommended values are
+	// between fifteen seconds and two minutes. On chains with a lower block
+	// interval, a lower poll interval may be appropriate. We enforce a
+	// minimum on this value in SanityCheckLocalConfig().
 	ContractConfigTrackerPollInterval time.Duration
 
 	// Timeout for ContractTransmitter.Transmit calls.

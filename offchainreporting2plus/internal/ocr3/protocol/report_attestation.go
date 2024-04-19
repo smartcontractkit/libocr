@@ -324,6 +324,13 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 				oracle.signatures,
 			)
 			oracle.validSignatures = &validSignatures
+			if !validSignatures {
+				// Other less common causes include actually invalid signatures.
+				repatt.logger.Warn("report signatures failed to verify. This is commonly caused by non-determinism in the ReportingPlugin", commontypes.LogFields{
+					"sender": oracleID,
+					"seqNr":  seqNr,
+				})
+			}
 		}
 		if oracle.validSignatures != nil && *oracle.validSignatures {
 			goodSigs++

@@ -143,7 +143,6 @@ type sharedState struct {
 	committedOutcome  ocr3types.Outcome
 }
 
-// Run starts the event loop for the report-generation protocol
 func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCommit) {
 	outgen.logger.Info("OutcomeGeneration: running", nil)
 

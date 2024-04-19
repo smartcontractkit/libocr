@@ -36,7 +36,7 @@ func SanityCheckLocalConfig(c types.LocalConfig) (err error) {
 		boundTimeDuration(
 			c.ContractConfigTrackerPollInterval,
 			"contract config tracker poll interval",
-			15*time.Second, 120*time.Second,
+			1*time.Second, 120*time.Second,
 		))
 	err = multierr.Append(err,
 		boundTimeDuration(

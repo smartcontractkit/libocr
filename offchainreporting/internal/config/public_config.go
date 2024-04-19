@@ -298,6 +298,8 @@ func checkPublicConfigParametersForChain(chainID *big.Int, cfg PublicConfig) err
 		31:              {"RSK Testnet", chainTypePublicTestnet},
 		534352:          {"Scroll Mainnet", chainTypeFastUpdates},
 		534351:          {"Scroll Testnet Sepolia", chainTypePublicTestnet},
+		196:             {"X Layer Mainnet", chainTypeFastUpdates},
+		195:             {"X Layer Testnet Sepolia", chainTypePublicTestnet},
 		100:             {"xDai", chainTypeModerateUpdates},
 		10200:           {"xDai Testnet Chiado", chainTypePublicTestnet},
 		324:             {"zkSync Mainnet", chainTypeFastUpdates},
