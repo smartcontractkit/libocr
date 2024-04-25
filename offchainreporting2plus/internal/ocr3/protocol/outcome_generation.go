@@ -364,7 +364,7 @@ func (outgen *outcomeGenerationState[RI]) ObservationQuorum(query types.Query) (
 		0, // pure function
 		outgen.OutcomeCtx(outgen.sharedState.seqNr),
 		func(ctx context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Quorum, error) {
-			return outgen.reportingPlugin.ObservationQuorum(outctx, query)
+			return outgen.reportingPlugin.ObservationQuorum(ctx, outctx, query)
 		},
 	)
 
