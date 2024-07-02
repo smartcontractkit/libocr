@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -114,6 +116,7 @@ func ReportingPluginLimits(mercuryPluginLimits ocr3types.MercuryPluginLimits) oc
 
 type MercuryReportingPlugin struct {
 	Config       ocr3types.ReportingPluginConfig
+	Logger       loghelper.LoggerWithContext
 	Plugin       ocr3types.MercuryPlugin
 	PluginLimits ocr3types.MercuryPluginLimits
 }
@@ -153,6 +156,12 @@ func (p *MercuryReportingPlugin) Query(ctx context.Context, outctx ocr3types.Out
 }
 
 func (p *MercuryReportingPlugin) Observation(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query) (types.Observation, error) {
+	p.Logger.Debug("MercuryReportingPlugin: Observation", commontypes.LogFields{
+		"seqNr": outctx.SeqNr,
+		"epoch": outctx.Epoch, // nolint: staticcheck
+		"round": outctx.Round, // nolint: staticcheck
+	})
+
 	previousOutcomeDeserialized, err := deserializeMercuryReportingPluginOutcome(outctx.PreviousOutcome)
 	if err != nil {
 		return nil, err
@@ -180,6 +189,12 @@ func (p *MercuryReportingPlugin) ObservationQuorum(outctx ocr3types.OutcomeConte
 }
 
 func (p *MercuryReportingPlugin) Outcome(outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
+	p.Logger.Debug("MercuryReportingPlugin: Outcome", commontypes.LogFields{
+		"seqNr": outctx.SeqNr,
+		"epoch": outctx.Epoch, // nolint: staticcheck
+		"round": outctx.Round, // nolint: staticcheck
+	})
+
 	previousOutcomeDeserialized, err := deserializeMercuryReportingPluginOutcome(outctx.PreviousOutcome)
 	if err != nil {
 		return nil, err

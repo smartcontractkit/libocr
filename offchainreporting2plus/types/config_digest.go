@@ -16,18 +16,22 @@ type ConfigDigestPrefix uint16
 // whatever chain you're targeting.
 const (
 	_                                        ConfigDigestPrefix = 0 // reserved to prevent errors where a zero-default creeps through somewhere
-	ConfigDigestPrefixEVM                    ConfigDigestPrefix = 1 // TODO: rename to ConfigDigestPrefixEVMSimple in the future
-	ConfigDigestPrefixTerra                  ConfigDigestPrefix = 2
-	ConfigDigestPrefixSolana                 ConfigDigestPrefix = 3
-	ConfigDigestPrefixStarknet               ConfigDigestPrefix = 4
-	_                                                           = 5 // reserved, not sure for what
-	ConfigDigestPrefixMercuryV02             ConfigDigestPrefix = 6 // Mercury v0.2 and v0.3
-	ConfigDigestPrefixEVMThresholdDecryption ConfigDigestPrefix = 7 // Run Threshold/S4 plugins as part of another product under one contract.
-	ConfigDigestPrefixEVMS4                  ConfigDigestPrefix = 8 // Run Threshold/S4 plugins as part of another product under one contract.
-	ConfigDigestPrefixLLO                    ConfigDigestPrefix = 9 // Mercury v1
+	ConfigDigestPrefixEVMSimple              ConfigDigestPrefix = 0x0001
+	ConfigDigestPrefixTerra                  ConfigDigestPrefix = 0x0002
+	ConfigDigestPrefixSolana                 ConfigDigestPrefix = 0x0003
+	ConfigDigestPrefixStarknet               ConfigDigestPrefix = 0x0004
+	_                                                           = 0x0005 // reserved, not sure for what
+	ConfigDigestPrefixMercuryV02             ConfigDigestPrefix = 0x0006 // Mercury v0.2 and v0.3
+	ConfigDigestPrefixEVMThresholdDecryption ConfigDigestPrefix = 0x0007 // Run Threshold/S4 plugins as part of another product under one contract.
+	ConfigDigestPrefixEVMS4                  ConfigDigestPrefix = 0x0008 // Run Threshold/S4 plugins as part of another product under one contract.
+	ConfigDigestPrefixLLO                    ConfigDigestPrefix = 0x0009 // Mercury v1
+	ConfigDigestPrefixCCIPMultiRole          ConfigDigestPrefix = 0x000a // CCIP multi role
 
 	ConfigDigestPrefixOCR1 ConfigDigestPrefix = 0xEEEE // we translate ocr1 config digest to ocr2 config digests in the networking layer
 	_                      ConfigDigestPrefix = 0xFFFF // reserved for future use
+
+	// Deprecated: Use equivalent ConfigDigestPrefixEVMSimple instead
+	ConfigDigestPrefixEVM ConfigDigestPrefix = ConfigDigestPrefixEVMSimple
 )
 
 func ConfigDigestPrefixFromConfigDigest(configDigest ConfigDigest) ConfigDigestPrefix {

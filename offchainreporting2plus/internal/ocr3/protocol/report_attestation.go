@@ -71,11 +71,11 @@ type reportAttestationState[RI any] struct {
 }
 
 type round[RI any] struct {
-	certifiedCommit *CertifiedCommit
-	reportsWithInfo []ocr3types.ReportWithInfo[RI]
-	oracles         []oracle // always initialized to be of length n
-	startedFetch    bool
-	complete        bool
+	verifiedCertifiedCommit *CertifiedCommit               // only stores certifiedCommit whose qc has been verified
+	reportsWithInfo         []ocr3types.ReportWithInfo[RI] // cache result of ReportingPlugin.Reports(certifiedCommit.SeqNr, certifiedCommit.Outcome)
+	oracles                 []oracle                       // always initialized to be of length n
+	startedFetch            bool
+	complete                bool
 }
 
 // oracle contains information about interactions with oracles (self & others)
@@ -160,7 +160,7 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 }
 
 func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOutcome[RI]) {
-	if len(repatt.rounds[ev.SeqNr].reportsWithInfo) != 0 {
+	if repatt.rounds[ev.SeqNr].verifiedCertifiedCommit != nil {
 		repatt.logger.Debug("dropping EventMissingOutcome, already have Outcome", commontypes.LogFields{
 			"seqNr": ev.SeqNr,
 		})
@@ -171,7 +171,7 @@ func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOut
 }
 
 func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg MessageCertifiedCommitRequest[RI], sender commontypes.OracleID) {
-	if repatt.rounds[msg.SeqNr] == nil || repatt.rounds[msg.SeqNr].certifiedCommit == nil {
+	if repatt.rounds[msg.SeqNr] == nil || repatt.rounds[msg.SeqNr].verifiedCertifiedCommit == nil {
 		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for outcome with unknown certified commit", commontypes.LogFields{
 			"seqNr":  msg.SeqNr,
 			"sender": sender,
@@ -193,7 +193,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 		"seqNr": msg.SeqNr,
 		"to":    sender,
 	})
-	repatt.netSender.SendTo(MessageCertifiedCommit[RI]{*repatt.rounds[msg.SeqNr].certifiedCommit}, sender)
+	repatt.netSender.SendTo(MessageCertifiedCommit[RI]{*repatt.rounds[msg.SeqNr].verifiedCertifiedCommit}, sender)
 }
 
 func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCertifiedCommit[RI], sender commontypes.OracleID) {
@@ -218,7 +218,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 
 	oracle.theyServiced = true
 
-	if repatt.rounds[msg.CertifiedCommit.SeqNr].certifiedCommit != nil {
+	if repatt.rounds[msg.CertifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
 		repatt.logger.Debug("dropping redundant MessageCertifiedCommit", commontypes.LogFields{
 			"seqNr":  msg.CertifiedCommit.SeqNr,
 			"sender": sender,
@@ -239,7 +239,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 		"sender": sender,
 	})
 
-	repatt.receivedCertifiedCommit(msg.CertifiedCommit)
+	repatt.receivedVerifiedCertifiedCommit(msg.CertifiedCommit)
 }
 
 func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64) {
@@ -286,7 +286,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		return
 	}
 
-	if len(repatt.rounds[seqNr].reportsWithInfo) == 0 {
+	if repatt.rounds[seqNr].verifiedCertifiedCommit == nil {
 		oraclesThatSentSignatures := 0
 		for _, oracle := range repatt.rounds[seqNr].oracles {
 			if len(oracle.signatures) == 0 {
@@ -296,7 +296,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		}
 
 		if oraclesThatSentSignatures <= repatt.config.F {
-			repatt.logger.Debug("cannot complete, missing reports and signatures", commontypes.LogFields{
+			repatt.logger.Debug("cannot complete, missing CertifiedCommit and signatures", commontypes.LogFields{
 				"oraclesThatSentSignatures": oraclesThatSentSignatures,
 				"seqNr":                     seqNr,
 				"threshold":                 repatt.config.F + 1,
@@ -434,12 +434,12 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 }
 
 func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommittedOutcome[RI]) {
-	repatt.receivedCertifiedCommit(ev.CertifiedCommit)
+	repatt.receivedVerifiedCertifiedCommit(ev.CertifiedCommit)
 }
 
-func (repatt *reportAttestationState[RI]) receivedCertifiedCommit(certifiedCommit CertifiedCommit) {
-	if repatt.rounds[certifiedCommit.SeqNr] != nil && repatt.rounds[certifiedCommit.SeqNr].reportsWithInfo != nil {
-		repatt.logger.Debug("dropping CertifiedCommit for which we already have reports", commontypes.LogFields{
+func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certifiedCommit CertifiedCommit) {
+	if repatt.rounds[certifiedCommit.SeqNr] != nil && repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
+		repatt.logger.Debug("dropping redundant CertifiedCommit", commontypes.LogFields{
 			"seqNr": certifiedCommit.SeqNr,
 		})
 		return
@@ -462,12 +462,10 @@ func (repatt *reportAttestationState[RI]) receivedCertifiedCommit(certifiedCommi
 		return
 	}
 
-	if reportsWithInfo == nil {
-		repatt.logger.Info("ReportingPlugin.Reports returned no reports, skipping", commontypes.LogFields{
-			"seqNr": certifiedCommit.SeqNr,
-		})
-		return
-	}
+	repatt.logger.Debug("successfully invoked ReportingPlugin.Reports", commontypes.LogFields{
+		"seqNr":   certifiedCommit.SeqNr,
+		"reports": len(reportsWithInfo),
+	})
 
 	var sigs [][]byte
 	for i, reportWithInfo := range reportsWithInfo {
@@ -492,7 +490,7 @@ func (repatt *reportAttestationState[RI]) receivedCertifiedCommit(certifiedCommi
 			false,
 		}
 	}
-	repatt.rounds[certifiedCommit.SeqNr].certifiedCommit = &certifiedCommit
+	repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit = &certifiedCommit
 	repatt.rounds[certifiedCommit.SeqNr].reportsWithInfo = reportsWithInfo
 
 	repatt.logger.Debug("broadcasting MessageReportSignatures", commontypes.LogFields{
