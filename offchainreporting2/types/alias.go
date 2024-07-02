@@ -6,8 +6,8 @@ import "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 type ConfigDigestPrefix = types.ConfigDigestPrefix
 
 const (
-	ConfigDigestPrefixEVM        ConfigDigestPrefix = types.ConfigDigestPrefixEVM
-	ConfigDigestPrefixTerra      ConfigDigestPrefix = types.ConfigDigestPrefixTerra
+	// Deprecated: Use equivalent offchainreporting2plus/types.ConfigDigestPrefixEVMSimple instead
+	ConfigDigestPrefixEVM        ConfigDigestPrefix = types.ConfigDigestPrefixEVM //nolint:staticcheck
 	ConfigDigestPrefixSolana     ConfigDigestPrefix = types.ConfigDigestPrefixSolana
 	ConfigDigestPrefixStarknet   ConfigDigestPrefix = types.ConfigDigestPrefixStarknet
 	ConfigDigestPrefixMercuryV02 ConfigDigestPrefix = types.ConfigDigestPrefixMercuryV02

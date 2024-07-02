@@ -884,11 +884,11 @@ type TokenBucketParams struct {
 func (ho *Host) NewStream(
 	other types.PeerID,
 	streamName string,
-	outgoingBufferSize int,
-	incomingBufferSize int,
+	outgoingBufferSize int, // number of messages that fit in the outgoing buffer
+	incomingBufferSize int, // number of messages that fit in the incoming buffer
 	maxMessageLength int,
-	messagesLimit TokenBucketParams,
-	bytesLimit TokenBucketParams,
+	messagesLimit TokenBucketParams, // rate limit for incoming messages
+	bytesLimit TokenBucketParams, // rate limit for incoming messages
 ) (*Stream, error) {
 	if other == ho.id {
 		return nil, fmt.Errorf("stream with self is forbidden")

@@ -294,12 +294,20 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 			), nil
 		},
 	)
-	if !ok || err != nil {
+	if !ok {
+		outgen.logger.Error("dropping MessageObservation that could not be validated", commontypes.LogFields{
+			"sender": sender,
+			"seqNr":  outgen.sharedState.seqNr,
+		})
+		return
+	}
+	if err != nil {
 		outgen.logger.Warn("dropping MessageObservation carrying invalid Observation", commontypes.LogFields{
 			"sender": sender,
 			"seqNr":  outgen.sharedState.seqNr,
 			"error":  err,
 		})
+		return
 	}
 
 	quorum, ok := outgen.ObservationQuorum(outgen.leaderState.query)

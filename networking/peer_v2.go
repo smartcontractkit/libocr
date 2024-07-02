@@ -11,6 +11,7 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
+	"github.com/smartcontractkit/libocr/networking/rageping"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
@@ -42,16 +43,19 @@ type PeerConfig struct {
 	V2EndpointConfig EndpointConfigV2
 
 	MetricsRegisterer prometheus.Registerer
+
+	LatencyMetricsServiceConfigs []*rageping.LatencyMetricsServiceConfig
 }
 
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
 type concretePeerV2 struct {
-	peerID            ragetypes.PeerID
-	host              *ragep2p.Host
-	discoverer        *ragedisco.Ragep2pDiscoverer
-	metricsRegisterer prometheus.Registerer
-	logger            loghelper.LoggerWithContext
-	endpointConfig    EndpointConfigV2
+	peerID                ragetypes.PeerID
+	host                  *ragep2p.Host
+	discoverer            *ragedisco.Ragep2pDiscoverer
+	metricsRegisterer     prometheus.Registerer
+	logger                loghelper.LoggerWithContext
+	endpointConfig        EndpointConfigV2
+	latencyMetricsService rageping.LatencyMetricsService
 }
 
 // Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
@@ -97,6 +101,10 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 
 	logger.Info("PeerV2: ragep2p host booted", nil)
 
+	latencyMetricsService := rageping.NewLatencyMetricsService(
+		host, metricsRegistererWrapper, logger, c.LatencyMetricsServiceConfigs,
+	)
+
 	return &concretePeerV2{
 		peerID,
 		host,
@@ -104,6 +112,7 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 		metricsRegistererWrapper,
 		logger,
 		c.V2EndpointConfig,
+		latencyMetricsService,
 	}, nil
 }
 
@@ -133,10 +142,22 @@ func (p2 *concretePeerV2) register(configDigest ocr2types.ConfigDigest, oracles 
 		return nil, err
 	}
 
+	bootstrappersIDs := make([]ragetypes.PeerID, 0, len(bootstrappers))
+	for _, b := range bootstrappers {
+		bootstrappersIDs = append(bootstrappersIDs, b.ID)
+	}
+
+	p2.latencyMetricsService.RegisterPeers(oracles)
+	p2.latencyMetricsService.RegisterPeers(bootstrappersIDs)
+
 	return newEndpointRegistration(func() error {
 		// Discoverer will not be closed until concretePeerV2.Close() is called.
 		// By the time concretePeerV2.Close() is called all endpoints/bootstrappers should have already been closed.
 		// Even if this weren't true, RemoveGroup() is a no-op if the discoverer is closed.
+
+		p2.latencyMetricsService.UnregisterPeers(oracles)
+		p2.latencyMetricsService.UnregisterPeers(bootstrappersIDs)
+
 		return p2.discoverer.RemoveGroup(configDigest)
 	}), nil
 }
@@ -146,6 +167,7 @@ func (p2 *concretePeerV2) PeerID() string {
 }
 
 func (p2 *concretePeerV2) Close() error {
+	p2.latencyMetricsService.Close()
 	return p2.host.Close()
 }
 func decodev2Bootstrappers(v2bootstrappers []commontypes.BootstrapperLocator) (infos []ragetypes.PeerInfo, err error) {

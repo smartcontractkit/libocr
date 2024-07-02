@@ -206,6 +206,7 @@ func RunManagedMercuryOracle(
 			}
 			reportingPlugin := &mercuryshim.MercuryReportingPlugin{
 				reportingPluginConfig,
+				logger,
 				mercuryPlugin,
 				mercuryPluginInfo.Limits,
 			}

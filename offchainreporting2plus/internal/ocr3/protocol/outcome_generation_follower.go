@@ -373,11 +373,20 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 					), nil
 				},
 			)
-			if !ok || err != nil {
-				outgen.logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
-					"seqNr": outgen.sharedState.seqNr,
-					"error": err,
+			if !ok {
+				outgen.logger.Error("dropping MessageProposal containing observation that could not be validated", commontypes.LogFields{
+					"seqNr":    outgen.sharedState.seqNr,
+					"observer": aso.Observer,
 				})
+				return
+			}
+			if err != nil {
+				outgen.logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
+					"seqNr":    outgen.sharedState.seqNr,
+					"error":    err,
+					"observer": aso.Observer,
+				})
+				return
 			}
 
 			if aso.Observer == outgen.id {
