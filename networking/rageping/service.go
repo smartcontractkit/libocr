@@ -95,10 +95,12 @@ func (c *LatencyMetricsServiceConfig) getStreamLimits() *latencyMetricsServiceSt
 		maxMessageLength = pongSize
 	}
 
-	// A new message is only sent after receiving a response or after a timeout, so really a bufferSize of 1 is fine.
-	// Buffer sizes are specified in number of messages (and not in bytes).
-	outgoingBufferSize := 1
-	incomingBufferSize := 1
+	// Buffer sizes are specified in number of messages (and not in bytes). A buffer size of 2 messages is required
+	// because (1) outgoing: sending a PING and sending a PONG as response to a previously received PING may happen
+	// concurrently, and (2) incoming: receiving a new PING and receiving a PONG as response to a previously sent PING
+	// may happen concurrently.
+	outgoingBufferSize := 2
+	incomingBufferSize := 2
 
 	// There is at most one ping and one pong message received per c.minPeriod. (Only the inbound messages are
 	// considered for the rate limits.)

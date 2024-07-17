@@ -1091,19 +1091,30 @@ func (st *Stream) Close() error {
 }
 
 func (st *Stream) receiveLoop() {
-	chSignalPending := st.demux.SignalPending(st.streamID)
+	chSignalMaybePending := st.demux.SignalMaybePending(st.streamID)
 	chDone := st.ctx.Done()
 	for {
 		select {
-		case <-chSignalPending:
-			msg := st.demux.PopMessage(st.streamID)
-			if msg != nil {
-				select {
-				case st.chReceive <- msg:
-				case <-chDone:
+		case <-chSignalMaybePending:
+			msg, popResult := st.demux.PopMessage(st.streamID)
+			switch popResult {
+			case popResultEmpty:
+				st.logger.Debug("Demuxer buffer is empty", nil)
+			case popResultUnknownStream:
+				// Closing of streams does not happen in a single step, and so
+				// it could be that in the process of closing, the stream has
+				// been removed from demuxer, but receiveLoop has not stopped
+				// yet (but should stop soon).
+				st.logger.Info("Demuxer does not know of the stream, it is likely we are in the process of closing the stream", nil)
+			case popResultSuccess:
+				if msg != nil {
+					select {
+					case st.chReceive <- msg:
+					case <-chDone:
+					}
+				} else {
+					st.logger.Error("Demuxer indicated success but we received nil msg, this should not happen", nil)
 				}
-			} else {
-				st.logger.Error("Received nil msg, this should not happen", nil)
 			}
 		case <-chDone:
 			return

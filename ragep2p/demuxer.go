@@ -28,6 +28,15 @@ const (
 	pushResultUnknownStream
 )
 
+type popResult int
+
+const (
+	_ popResult = iota
+	popResultSuccess
+	popResultEmpty
+	popResultUnknownStream
+)
+
 type demuxerStream struct {
 	buffer          *msgbuf.MessageBuffer
 	chSignal        chan struct{}
@@ -138,16 +147,21 @@ func (d *demuxer) PushMessage(sid streamID, msg []byte) pushResult {
 	return result
 }
 
-func (d *demuxer) PopMessage(sid streamID) []byte {
+// Pops a message from the underlying stream's buffer.
+// Returns a non-nil value iff popResult == popResultSuccess.
+func (d *demuxer) PopMessage(sid streamID) ([]byte, popResult) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
 	s, ok := d.streams[sid]
 	if !ok {
-		return nil
+		return nil, popResultUnknownStream
 	}
 
 	result := s.buffer.Pop()
+	if result == nil {
+		return nil, popResultEmpty
+	}
 
 	if s.buffer.Peek() != nil {
 		select {
@@ -156,10 +170,32 @@ func (d *demuxer) PopMessage(sid streamID) []byte {
 		}
 	}
 
-	return result
+	return result, popResultSuccess
 }
 
-func (d *demuxer) SignalPending(sid streamID) <-chan struct{} {
+// The signals received via the returned channel are NOT a reliable indicator that the buffer is NON-empty. Depending on
+// the exact interleaving of the goroutines (in particular, authenticatedConnectionReadLoop, and receiveLoop), a call
+// to PopMessage() - after receiving a signal through the channel - may return (nil, popResultEmpty).
+//
+// Example execution timeline for a buffer size of 1:
+//
+// | authenticatedConnectionReadLoop   buffer   receiveLoop
+// |                                   []
+// | demux.PushMessage(m1)
+// |                                   [m1]
+// | send signal to s.chSignal
+// |                                            signal received (case <-chSignalMaybePending triggers)
+// | demux.PushMessage(m2), buffer
+// | overflows and m1 is dropped
+// |                                   [m2]
+// |                                            demux.PopMessage() returns (m2, popResultSuccess)
+// |                                   []
+// | send signal to s.chSignal
+// |                                            signal received (case <-chSignalMaybePending triggers)
+// |                                            demux.PopMessage() returns (nil, popResultEmpty)
+// ▼
+// time
+func (d *demuxer) SignalMaybePending(sid streamID) <-chan struct{} {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
