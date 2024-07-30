@@ -1,6 +1,7 @@
 package managed
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -13,13 +14,13 @@ type prefixCheckConfigDigester struct {
 
 // ConfigDigest method that checks that the computed ConfigDigest's prefix is
 // consistent with OffchainConfigDigester.ConfigDigestPrefix
-func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.ConfigDigest, error) {
-	prefix, err := d.offchainConfigDigester.ConfigDigestPrefix()
+func (d prefixCheckConfigDigester) ConfigDigest(ctx context.Context, cc types.ContractConfig) (types.ConfigDigest, error) {
+	prefix, err := d.offchainConfigDigester.ConfigDigestPrefix(ctx)
 	if err != nil {
 		return types.ConfigDigest{}, err
 	}
 
-	cd, err := d.offchainConfigDigester.ConfigDigest(cc)
+	cd, err := d.offchainConfigDigester.ConfigDigest(ctx, cc)
 	if err != nil {
 		return types.ConfigDigest{}, err
 	}
@@ -33,8 +34,8 @@ func (d prefixCheckConfigDigester) ConfigDigest(cc types.ContractConfig) (types.
 
 // Check that the ContractConfig's ConfigDigest matches the one computed
 // offchain
-func (d prefixCheckConfigDigester) CheckContractConfig(cc types.ContractConfig) error {
-	goodConfigDigest, err := d.ConfigDigest(cc)
+func (d prefixCheckConfigDigester) CheckContractConfig(ctx context.Context, cc types.ContractConfig) error {
+	goodConfigDigest, err := d.ConfigDigest(ctx, cc)
 	if err != nil {
 		return err
 	}
