@@ -27,7 +27,7 @@ type ContractTransmitter[RI any] interface {
 	) error
 
 	// Account from which the transmitter invokes the contract
-	FromAccount() (types.Account, error)
+	FromAccount(context.Context) (types.Account, error)
 }
 
 // OnchainKeyring provides cryptographic signatures that need to be verifiable

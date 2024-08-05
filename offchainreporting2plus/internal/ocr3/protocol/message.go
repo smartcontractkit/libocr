@@ -43,6 +43,66 @@ func (ev EventNewEpochStart[RI]) processOutcomeGeneration(outgen *outcomeGenerat
 	outgen.eventNewEpochStart(ev)
 }
 
+type EventComputedQuery[RI any] struct {
+	Epoch uint64
+	SeqNr uint64
+	Query types.Query
+}
+
+var _ EventToOutcomeGeneration[struct{}] = EventComputedQuery[struct{}]{}
+
+func (ev EventComputedQuery[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventComputedQuery(ev)
+}
+
+type EventComputedValidateVerifyObservation[RI any] struct {
+	Epoch  uint64
+	SeqNr  uint64
+	Sender commontypes.OracleID
+}
+
+var _ EventToOutcomeGeneration[struct{}] = EventComputedValidateVerifyObservation[struct{}]{}
+
+func (ev EventComputedValidateVerifyObservation[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventComputedValidateVerifyObservation(ev)
+}
+
+type EventComputedReachedObservationQuorum[RI any] struct {
+	Epoch uint64
+	SeqNr uint64
+}
+
+var _ EventToOutcomeGeneration[struct{}] = EventComputedReachedObservationQuorum[struct{}]{}
+
+func (ev EventComputedReachedObservationQuorum[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventComputedReachedObservationQuorum(ev)
+}
+
+type EventComputedObservation[RI any] struct {
+	Epoch       uint64
+	SeqNr       uint64
+	Query       types.Query
+	Observation types.Observation
+}
+
+var _ EventToOutcomeGeneration[struct{}] = EventComputedObservation[struct{}]{}
+
+func (ev EventComputedObservation[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventComputedObservation(ev)
+}
+
+type EventComputedProposalOutcome[RI any] struct {
+	Epoch             uint64
+	SeqNr             uint64
+	outcomeAndDigests outcomeAndDigests
+}
+
+var _ EventToOutcomeGeneration[struct{}] = EventComputedProposalOutcome[struct{}]{}
+
+func (ev EventComputedProposalOutcome[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventComputedProposalOutcome(ev)
+}
+
 type EventToReportAttestation[RI any] interface {
 	processReportAttestation(repatt *reportAttestationState[RI])
 }
@@ -420,6 +480,17 @@ var _ EventToReportAttestation[struct{}] = EventCommittedOutcome[struct{}]{} // 
 
 func (ev EventCommittedOutcome[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
 	repatt.eventCommittedOutcome(ev)
+}
+
+type EventComputedReports[RI any] struct {
+	SeqNr           uint64
+	ReportsWithInfo []ocr3types.ReportWithInfo[RI]
+}
+
+var _ EventToReportAttestation[struct{}] = EventComputedReports[struct{}]{} // implements EventToReportAttestation
+
+func (ev EventComputedReports[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
+	repatt.eventComputedReports(ev)
 }
 
 type EventAttestedReport[RI any] struct {

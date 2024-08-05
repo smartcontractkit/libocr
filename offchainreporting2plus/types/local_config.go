@@ -56,6 +56,10 @@ type LocalConfig struct {
 	// minimum on this value in SanityCheckLocalConfig().
 	ContractConfigTrackerPollInterval time.Duration
 
+	// Timeout for loading a configuration from ContractConfigTracker and
+	// validating it with OffchainConfigDigester.
+	ContractConfigLoadTimeout time.Duration
+
 	// Timeout for ContractTransmitter.Transmit calls.
 	ContractTransmitterTransmitTimeout time.Duration
 
@@ -63,6 +67,9 @@ type LocalConfig struct {
 	// (This is necessary because an oracle's operations are serialized, so
 	// blocking forever on an observation would break the oracle.)
 	DatabaseTimeout time.Duration
+
+	// Default value for MaxDurationInitialization
+	DefaultMaxDurationInitialization time.Duration
 
 	// OCR2's MaxDurationQuery will be computed as
 	// max(MinOCR2MaxDurationQuery, MaxDurationQuery). Don't use this value

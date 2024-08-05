@@ -8,6 +8,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
+	"github.com/smartcontractkit/libocr/internal/util"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol"
@@ -59,15 +60,12 @@ func RunManagedOCR3Oracle[RI any](
 
 		configTracker,
 		database,
-		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
+		func(ctx context.Context, logger loghelper.LoggerWithContext, contractConfig types.ContractConfig) (err error, retry bool) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount()
+			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
-				logger.Error("ManagedOCR3Oracle: error getting FromAccount", commontypes.LogFields{
-					"error": err,
-				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: error getting FromAccount: %w", err), true
 			}
 
 			sharedConfig, oid, err := ocr3config.SharedConfigFromContractConfig(
@@ -79,10 +77,7 @@ func RunManagedOCR3Oracle[RI any](
 				fromAccount,
 			)
 			if err != nil {
-				logger.Error("ManagedOCR3Oracle: error while updating config", commontypes.LogFields{
-					"error": err,
-				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: error while decoding ContractConfig: %w", err), false
 			}
 
 			registerer := prometheus.WrapRegistererWith(
@@ -105,7 +100,20 @@ func RunManagedOCR3Oracle[RI any](
 				"oid": oid,
 			})
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(ocr3types.ReportingPluginConfig{
+			maxDurationInitialization := util.NilCoalesce(sharedConfig.MaxDurationInitialization, localConfig.DefaultMaxDurationInitialization)
+			initCtx, initCancel := context.WithTimeout(ctx, maxDurationInitialization)
+			defer initCancel()
+
+			ins := loghelper.NewIfNotStopped(
+				maxDurationInitialization+protocol.ReportingPluginTimeoutWarningGracePeriod,
+				func() {
+					logger.Error("ManagedOCR3Oracle: ReportingPluginFactory.NewReportingPlugin is taking too long", commontypes.LogFields{
+						"maxDuration": maxDurationInitialization,
+					})
+				},
+			)
+
+			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(initCtx, ocr3types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),
@@ -119,11 +127,10 @@ func RunManagedOCR3Oracle[RI any](
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
 			})
 
+			ins.Stop()
+
 			if err != nil {
-				logger.Error("ManagedOCR3Oracle: error during NewReportingPlugin()", commontypes.LogFields{
-					"error": err,
-				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: error during NewReportingPlugin(): %w", err), true
 			}
 			defer loghelper.CloseLogError(
 				reportingPlugin,
@@ -136,7 +143,7 @@ func RunManagedOCR3Oracle[RI any](
 					"error":               err,
 					"reportingPluginInfo": reportingPluginInfo,
 				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: invalid MercuryPluginInfo"), false
 			}
 
 			maxSigLen := onchainKeyring.MaxSignatureLength()
@@ -148,7 +155,7 @@ func RunManagedOCR3Oracle[RI any](
 					"reportingPluginLimits": reportingPluginInfo.Limits,
 					"maxSigLen":             maxSigLen,
 				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: error during limits"), false
 			}
 			binNetEndpoint, err := netEndpointFactory.NewEndpoint(
 				sharedConfig.ConfigDigest,
@@ -163,7 +170,7 @@ func RunManagedOCR3Oracle[RI any](
 					"peerIDs":         peerIDs,
 					"v2bootstrappers": v2bootstrappers,
 				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: error during NewEndpoint"), true
 			}
 
 			// No need to binNetEndpoint.Start/Close since netEndpoint will handle that for us
@@ -179,11 +186,7 @@ func RunManagedOCR3Oracle[RI any](
 				sharedConfig.F,
 			)
 			if err := netEndpoint.Start(); err != nil {
-				logger.Error("ManagedOCR3Oracle: error during netEndpoint.Start()", commontypes.LogFields{
-					"error":        err,
-					"configDigest": sharedConfig.ConfigDigest,
-				})
-				return
+				return fmt.Errorf("ManagedOCR3Oracle: error during netEndpoint.Start(): %w", err), true
 			}
 			defer loghelper.CloseLogError(
 				netEndpoint,
@@ -206,10 +209,13 @@ func RunManagedOCR3Oracle[RI any](
 				shim.LimitCheckOCR3ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
 				shim.MakeOCR3TelemetrySender(chTelemetrySend, childLogger),
 			)
+
+			return nil, false
 		},
 		localConfig,
 		logger,
 		offchainConfigDigester,
+		defaultRetryParams(),
 	)
 }
 

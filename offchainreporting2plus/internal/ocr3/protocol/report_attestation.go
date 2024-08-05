@@ -16,6 +16,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 func RunReportAttestation[RI any](
@@ -48,7 +49,8 @@ const lookaheadDuration = 30 * time.Second
 const lookaheadMaxRounds int = 10
 
 type reportAttestationState[RI any] struct {
-	ctx context.Context
+	ctx  context.Context
+	subs subprocesses.Subprocesses
 
 	chNetToReportAttestation               <-chan MessageToReportAttestationWithSender[RI]
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI]
@@ -60,7 +62,8 @@ type reportAttestationState[RI any] struct {
 	onchainKeyring                         ocr3types.OnchainKeyring[RI]
 	reportingPlugin                        ocr3types.ReportingPlugin[RI]
 
-	scheduler *scheduler.Scheduler[EventMissingOutcome[RI]]
+	scheduler    *scheduler.Scheduler[EventMissingOutcome[RI]]
+	chLocalEvent chan EventComputedReports[RI]
 	// reap() is used to prevent unbounded state growth of rounds
 	rounds map[uint64]*round[RI]
 	// highest sequence number for which we have attested reports
@@ -71,9 +74,11 @@ type reportAttestationState[RI any] struct {
 }
 
 type round[RI any] struct {
-	verifiedCertifiedCommit *CertifiedCommit               // only stores certifiedCommit whose qc has been verified
-	reportsWithInfo         []ocr3types.ReportWithInfo[RI] // cache result of ReportingPlugin.Reports(certifiedCommit.SeqNr, certifiedCommit.Outcome)
-	oracles                 []oracle                       // always initialized to be of length n
+	ctx                     context.Context                 // should always be initialized when a round[RI] is initiated
+	ctxCancel               context.CancelFunc              // should always be initialized when a round[RI] is initiated
+	verifiedCertifiedCommit *CertifiedCommit                // only stores certifiedCommit whose qc has been verified
+	reportsWithInfo         *[]ocr3types.ReportWithInfo[RI] // cache result of ReportingPlugin.Reports(certifiedCommit.SeqNr, certifiedCommit.Outcome)
+	oracles                 []oracle                        // always initialized to be of length n
 	startedFetch            bool
 	complete                bool
 }
@@ -92,6 +97,8 @@ func (repatt *reportAttestationState[RI]) run() {
 
 	for {
 		select {
+		case ev := <-repatt.chLocalEvent:
+			ev.processReportAttestation(repatt)
 		case msg := <-repatt.chNetToReportAttestation:
 			msg.msg.processReportAttestation(repatt, msg.sender)
 		case ev := <-repatt.chOutcomeGenerationToReportAttestation:
@@ -104,8 +111,10 @@ func (repatt *reportAttestationState[RI]) run() {
 		// ensure prompt exit
 		select {
 		case <-repatt.ctx.Done():
-			repatt.logger.Info("ReportAttestation: exiting", nil)
+			repatt.logger.Info("ReportAttestation: winding down", nil)
+			repatt.subs.Wait()
 			repatt.scheduler.Close()
+			repatt.logger.Info("ReportAttestation: exiting", nil)
 			return
 		default:
 		}
@@ -137,7 +146,10 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 	}
 
 	if _, ok := repatt.rounds[msg.SeqNr]; !ok {
+		ctx, cancel := context.WithCancel(repatt.ctx)
 		repatt.rounds[msg.SeqNr] = &round[RI]{
+			ctx,
+			cancel,
 			nil,
 			nil,
 			make([]oracle, repatt.config.N()),
@@ -287,19 +299,19 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 	}
 
 	if repatt.rounds[seqNr].verifiedCertifiedCommit == nil {
-		oraclesThatSentSignatures := 0
+		oraclesThatSentNonemptySignatures := 0
 		for _, oracle := range repatt.rounds[seqNr].oracles {
 			if len(oracle.signatures) == 0 {
 				continue
 			}
-			oraclesThatSentSignatures++
+			oraclesThatSentNonemptySignatures++
 		}
 
-		if oraclesThatSentSignatures <= repatt.config.F {
+		if oraclesThatSentNonemptySignatures <= repatt.config.F {
 			repatt.logger.Debug("cannot complete, missing CertifiedCommit and signatures", commontypes.LogFields{
-				"oraclesThatSentSignatures": oraclesThatSentSignatures,
-				"seqNr":                     seqNr,
-				"threshold":                 repatt.config.F + 1,
+				"oraclesThatSentNonemptySignatures": oraclesThatSentNonemptySignatures,
+				"seqNr":                             seqNr,
+				"threshold":                         repatt.config.F + 1,
 			})
 		} else if !repatt.rounds[seqNr].startedFetch {
 			repatt.rounds[seqNr].startedFetch = true
@@ -308,7 +320,14 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		return
 	}
 
-	reportsWithInfo := repatt.rounds[seqNr].reportsWithInfo
+	if repatt.rounds[seqNr].reportsWithInfo == nil {
+		repatt.logger.Debug("cannot complete, reportsWithInfo not computed yet", commontypes.LogFields{
+			"seqNr": seqNr,
+		})
+		return
+	}
+	reportsWithInfo := *repatt.rounds[seqNr].reportsWithInfo
+
 	goodSigs := 0
 	var aossPerReport [][]types.AttributedOnchainSignature = make([][]types.AttributedOnchainSignature, len(reportsWithInfo))
 	for oracleID := range repatt.rounds[seqNr].oracles {
@@ -327,8 +346,10 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 			if !validSignatures {
 				// Other less common causes include actually invalid signatures.
 				repatt.logger.Warn("report signatures failed to verify. This is commonly caused by non-determinism in the ReportingPlugin", commontypes.LogFields{
-					"sender": oracleID,
-					"seqNr":  seqNr,
+					"sender":        oracleID,
+					"seqNr":         seqNr,
+					"signaturesLen": len(oracle.signatures),
+					"reportsLen":    len(reportsWithInfo),
 				})
 			}
 		}
@@ -445,17 +466,38 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 		return
 	}
 
-	reportsWithInfo, ok := callPlugin[[]ocr3types.ReportWithInfo[RI]](
-		repatt.ctx,
+	if _, ok := repatt.rounds[certifiedCommit.SeqNr]; !ok {
+		ctx, cancel := context.WithCancel(repatt.ctx)
+		repatt.rounds[certifiedCommit.SeqNr] = &round[RI]{
+			ctx,
+			cancel,
+			nil,
+			nil,
+			make([]oracle, repatt.config.N()),
+			false,
+			false,
+		}
+	}
+
+	repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit = &certifiedCommit
+
+	{
+		ctx := repatt.rounds[certifiedCommit.SeqNr].ctx
+		repatt.subs.Go(func() {
+			repatt.backgroundComputeReports(ctx, certifiedCommit)
+		})
+	}
+}
+
+func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.Context, verifiedCertifiedCommit CertifiedCommit) {
+	reportsWithInfo, ok := callPluginFromBackground(
+		ctx,
 		repatt.logger,
-		commontypes.LogFields{"seqNr": certifiedCommit.SeqNr},
+		commontypes.LogFields{"seqNr": verifiedCertifiedCommit.SeqNr},
 		"Reports",
 		0, // Reports is a pure function and should finish "instantly"
-		func(context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
-			return repatt.reportingPlugin.Reports(
-				certifiedCommit.SeqNr,
-				certifiedCommit.Outcome,
-			)
+		func(ctx context.Context) ([]ocr3types.ReportWithInfo[RI], error) {
+			return repatt.reportingPlugin.Reports(ctx, verifiedCertifiedCommit.SeqNr, verifiedCertifiedCommit.Outcome)
 		},
 	)
 	if !ok {
@@ -463,16 +505,34 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 	}
 
 	repatt.logger.Debug("successfully invoked ReportingPlugin.Reports", commontypes.LogFields{
-		"seqNr":   certifiedCommit.SeqNr,
+		"seqNr":   verifiedCertifiedCommit.SeqNr,
 		"reports": len(reportsWithInfo),
 	})
 
+	select {
+	case repatt.chLocalEvent <- EventComputedReports[RI]{verifiedCertifiedCommit.SeqNr, reportsWithInfo}:
+	case <-ctx.Done():
+		return
+	}
+}
+
+func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedReports[RI]) {
+	if repatt.rounds[ev.SeqNr] == nil {
+		repatt.logger.Debug("discarding EventComputedReports from old round", commontypes.LogFields{
+			"evSeqNr":              ev.SeqNr,
+			"highestAttestedSeqNr": repatt.highestAttestedSeqNr,
+		})
+		return
+	}
+
+	repatt.rounds[ev.SeqNr].reportsWithInfo = &ev.ReportsWithInfo
+
 	var sigs [][]byte
-	for i, reportWithInfo := range reportsWithInfo {
-		sig, err := repatt.onchainKeyring.Sign(repatt.config.ConfigDigest, certifiedCommit.SeqNr, reportWithInfo)
+	for i, reportWithInfo := range ev.ReportsWithInfo {
+		sig, err := repatt.onchainKeyring.Sign(repatt.config.ConfigDigest, ev.SeqNr, reportWithInfo)
 		if err != nil {
 			repatt.logger.Error("error while signing report", commontypes.LogFields{
-				"seqNr": certifiedCommit.SeqNr,
+				"seqNr": ev.SeqNr,
 				"index": i,
 				"error": err,
 			})
@@ -481,24 +541,12 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 		sigs = append(sigs, sig)
 	}
 
-	if _, ok := repatt.rounds[certifiedCommit.SeqNr]; !ok {
-		repatt.rounds[certifiedCommit.SeqNr] = &round[RI]{
-			nil,
-			nil,
-			make([]oracle, repatt.config.N()),
-			false,
-			false,
-		}
-	}
-	repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit = &certifiedCommit
-	repatt.rounds[certifiedCommit.SeqNr].reportsWithInfo = reportsWithInfo
-
 	repatt.logger.Debug("broadcasting MessageReportSignatures", commontypes.LogFields{
-		"seqNr": certifiedCommit.SeqNr,
+		"seqNr": ev.SeqNr,
 	})
 
 	repatt.netSender.Broadcast(MessageReportSignatures[RI]{
-		certifiedCommit.SeqNr,
+		ev.SeqNr,
 		sigs,
 	})
 
@@ -540,6 +588,7 @@ func (repatt *reportAttestationState[RI]) reap() {
 	// https://go-review.googlesource.com/c/go/+/25049/
 	for seqNr := range repatt.rounds {
 		if repatt.isBeyondExpiry(seqNr) {
+			repatt.rounds[seqNr].ctxCancel()
 			delete(repatt.rounds, seqNr)
 		}
 	}
@@ -587,6 +636,7 @@ func newReportAttestationState[RI any](
 ) *reportAttestationState[RI] {
 	return &reportAttestationState[RI]{
 		ctx,
+		subprocesses.Subprocesses{},
 
 		chNetToReportAttestation,
 		chOutcomeGenerationToReportAttestation,
@@ -599,6 +649,7 @@ func newReportAttestationState[RI any](
 		reportingPlugin,
 
 		sched,
+		make(chan EventComputedReports[RI]),
 		map[uint64]*round[RI]{},
 		0,
 		make([]uint64, config.N()),

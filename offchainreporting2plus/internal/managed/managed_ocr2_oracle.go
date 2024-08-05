@@ -8,6 +8,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
+	"github.com/smartcontractkit/libocr/internal/util"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
@@ -62,10 +63,10 @@ func RunManagedOCR2Oracle(
 
 		configTracker,
 		database,
-		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
+		func(ctx context.Context, logger loghelper.LoggerWithContext, contractConfig types.ContractConfig) (err error, retry bool) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
-			fromAccount, err := contractTransmitter.FromAccount()
+			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
 				logger.Error("ManagedOCR2Oracle: error getting FromAccount", commontypes.LogFields{
 					"error": err,
@@ -108,7 +109,20 @@ func RunManagedOCR2Oracle(
 				"oid": oid,
 			})
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(types.ReportingPluginConfig{
+			maxDurationInitialization := util.NilCoalesce(sharedConfig.MaxDurationInitialization, localConfig.DefaultMaxDurationInitialization)
+			initCtx, initCancel := context.WithTimeout(ctx, maxDurationInitialization)
+			defer initCancel()
+
+			ins := loghelper.NewIfNotStopped(
+				maxDurationInitialization+protocol.ReportingPluginTimeoutWarningGracePeriod,
+				func() {
+					logger.Error("ManagedOCR2Oracle: ReportingPluginFactory.NewReportingPlugin is taking too long", commontypes.LogFields{
+						"maxDuration": maxDurationInitialization,
+					})
+				},
+			)
+
+			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(initCtx, types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),
@@ -122,6 +136,9 @@ func RunManagedOCR2Oracle(
 				sharedConfig.MaxDurationShouldAcceptFinalizedReport,
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
 			})
+
+			ins.Stop()
+
 			if err != nil {
 				logger.Error("ManagedOCR2Oracle: error during NewReportingPlugin()", commontypes.LogFields{
 					"error": err,
@@ -138,7 +155,7 @@ func RunManagedOCR2Oracle(
 					"error":               err,
 					"reportingPluginInfo": reportingPluginInfo,
 				})
-				return
+				return fmt.Errorf("ManagedOCR2Oracle: invalid ReportingPluginInfo"), false
 			}
 
 			maxSigLen := onchainKeyring.MaxSignatureLength()
@@ -150,7 +167,7 @@ func RunManagedOCR2Oracle(
 					"reportingPluginInfo": reportingPluginInfo,
 					"maxSigLen":           maxSigLen,
 				})
-				return
+				return fmt.Errorf("ManagedOCR2Oracle: error during limits"), false
 			}
 			binNetEndpoint, err := netEndpointFactory.NewEndpoint(
 				sharedConfig.ConfigDigest,
@@ -165,7 +182,7 @@ func RunManagedOCR2Oracle(
 					"peerIDs":         peerIDs,
 					"v2bootstrappers": v2bootstrappers,
 				})
-				return
+				return fmt.Errorf("ManagedOCR2Oracle: error during NewEndpoint"), true
 			}
 
 			// No need to binNetEndpoint.Start/Close since netEndpoint will handle that for us
@@ -178,11 +195,7 @@ func RunManagedOCR2Oracle(
 				reportingPluginInfo.Limits,
 			)
 			if err := netEndpoint.Start(); err != nil {
-				logger.Error("ManagedOCR2Oracle: error during netEndpoint.Start()", commontypes.LogFields{
-					"error":        err,
-					"configDigest": sharedConfig.ConfigDigest,
-				})
-				return
+				return fmt.Errorf("ManagedOCR2Oracle: error during netEndpoint.Start(): %w", err), true
 			}
 			defer loghelper.CloseLogError(
 				netEndpoint,
@@ -225,10 +238,13 @@ func RunManagedOCR2Oracle(
 				reportQuorum,
 				shim.MakeOCR2TelemetrySender(chTelemetrySend, childLogger),
 			)
+
+			return nil, false
 		},
 		localConfig,
 		logger,
 		offchainConfigDigester,
+		defaultRetryParams(),
 	)
 }
 

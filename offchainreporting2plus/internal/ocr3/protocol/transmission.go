@@ -21,7 +21,6 @@ const ContractTransmitterTimeoutWarningGracePeriod = 50 * time.Millisecond
 
 func RunTransmission[RI any](
 	ctx context.Context,
-	subprocesses *subprocesses.Subprocesses,
 
 	chReportAttestationToTransmission <-chan EventToTransmission[RI],
 	config ocr3config.SharedConfig,
@@ -35,26 +34,25 @@ func RunTransmission[RI any](
 	defer sched.Close()
 
 	t := transmissionState[RI]{
-		ctx,
-		subprocesses,
+		ctx:  ctx,
+		subs: subprocesses.Subprocesses{},
 
-		chReportAttestationToTransmission,
-		config,
-		contractTransmitter,
-		id,
-		localConfig,
-		logger.MakeUpdated(commontypes.LogFields{"proto": "transmission"}),
-		reportingPlugin,
+		chReportAttestationToTransmission: chReportAttestationToTransmission,
+		config:                            config,
+		contractTransmitter:               contractTransmitter,
+		id:                                id,
+		localConfig:                       localConfig,
+		logger:                            logger.MakeUpdated(commontypes.LogFields{"proto": "transmission"}),
+		reportingPlugin:                   reportingPlugin,
 
-		sched,
+		scheduler: sched,
 	}
 	t.run()
 }
 
 type transmissionState[RI any] struct {
-	ctx context.Context
-
-	subprocesses *subprocesses.Subprocesses
+	ctx  context.Context
+	subs subprocesses.Subprocesses
 
 	chReportAttestationToTransmission <-chan EventToTransmission[RI]
 	config                            ocr3config.SharedConfig
@@ -84,6 +82,8 @@ func (t *transmissionState[RI]) run() {
 		// ensure prompt exit
 		select {
 		case <-chDone:
+			t.logger.Info("Transmission: winding down", nil)
+			t.subs.Wait()
 			t.logger.Info("Transmission: exiting", nil)
 			return
 		default:
@@ -94,8 +94,14 @@ func (t *transmissionState[RI]) run() {
 func (t *transmissionState[RI]) eventAttestedReport(ev EventAttestedReport[RI]) {
 	now := time.Now()
 
+	t.subs.Go(func() {
+		t.backgroundEventAttestedReport(t.ctx, now, ev)
+	})
+}
+
+func (t *transmissionState[RI]) backgroundEventAttestedReport(ctx context.Context, start time.Time, ev EventAttestedReport[RI]) {
 	shouldAccept, ok := callPlugin[bool](
-		t.ctx,
+		ctx,
 		t.logger,
 		commontypes.LogFields{
 			"seqNr": ev.SeqNr,
@@ -138,12 +144,18 @@ func (t *transmissionState[RI]) eventAttestedReport(ev EventAttestedReport[RI]) 
 		"index": ev.Index,
 		"delay": delay.String(),
 	})
-	t.scheduler.ScheduleDeadline(ev, now.Add(delay))
+	t.scheduler.ScheduleDeadline(ev, start.Add(delay))
 }
 
 func (t *transmissionState[RI]) scheduled(ev EventAttestedReport[RI]) {
+	t.subs.Go(func() {
+		t.backgroundScheduled(t.ctx, ev)
+	})
+}
+
+func (t *transmissionState[RI]) backgroundScheduled(ctx context.Context, ev EventAttestedReport[RI]) {
 	shouldTransmit, ok := callPlugin[bool](
-		t.ctx,
+		ctx,
 		t.logger,
 		commontypes.LogFields{
 			"seqNr": ev.SeqNr,
@@ -177,11 +189,11 @@ func (t *transmissionState[RI]) scheduled(ev EventAttestedReport[RI]) {
 	})
 
 	{
-		ctx, cancel := context.WithTimeout(
-			t.ctx,
+		transmitCtx, transmitCancel := context.WithTimeout(
+			ctx,
 			t.localConfig.ContractTransmitterTransmitTimeout,
 		)
-		defer cancel()
+		defer transmitCancel()
 
 		ins := loghelper.NewIfNotStopped(
 			t.localConfig.ContractTransmitterTransmitTimeout+ContractTransmitterTimeoutWarningGracePeriod,
@@ -195,7 +207,7 @@ func (t *transmissionState[RI]) scheduled(ev EventAttestedReport[RI]) {
 		)
 
 		err := t.contractTransmitter.Transmit(
-			ctx,
+			transmitCtx,
 			t.config.ConfigDigest,
 			ev.SeqNr,
 			ev.AttestedReport.ReportWithInfo,
