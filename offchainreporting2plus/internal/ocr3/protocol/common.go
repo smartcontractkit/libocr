@@ -47,3 +47,37 @@ func callPlugin[T any](
 
 	return result, true
 }
+
+func callPluginFromBackground[T any](
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	logFields commontypes.LogFields,
+	name string,
+	recommendedMaxDuration time.Duration,
+	f func(context.Context) (T, error),
+) (T, bool) {
+	ins := loghelper.NewIfNotStopped(
+		recommendedMaxDuration+ReportingPluginTimeoutWarningGracePeriod,
+		func() {
+			logger.MakeChild(logFields).Error(fmt.Sprintf("call to ReportingPlugin.%s is taking too long", name), commontypes.LogFields{
+				"recommendedMaxDuration": recommendedMaxDuration.String(),
+				"gracePeriod":            ReportingPluginTimeoutWarningGracePeriod.String(),
+			})
+		},
+	)
+
+	result, err := f(ctx)
+
+	ins.Stop()
+
+	if err != nil {
+		logger.MakeChild(logFields).ErrorIfNotCanceled(fmt.Sprintf("call to ReportingPlugin.%s errored", name), ctx, commontypes.LogFields{
+			"error": err,
+		})
+		// failed to get data, nothing to be done
+		var zero T
+		return zero, false
+	}
+
+	return result, true
+}

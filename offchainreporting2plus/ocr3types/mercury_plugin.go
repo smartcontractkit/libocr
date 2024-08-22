@@ -127,7 +127,7 @@ type MercuryPlugin interface {
 	// You may assume that the sequence of epochs and the sequence of rounds
 	// within an epoch are monotonically increasing during the lifetime
 	// of an instance of this interface.
-	Report(repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error)
+	Report(ctx context.Context, repts types.ReportTimestamp, previousReport types.Report, aos []types.AttributedObservation) (bool, types.Report, error)
 
 	// If Close is called a second time, it may return an error but must not
 	// panic. This will always be called when a ReportingPlugin is no longer

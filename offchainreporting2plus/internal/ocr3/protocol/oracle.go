@@ -225,7 +225,6 @@ func (o *oracleState[RI]) run() {
 	o.subprocesses.Go(func() {
 		RunTransmission(
 			o.childCtx,
-			&o.subprocesses,
 
 			chReportAttestationToTransmission,
 			o.config,
