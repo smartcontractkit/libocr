@@ -139,6 +139,7 @@ func XXXContractSetConfigArgsFromSharedConfig(
 		offChainPublicKeys,
 		peerIDs,
 		c.ReportingPluginConfig,
+		c.MaxDurationInitialization,
 		c.MaxDurationQuery,
 		c.MaxDurationObservation,
 		c.MaxDurationReport,
