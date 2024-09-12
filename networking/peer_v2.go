@@ -301,3 +301,7 @@ func (p2 *concretePeerV2) OCR1BootstrapperFactory() *ocr1BootstrapperFactory {
 func (p2 *concretePeerV2) OCR2BootstrapperFactory() *ocr2BootstrapperFactory {
 	return &ocr2BootstrapperFactory{p2}
 }
+
+func (p2 *concretePeerV2) GenericStreamFactoryFactory(configDigestPrefix ocr2types.ConfigDigestPrefix) (*genericStreamFactoryFactory, error) {
+	return newGenericStreamFactoryFactory(p2, configDigestPrefix)
+}

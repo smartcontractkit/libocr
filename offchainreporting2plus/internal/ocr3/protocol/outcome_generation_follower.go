@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -12,12 +13,14 @@ import (
 type outgenFollowerPhase string
 
 const (
-	outgenFollowerPhaseUnknown         outgenFollowerPhase = "unknown"
-	outgenFollowerPhaseNewEpoch        outgenFollowerPhase = "newEpoch"
-	outgenFollowerPhaseNewRound        outgenFollowerPhase = "newRound"
-	outgenFollowerPhaseSentObservation outgenFollowerPhase = "sentObservation"
-	outgenFollowerPhaseSentPrepare     outgenFollowerPhase = "sentPrepare"
-	outgenFollowerPhaseSentCommit      outgenFollowerPhase = "sentCommit"
+	outgenFollowerPhaseUnknown                   outgenFollowerPhase = "unknown"
+	outgenFollowerPhaseNewEpoch                  outgenFollowerPhase = "newEpoch"
+	outgenFollowerPhaseNewRound                  outgenFollowerPhase = "newRound"
+	outgenFollowerPhaseBackgroundObservation     outgenFollowerPhase = "backgroundObservation"
+	outgenFollowerPhaseSentObservation           outgenFollowerPhase = "sentObservation"
+	outgenFollowerPhaseBackgroundProposalOutcome outgenFollowerPhase = "backgroundProposalOutcome"
+	outgenFollowerPhaseSentPrepare               outgenFollowerPhase = "sentPrepare"
+	outgenFollowerPhaseSentCommit                outgenFollowerPhase = "sentCommit"
 )
 
 func (outgen *outcomeGenerationState[RI]) eventTInitialTimeout() {
@@ -199,10 +202,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 	}
 
 	msg := poolEntries[outgen.sharedState.l].Item
-
-	outgen.followerState.query = &msg.Query
-
 	outctx := outgen.OutcomeCtx(outgen.sharedState.seqNr)
+
+	outgen.followerState.phase = outgenFollowerPhaseBackgroundObservation
+	outgen.followerState.query = &msg.Query
 
 	outgen.telemetrySender.RoundStarted(
 		outgen.config.ConfigDigest,
@@ -212,20 +215,66 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 		outgen.sharedState.l,
 	)
 
-	o, ok := callPluginFromOutcomeGeneration[types.Observation](
-		outgen,
+	{
+		ctx := outgen.epochCtx
+		logger := outgen.logger
+		query := *outgen.followerState.query
+		outgen.subs.Go(func() {
+			outgen.backgroundObservation(ctx, logger, outctx, query)
+		})
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) backgroundObservation(
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	outctx ocr3types.OutcomeContext,
+	query types.Query,
+) {
+	observation, ok := callPluginFromOutcomeGenerationBackground[types.Observation, RI](
+		ctx,
+		logger,
 		"Observation",
 		outgen.config.MaxDurationObservation,
 		outctx,
 		func(ctx context.Context, outctx ocr3types.OutcomeContext) (types.Observation, error) {
-			return outgen.reportingPlugin.Observation(ctx, outctx, *outgen.followerState.query)
+			return outgen.reportingPlugin.Observation(ctx, outctx, query)
 		},
 	)
 	if !ok {
 		return
 	}
 
-	so, err := MakeSignedObservation(outgen.ID(), outgen.sharedState.seqNr, msg.Query, o, outgen.offchainKeyring.OffchainSign)
+	select {
+	case outgen.chLocalEvent <- EventComputedObservation[RI]{
+		outctx.Epoch,
+		outctx.SeqNr,
+		query,
+		observation,
+	}:
+	case <-ctx.Done():
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventComputedObservation[RI]) {
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundObservation {
+		outgen.logger.Debug("discarding EventComputedObservation, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
+		})
+		return
+	}
+
+	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
+		outgen.logger.Debug("discarding EventComputedObservation from old round", commontypes.LogFields{
+			"seqNr":   outgen.sharedState.seqNr,
+			"evEpoch": ev.Epoch,
+			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	so, err := MakeSignedObservation(outgen.ID(), outgen.sharedState.seqNr, ev.Query, ev.Observation, outgen.offchainKeyring.OffchainSign)
 	if err != nil {
 		outgen.logger.Error("MakeSignedObservation returned error", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
@@ -234,7 +283,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 		return
 	}
 
-	if err := so.Verify(outgen.ID(), outgen.sharedState.seqNr, msg.Query, outgen.offchainKeyring.OffchainPublicKey()); err != nil {
+	if err := so.Verify(outgen.ID(), outgen.sharedState.seqNr, ev.Query, outgen.offchainKeyring.OffchainPublicKey()); err != nil {
 		outgen.logger.Error("MakeSignedObservation produced invalid signature", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"error": err,
@@ -318,79 +367,94 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 		return
 	}
 
+	outgen.followerState.phase = outgenFollowerPhaseBackgroundProposalOutcome
+
+	{
+		ctx := outgen.epochCtx
+		logger := outgen.logger
+		outctx := outgen.OutcomeCtx(outgen.sharedState.seqNr)
+		ogid := outgen.ID()
+		query := *outgen.followerState.query
+		outgen.subs.Go(func() {
+			outgen.backgroundProposalOutcome(
+				ctx,
+				logger,
+				ogid,
+				outctx,
+				query,
+				msg.AttributedSignedObservations,
+			)
+		})
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	ogid OutcomeGenerationID,
+	outctx ocr3types.OutcomeContext,
+	query types.Query,
+	asos []AttributedSignedObservation,
+) {
+
 	attributedObservations := []types.AttributedObservation{}
 	{
-		quorum, ok := outgen.ObservationQuorum(*outgen.followerState.query)
-		if !ok {
-			return
-		}
-
-		if len(msg.AttributedSignedObservations) < quorum {
-			outgen.logger.Warn("dropping MessageProposal that contains too few signed observations", commontypes.LogFields{
-				"seqNr":                             outgen.sharedState.seqNr,
-				"attributedSignedObservationsCount": len(msg.AttributedSignedObservations),
-				"quorum":                            quorum,
-			})
-			return
-		}
 		seen := map[commontypes.OracleID]bool{}
-		for _, aso := range msg.AttributedSignedObservations {
+		for _, aso := range asos {
 			if !(0 <= int(aso.Observer) && int(aso.Observer) <= outgen.config.N()) {
-				outgen.logger.Warn("dropping MessageProposal that contains signed observation with invalid observer", commontypes.LogFields{
-					"seqNr":           outgen.sharedState.seqNr,
+				logger.Warn("dropping MessageProposal that contains signed observation with invalid observer", commontypes.LogFields{
+					"seqNr":           outctx.SeqNr,
 					"invalidObserver": aso.Observer,
 				})
 				return
 			}
 
 			if seen[aso.Observer] {
-				outgen.logger.Warn("dropping MessageProposal that contains duplicate signed observation", commontypes.LogFields{
-					"seqNr": outgen.sharedState.seqNr,
+				logger.Warn("dropping MessageProposal that contains duplicate signed observation", commontypes.LogFields{
+					"seqNr": outctx.SeqNr,
 				})
 				return
 			}
 
 			seen[aso.Observer] = true
 
-			if err := aso.SignedObservation.Verify(outgen.ID(), outgen.sharedState.seqNr, *outgen.followerState.query, outgen.config.OracleIdentities[aso.Observer].OffchainPublicKey); err != nil {
-				outgen.logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", commontypes.LogFields{
-					"seqNr": outgen.sharedState.seqNr,
+			if err := aso.SignedObservation.Verify(ogid, outctx.SeqNr, query, outgen.config.OracleIdentities[aso.Observer].OffchainPublicKey); err != nil {
+				logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", commontypes.LogFields{
+					"seqNr": outctx.SeqNr,
 					"error": err,
 				})
 				return
 			}
 
-			err, ok := callPluginFromOutcomeGeneration[error](
-				outgen,
+			err, ok := callPluginFromOutcomeGenerationBackground[error, RI](
+				ctx,
+				logger,
 				"ValidateObservation",
 				0, // ValidateObservation is a pure function and should finish "instantly"
-				outgen.OutcomeCtx(outgen.sharedState.seqNr),
+				outctx,
 				func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
 					return outgen.reportingPlugin.ValidateObservation(
+						ctx,
 						outctx,
-						*outgen.followerState.query,
+						query,
 						types.AttributedObservation{aso.SignedObservation.Observation, aso.Observer},
 					), nil
 				},
 			)
 			if !ok {
-				outgen.logger.Error("dropping MessageProposal containing observation that could not be validated", commontypes.LogFields{
-					"seqNr":    outgen.sharedState.seqNr,
+				logger.Error("dropping MessageProposal containing observation that could not be validated", commontypes.LogFields{
+					"seqNr":    outctx.SeqNr,
 					"observer": aso.Observer,
 				})
 				return
 			}
 			if err != nil {
-				outgen.logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
-					"seqNr":    outgen.sharedState.seqNr,
+				logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
+					"seqNr":    outctx.SeqNr,
 					"error":    err,
 					"observer": aso.Observer,
 				})
 				return
-			}
-
-			if aso.Observer == outgen.id {
-				outgen.metrics.includedObservationsTotal.Inc()
 			}
 
 			attributedObservations = append(attributedObservations, types.AttributedObservation{
@@ -398,23 +462,50 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 				aso.Observer,
 			})
 		}
+
+		observationQuorum, ok := callPluginFromOutcomeGenerationBackground[bool, RI](
+			ctx,
+			logger,
+			"ObservationQuorum",
+			0, // ObservationQuorum is a pure function and should finish "instantly"
+			outctx,
+			func(ctx context.Context, outctx ocr3types.OutcomeContext) (bool, error) {
+				return outgen.reportingPlugin.ObservationQuorum(ctx, outctx, query, attributedObservations)
+			},
+		)
+
+		if !ok {
+			return
+		}
+
+		if !observationQuorum {
+			logger.Warn("dropping MessageProposal that doesn't achieve observation quorum", commontypes.LogFields{
+				"seqNr": outctx.SeqNr,
+			})
+			return
+		}
+
+		if seen[outgen.id] {
+			outgen.metrics.includedObservationsTotal.Inc()
+		}
 	}
 
 	outcomeInputsDigest := MakeOutcomeInputsDigest(
-		outgen.ID(),
+		ogid,
 		outgen.sharedState.committedOutcome,
-		outgen.sharedState.seqNr,
-		*outgen.followerState.query,
+		outctx.SeqNr,
+		query,
 		attributedObservations,
 	)
 
-	outcome, ok := callPluginFromOutcomeGeneration[ocr3types.Outcome](
-		outgen,
+	outcome, ok := callPluginFromOutcomeGenerationBackground[ocr3types.Outcome, RI](
+		ctx,
+		logger,
 		"Outcome",
 		0, // Outcome is a pure function and should finish "instantly"
-		outgen.OutcomeCtx(outgen.sharedState.seqNr),
-		func(_ context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
-			return outgen.reportingPlugin.Outcome(outctx, *outgen.followerState.query, attributedObservations)
+		outctx,
+		func(ctx context.Context, outctx ocr3types.OutcomeContext) (ocr3types.Outcome, error) {
+			return outgen.reportingPlugin.Outcome(ctx, outctx, query, attributedObservations)
 		},
 	)
 	if !ok {
@@ -423,11 +514,43 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 	outcomeDigest := MakeOutcomeDigest(outcome)
 
+	select {
+	case outgen.chLocalEvent <- EventComputedProposalOutcome[RI]{
+		outctx.Epoch,
+		outctx.SeqNr,
+		outcomeAndDigests{
+			outcome,
+			outcomeInputsDigest,
+			outcomeDigest,
+		},
+	}:
+	case <-ctx.Done():
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) eventComputedProposalOutcome(ev EventComputedProposalOutcome[RI]) {
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundProposalOutcome {
+		outgen.logger.Debug("discarding EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
+		})
+		return
+	}
+
+	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
+		outgen.logger.Debug("discarding EventComputedProposalOutcome from old round", commontypes.LogFields{
+			"seqNr":   outgen.sharedState.seqNr,
+			"evEpoch": ev.Epoch,
+			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
 	prepareSignature, err := MakePrepareSignature(
 		outgen.ID(),
-		msg.SeqNr,
-		outcomeInputsDigest,
-		outcomeDigest,
+		outgen.sharedState.seqNr,
+		ev.outcomeAndDigests.InputsDigest,
+		ev.outcomeAndDigests.Digest,
 		outgen.offchainKeyring.OffchainSign,
 	)
 	if err != nil {
@@ -439,18 +562,14 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 	}
 
 	outgen.followerState.phase = outgenFollowerPhaseSentPrepare
-	outgen.followerState.outcome = outcomeAndDigests{
-		outcome,
-		outcomeInputsDigest,
-		outcomeDigest,
-	}
+	outgen.followerState.outcome = ev.outcomeAndDigests
 
 	outgen.logger.Debug("broadcasting MessagePrepare", commontypes.LogFields{
-		"seqNr": msg.SeqNr,
+		"seqNr": outgen.sharedState.seqNr,
 	})
 	outgen.netSender.Broadcast(MessagePrepare[RI]{
 		outgen.sharedState.e,
-		msg.SeqNr,
+		outgen.sharedState.seqNr,
 		prepareSignature,
 	})
 }
@@ -553,14 +672,13 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		return
 	}
 
-	outgen.followerState.cert = &CertifiedPrepare{
+	if !outgen.persistAndUpdateCertIfGreater(&CertifiedPrepare{
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		outgen.followerState.outcome.InputsDigest,
 		outgen.followerState.outcome.Outcome,
 		prepareQuorumCertificate,
-	}
-	if !outgen.persistCert() {
+	}) {
 		return
 	}
 
@@ -716,11 +834,10 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
 	} else {
-		outgen.followerState.cert = &commit
-		if !outgen.persistCert() {
+
+		if !outgen.persistAndUpdateCertIfGreater(&commit) {
 			return
 		}
-
 		outgen.sharedState.committedSeqNr = commit.SeqNr
 		outgen.sharedState.committedOutcome = commit.Outcome
 		outgen.metrics.committedSeqNr.Set(float64(commit.SeqNr))
@@ -742,15 +859,23 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 	outgen.followerState.commitPool.ReapCompleted(outgen.sharedState.committedSeqNr)
 }
 
-func (outgen *outcomeGenerationState[RI]) persistCert() (ok bool) {
-	ctx, cancel := context.WithTimeout(outgen.ctx, outgen.localConfig.DatabaseTimeout)
-	defer cancel()
-	if err := outgen.database.WriteCert(ctx, outgen.config.ConfigDigest, outgen.followerState.cert); err != nil {
-		outgen.logger.Error("error persisting cert to database, cannot safely continue current round", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"error": err,
-		})
-		return false
+// Updates and persists cert if it is greater than the current cert.
+// Returns false if the cert could not be persisted, in which case the round should be aborted.
+func (outgen *outcomeGenerationState[RI]) persistAndUpdateCertIfGreater(cert CertifiedPrepareOrCommit) (ok bool) {
+	if outgen.followerState.cert.Timestamp().Less(cert.Timestamp()) {
+		ctx, cancel := context.WithTimeout(outgen.ctx, outgen.localConfig.DatabaseTimeout)
+		defer cancel()
+		if err := outgen.database.WriteCert(ctx, outgen.config.ConfigDigest, cert); err != nil {
+			outgen.logger.Error("error persisting cert to database, cannot safely continue current round", commontypes.LogFields{
+				"seqNr":                    outgen.sharedState.seqNr,
+				"lastWrittenCertTimestamp": outgen.followerState.cert.Timestamp(),
+				"certTimestamp":            cert.Timestamp(),
+				"error":                    err,
+			})
+			return false
+		}
+
+		outgen.followerState.cert = cert
 	}
 	return true
 }
