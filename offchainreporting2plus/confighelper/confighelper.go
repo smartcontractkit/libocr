@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/smartcontractkit/libocr/internal/util"
 	"github.com/smartcontractkit/libocr/offchainreporting2/reportingplugin/median"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
@@ -139,6 +140,7 @@ func ContractSetConfigArgsForEthereumIntegrationTest(
 				alphaPPB,
 				0,
 			}.Encode(),
+			util.PointerTo(50 * time.Millisecond),
 			50 * time.Millisecond,
 			50 * time.Millisecond,
 			50 * time.Millisecond,
@@ -172,6 +174,7 @@ func ContractSetConfigArgsForTestsWithAuxiliaryArgs(
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationQuery time.Duration,
 	maxDurationObservation time.Duration,
 	maxDurationReport time.Duration,
@@ -218,6 +221,7 @@ func ContractSetConfigArgsForTestsWithAuxiliaryArgs(
 			s,
 			identities,
 			reportingPluginConfig,
+			maxDurationInitialization,
 			maxDurationQuery,
 			maxDurationObservation,
 			maxDurationReport,
@@ -257,6 +261,7 @@ func ContractSetConfigArgsForTests(
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationQuery time.Duration,
 	maxDurationObservation time.Duration,
 	maxDurationReport time.Duration,
@@ -284,6 +289,7 @@ func ContractSetConfigArgsForTests(
 		s,
 		oracles,
 		reportingPluginConfig,
+		maxDurationInitialization,
 		maxDurationQuery,
 		maxDurationObservation,
 		maxDurationReport,
@@ -308,6 +314,7 @@ func ContractSetConfigArgsForTestsMercuryV02(
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationObservation time.Duration,
 	f int,
 	onchainConfig []byte,
@@ -332,6 +339,7 @@ func ContractSetConfigArgsForTestsMercuryV02(
 		s,
 		oracles,
 		reportingPluginConfig,
+		maxDurationInitialization,
 		0,
 		maxDurationObservation,
 		0,
@@ -354,6 +362,7 @@ func ContractSetConfigArgsForTestsOCR3(
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationQuery time.Duration,
 	maxDurationObservation time.Duration,
 	maxDurationShouldAcceptAttestedReport time.Duration,
@@ -399,6 +408,7 @@ func ContractSetConfigArgsForTestsOCR3(
 			s,
 			identities,
 			reportingPluginConfig,
+			maxDurationInitialization,
 			maxDurationQuery,
 			maxDurationObservation,
 			maxDurationShouldAcceptAttestedReport,

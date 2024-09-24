@@ -104,7 +104,7 @@ func (c *LatencyMetricsServiceConfig) getStreamLimits() *latencyMetricsServiceSt
 
 	// There is at most one ping and one pong message received per c.minPeriod. (Only the inbound messages are
 	// considered for the rate limits.)
-	msgsCapacity := uint32(2 + 1 /* margin of error */)
+	msgsCapacity := uint32(2 + 2 /* margin of error */)
 	msgsRate := 2.0 / c.MinPeriod.Seconds()
 	msgsLimit := ragep2p.TokenBucketParams{msgsRate, msgsCapacity}
 	bytesCapacity := uint32((c.PingSize + pongSize) * 2)

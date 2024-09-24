@@ -40,6 +40,12 @@ func SanityCheckLocalConfig(c types.LocalConfig) (err error) {
 		))
 	err = multierr.Append(err,
 		boundTimeDuration(
+			c.ContractConfigLoadTimeout,
+			"contract config load timeout",
+			1*time.Second, 1*time.Hour,
+		))
+	err = multierr.Append(err,
+		boundTimeDuration(
 			c.ContractTransmitterTransmitTimeout,
 			"contract transmitter transmit timeout",
 			1*time.Second, 1*time.Minute,
@@ -49,6 +55,12 @@ func SanityCheckLocalConfig(c types.LocalConfig) (err error) {
 			c.DatabaseTimeout,
 			"database timeout",
 			100*time.Millisecond, 10*time.Second,
+		))
+	err = multierr.Append(err,
+		boundTimeDuration(
+			c.DefaultMaxDurationInitialization,
+			"DefaultMaxDurationInitialization",
+			1*time.Second, 1*time.Hour,
 		))
 
 	const minContractConfigConfirmations = 1
