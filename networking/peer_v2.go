@@ -27,7 +27,7 @@ type PeerConfig struct {
 	// accepted by net.Listen.
 	V2ListenAddresses []string
 
-	// V2AnnounceAddresses contains the addresses the peer will advertise on the network in <host>:<port> form as
+	// V2AnnounceAddresses contains the addresses the peer will advertise on the network in <ip>:<port> form as
 	// accepted by net.Dial. The addresses should be reachable by peers of interest.
 	// May be left unspecified, in which case the announce addresses are auto-detected based on V2ListenAddresses.
 	V2AnnounceAddresses []string
@@ -206,17 +206,8 @@ func (p2 *concretePeerV2) newEndpoint(
 	configDigest ocr2types.ConfigDigest,
 	v2peerIDs []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
-	f int,
 	limits BinaryNetworkEndpointLimits,
 ) (commontypes.BinaryNetworkEndpoint, error) {
-	if f <= 0 {
-		return nil, fmt.Errorf("can't set f to zero or smaller")
-	}
-
-	if len(v2bootstrappers) < 1 {
-		return nil, fmt.Errorf("requires at least one v2 bootstrapper")
-	}
-
 	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
 	if err != nil {
 		return nil, fmt.Errorf("could not decode v2 peer IDs: %w", err)
@@ -242,7 +233,6 @@ func (p2 *concretePeerV2) newEndpoint(
 			p2.endpointConfig.IncomingMessageBufferSize,
 			p2.endpointConfig.OutgoingMessageBufferSize,
 		},
-		f,
 		limits,
 		registration,
 	)
@@ -257,12 +247,7 @@ func (p2 *concretePeerV2) newBootstrapper(
 	configDigest ocr2types.ConfigDigest,
 	v2peerIDs []string,
 	v2bootstrappers []commontypes.BootstrapperLocator,
-	f int,
 ) (commontypes.Bootstrapper, error) {
-	if f <= 0 {
-		return nil, fmt.Errorf("can't set f to zero or smaller")
-	}
-
 	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
 	if err != nil {
 		return nil, err
@@ -278,7 +263,7 @@ func (p2 *concretePeerV2) newBootstrapper(
 		return nil, err
 	}
 
-	bootstrapper, err := newBootstrapperV2(p2.logger, configDigest, p2, decodedv2PeerIDs, decodedv2Bootstrappers, f, registration)
+	bootstrapper, err := newBootstrapperV2(p2.logger, configDigest, decodedv2PeerIDs, decodedv2Bootstrappers, registration)
 	if err != nil {
 		// Important: we close registration in case newBootstrapperV2 failed to prevent zombie registrations.
 		return nil, multierr.Combine(err, registration.Close())
@@ -300,4 +285,8 @@ func (p2 *concretePeerV2) OCR1BootstrapperFactory() *ocr1BootstrapperFactory {
 
 func (p2 *concretePeerV2) OCR2BootstrapperFactory() *ocr2BootstrapperFactory {
 	return &ocr2BootstrapperFactory{p2}
+}
+
+func (p2 *concretePeerV2) PeerGroupFactory() *peerGroupFactory {
+	return &peerGroupFactory{p2}
 }

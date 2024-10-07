@@ -38,6 +38,7 @@ func BytesToConfigDigest(b []byte) (ConfigDigest, error) {
 //
 // All its functions should be thread-safe.
 type BinaryNetworkEndpointFactory interface {
+	// failureThreshold is a remnant of P2Pv1 and is ignored.
 	NewEndpoint(cd ConfigDigest, peerIDs []string,
 		v2bootstrappers []commontypes.BootstrapperLocator,
 		failureThreshold int, tokenBucketRefillRate float64, tokenBucketSize int,
@@ -49,6 +50,7 @@ type BinaryNetworkEndpointFactory interface {
 //
 // All its functions should be thread-safe.
 type BootstrapperFactory interface {
+	// failureThreshold is a remnant of P2Pv1 and is ignored.
 	NewBootstrapper(cd ConfigDigest, peerIDs []string,
 		v2bootstrappers []commontypes.BootstrapperLocator,
 		failureThreshold int,

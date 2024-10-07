@@ -125,9 +125,14 @@ func XXXContractSetConfigArgsFromSharedConfig(
 		offChainPublicKeys = append(offChainPublicKeys, identity.OffchainPublicKey)
 		peerIDs = append(peerIDs, identity.PeerID)
 	}
-	f = uint8(c.F)
-	onchainConfig = c.OnchainConfig
-	offchainConfigVersion = config.OCR2OffchainConfigVersion
+	sharedSecretEncryptions, err := config.EncryptSharedSecret(
+		sharedSecretEncryptionPublicKeys,
+		c.SharedSecret,
+		cryptorand.Reader,
+	)
+	if err != nil {
+		return nil, nil, 0, nil, 0, nil, err
+	}
 	offchainConfig_ = (offchainConfig{
 		c.DeltaProgress,
 		c.DeltaResend,
@@ -139,19 +144,15 @@ func XXXContractSetConfigArgsFromSharedConfig(
 		offChainPublicKeys,
 		peerIDs,
 		c.ReportingPluginConfig,
+		c.MaxDurationInitialization,
 		c.MaxDurationQuery,
 		c.MaxDurationObservation,
 		c.MaxDurationReport,
 		c.MaxDurationShouldAcceptFinalizedReport,
 		c.MaxDurationShouldTransmitAcceptedReport,
-		config.XXXEncryptSharedSecret(
-			sharedSecretEncryptionPublicKeys,
-			c.SharedSecret,
-			cryptorand.Reader,
-		),
+		sharedSecretEncryptions,
 	}).serialize()
-	err = nil
-	return
+	return signers, transmitters, uint8(c.F), c.OnchainConfig, config.OCR2OffchainConfigVersion, offchainConfig_, nil
 }
 
 func XXXContractSetConfigArgsFromSharedConfigEthereum(

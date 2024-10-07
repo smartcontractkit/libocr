@@ -2,13 +2,13 @@ package ocr3confighelper
 
 import (
 	"crypto/rand"
-	"io"
 	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/confighelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"golang.org/x/crypto/curve25519"
 )
 
 // PublicConfig is identical to the internal type in package config.
@@ -27,6 +27,7 @@ type PublicConfig struct {
 
 	ReportingPluginConfig []byte
 
+	MaxDurationInitialization               *time.Duration
 	MaxDurationQuery                        time.Duration
 	MaxDurationObservation                  time.Duration
 	MaxDurationShouldAcceptAttestedReport   time.Duration
@@ -67,6 +68,7 @@ func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 		internalPublicConfig.S,
 		identities,
 		internalPublicConfig.ReportingPluginConfig,
+		internalPublicConfig.MaxDurationInitialization,
 		internalPublicConfig.MaxDurationQuery,
 		internalPublicConfig.MaxDurationObservation,
 		internalPublicConfig.MaxDurationShouldAcceptAttestedReport,
@@ -91,6 +93,7 @@ func ContractSetConfigArgsForTestsMercuryV02(
 	s []int,
 	oracles []confighelper.OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationObservation time.Duration,
 	f int,
 	onchainConfig []byte,
@@ -115,6 +118,7 @@ func ContractSetConfigArgsForTestsMercuryV02(
 		s,
 		oracles,
 		reportingPluginConfig,
+		maxDurationInitialization,
 		0,
 		maxDurationObservation,
 		0,
@@ -138,6 +142,81 @@ func ContractSetConfigArgsForTests(
 	s []int,
 	oracles []confighelper.OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
+	maxDurationQuery time.Duration,
+	maxDurationObservation time.Duration,
+	maxDurationShouldAcceptAttestedReport time.Duration,
+	maxDurationShouldTransmitAcceptedReport time.Duration,
+	f int,
+	onchainConfig []byte,
+) (
+	signers []types.OnchainPublicKey,
+	transmitters []types.Account,
+	f_ uint8,
+	onchainConfig_ []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
+	err error,
+) {
+	ephemeralSk := [curve25519.ScalarSize]byte{}
+	if _, err := rand.Read(ephemeralSk[:]); err != nil {
+		return nil, nil, 0, nil, 0, nil, err
+	}
+
+	sharedSecret := [config.SharedSecretSize]byte{}
+	if _, err := rand.Read(sharedSecret[:]); err != nil {
+		return nil, nil, 0, nil, 0, nil, err
+	}
+
+	return ContractSetConfigArgsDeterministic(
+		ephemeralSk,
+		sharedSecret,
+
+		deltaProgress,
+		deltaResend,
+		deltaInitial,
+		deltaRound,
+		deltaGrace,
+		deltaCertifiedCommitRequest,
+		deltaStage,
+		rMax,
+		s,
+		oracles,
+		reportingPluginConfig,
+		maxDurationInitialization,
+		maxDurationQuery,
+		maxDurationObservation,
+		maxDurationShouldAcceptAttestedReport,
+		maxDurationShouldTransmitAcceptedReport,
+		f,
+		onchainConfig,
+	)
+}
+
+// This function may be used in production. If you use this as part of multisig
+// tooling,  make sure that the input parameters are identical across all
+// signers.
+func ContractSetConfigArgsDeterministic(
+	// The ephemeral secret key used to encrypt the shared secret
+	ephemeralSk [curve25519.ScalarSize]byte,
+	// A secret shared between all oracles, enabling them to derive pseudorandom
+	// leaders and transmitters. This is a low-value secret. An adversary who
+	// learns this secret can only determine which oracle will be
+	// leader/transmitter ahead of time, that's it.
+	sharedSecret [config.SharedSecretSize]byte,
+	// Check out the ocr3config package for documentation on the following args
+	deltaProgress time.Duration,
+	deltaResend time.Duration,
+	deltaInitial time.Duration,
+	deltaRound time.Duration,
+	deltaGrace time.Duration,
+	deltaCertifiedCommitRequest time.Duration,
+	deltaStage time.Duration,
+	rMax uint64,
+	s []int,
+	oracles []confighelper.OracleIdentityExtra,
+	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationQuery time.Duration,
 	maxDurationObservation time.Duration,
 	maxDurationShouldAcceptAttestedReport time.Duration,
@@ -165,11 +244,6 @@ func ContractSetConfigArgsForTests(
 		configEncryptionPublicKeys = append(configEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)
 	}
 
-	sharedSecret := [config.SharedSecretSize]byte{}
-	if _, err := io.ReadFull(rand.Reader, sharedSecret[:]); err != nil {
-		return nil, nil, 0, nil, 0, nil, err
-	}
-
 	sharedConfig := ocr3config.SharedConfig{
 		ocr3config.PublicConfig{
 			deltaProgress,
@@ -183,6 +257,7 @@ func ContractSetConfigArgsForTests(
 			s,
 			identities,
 			reportingPluginConfig,
+			maxDurationInitialization,
 			maxDurationQuery,
 			maxDurationObservation,
 			maxDurationShouldAcceptAttestedReport,
@@ -193,5 +268,9 @@ func ContractSetConfigArgsForTests(
 		},
 		&sharedSecret,
 	}
-	return ocr3config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, configEncryptionPublicKeys)
+	return ocr3config.ContractSetConfigArgsFromSharedConfigDeterministic(
+		sharedConfig,
+		configEncryptionPublicKeys,
+		&ephemeralSk,
+	)
 }

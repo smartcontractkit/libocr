@@ -11,28 +11,28 @@ import (
 	"golang.org/x/crypto/curve25519"
 )
 
-// XXXEncryptSharedSecretInternal constructs a SharedSecretEncryptions from
-// a set of SharedSecretEncryptionPublicKeys, the sharedSecret, and an
-// ephemeral secret key sk
-func XXXEncryptSharedSecretInternal(
+// EncryptSharedSecretDeterministic constructs a SharedSecretEncryptions from
+// a set of ConfigEncryptionPublicKeys, the sharedSecret, and an
+// ephemeral secret key
+func EncryptSharedSecretDeterministic(
 	publicKeys []types.ConfigEncryptionPublicKey,
 	sharedSecret *[SharedSecretSize]byte,
-	sk *[32]byte,
-) SharedSecretEncryptions {
-	pk, err := curve25519.X25519(sk[:], curve25519.Basepoint)
+	ephemeralSk *[curve25519.ScalarSize]byte,
+) (SharedSecretEncryptions, error) {
+	ephemeralPk, err := curve25519.X25519(ephemeralSk[:], curve25519.Basepoint)
 	if err != nil {
-		panic("while encrypting sharedSecret: " + err.Error()) // XXX: return an error/log
+		return SharedSecretEncryptions{}, fmt.Errorf("while computing ephemeral pk: %w", err)
 	}
 
-	var pkArray [32]byte
-	copy(pkArray[:], pk)
+	var ephemeralPkArray [curve25519.PointSize]byte
+	copy(ephemeralPkArray[:], ephemeralPk)
 
 	encryptedSharedSecrets := []EncryptedSharedSecret{}
 	for _, pk := range publicKeys { // encrypt sharedSecret with each pk
-		pkBytes := [32]byte(pk)
-		dhPoint, err := curve25519.X25519(sk[:], pkBytes[:])
+		pkBytes := [curve25519.PointSize]byte(pk)
+		dhPoint, err := curve25519.X25519(ephemeralSk[:], pkBytes[:])
 		if err != nil {
-			panic("while encrypting sharedSecret: " + err.Error()) // XXX: return an error/log
+			return SharedSecretEncryptions{}, fmt.Errorf("while computing dhPoint for %x: %w", pkBytes, err)
 		}
 
 		key := crypto.Keccak256(dhPoint)[:16]
@@ -42,26 +42,26 @@ func XXXEncryptSharedSecretInternal(
 	}
 
 	return SharedSecretEncryptions{
-		pkArray,
+		ephemeralPkArray,
 		common.BytesToHash(crypto.Keccak256(sharedSecret[:])),
 		encryptedSharedSecrets,
-	}
+	}, nil
 }
 
-// XXXEncryptSharedSecret constructs a SharedSecretEncryptions from
+// EncryptSharedSecret constructs a SharedSecretEncryptions from
 // a set of SharedSecretEncryptionPublicKeys, the sharedSecret, and a cryptographic
 // randomness source
-func XXXEncryptSharedSecret(
+func EncryptSharedSecret(
 	keys []types.ConfigEncryptionPublicKey,
 	sharedSecret *[SharedSecretSize]byte,
 	rand io.Reader,
-) SharedSecretEncryptions {
-	var sk [32]byte
+) (SharedSecretEncryptions, error) {
+	var sk [curve25519.ScalarSize]byte
 	_, err := io.ReadFull(rand, sk[:])
 	if err != nil {
-		panic(fmt.Errorf("could not produce entropy for encryption: %w", err))
+		return SharedSecretEncryptions{}, fmt.Errorf("could not read enough randomness for encryption: %w", err)
 	}
-	return XXXEncryptSharedSecretInternal(keys, sharedSecret, &sk)
+	return EncryptSharedSecretDeterministic(keys, sharedSecret, &sk)
 }
 
 // Encrypt one block with AES-128

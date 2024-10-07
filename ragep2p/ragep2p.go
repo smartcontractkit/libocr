@@ -47,7 +47,7 @@ const netTimeout = 5 * time.Second
 type hostState uint8
 
 const (
-	_ = iota
+	_ hostState = iota
 	hostStatePending
 	hostStateOpen
 	hostStateClosed
@@ -949,8 +949,8 @@ func (ho *Host) NewStream(
 		ctx,
 		cancel,
 		streamLogger,
-		make(chan []byte),
-		make(chan []byte, 5),
+		make(chan []byte, 1),
+		make(chan []byte, 1),
 
 		p.chStreamToConn,
 		response.demux,

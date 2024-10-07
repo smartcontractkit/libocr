@@ -51,11 +51,8 @@ type ocrEndpointV2 struct {
 	peerIDs             []ragetypes.PeerID
 	peerMapping         map[commontypes.OracleID]ragetypes.PeerID
 	reversedPeerMapping map[ragetypes.PeerID]commontypes.OracleID
-	peer                *concretePeerV2
 	host                *ragep2p.Host
 	configDigest        ocr2types.ConfigDigest
-	bootstrappers       []ragetypes.PeerInfo
-	f                   int
 	ownOracleID         commontypes.OracleID
 
 	// internal and state management
@@ -95,7 +92,6 @@ func newOCREndpointV2(
 	peerIDs []ragetypes.PeerID,
 	v2bootstrappers []ragetypes.PeerInfo,
 	config EndpointConfigV2,
-	f int,
 	limits BinaryNetworkEndpointLimits,
 	registration io.Closer,
 ) (*ocrEndpointV2, error) {
@@ -122,16 +118,17 @@ func newOCREndpointV2(
 		"oracles":       peerIDs,
 	})
 
+	if len(v2bootstrappers) == 0 {
+		logger.Warn("OCREndpointV2: No bootstrappers were provided. Peer discovery might not work reliably for this instance.", nil)
+	}
+
 	return &ocrEndpointV2{
 		config,
 		peerIDs,
 		peerMapping,
 		reversedPeerMapping,
-		peer,
 		peer.host,
 		configDigest,
-		v2bootstrappers,
-		f,
 		ownOracleID,
 		chSendToSelf,
 		make(chan struct{}),

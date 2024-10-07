@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -27,13 +28,10 @@ func RunManagedBootstrapper(
 
 		contractConfigTracker,
 		database,
-		func(ctx context.Context, contractConfig types.ContractConfig, logger loghelper.LoggerWithContext) {
+		func(ctx context.Context, logger loghelper.LoggerWithContext, contractConfig types.ContractConfig) (err error, retry bool) {
 			config, err := netconfig.NetConfigFromContractConfig(contractConfig)
 			if err != nil {
-				logger.Error("ManagedBootstrapper: error while decoding ContractConfig", commontypes.LogFields{
-					"error": err,
-				})
-				return
+				return fmt.Errorf("ManagedBootstrapper: error while decoding ContractConfig: %w", err), false
 			}
 
 			bootstrapper, err := bootstrapperFactory.NewBootstrapper(config.ConfigDigest, config.PeerIDs, v2bootstrappers, config.F)
@@ -43,14 +41,11 @@ func RunManagedBootstrapper(
 					"peerIDs":         config.PeerIDs,
 					"v2bootstrappers": v2bootstrappers,
 				})
-				return
+				return fmt.Errorf("ManagedBootstrapper: error during NewBootstrapper: %w", err), true
 			}
 
 			if err := bootstrapper.Start(); err != nil {
-				logger.Error("ManagedBootstrapper: error during bootstrapper.Start()", commontypes.LogFields{
-					"error": err,
-				})
-				return
+				return fmt.Errorf("ManagedBootstrapper: error during bootstrapper.Start(): %w", err), true
 			}
 			defer loghelper.CloseLogError(
 				bootstrapper,
@@ -59,9 +54,12 @@ func RunManagedBootstrapper(
 			)
 
 			<-ctx.Done()
+
+			return nil, false
 		},
 		localConfig,
 		logger,
 		offchainConfigDigester,
+		defaultRetryParams(),
 	)
 }

@@ -14,7 +14,7 @@ type ReportingPluginFactory[RI any] interface {
 	// Creates a new reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin[RI], ReportingPluginInfo, error)
+	NewReportingPlugin(context.Context, ReportingPluginConfig) (ReportingPlugin[RI], ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
@@ -60,6 +60,33 @@ type ReportWithInfo[RI any] struct {
 	Info RI
 }
 
+type TransmissionSchedule struct {
+	// The IDs of the oracles that should transmit the report.
+	// If you have n oracles, and want all of them to transmit, you should set
+	// this to [0, 1, ..., n-1].
+	Transmitters []commontypes.OracleID
+	// The transmission delays for transmission of the report.
+	// The length of this slice must be equal to the length of Transmitters.
+	//
+	// We randomly permute the oracles for transmission, independently for
+	// each report. For example:
+	// - n = 7
+	// - Transmitters = [1, 3, 5]
+	// - TransmissionDelays = [10s, 20s, 30s]
+	// Then oracle 3 might transmit after 10s, oracle 5 after 20s, and oracle 1
+	// after 30s. Oracles 0, 2, 4, and 6 will not transmit at all.
+	// Note that on oracles that do not transmit, ShouldAcceptAttestedReport and
+	// ShouldTransmitAcceptedReport will not be invoked.
+	TransmissionDelays []time.Duration
+}
+
+type ReportPlus[RI any] struct {
+	ReportWithInfo ReportWithInfo[RI]
+	// Overrides the transmission schedule for this report. Leave as nil to
+	// use the default transmission schedule.
+	TransmissionScheduleOverride *TransmissionSchedule
+}
+
 type OutcomeContext struct {
 	// SeqNr of an OCR3 round/outcome. This is guaranteed to increase
 	// in increments of one, i.e. for each SeqNr exactly one Outcome will
@@ -78,34 +105,6 @@ type OutcomeContext struct {
 	Round uint64
 }
 
-type Quorum int
-
-const (
-	// We choose an offset of 1_000_000 because:
-	// - it will always fit into an int
-	// - it will always be greater than the number of oracles supported by OCR3
-
-	// Guarantees at least one honest observation
-	QuorumFPlusOne Quorum = 1_000_000 + iota
-	// Guarantees an honest majority of observations
-	QuorumTwoFPlusOne
-	// Guarantees that all sets of observations overlap in at least one honest oracle
-	QuorumByzQuorum
-	// Maximal number of observations we can rely on being available
-	QuorumNMinusF
-)
-
-const (
-	// Deprecated: Old version of QuorumFPlusOne
-	OldQuorumFPlusOne Quorum = types.MaxOracles + 1 + iota
-	// Deprecated: Old version of QuorumTwoFPlusOne
-	OldQuorumTwoFPlusOne
-	// Deprecated: Old version of QuorumByzQuorum
-	OldQuorumByzQuorum
-	// Deprecated: Old version of QuorumNMinusF
-	OldQuorumNMinusF
-)
-
 // A ReportingPlugin allows plugging custom logic into the OCR3 protocol. The
 // OCR protocol handles cryptography, networking, ensuring that a sufficient
 // number of nodes is in agreement about any report, transmitting the report to
@@ -121,9 +120,11 @@ const (
 // faults). For example, faulty nodes could be down, have intermittent
 // connectivity issues, send garbage messages, or be controlled by an adversary.
 //
-// For a protocol round where everything is working correctly, followers will
-// call Observation, ValidateObservation, Outcome, and Reports. For each report,
-// ShouldAcceptAttestedReport will be called as well. If
+// For a protocol round where everything is working correctly, follower oracles
+// will call Observation, ValidateObservation, ObservationQuorum, Outcome, and
+// Reports. The leader oracle will additionally call Query at the beginning of
+// the round. For each report, ShouldAcceptAttestedReport will be called, iff
+// the oracle is in the set of transmitters for the report. If
 // ShouldAcceptAttestedReport returns true, ShouldTransmitAcceptedReport will be
 // called. However, an ReportingPlugin must also correctly handle the case where
 // faults occur.
@@ -148,17 +149,15 @@ const (
 //
 // All functions on an ReportingPlugin should be thread-safe.
 //
-// All functions that take a context as their first argument may still do cheap
-// computations after the context expires, but should stop any blocking
-// interactions with outside services (APIs, database, ...) and return as
-// quickly as possible. (Rough rule of thumb: any such computation should not
-// take longer than a few ms.) A blocking function may block execution of the
-// entire protocol instance on its node!
+// The execution of the functions in the ReportingPlugin is on the critical path
+// of the protocol's execution. A blocking function may block the oracle from
+// participating in the protocol. Functions should be designed to generally
+// return as quickly as possible and honor context expiration.
 //
 // For a given OCR protocol instance, there can be many (consecutive) instances
 // of an ReportingPlugin, e.g. due to software restarts. If you need
 // ReportingPlugin state to survive across restarts, you should store it in the
-// Outcome or persist it. An ReportingPlugin instance will only ever serve a
+// Outcome or persist it. A ReportingPlugin instance will only ever serve a
 // single protocol instance. Outcomes and other state are are not preserved
 // between protocol instances. A fresh protocol instance will start with a clean
 // state. Carrying state between different protocol instances is up to the
@@ -197,17 +196,23 @@ type ReportingPlugin[RI any] interface {
 	// *not* strictly) across the lifetime of a protocol instance and that
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
-	ValidateObservation(outctx OutcomeContext, query types.Query, ao types.AttributedObservation) error
+	ValidateObservation(ctx context.Context, outctx OutcomeContext, query types.Query, ao types.AttributedObservation) error
 
-	// ObservationQuorum returns the minimum number of valid (according to
-	// ValidateObservation) observations needed to construct an outcome.
+	// ObservationQuorum indicates whether the provided valid (according to
+	// ValidateObservation) observations are sufficient to construct an outcome.
 	//
 	// This function should be pure. Don't do anything slow in here.
 	//
 	// This is an advanced feature. The "default" approach (what OCR1 & OCR2
-	// did) is to have an empty ValidateObservation function and return
-	// QuorumTwoFPlusOne from this function.
-	ObservationQuorum(outctx OutcomeContext, query types.Query) (Quorum, error)
+	// did) is to have this function call
+	// quorumhelper.ObservationCountReachesObservationQuorum(QuorumTwoFPlusOne, ...)
+	//
+	// If you write a custom implementation, be sure to consider that byzantine
+	// oracles may not contribute valid observations, and you still want your
+	// plugin to remain live. This function must be monotone in aos, i.e. if
+	// it returns true for aos, it must also return true for any
+	// superset of aos.
+	ObservationQuorum(ctx context.Context, outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (quorumReached bool, err error)
 
 	// Generates an outcome for a seqNr, typically based on the previous
 	// outcome, the current query, and the current set of attributed
@@ -222,7 +227,7 @@ type ReportingPlugin[RI any] interface {
 	//
 	// You may assume that all provided observations have been validated by
 	// ValidateObservation.
-	Outcome(outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
+	Outcome(ctx context.Context, outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
 
 	// Generates a (possibly empty) list of reports from an outcome. Each report
 	// will be signed and possibly be transmitted to the contract. (Depending on
@@ -237,7 +242,7 @@ type ReportingPlugin[RI any] interface {
 	// *not* strictly) across the lifetime of a protocol instance and that
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
-	Reports(seqNr uint64, outcome Outcome) ([]ReportWithInfo[RI], error)
+	Reports(ctx context.Context, seqNr uint64, outcome Outcome) ([]ReportPlus[RI], error)
 
 	// Decides whether a report should be accepted for transmission. Any report
 	// passed to this function will have been attested, i.e. signed by f+1
@@ -245,7 +250,7 @@ type ReportingPlugin[RI any] interface {
 	//
 	// Don't make assumptions about the seqNr order in which this function
 	// is called.
-	ShouldAcceptAttestedReport(context.Context, uint64, ReportWithInfo[RI]) (bool, error)
+	ShouldAcceptAttestedReport(ctx context.Context, seqNr uint64, reportWithInfo ReportWithInfo[RI]) (bool, error)
 
 	// Decides whether the given report should actually be broadcast to the
 	// contract. This is invoked just before the broadcast occurs. Any report
@@ -261,7 +266,7 @@ type ReportingPlugin[RI any] interface {
 	// database upon oracle restart, this function  may be called with reports
 	// that no other function of this instance of this interface has ever
 	// been invoked on.
-	ShouldTransmitAcceptedReport(context.Context, uint64, ReportWithInfo[RI]) (bool, error)
+	ShouldTransmitAcceptedReport(ctx context.Context, seqNr uint64, reportWithInfo ReportWithInfo[RI]) (bool, error)
 
 	// If Close is called a second time, it may return an error but must not
 	// panic. This will always be called when a plugin is no longer
