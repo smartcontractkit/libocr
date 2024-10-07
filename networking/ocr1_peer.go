@@ -32,7 +32,6 @@ func (o *ocr1BinaryNetworkEndpointFactory) NewEndpoint(
 		configdigesthelper.OCR1ToOCR2(configDigest),
 		pids,
 		v2bootstrappers,
-		f,
 		BinaryNetworkEndpointLimits{
 			MaxOCRMsgLength,
 			messagesRatePerOracle,
@@ -57,6 +56,5 @@ func (o *ocr1BootstrapperFactory) NewBootstrapper(
 		configdigesthelper.OCR1ToOCR2(configDigest),
 		peerIDs,
 		v2bootstrappers,
-		f,
 	)
 }

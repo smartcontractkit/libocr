@@ -23,6 +23,7 @@ type BinaryNetworkEndpointLimits struct {
 //
 // All its functions should be thread-safe.
 type BinaryNetworkEndpointFactory interface {
+	// f is a remnant of P2Pv1 and is ignored.
 	NewEndpoint(
 		cd ConfigDigest,
 		peerIDs []string,
@@ -37,6 +38,7 @@ type BinaryNetworkEndpointFactory interface {
 //
 // All its functions should be thread-safe.
 type BootstrapperFactory interface {
+	// f is a remnant of P2Pv1 and is ignored.
 	NewBootstrapper(cd ConfigDigest, peerIDs []string,
 		v2bootstrappers []commontypes.BootstrapperLocator,
 		f int,
@@ -88,7 +90,7 @@ type ReportingPluginFactory interface {
 	// Creates a new reporting plugin instance. The instance may have
 	// associated goroutines or hold system resources, which should be
 	// released when its Close() function is called.
-	NewReportingPlugin(ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
+	NewReportingPlugin(context.Context, ReportingPluginConfig) (ReportingPlugin, ReportingPluginInfo, error)
 }
 
 type ReportingPluginConfig struct {
@@ -322,7 +324,7 @@ type ContractTransmitter interface {
 	// LatestConfigDigestAndEpoch returns the logically latest configDigest and
 	// epoch for which a report was successfully transmitted.
 	LatestConfigDigestAndEpoch(
-		ctx context.Context,
+		context.Context,
 	) (
 		configDigest ConfigDigest,
 		epoch uint32,
@@ -330,7 +332,7 @@ type ContractTransmitter interface {
 	)
 
 	// Account from which the transmitter invokes the contract
-	FromAccount() (Account, error)
+	FromAccount(context.Context) (Account, error)
 }
 
 // ContractConfigTracker tracks configuration changes of the OCR contract

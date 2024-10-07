@@ -29,6 +29,7 @@ type offchainConfig struct {
 	OffchainPublicKeys                      []types.OffchainPublicKey
 	PeerIDs                                 []string
 	ReportingPluginConfig                   []byte
+	MaxDurationInitialization               *time.Duration
 	MaxDurationQuery                        time.Duration
 	MaxDurationObservation                  time.Duration
 	MaxDurationReport                       time.Duration
@@ -94,6 +95,12 @@ func deprotoOffchainConfig(
 		offchainPublicKeys = append(offchainPublicKeys, ocpk)
 	}
 
+	maxDurationInitialization := (*time.Duration)(nil)
+	if offchainConfigProto != nil && offchainConfigProto.MaxDurationInitializationNanoseconds != nil {
+		maxDurationInitialization = new(time.Duration)
+		*maxDurationInitialization = time.Duration(*offchainConfigProto.MaxDurationInitializationNanoseconds)
+	}
+
 	sharedSecretEncryptions, err := deprotoSharedSecretEncryptions(offchainConfigProto.GetSharedSecretEncryptions())
 	if err != nil {
 		return offchainConfig{}, fmt.Errorf("could not unmarshal shared protobuf: %w", err)
@@ -110,6 +117,7 @@ func deprotoOffchainConfig(
 		offchainPublicKeys,
 		offchainConfigProto.GetPeerIds(),
 		offchainConfigProto.GetReportingPluginConfig(),
+		maxDurationInitialization,
 		time.Duration(offchainConfigProto.GetMaxDurationQueryNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationObservationNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationReportNanoseconds()),
@@ -159,6 +167,11 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		k := k // have to copy or we append the same key over and over
 		offchainPublicKeys = append(offchainPublicKeys, k[:])
 	}
+	maxDurationInitializationNanoseconds := (*uint64)(nil)
+	if o.MaxDurationInitialization != nil {
+		maxDurationInitializationNanoseconds = new(uint64)
+		*maxDurationInitializationNanoseconds = uint64(*o.MaxDurationInitialization)
+	}
 	sharedSecretEncryptions := enprotoSharedSecretEncryptions(o.SharedSecretEncryptions)
 	return OffchainConfigProto{
 		// zero-initialize protobuf built-ins
@@ -176,6 +189,7 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		offchainPublicKeys,
 		o.PeerIDs,
 		o.ReportingPluginConfig,
+		maxDurationInitializationNanoseconds,
 		uint64(o.MaxDurationQuery),
 		uint64(o.MaxDurationObservation),
 		uint64(o.MaxDurationReport),

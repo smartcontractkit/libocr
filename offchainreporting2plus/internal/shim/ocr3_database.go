@@ -7,7 +7,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"google.golang.org/protobuf/proto"
 )
 
 type SerializingOCR3Database struct {
@@ -38,18 +37,11 @@ func (db *SerializingOCR3Database) ReadPacemakerState(ctx context.Context, confi
 		return protocol.PacemakerState{}, nil
 	}
 
-	p := serialization.PacemakerState{}
-	if err := proto.Unmarshal(raw, &p); err != nil {
-		return protocol.PacemakerState{}, err
-	}
-
-	return serialization.PacemakerStateFromProtoMessage(&p)
+	return serialization.DeserializePacemakerState(raw)
 }
 
 func (db *SerializingOCR3Database) WritePacemakerState(ctx context.Context, configDigest types.ConfigDigest, state protocol.PacemakerState) error {
-	p := serialization.PacemakerStateToProtoMessage(state)
-
-	raw, err := proto.Marshal(p)
+	raw, err := serialization.SerializePacemakerState(state)
 	if err != nil {
 		return err
 	}
@@ -67,12 +59,8 @@ func (db *SerializingOCR3Database) ReadCert(ctx context.Context, configDigest ty
 		return nil, nil
 	}
 
-	p := serialization.CertifiedPrepareOrCommit{}
-	if err := proto.Unmarshal(raw, &p); err != nil {
-		return nil, err
-	}
-
-	return serialization.CertifiedPrepareOrCommitFromProtoMessage(&p)
+	// This oracle wrote the PrepareOrCommit, so it's fine to trust the value.
+	return serialization.DeserializeTrustedPrepareOrCommit(raw)
 }
 
 // Writing with an empty value is the same as deleting.
@@ -81,9 +69,7 @@ func (db *SerializingOCR3Database) WriteCert(ctx context.Context, configDigest t
 		return db.BinaryDb.WriteProtocolState(ctx, configDigest, certKey, nil)
 	}
 
-	p := serialization.CertifiedPrepareOrCommitToProtoMessage(cert)
-
-	raw, err := proto.Marshal(p)
+	raw, err := serialization.SerializeCertifiedPrepareOrCommit(cert)
 	if err != nil {
 		return err
 	}

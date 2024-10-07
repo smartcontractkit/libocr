@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/smartcontractkit/libocr/internal/util"
 	"github.com/smartcontractkit/libocr/offchainreporting2/reportingplugin/median"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -39,6 +39,7 @@ type PublicConfig struct {
 
 	ReportingPluginConfig []byte
 
+	MaxDurationInitialization               *time.Duration
 	MaxDurationQuery                        time.Duration
 	MaxDurationObservation                  time.Duration
 	MaxDurationReport                       time.Duration
@@ -78,6 +79,7 @@ func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 		internalPublicConfig.S,
 		identities,
 		internalPublicConfig.ReportingPluginConfig,
+		internalPublicConfig.MaxDurationInitialization,
 		internalPublicConfig.MaxDurationQuery,
 		internalPublicConfig.MaxDurationObservation,
 		internalPublicConfig.MaxDurationReport,
@@ -139,6 +141,7 @@ func ContractSetConfigArgsForEthereumIntegrationTest(
 				alphaPPB,
 				0,
 			}.Encode(),
+			util.PointerTo(50 * time.Millisecond),
 			50 * time.Millisecond,
 			50 * time.Millisecond,
 			50 * time.Millisecond,
@@ -172,6 +175,7 @@ func ContractSetConfigArgsForTestsWithAuxiliaryArgs(
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationQuery time.Duration,
 	maxDurationObservation time.Duration,
 	maxDurationReport time.Duration,
@@ -218,6 +222,7 @@ func ContractSetConfigArgsForTestsWithAuxiliaryArgs(
 			s,
 			identities,
 			reportingPluginConfig,
+			maxDurationInitialization,
 			maxDurationQuery,
 			maxDurationObservation,
 			maxDurationReport,
@@ -257,6 +262,7 @@ func ContractSetConfigArgsForTests(
 	s []int,
 	oracles []OracleIdentityExtra,
 	reportingPluginConfig []byte,
+	maxDurationInitialization *time.Duration,
 	maxDurationQuery time.Duration,
 	maxDurationObservation time.Duration,
 	maxDurationReport time.Duration,
@@ -284,6 +290,7 @@ func ContractSetConfigArgsForTests(
 		s,
 		oracles,
 		reportingPluginConfig,
+		maxDurationInitialization,
 		maxDurationQuery,
 		maxDurationObservation,
 		maxDurationReport,
@@ -293,121 +300,4 @@ func ContractSetConfigArgsForTests(
 		onchainConfig,
 		AuxiliaryArgs{},
 	)
-}
-
-// Deprecated: Use corresponding function in ocr3confighelper
-func ContractSetConfigArgsForTestsMercuryV02(
-	deltaProgress time.Duration,
-	deltaResend time.Duration,
-	deltaInitial time.Duration,
-	deltaRound time.Duration,
-	deltaGrace time.Duration,
-	deltaCertifiedCommitRequest time.Duration,
-	deltaStage time.Duration,
-	rMax uint8,
-	s []int,
-	oracles []OracleIdentityExtra,
-	reportingPluginConfig []byte,
-	maxDurationObservation time.Duration,
-	f int,
-	onchainConfig []byte,
-) (
-	signers []types.OnchainPublicKey,
-	transmitters []types.Account,
-	f_ uint8,
-	onchainConfig_ []byte,
-	offchainConfigVersion uint64,
-	offchainConfig []byte,
-	err error,
-) {
-	return ContractSetConfigArgsForTestsOCR3(
-		deltaProgress,
-		deltaResend,
-		deltaInitial,
-		deltaRound,
-		deltaGrace,
-		deltaCertifiedCommitRequest,
-		deltaStage,
-		uint64(rMax),
-		s,
-		oracles,
-		reportingPluginConfig,
-		0,
-		maxDurationObservation,
-		0,
-		0,
-		f,
-		onchainConfig,
-	)
-}
-
-// Deprecated: Use corresponding function in ocr3confighelper
-func ContractSetConfigArgsForTestsOCR3(
-	deltaProgress time.Duration,
-	deltaResend time.Duration,
-	deltaInitial time.Duration,
-	deltaRound time.Duration,
-	deltaGrace time.Duration,
-	deltaCertifiedCommitRequest time.Duration,
-	deltaStage time.Duration,
-	rMax uint64,
-	s []int,
-	oracles []OracleIdentityExtra,
-	reportingPluginConfig []byte,
-	maxDurationQuery time.Duration,
-	maxDurationObservation time.Duration,
-	maxDurationShouldAcceptAttestedReport time.Duration,
-	maxDurationShouldTransmitAcceptedReport time.Duration,
-	f int,
-	onchainConfig []byte,
-) (
-	signers []types.OnchainPublicKey,
-	transmitters []types.Account,
-	f_ uint8,
-	onchainConfig_ []byte,
-	offchainConfigVersion uint64,
-	offchainConfig []byte,
-	err error,
-) {
-	identities := []config.OracleIdentity{}
-	configEncryptionPublicKeys := []types.ConfigEncryptionPublicKey{}
-	for _, oracle := range oracles {
-		identities = append(identities, config.OracleIdentity{
-			oracle.OffchainPublicKey,
-			oracle.OnchainPublicKey,
-			oracle.PeerID,
-			oracle.TransmitAccount,
-		})
-		configEncryptionPublicKeys = append(configEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)
-	}
-
-	sharedSecret := [config.SharedSecretSize]byte{}
-	if _, err := io.ReadFull(rand.Reader, sharedSecret[:]); err != nil {
-		return nil, nil, 0, nil, 0, nil, err
-	}
-
-	sharedConfig := ocr3config.SharedConfig{
-		ocr3config.PublicConfig{
-			deltaProgress,
-			deltaResend,
-			deltaInitial,
-			deltaRound,
-			deltaGrace,
-			deltaCertifiedCommitRequest,
-			deltaStage,
-			rMax,
-			s,
-			identities,
-			reportingPluginConfig,
-			maxDurationQuery,
-			maxDurationObservation,
-			maxDurationShouldAcceptAttestedReport,
-			maxDurationShouldTransmitAcceptedReport,
-			f,
-			onchainConfig,
-			types.ConfigDigest{},
-		},
-		&sharedSecret,
-	}
-	return ocr3config.XXXContractSetConfigArgsFromSharedConfig(sharedConfig, configEncryptionPublicKeys)
 }

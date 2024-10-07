@@ -31,8 +31,8 @@ func (rp LimitCheckOCR3ReportingPlugin[RI]) Query(ctx context.Context, outctx oc
 	return query, nil
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) ObservationQuorum(outctx ocr3types.OutcomeContext, query types.Query) (ocr3types.Quorum, error) {
-	return rp.Plugin.ObservationQuorum(outctx, query)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ObservationQuorum(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (bool, error) {
+	return rp.Plugin.ObservationQuorum(ctx, outctx, query, aos)
 }
 
 func (rp LimitCheckOCR3ReportingPlugin[RI]) Observation(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query) (types.Observation, error) {
@@ -46,12 +46,12 @@ func (rp LimitCheckOCR3ReportingPlugin[RI]) Observation(ctx context.Context, out
 	return observation, nil
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) ValidateObservation(outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
-	return rp.Plugin.ValidateObservation(outctx, query, ao)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) ValidateObservation(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query, ao types.AttributedObservation) error {
+	return rp.Plugin.ValidateObservation(ctx, outctx, query, ao)
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
-	outcome, err := rp.Plugin.Outcome(outctx, query, aos)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(ctx context.Context, outctx ocr3types.OutcomeContext, query types.Query, aos []types.AttributedObservation) (ocr3types.Outcome, error) {
+	outcome, err := rp.Plugin.Outcome(ctx, outctx, query, aos)
 	if err != nil {
 		return nil, err
 	}
@@ -61,17 +61,17 @@ func (rp LimitCheckOCR3ReportingPlugin[RI]) Outcome(outctx ocr3types.OutcomeCont
 	return outcome, nil
 }
 
-func (rp LimitCheckOCR3ReportingPlugin[RI]) Reports(seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportWithInfo[RI], error) {
-	reports, err := rp.Plugin.Reports(seqNr, outcome)
+func (rp LimitCheckOCR3ReportingPlugin[RI]) Reports(ctx context.Context, seqNr uint64, outcome ocr3types.Outcome) ([]ocr3types.ReportPlus[RI], error) {
+	reports, err := rp.Plugin.Reports(ctx, seqNr, outcome)
 	if err != nil {
 		return nil, err
 	}
 	if !(len(reports) <= rp.Limits.MaxReportCount) {
 		return nil, fmt.Errorf("LimitCheckOCR3Plugin: underlying plugin returned too many reports (%v vs %v)", len(reports), rp.Limits.MaxReportCount)
 	}
-	for i, reportWithInfo := range reports {
-		if !(len(reportWithInfo.Report) <= rp.Limits.MaxReportLength) {
-			return nil, fmt.Errorf("LimitCheckOCR3Plugin: underlying plugin returned oversize report at index %v (%v vs %v)", i, len(reportWithInfo.Report), rp.Limits.MaxReportLength)
+	for i, reportPlus := range reports {
+		if !(len(reportPlus.ReportWithInfo.Report) <= rp.Limits.MaxReportLength) {
+			return nil, fmt.Errorf("LimitCheckOCR3Plugin: underlying plugin returned oversize report at index %v (%v vs %v)", i, len(reportPlus.ReportWithInfo.Report), rp.Limits.MaxReportLength)
 		}
 	}
 	return reports, nil
