@@ -257,19 +257,19 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 }
 
 func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventComputedObservation[RI]) {
-	if outgen.followerState.phase != outgenFollowerPhaseBackgroundObservation {
-		outgen.logger.Debug("discarding EventComputedObservation, wrong phase", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"phase": outgen.followerState.phase,
-		})
-		return
-	}
-
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("discarding EventComputedObservation from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundObservation {
+		outgen.logger.Debug("discarding EventComputedObservation, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
 		})
 		return
 	}
@@ -529,19 +529,19 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
 }
 
 func (outgen *outcomeGenerationState[RI]) eventComputedProposalOutcome(ev EventComputedProposalOutcome[RI]) {
-	if outgen.followerState.phase != outgenFollowerPhaseBackgroundProposalOutcome {
-		outgen.logger.Debug("discarding EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"phase": outgen.followerState.phase,
-		})
-		return
-	}
-
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("discarding EventComputedProposalOutcome from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundProposalOutcome {
+		outgen.logger.Debug("discarding EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
 		})
 		return
 	}
