@@ -53,3 +53,32 @@ type OnchainKeyring[RI any] interface {
 	// Maximum length of a signature
 	MaxSignatureLength() int
 }
+
+type ComparableOnchainKeyring[RI any] interface {
+	SignVerifier[RI]
+	// Equal returns true if the public keys are equal
+	// Implementations that wrap a single public key are encouraged to use
+	// [OnchainPublicKey].Equal directly.
+	// Implementations that wrap multiple public keys should implement
+	// return true if any of their wrapped public keys are equal to the argument
+	Equal(types.OnchainPublicKey) bool
+
+	// Maximum length of a signature
+	MaxSignatureLength() int
+}
+
+// SignVerifier provides cryptographic signatures that need to be verifiable
+// on the targeted blockchain. The underlying cryptographic primitives may be
+// different on each chain; for example, on Ethereum one would use ECDSA over
+// secp256k1 and Keccak256, whereas on Solana one would use Ed25519 and SHA256.
+type SignVerifier[RI any] interface {
+	// Sign returns a signature over Report.
+	Sign(types.ConfigDigest, uint64, ReportWithInfo[RI]) (signature []byte, err error)
+
+	// Verify verifies a signature over ReportContext and Report allegedly
+	// created from OnchainPublicKey.
+	//
+	// Implementations of this function must gracefully handle malformed or
+	// adversarially crafted inputs.
+	Verify(_ types.OnchainPublicKey, _ types.ConfigDigest, seqNr uint64, _ ReportWithInfo[RI], signature []byte) bool
+}
