@@ -84,7 +84,13 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	} else {
 		// We're dealing with a re-proposal from a failed epoch
 
-		prepareQc := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQc, ok := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
+		if !ok {
+			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStart", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+			})
+			return
+		}
 
 		// We don't know the actual inputs, so we always use the empty OutcomeInputsDigest
 		// in case of a re-proposal.
@@ -257,19 +263,19 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 }
 
 func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventComputedObservation[RI]) {
-	if outgen.followerState.phase != outgenFollowerPhaseBackgroundObservation {
-		outgen.logger.Debug("discarding EventComputedObservation, wrong phase", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"phase": outgen.followerState.phase,
-		})
-		return
-	}
-
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("discarding EventComputedObservation from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundObservation {
+		outgen.logger.Debug("discarding EventComputedObservation, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
 		})
 		return
 	}
@@ -529,19 +535,19 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
 }
 
 func (outgen *outcomeGenerationState[RI]) eventComputedProposalOutcome(ev EventComputedProposalOutcome[RI]) {
-	if outgen.followerState.phase != outgenFollowerPhaseBackgroundProposalOutcome {
-		outgen.logger.Debug("discarding EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"phase": outgen.followerState.phase,
-		})
-		return
-	}
-
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("discarding EventComputedProposalOutcome from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundProposalOutcome {
+		outgen.logger.Debug("discarding EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
 		})
 		return
 	}

@@ -2,10 +2,7 @@ package types
 
 import (
 	"context"
-	"database/sql/driver"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // ConfigDatabase persistently stores configuration-related information on
@@ -60,26 +57,4 @@ func (ps PersistentState) Equal(ps2 PersistentState) bool {
 		}
 	}
 	return true
-}
-
-//
-// database/sql/driver interface functions for ConfigDigest
-//
-
-// Scan complies with sql Scanner interface
-func (c *ConfigDigest) Scan(value interface{}) error {
-	b, ok := value.([]byte)
-	if !ok {
-		return errors.Errorf("unable to convert %v of type %T to ConfigDigest", value, value)
-	}
-	if len(b) != 16 {
-		return errors.Errorf("unable to convert blob 0x%x of length %v to ConfigDigest", b, len(b))
-	}
-	copy(c[:], b)
-	return nil
-}
-
-// Value returns this instance serialized for database storage.
-func (c ConfigDigest) Value() (driver.Value, error) {
-	return c[:], nil
 }

@@ -172,7 +172,11 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else {
-		prepareQc := epochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQc, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
+		if !ok {
+			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStartRequest", nil)
+			return
+		}
 		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr + 1
 		// We're dealing with a re-proposal from a failed epoch based on a
 		// prepare qc.
@@ -396,6 +400,14 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 		return
 	}
 
+	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart && outgen.leaderState.phase != outgenLeaderPhaseGrace {
+		outgen.logger.Debug("discarding EventComputedValidateVerifyObservation, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.leaderState.phase,
+		})
+		return
+	}
+
 	outgen.logger.Debug("got valid MessageObservation", commontypes.LogFields{
 		"sender": ev.Sender,
 		"seqNr":  outgen.sharedState.seqNr,
@@ -471,19 +483,19 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 }
 
 func (outgen *outcomeGenerationState[RI]) eventComputedObservationQuorumSuccess(ev EventComputedObservationQuorumSuccess[RI]) {
-	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart {
-		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess, wrong phase", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"phase": outgen.leaderState.phase,
-		})
-		return
-	}
-
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart {
+		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.leaderState.phase,
 		})
 		return
 	}

@@ -206,6 +206,9 @@ func (o *oracleState) run() {
 		)
 	})
 
+	publicConfigMetrics := ocr2config.NewPublicConfigMetrics(o.metricsRegisterer, o.logger, o.config.PublicConfig)
+	defer publicConfigMetrics.Close()
+
 	chNet := o.netEndpoint.Receive()
 
 	chDone := o.ctx.Done()

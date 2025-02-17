@@ -54,10 +54,11 @@ func NewScheduler[T any]() *Scheduler[T] {
 			select {
 			case item := <-in:
 				if maybeOut == nil {
-					if heap.Len() == 0 {
+					peeked, ok := heap.Peek()
+					if !ok {
 						// the timer must be stopped already
 						timer.Reset(time.Until(item.Deadline))
-					} else if heap.Peek().Deadline.After(item.Deadline) {
+					} else if peeked.Deadline.After(item.Deadline) {
 						// we're dealing with the new minimum
 						if timer.Stop() {
 							// timer hasn't fired yet
@@ -68,12 +69,23 @@ func NewScheduler[T any]() *Scheduler[T] {
 				}
 				heap.Push(item)
 			case <-timer.C:
-				pendingItem = heap.Pop().Item
-				maybeOut = out
+				popped, ok := heap.Pop()
+				if ok {
+					pendingItem = popped.Item
+					maybeOut = out
+				} else { //nolint:staticcheck
+					// We should never enter this else branch. But if we did, it's
+					// better to ignore the spurious firing of the timer than
+					// to panic.
+					// Tests should still pass with the panic not commented out.
+
+					// panic("timer fired despite heap being empty, this should never happen")
+				}
 			case maybeOut <- pendingItem:
 				maybeOut = nil
-				if heap.Len() != 0 {
-					timer.Reset(time.Until(heap.Peek().Deadline))
+				peeked, ok := heap.Peek()
+				if ok {
+					timer.Reset(time.Until(peeked.Deadline))
 				}
 			case <-ctx.Done():
 				return

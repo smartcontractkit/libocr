@@ -226,7 +226,7 @@ func (mo *managedOracleState) configChanged(contractConfig types.ContractConfig)
 			mo.localConfig,
 			childLogger,
 			mo.netEndpoint,
-			shim.MakeTelemetrySender(mo.chTelemetry, childLogger),
+			shim.NewTelemetrySender(mo.chTelemetry, childLogger),
 		)
 	})
 
