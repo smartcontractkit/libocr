@@ -2,6 +2,7 @@ package networking
 
 import (
 	"crypto/ed25519"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -16,7 +17,6 @@ import (
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
-	"go.uber.org/multierr"
 )
 
 type PeerConfig struct {
@@ -238,7 +238,7 @@ func (p2 *concretePeerV2) newEndpoint(
 	)
 	if err != nil {
 		// Important: we close registration in case newOCREndpointV2 failed to prevent zombie registrations.
-		return nil, multierr.Combine(err, registration.Close())
+		return nil, errors.Join(err, registration.Close())
 	}
 	return endpoint, nil
 }
@@ -266,7 +266,7 @@ func (p2 *concretePeerV2) newBootstrapper(
 	bootstrapper, err := newBootstrapperV2(p2.logger, configDigest, decodedv2PeerIDs, decodedv2Bootstrappers, registration)
 	if err != nil {
 		// Important: we close registration in case newBootstrapperV2 failed to prevent zombie registrations.
-		return nil, multierr.Combine(err, registration.Close())
+		return nil, errors.Join(err, registration.Close())
 	}
 	return bootstrapper, nil
 }

@@ -172,7 +172,11 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else {
-		prepareQc := epochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQc, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
+		if !ok {
+			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStartRequest", nil)
+			return
+		}
 		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr + 1
 		// We're dealing with a re-proposal from a failed epoch based on a
 		// prepare qc.

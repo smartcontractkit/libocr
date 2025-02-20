@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,7 +18,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"go.uber.org/multierr"
 )
 
 // RunManagedOCR3Oracle runs a "managed" version of protocol.RunOracle. It handles
@@ -208,7 +208,7 @@ func RunManagedOCR3Oracle[RI any](
 				offchainKeyring,
 				onchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
-				shim.MakeOCR3TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger),
 			)
 
 			return nil, false
@@ -223,19 +223,19 @@ func RunManagedOCR3Oracle[RI any](
 func validateOCR3ReportingPluginLimits(limits ocr3types.ReportingPluginLimits) error {
 	var err error
 	if !(0 <= limits.MaxQueryLength && limits.MaxQueryLength <= ocr3types.MaxMaxQueryLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, ocr3types.MaxMaxQueryLength))
+		err = errors.Join(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, ocr3types.MaxMaxQueryLength))
 	}
 	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= ocr3types.MaxMaxObservationLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3types.MaxMaxObservationLength))
+		err = errors.Join(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3types.MaxMaxObservationLength))
 	}
 	if !(0 <= limits.MaxOutcomeLength && limits.MaxOutcomeLength <= ocr3types.MaxMaxOutcomeLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxOutcomeLength (%v) out of range. Should be between 0 and %v", limits.MaxOutcomeLength, ocr3types.MaxMaxOutcomeLength))
+		err = errors.Join(err, fmt.Errorf("MaxOutcomeLength (%v) out of range. Should be between 0 and %v", limits.MaxOutcomeLength, ocr3types.MaxMaxOutcomeLength))
 	}
 	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= ocr3types.MaxMaxReportLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxReportLength))
+		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxReportLength))
 	}
 	if !(0 <= limits.MaxReportCount && limits.MaxReportCount <= ocr3types.MaxMaxReportCount) {
-		err = multierr.Append(err, fmt.Errorf("MaxReportCount (%v) out of range. Should be between 0 and %v", limits.MaxReportCount, ocr3types.MaxMaxReportCount))
+		err = errors.Join(err, fmt.Errorf("MaxReportCount (%v) out of range. Should be between 0 and %v", limits.MaxReportCount, ocr3types.MaxMaxReportCount))
 	}
 	return err
 }

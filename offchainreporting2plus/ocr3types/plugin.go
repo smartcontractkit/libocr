@@ -152,7 +152,12 @@ type OutcomeContext struct {
 // The execution of the functions in the ReportingPlugin is on the critical path
 // of the protocol's execution. A blocking function may block the oracle from
 // participating in the protocol. Functions should be designed to generally
-// return as quickly as possible and honor context expiration.
+// return as quickly as possible and honor context expiration. Context
+// expiration may occur for a number of reasons, including (1) shutdown of the
+// protocol instance, (2) the protocol's progression through epochs (whether
+// they're abandoned or completed successfully), and (3) timeout parameters. See
+// the documentation on ocr3config.PublicConfig for more information on how
+// to configure timeouts.
 //
 // For a given OCR protocol instance, there can be many (consecutive) instances
 // of an ReportingPlugin, e.g. due to software restarts. If you need
@@ -225,8 +230,9 @@ type ReportingPlugin[RI any] interface {
 	// outctx.previousOutcome contains the consensus outcome with sequence
 	// number (outctx.SeqNr-1).
 	//
-	// You may assume that all provided observations have been validated by
-	// ValidateObservation.
+	// You may assume that the provided list of attributed observations has been
+	// (1) validated by ValidateObservation on each element, and (2) checked
+	// by ObservationQuorum to have reached quorum.
 	Outcome(ctx context.Context, outctx OutcomeContext, query types.Query, aos []types.AttributedObservation) (Outcome, error)
 
 	// Generates a (possibly empty) list of reports from an outcome. Each report

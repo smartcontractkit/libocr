@@ -4,11 +4,10 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
-
-	"go.uber.org/multierr"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -374,7 +373,7 @@ func (p *discoveryProtocol) saveToDB() error {
 
 	var allErrors error
 	for _, ann := range p.locked.bestAnnouncement {
-		allErrors = multierr.Append(allErrors, p.saveAnnouncementToDB(ann))
+		allErrors = errors.Join(allErrors, p.saveAnnouncementToDB(ann))
 	}
 	return allErrors
 }
