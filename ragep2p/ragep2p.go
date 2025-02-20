@@ -894,6 +894,9 @@ func (ho *Host) NewStream(
 		return nil, fmt.Errorf("stream with self is forbidden")
 	}
 
+	if len(streamName) == 0 {
+		return nil, fmt.Errorf("streamName cannot be empty")
+	}
 	if MaxStreamNameLength < len(streamName) {
 		return nil, fmt.Errorf("streamName '%v' is longer than maximum length %v", streamName, MaxStreamNameLength)
 	}
@@ -943,6 +946,7 @@ func (ho *Host) NewStream(
 		streamID,
 
 		outgoingBufferSize,
+		maxMessageLength,
 		ho,
 
 		subprocesses.Subprocesses{},
@@ -990,6 +994,7 @@ type Stream struct {
 	streamID streamID
 
 	outgoingBufferSize int
+	maxMessageLength   int
 
 	host *Host
 
@@ -1020,6 +1025,13 @@ func (st *Stream) Name() string {
 
 // Best effort sending of messages. May fail without returning an error.
 func (st *Stream) SendMessage(data []byte) {
+	if len(data) > st.maxMessageLength {
+		st.logger.Warn("dropping outbound message that is too large", commontypes.LogFields{
+			"size": len(data),
+			"max":  st.maxMessageLength,
+		})
+		return
+	}
 	select {
 	case st.chSend <- data:
 	case <-st.ctx.Done():

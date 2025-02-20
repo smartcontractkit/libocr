@@ -2,12 +2,12 @@ package median
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
 	"time"
 
-	"go.uber.org/multierr"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/runtime/protoimpl"
 
@@ -223,6 +223,27 @@ type ReportCodec interface {
 	MaxReportLength(ctx context.Context, n int) (int, error)
 }
 
+// The median plugin reports a (medianized) time series of some numerical value.
+// This function indicates whether a new (candidate) numerical value
+// sufficiently deviates from the old numerical value to merit issuance of a new
+// report.
+//
+// See DefaultDeviationFunc for the reference version of this function used by
+// default.
+//
+// This function must be thread-safe. Multiple invocation of one instance of
+// this function may concurrently occur from different threads.
+type DeviationFunc func(
+	ctx context.Context,
+	// The deviation threshold, specified in parts-per-billion. E.g., 1% would
+	// correspond to 10_000_000 PPB.
+	thresholdPPB uint64,
+	// The old value.
+	old *big.Int,
+	// The new (candidate) value.
+	new *big.Int,
+) (bool, error)
+
 var _ types.ReportingPluginFactory = NumericalMedianFactory{}
 
 const maxObservationLength = 4 /* timestamp */ +
@@ -251,6 +272,10 @@ type NumericalMedianFactory struct {
 	Logger                               commontypes.Logger
 	OnchainConfigCodec                   OnchainConfigCodec
 	ReportCodec                          ReportCodec
+	// Function used for deviation checks. Set this to nil to use the default
+	// function DefaultDeviationFunc. All oracles in the OCR protocol instance
+	// must run with the same deviation function.
+	DeviationFunc DeviationFunc
 }
 
 func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
@@ -275,6 +300,13 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 		return nil, types.ReportingPluginInfo{}, err
 	}
 
+	var deviationFunc DeviationFunc
+	if fac.DeviationFunc == nil {
+		deviationFunc = DefaultDeviationFunc
+	} else {
+		deviationFunc = fac.DeviationFunc
+	}
+
 	return &numericalMedian{
 			offchainConfig,
 			onchainConfig,
@@ -285,6 +317,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 			fac.IncludeGasPriceSubunitsInObservation,
 			logger,
 			fac.ReportCodec,
+			deviationFunc,
 
 			configuration.ConfigDigest,
 			configuration.F,
@@ -302,12 +335,12 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 		}, nil
 }
 
-func Deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
+func DefaultDeviationFunc(_ context.Context, thresholdPPB uint64, old *big.Int, new *big.Int) (bool, error) {
 	if old.Cmp(i(0)) == 0 {
 		if new.Cmp(i(0)) == 0 { //nolint:gosimple
-			return false // Both values are zero; no deviation
+			return false, nil // Both values are zero; no deviation
 		}
-		return true // Any deviation from 0 is significant
+		return true, nil // Any deviation from 0 is significant
 	}
 	// ||new - old|| / ||old||, approximated by a float
 	change := &big.Rat{}
@@ -318,7 +351,7 @@ func Deviates(thresholdPPB uint64, old *big.Int, new *big.Int) bool {
 		(&big.Int{}).SetUint64(thresholdPPB),
 		(&big.Int{}).SetUint64(1e9),
 	)
-	return change.Cmp(threshold) >= 0
+	return change.Cmp(threshold) >= 0, nil
 }
 
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
@@ -333,6 +366,7 @@ type numericalMedian struct {
 	includeGasPriceSubunitsInObservation bool
 	logger                               loghelper.LoggerWithContext
 	reportCodec                          ReportCodec
+	deviationFunc                        DeviationFunc
 
 	configDigest             types.ConfigDigest
 	f                        int
@@ -379,7 +413,7 @@ func (nm *numericalMedian) Observation(ctx context.Context, repts types.ReportTi
 	})
 	subs.Wait()
 
-	err := multierr.Combine(valueErr, juelsPerFeeCoinErr, gasPriceSubunitsErr)
+	err := errors.Join(valueErr, juelsPerFeeCoinErr, gasPriceSubunitsErr)
 	if err != nil {
 		return nil, fmt.Errorf("error in Observation: %w", err)
 	}
@@ -532,7 +566,7 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 	})
 	subs.Wait()
 
-	if err := multierr.Combine(resultTransmissionDetails.err, resultRoundRequested.err); err != nil {
+	if err := errors.Join(resultTransmissionDetails.err, resultRoundRequested.err); err != nil {
 		return false, fmt.Errorf("error during LatestTransmissionDetails/LatestRoundRequested: %w", err)
 	}
 
@@ -561,9 +595,14 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 		resultTransmissionDetails.configDigest == repts.ConfigDigest &&
 			resultTransmissionDetails.epoch == 0 &&
 			resultTransmissionDetails.round == 0
-	deviation := // Has the result changed enough to merit a new report?
-		!nm.offchainConfig.AlphaReportInfinite &&
-			Deviates(nm.offchainConfig.AlphaReportPPB, resultTransmissionDetails.latestAnswer, answer)
+	deviation := false // Has the result changed enough to merit a new report?
+	if !nm.offchainConfig.AlphaReportInfinite {
+		result, err := nm.deviationFunc(ctx, nm.offchainConfig.AlphaReportPPB, resultTransmissionDetails.latestAnswer, answer)
+		if err != nil {
+			return false, fmt.Errorf("error during deviationFunc: %w", err)
+		}
+		deviation = result
+	}
 
 	deltaCTimeout := // Has enough time passed since the last report, to merit a new one?
 		resultTransmissionDetails.latestTimestamp.Add(nm.offchainConfig.DeltaC).
@@ -628,7 +667,7 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 
 	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error during LatestTransmissionDetails: %w", err)
 	}
 
 	contractEpochRound := epochRound{contractEpoch, contractRound}
@@ -664,7 +703,14 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		return false, fmt.Errorf("error during MedianFromReport: %w", err)
 	}
 
-	deviates := !nm.offchainConfig.AlphaAcceptInfinite && Deviates(nm.offchainConfig.AlphaAcceptPPB, nm.latestAcceptedMedian, reportMedian)
+	deviates := false
+	if !nm.offchainConfig.AlphaAcceptInfinite {
+		result, err := nm.deviationFunc(ctx, nm.offchainConfig.AlphaAcceptPPB, nm.latestAcceptedMedian, reportMedian)
+		if err != nil {
+			return false, fmt.Errorf("error during deviationFunc: %w", err)
+		}
+		deviates = result
+	}
 	nothingPending := !contractEpochRound.Less(nm.latestAcceptedEpochRound)
 	result := deviates || nothingPending
 

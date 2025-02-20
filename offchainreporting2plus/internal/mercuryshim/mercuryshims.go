@@ -102,7 +102,11 @@ func (t *MercuryOCR3ContractTransmitter) FromAccount(ctx context.Context) (types
 }
 
 func ocr3MaxOutcomeLength(maxReportLength int) int {
-	return 100 + maxReportLength + maxReportLength/2
+	// We intentionally overestimate the length of the output from
+	// serializeMercuryReportingPluginOutcome. The maximum computed here
+	// is reasonably tight, see TestOCR3MaxOutcomeLength for details.
+	const outcomeSerializationOverhead = 100
+	return outcomeSerializationOverhead + maxReportLength + maxReportLength/2
 }
 
 func ReportingPluginLimits(mercuryPluginLimits ocr3types.MercuryPluginLimits) ocr3types.ReportingPluginLimits {

@@ -428,10 +428,6 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 		go func() {
 			defer wg.Done()
 			for i := k; i < len(reportsPlus); i += n {
-				if i%n != k {
-					panic("bug")
-				}
-
 				mutex.Lock()
 				allValidCopy := allValid
 				mutex.Unlock()

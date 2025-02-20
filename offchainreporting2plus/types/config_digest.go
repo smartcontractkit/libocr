@@ -2,9 +2,14 @@ package types
 
 import (
 	"context"
+	"database/sql"
+	"database/sql/driver"
 	"encoding"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // ConfigDigestPrefix acts as a domain separator between different (typically
@@ -95,6 +100,42 @@ var _ encoding.TextMarshaler = ConfigDigest{}
 func (c ConfigDigest) MarshalText() (text []byte, err error) {
 	s := c.String()
 	return []byte(s), nil
+}
+
+var _ encoding.TextUnmarshaler = &ConfigDigest{}
+
+// Note that this might clobber c in case of an error
+func (c *ConfigDigest) UnmarshalText(text []byte) error {
+	if len(text) != len(c)*2 {
+		return fmt.Errorf("cannot unmarshal ConfigDigest from text. text has wrong length %v", len(text))
+	}
+
+	if _, err := hex.Decode(c[:], text); err != nil {
+		return fmt.Errorf("cannot unmarshal ConfigDigest from non-hex text: %w", err)
+	}
+
+	return nil
+}
+
+var _ sql.Scanner = (*ConfigDigest)(nil)
+
+func (c *ConfigDigest) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.Errorf("unable to convert %v of type %T to ConfigDigest", value, value)
+	}
+	if len(b) != len(c) {
+		return errors.Errorf("unable to convert blob 0x%x of length %v to ConfigDigest", b, len(b))
+	}
+	copy(c[:], b)
+	return nil
+}
+
+var _ driver.Valuer = ConfigDigest{}
+
+// Value returns this instance serialized for database storage.
+func (c ConfigDigest) Value() (driver.Value, error) {
+	return c[:], nil
 }
 
 // An OffchainConfigDigester computes a ConfigDigest the same way as the

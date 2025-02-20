@@ -1,11 +1,10 @@
 package networking
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sync"
-
-	"go.uber.org/multierr"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -263,13 +262,13 @@ func (o *ocrEndpointV2) Close() error {
 	var allErrors error
 	for oid, stream := range o.streams {
 		if err := stream.Close(); err != nil {
-			allErrors = multierr.Append(allErrors, fmt.Errorf("error while closing stream with oracle %v: %w", oid, err))
+			allErrors = errors.Join(allErrors, fmt.Errorf("error while closing stream with oracle %v: %w", oid, err))
 		}
 	}
 
 	o.logger.Debug("OCREndpointV2: Deregister", nil)
 	if err := o.registration.Close(); err != nil {
-		allErrors = multierr.Append(allErrors, fmt.Errorf("error closing OCREndpointV2: could not deregister: %w", err))
+		allErrors = errors.Join(allErrors, fmt.Errorf("error closing OCREndpointV2: could not deregister: %w", err))
 	}
 
 	o.logger.Debug("OCREndpointV2: Closing o.recv", nil)

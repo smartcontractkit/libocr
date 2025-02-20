@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,7 +19,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"go.uber.org/multierr"
 )
 
 // RunManagedMercuryOracle runs a "managed" version of protocol.RunOracle. It handles
@@ -229,7 +229,7 @@ func RunManagedMercuryOracle(
 				offchainKeyring,
 				ocr3OnchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[mercuryshim.MercuryReportInfo]{reportingPlugin, reportingPluginLimits},
-				shim.MakeOCR3TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger),
 			)
 
 			return nil, false
@@ -244,10 +244,10 @@ func RunManagedMercuryOracle(
 func validateMercuryPluginLimits(limits ocr3types.MercuryPluginLimits) error {
 	var err error
 	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= ocr3types.MaxMaxMercuryObservationLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3types.MaxMaxMercuryObservationLength))
+		err = errors.Join(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3types.MaxMaxMercuryObservationLength))
 	}
 	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= ocr3types.MaxMaxMercuryReportLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxMercuryReportLength))
+		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxMercuryReportLength))
 	}
 	return err
 }

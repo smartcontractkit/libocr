@@ -2,6 +2,7 @@ package networking
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
-	"go.uber.org/multierr"
 )
 
 func peerGroupStreamNamePrefix(configDigestPrefix ocr2types.ConfigDigestPrefix) (streamNamePrefix string, ok bool) {
@@ -235,9 +235,9 @@ func (f *peerGroup) Close() error {
 		}
 		// we don't really expect the first Close of a stream to error out but
 		// let's be defensive
-		err = multierr.Append(err, stream.Close())
+		err = errors.Join(err, stream.Close())
 	}
 	f.openedStreams.Init()
 
-	return multierr.Append(err, f.reg.Close())
+	return errors.Join(err, f.reg.Close())
 }

@@ -20,12 +20,22 @@ func (h *MinHeap[T]) Push(item T) {
 	heap.Push(&h.internal, item)
 }
 
-func (h *MinHeap[T]) Pop() T {
-	return heap.Pop(&h.internal).(T)
+func (h *MinHeap[T]) Pop() (T, bool) {
+	if 0 < len(h.internal.items) {
+		return heap.Pop(&h.internal).(T), true
+	} else {
+		var zero T
+		return zero, false
+	}
 }
 
-func (h *MinHeap[T]) Peek() T {
-	return h.internal.items[0]
+func (h *MinHeap[T]) Peek() (T, bool) {
+	if 0 < len(h.internal.items) {
+		return h.internal.items[0], true
+	} else {
+		var zero T
+		return zero, false
+	}
 }
 
 func (h *MinHeap[T]) Len() int {
