@@ -21,10 +21,9 @@ type PublicConfig struct {
 	// switching epochs without ever achieving any progress, resulting in a
 	// liveness failure!
 	DeltaProgress time.Duration
-	// DeltaResend determines how often Pacemaker newepoch messages should be
+	// DeltaResend determines how often Pacemaker messages should be
 	// resent, allowing oracles that had crashed and are recovering to rejoin
-	// the protocol more quickly. ~30s should be a reasonable default under most
-	// circumstances.
+	// the protocol more quickly.
 	DeltaResend time.Duration
 	// DeltaRound determines the minimal amount of time that should pass between
 	// the start of report generation rounds. With OCR2 only (not OCR1!) you can

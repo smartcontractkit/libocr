@@ -22,10 +22,9 @@ type PublicConfig struct {
 	// switching epochs without ever achieving any progress, resulting in a
 	// liveness failure!
 	DeltaProgress time.Duration
-	// DeltaResend determines how often Pacemaker newepoch messages should be
+	// DeltaResend determines how often Pacemaker messages should be
 	// resent, allowing oracles that had crashed and are recovering to rejoin
-	// the protocol more quickly. ~30s should be a reasonable default under most
-	// circumstances.
+	// the protocol more quickly.
 	DeltaResend time.Duration
 	// If no message from the leader has been received after the epoch start plus
 	// DeltaInitial, we enter a new epoch. This parameter must be
@@ -115,6 +114,9 @@ func (c *PublicConfig) ByzQuorumSize() int {
 	return byzquorum.Size(c.N(), c.F)
 }
 
+// The minimum interval between round starts.
+// This is not a guaranteed lower bound. For example, a malicious leader could
+// violate this bound.
 func (c *PublicConfig) MinRoundInterval() time.Duration {
 	if c.DeltaRound > c.DeltaGrace {
 		return c.DeltaRound

@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -16,7 +17,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/shim"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-	"go.uber.org/multierr"
 )
 
 // RunManagedOCR2Oracle runs a "managed" version of protocol.RunOracle. It handles
@@ -237,7 +237,7 @@ func RunManagedOCR2Oracle(
 				onchainKeyring,
 				shim.LimitCheckReportingPlugin{reportingPlugin, reportingPluginInfo.Limits},
 				reportQuorum,
-				shim.MakeOCR2TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR2TelemetrySender(chTelemetrySend, childLogger),
 			)
 
 			return nil, false
@@ -252,13 +252,13 @@ func RunManagedOCR2Oracle(
 func validateReportingPluginLimits(limits types.ReportingPluginLimits) error {
 	var err error
 	if !(0 <= limits.MaxQueryLength && limits.MaxQueryLength <= types.MaxMaxQueryLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, types.MaxMaxQueryLength))
+		err = errors.Join(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, types.MaxMaxQueryLength))
 	}
 	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= types.MaxMaxObservationLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, types.MaxMaxObservationLength))
+		err = errors.Join(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, types.MaxMaxObservationLength))
 	}
 	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= types.MaxMaxReportLength) {
-		err = multierr.Append(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, types.MaxMaxReportLength))
+		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, types.MaxMaxReportLength))
 	}
 	return err
 }

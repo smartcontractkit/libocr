@@ -15,11 +15,11 @@ type OCR2TelemetrySender struct {
 	taper       loghelper.LogarithmicTaper
 }
 
-func MakeOCR2TelemetrySender(chTelemetry chan<- *serialization.TelemetryWrapper, logger commontypes.Logger) OCR2TelemetrySender {
-	return OCR2TelemetrySender{chTelemetry, logger, loghelper.LogarithmicTaper{}}
+func NewOCR2TelemetrySender(chTelemetry chan<- *serialization.TelemetryWrapper, logger commontypes.Logger) *OCR2TelemetrySender {
+	return &OCR2TelemetrySender{chTelemetry, logger, loghelper.LogarithmicTaper{}}
 }
 
-func (ts OCR2TelemetrySender) send(t *serialization.TelemetryWrapper) {
+func (ts *OCR2TelemetrySender) send(t *serialization.TelemetryWrapper) {
 	select {
 	case ts.chTelemetry <- t:
 		ts.taper.Reset(func(oldCount uint64) {
@@ -36,20 +36,21 @@ func (ts OCR2TelemetrySender) send(t *serialization.TelemetryWrapper) {
 	}
 }
 
-func (ts OCR2TelemetrySender) RoundStarted(
+func (ts *OCR2TelemetrySender) RoundStarted(
 	configDigest types.ConfigDigest,
 	epoch uint32,
 	round uint8,
 	leader commontypes.OracleID,
 ) {
+	t := time.Now().UnixNano()
 	ts.send(&serialization.TelemetryWrapper{
 		Wrapped: &serialization.TelemetryWrapper_RoundStarted{&serialization.TelemetryRoundStarted{
 			ConfigDigest: configDigest[:],
 			Epoch:        uint64(epoch),
 			Round:        uint64(round),
 			Leader:       uint64(leader),
-			Time:         uint64(time.Now().UnixNano()),
+			Time:         uint64(t),
 		}},
-		UnixTimeNanoseconds: time.Now().UnixNano(),
+		UnixTimeNanoseconds: t,
 	})
 }

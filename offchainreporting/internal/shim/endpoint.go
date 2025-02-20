@@ -112,8 +112,7 @@ func (n *SerializingEndpoint) Start() error {
 				m, pbm, err := serialization.Deserialize(raw.Msg)
 				if err != nil {
 					n.logger.Error("SerializingEndpoint: Failed to deserialize", commontypes.LogFields{
-						"message": raw,
-						"error":   err,
+						"error": err,
 					})
 					n.sendTelemetry(&protobuf.TelemetryWrapper{
 						Wrapped: &protobuf.TelemetryWrapper_AssertionViolation{&protobuf.TelemetryAssertionViolation{

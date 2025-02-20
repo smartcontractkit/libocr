@@ -84,7 +84,13 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	} else {
 		// We're dealing with a re-proposal from a failed epoch
 
-		prepareQc := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQc, ok := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
+		if !ok {
+			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStart", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+			})
+			return
+		}
 
 		// We don't know the actual inputs, so we always use the empty OutcomeInputsDigest
 		// in case of a re-proposal.

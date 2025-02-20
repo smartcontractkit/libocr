@@ -365,7 +365,7 @@ func (outgen *outcomeGenerationState[RI]) OutcomeCtx(seqNr uint64) ocr3types.Out
 	return ocr3types.OutcomeContext{
 		seqNr,
 		outgen.sharedState.committedOutcome,
-		uint64(outgen.sharedState.e),
+		outgen.sharedState.e,
 		seqNr - outgen.sharedState.firstSeqNrOfEpoch + 1,
 	}
 }
