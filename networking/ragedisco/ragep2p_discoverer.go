@@ -41,7 +41,7 @@ type Ragep2pDiscoverer struct {
 	state   ragep2pDiscovererState
 
 	streamsMu sync.Mutex
-	streams   map[ragetypes.PeerID]*ragep2p.Stream
+	streams   map[ragetypes.PeerID]*ragep2p.Stream2
 
 	chIncomingMessages chan incomingMessage
 	chOutgoingMessages chan outgoingMessage
@@ -70,7 +70,7 @@ func NewRagep2pDiscoverer(
 		sync.Mutex{},
 		ragep2pDiscovererUnstarted,
 		sync.Mutex{},
-		make(map[ragetypes.PeerID]*ragep2p.Stream),
+		make(map[ragetypes.PeerID]*ragep2p.Stream2),
 		make(chan incomingMessage),
 		make(chan outgoingMessage),
 		make(chan connectivityMsg),
@@ -157,9 +157,10 @@ func (r *Ragep2pDiscoverer) connectivityLoop() {
 					messagesLimit.Rate * maxMessageLength,
 					messagesLimit.Capacity * maxMessageLength,
 				}
-				s, err := r.host.NewStream(
+				s, err := r.host.NewStream2(
 					c.peerID,
 					"ragedisco/v1",
+					ragep2p.StreamPriorityDefault,
 					bufferSize,
 					bufferSize,
 					maxMessageLength,
@@ -178,11 +179,16 @@ func (r *Ragep2pDiscoverer) connectivityLoop() {
 					chDone := r.ctx.Done()
 					for {
 						select {
-						case m, ok := <-s.ReceiveMessages():
+						case m, ok := <-s.Receive():
 							if !ok { // stream Close() will signal us when it's time to go
 								return
 							}
-							w, err := fromProtoWrappedBytes(m)
+							plainMsg, ok := m.(ragep2p.InboundBinaryMessagePlain)
+							if !ok {
+								logger.Warn("InboundBinaryMessage is not InboundBinaryMessagePlain", reason(err))
+								break
+							}
+							w, err := fromProtoWrappedBytes(plainMsg.Payload)
 							if err != nil {
 								logger.Warn("Failed to unwrap incoming message", reason(err))
 								break
@@ -234,7 +240,7 @@ func (r *Ragep2pDiscoverer) writeLoop() {
 				r.logger.Warn("Failed to convert message to bytes", commontypes.LogFields{"message": m.payload})
 				break
 			}
-			s.SendMessage(bs)
+			s.Send(ragep2p.OutboundBinaryMessagePlain{bs})
 		case <-r.ctx.Done():
 			return
 		}

@@ -3,6 +3,7 @@ package offchainreporting2plus
 import (
 	"context"
 	"fmt"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -231,6 +232,83 @@ func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 		args.ContractConfigTracker,
 		args.ContractTransmitter,
 		args.Database,
+		args.LocalConfig,
+		logger,
+		args.MetricsRegisterer,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
+		args.OnchainKeyring,
+		args.ReportingPluginFactory,
+	)
+}
+
+type OCR3_1OracleArgs[RI any] struct {
+	// A factory for producing network endpoints. A network endpoints consists of
+	// networking methods a consumer must implement to allow a node to
+	// communicate with other participating nodes.
+	BinaryNetworkEndpointFactory types.BinaryNetworkEndpoint2Factory
+
+	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack.
+	V2Bootstrappers []commontypes.BootstrapperLocator
+
+	// Tracks configuration changes.
+	ContractConfigTracker types.ContractConfigTracker
+
+	// Transmit reports to the targeted system (e.g. a blockchain)
+	ContractTransmitter ocr3types.ContractTransmitter[RI]
+
+	// Database provides persistent storage.
+	Database ocr3_1types.Database
+
+	// KeyValueStoreFactory produces KeyValueStores for keeping the reporting plugins' state consistently across oracles.
+	KeyValueStoreFactory ocr3_1types.KeyValueStoreFactory
+
+	// LocalConfig contains oracle-specific configuration details which are not
+	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig.
+	LocalConfig types.LocalConfig
+
+	// Logger logs stuff.
+	Logger commontypes.Logger
+
+	// Enables adding metrics to track. This may be nil.
+	MetricsRegisterer prometheus.Registerer
+
+	// Used to send logs to a monitor.
+	MonitoringEndpoint commontypes.MonitoringEndpoint
+
+	// Computes a config digest using purely offchain logic.
+	OffchainConfigDigester types.OffchainConfigDigester
+
+	// OffchainKeyring contains the secret keys needed for the OCR protocol, and methods
+	// which use those keys without exposing them to the rest of the application.
+	OffchainKeyring types.OffchainKeyring
+
+	// OnchainKeyring is used to sign reports that can be validated
+	// offchain and by the target contract.
+	OnchainKeyring ocr3types.OnchainKeyring[RI]
+
+	// PluginFactory creates Plugins that determine the "application logic" used
+	// in a protocol instance.
+	ReportingPluginFactory ocr3_1types.ReportingPluginFactory[RI]
+}
+
+func (OCR3_1OracleArgs[RI]) oracleArgsMarker() {}
+
+func (args OCR3_1OracleArgs[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args OCR3_1OracleArgs[RI]) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
+
+	managed.RunManagedOCR3_1Oracle(
+		ctx,
+
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.KeyValueStoreFactory,
 		args.LocalConfig,
 		logger,
 		args.MetricsRegisterer,

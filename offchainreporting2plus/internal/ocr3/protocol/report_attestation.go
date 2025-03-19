@@ -12,8 +12,9 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -423,8 +424,6 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 	allValid := true
 
 	for k := 0; k < n; k++ {
-		k := k
-
 		go func() {
 			defer wg.Done()
 			for i := k; i < len(reportsPlus); i += n {
@@ -487,7 +486,7 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 }
 
 func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.Context, verifiedCertifiedCommit CertifiedCommit) {
-	reportsPlus, ok := callPluginFromBackground(
+	reportsPlus, ok := common.CallPluginFromBackground(
 		ctx,
 		repatt.logger,
 		commontypes.LogFields{"seqNr": verifiedCertifiedCommit.SeqNr},

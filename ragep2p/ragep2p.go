@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/tls"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"math/rand"
@@ -18,12 +17,14 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/knock"
-	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/mtls"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimit"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimitedconn"
+
 	"github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
+
+	internal_types "github.com/smartcontractkit/libocr/ragep2p/internal/types"
 )
 
 // Maximum number of streams with another peer that can be opened on a host
@@ -35,10 +36,10 @@ const MaxStreamNameLength = 256
 // Maximum length of messages sent with ragep2p
 const MaxMessageLength = 1024 * 1024 * 1024 // 1 GiB. This must be smaller than INT32_MAX
 
-const newConnTokens = MaxStreamsPerPeer * (frameHeaderEncodedSize + MaxStreamNameLength)
+const newConnTokens = MaxStreamsPerPeer * (maxFrameHeaderSize + MaxStreamNameLength)
 
 // assumes we re-open every stream every ten minutes during regular operation
-const controlRate = MaxStreamsPerPeer / (10.0 * 60) * (frameHeaderEncodedSize + MaxStreamNameLength)
+const controlRate = MaxStreamsPerPeer / (10.0 * 60) * (maxFrameHeaderSize + MaxStreamNameLength)
 
 // The 5 second value is cribbed from go standard library's tls package as of version 1.16 and later
 // https://cs.opensource.google/go/go/+/master:src/crypto/tls/conn.go;drc=059a9eedf45f4909db6a24242c106be15fb27193;l=1454
@@ -53,13 +54,8 @@ const (
 	hostStateClosed
 )
 
-type streamID [32]byte
-
-var _ fmt.Stringer = streamID{}
-
-func (s streamID) String() string {
-	return hex.EncodeToString(s[:])
-}
+type streamID = internal_types.StreamID
+type requestID = internal_types.RequestID
 
 type peerStreamOpenRequest struct {
 	streamID           streamID
@@ -95,9 +91,37 @@ type streamStateNotification struct {
 	open       bool
 }
 
-type streamIDAndData struct {
+type streamIDAndMessage struct {
 	StreamID streamID
-	Data     []byte
+	Message  OutboundBinaryMessage
+}
+
+type priorityChannelGroup[T any] struct {
+	Default chan T
+	Low     chan T
+}
+
+type prioritySendChannelGroup[T any] struct {
+	Default chan<- T
+	Low     chan<- T
+}
+
+type priorityRecvChannelGroup[T any] struct {
+	Default <-chan T
+	Low     <-chan T
+}
+
+func (pg priorityChannelGroup[T]) AsSendGroup() prioritySendChannelGroup[T] {
+	return prioritySendChannelGroup[T]{
+		pg.Default, // convert chan T to chan<- T
+		pg.Low,     // convert chan T to chan<- T
+	}
+}
+func (pg priorityChannelGroup[T]) AsRecvGroup() priorityRecvChannelGroup[T] {
+	return priorityRecvChannelGroup[T]{
+		pg.Default, // convert chan T to <-chan T
+		pg.Low,     // convert chan T to <-chan T
+	}
 }
 
 type peerConnLifeCycle struct {
@@ -122,8 +146,8 @@ type peer struct {
 	connLifeCycleMu sync.Mutex
 	connLifeCycle   peerConnLifeCycle
 
-	chStreamToConn chan streamIDAndData
-	demuxer        *demuxer
+	chGroupStreamToConn priorityChannelGroup[streamIDAndMessage]
+	demuxer             *demuxer
 
 	chNewConnNotification chan<- newConnNotification
 
@@ -320,7 +344,13 @@ func (ho *Host) findOrCreatePeer(other types.PeerID) *peer {
 				chConnTerminated,
 			},
 
-			make(chan streamIDAndData),
+			// Here, we use a small buffered channel for the default priority messages. If a non-buffered channel would
+			// be used instead, default priority messages would still be preferred to low priority ones, but this
+			// behavior would depend more on how the individual producer go-routines are scheduled.
+			priorityChannelGroup[streamIDAndMessage]{
+				make(chan streamIDAndMessage, 4),
+				make(chan streamIDAndMessage),
+			},
 			demuxer,
 
 			chNewConnNotification,
@@ -597,7 +627,6 @@ func (ho *Host) dialLoop() {
 		}
 		ho.peersMu.Unlock()
 		for _, p := range peers {
-			p := p // copy for goroutine
 			ds := dialStates[p.other]
 			dialProcesses.Go(func() {
 				p.connLifeCycleMu.Lock()
@@ -850,11 +879,12 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 		defer connCancel()
 		authenticatedConnectionLoop(
 			connCtx,
+			rlConn,
 			tlsConn,
 			peer.chOtherStreamStateNotification,
 			peer.chSelfStreamStateNotification,
 			peer.demuxer,
-			peer.chStreamToConn,
+			peer.chGroupStreamToConn.AsRecvGroup(),
 			chConnTerminated,
 			logger,
 			peer.metrics,
@@ -881,15 +911,48 @@ type TokenBucketParams struct {
 // NewStream creates a new bidirectional stream with peer other for streamName.
 // It is parameterized with a maxMessageLength, the maximum size of a message in
 // bytes and two parameters for rate limiting.
+//
+// Deprecated: Please switch to NewStream2.
 func (ho *Host) NewStream(
 	other types.PeerID,
 	streamName string,
 	outgoingBufferSize int, // number of messages that fit in the outgoing buffer
 	incomingBufferSize int, // number of messages that fit in the incoming buffer
 	maxMessageLength int,
-	messagesLimit TokenBucketParams, // rate limit for incoming messages
-	bytesLimit TokenBucketParams, // rate limit for incoming messages
+	messagesLimit TokenBucketParams, // rate limit for (the number of) incoming messages
+	bytesLimit TokenBucketParams, // rate limit for (the accumulated size in bytes of) incoming messages
 ) (*Stream, error) {
+	stream2, err := ho.NewStream2(
+		other,
+		streamName,
+		StreamPriorityDefault,
+		outgoingBufferSize,
+		incomingBufferSize,
+		maxMessageLength,
+		messagesLimit,
+		bytesLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return newStreamFromStream2(stream2)
+}
+
+// NewStream2 creates a new bidirectional stream with peer other for streamName.
+// It is parameterized with a maxMessageLength, the maximum size of a message in
+// bytes and two parameters for rate limiting. Compared to Stream, Stream2
+// introduces an additional parameter: the message priority level.
+func (ho *Host) NewStream2(
+	other types.PeerID,
+	streamName string,
+	priority StreamPriority,
+	outgoingBufferSize int, // number of messages that fit in the outgoing buffer
+	incomingBufferSize int, // number of messages that fit in the incoming buffer
+	maxMessageLength int,
+	messagesLimit TokenBucketParams, // rate limit for (the number of) incoming messages
+	bytesLimit TokenBucketParams, // rate limit for (the accumulated size in bytes of) incoming messages
+) (*Stream2, error) {
 	if other == ho.id {
 		return nil, fmt.Errorf("stream with self is forbidden")
 	}
@@ -931,13 +994,24 @@ func (ho *Host) NewStream(
 		return nil, fmt.Errorf("host shut down")
 	}
 
-	ctx, cancel := context.WithCancel(ho.ctx)
 	streamID := getStreamID(ho.id, other, streamName)
 	streamLogger := loghelper.MakeRootLoggerWithContext(p.logger).MakeChild(commontypes.LogFields{
 		"streamID":   streamID,
 		"streamName": streamName,
 	})
-	s := Stream{
+
+	var chStreamToConn chan streamIDAndMessage
+	switch priority {
+	case StreamPriorityLow:
+		chStreamToConn = p.chGroupStreamToConn.Low
+	case StreamPriorityDefault:
+		chStreamToConn = p.chGroupStreamToConn.Default
+	default:
+		return nil, fmt.Errorf("stream initialization failed, invalid priority (%v) specified", priority)
+	}
+
+	ctx, cancel := context.WithCancel(ho.ctx)
+	s := Stream2{
 		sync.Mutex{},
 		false,
 
@@ -953,10 +1027,10 @@ func (ho *Host) NewStream(
 		ctx,
 		cancel,
 		streamLogger,
-		make(chan []byte, 1),
-		make(chan []byte, 1),
+		make(chan OutboundBinaryMessage, 1),
+		make(chan InboundBinaryMessage, 1),
 
-		p.chStreamToConn,
+		chStreamToConn,
 		response.demux,
 		response.chSendOnOff,
 
@@ -971,7 +1045,7 @@ func (ho *Host) NewStream(
 		s.sendLoop()
 	})
 
-	streamLogger.Info("NewStream succeeded", commontypes.LogFields{
+	streamLogger.Info("NewStream2 succeeded", commontypes.LogFields{
 		"incomingBufferSize": incomingBufferSize,
 		"maxMessageLength":   maxMessageLength,
 		"messagesLimit":      messagesLimit,
@@ -981,215 +1055,18 @@ func (ho *Host) NewStream(
 	return &s, nil
 }
 
-// Stream is an over-the-network channel between two peers. Two peers may share
-// multiple disjoint streams with different names. Streams are persistent and
-// agnostic to the state of the connection. They completely abstract the
-// underlying connection. Messages are delivered on a best effort basis.
-type Stream struct {
-	closedMu sync.Mutex
-	closed   bool
-
-	name     string
-	other    types.PeerID
-	streamID streamID
-
-	outgoingBufferSize int
-	maxMessageLength   int
-
-	host *Host
-
-	subprocesses subprocesses.Subprocesses
-	ctx          context.Context
-	cancel       context.CancelFunc
-	logger       loghelper.LoggerWithContext
-	chSend       chan []byte
-	chReceive    chan []byte
-
-	chStreamToConn chan<- streamIDAndData
-	demux          *demuxer
-	chStreamOnOff  <-chan bool
-
-	chStreamCloseRequest  chan<- peerStreamCloseRequest
-	chStreamCloseResponse <-chan peerStreamCloseResponse
-}
-
-// Other returns the peer ID of the stream counterparty.
-func (st *Stream) Other() types.PeerID {
-	return st.other
-}
-
-// Name returns the name of the stream.
-func (st *Stream) Name() string {
-	return st.name
-}
-
-// Best effort sending of messages. May fail without returning an error.
-func (st *Stream) SendMessage(data []byte) {
-	if len(data) > st.maxMessageLength {
-		st.logger.Warn("dropping outbound message that is too large", commontypes.LogFields{
-			"size": len(data),
-			"max":  st.maxMessageLength,
-		})
-		return
-	}
-	select {
-	case st.chSend <- data:
-	case <-st.ctx.Done():
-	}
-}
-
-// Best effort receiving of messages. The returned channel will be closed when
-// the stream is closed. Note that this function may return the same channel
-// across invocations.
-func (st *Stream) ReceiveMessages() <-chan []byte {
-	return st.chReceive
-}
-
-// Close the stream. This closes any channel returned by ReceiveMessages earlier.
-// After close the stream cannot be reopened. If the stream is needed in the
-// future it should be created again through NewStream.
-// After close, any messages passed to SendMessage will be dropped.
-func (st *Stream) Close() error {
-	st.closedMu.Lock()
-	defer st.closedMu.Unlock()
-	host := st.host
-
-	if st.closed {
-		return fmt.Errorf("already closed stream")
-	}
-
-	st.logger.Info("Stream winding down", nil)
-
-	err := func() error {
-		// Grab peersMu in case the peer has no streams left and we need to
-		// delete it
-		host.peersMu.Lock()
-		defer host.peersMu.Unlock()
-
-		select {
-		case st.chStreamCloseRequest <- peerStreamCloseRequest{st.streamID}:
-			resp := <-st.chStreamCloseResponse
-			if resp.err != nil {
-				st.logger.Error("Unexpected error during stream Close()", commontypes.LogFields{
-					"error": resp.err,
-				})
-				return resp.err
-			}
-			if resp.peerHasNoStreams {
-				st.logger.Trace("Garbage collecting peer", nil)
-				peer := host.peers[st.other]
-				host.subprocesses.Go(func() {
-					peer.connLifeCycleMu.Lock()
-					defer peer.connLifeCycleMu.Unlock()
-					peer.connLifeCycle.connCancel()
-					peer.connLifeCycle.connSubs.Wait()
-				})
-				delete(host.peers, st.other)
-			}
-		case <-st.ctx.Done():
-		}
-		return nil
-	}()
-	if err != nil {
-		return err
-	}
-
-	st.closed = true
-	st.cancel()
-	st.subprocesses.Wait()
-	close(st.chReceive)
-	st.logger.Info("Stream exiting", nil)
-	return nil
-}
-
-func (st *Stream) receiveLoop() {
-	chSignalMaybePending := st.demux.SignalMaybePending(st.streamID)
-	chDone := st.ctx.Done()
-	for {
-		select {
-		case <-chSignalMaybePending:
-			msg, popResult := st.demux.PopMessage(st.streamID)
-			switch popResult {
-			case popResultEmpty:
-				st.logger.Debug("Demuxer buffer is empty", nil)
-			case popResultUnknownStream:
-				// Closing of streams does not happen in a single step, and so
-				// it could be that in the process of closing, the stream has
-				// been removed from demuxer, but receiveLoop has not stopped
-				// yet (but should stop soon).
-				st.logger.Info("Demuxer does not know of the stream, it is likely we are in the process of closing the stream", nil)
-			case popResultSuccess:
-				if msg != nil {
-					select {
-					case st.chReceive <- msg:
-					case <-chDone:
-					}
-				} else {
-					st.logger.Error("Demuxer indicated success but we received nil msg, this should not happen", nil)
-				}
-			}
-		case <-chDone:
-			return
-		}
-	}
-}
-
-func (st *Stream) sendLoop() {
-	var chStreamToPeerOrNil chan<- streamIDAndData
-	var pending streamIDAndData
-	var onOff bool
-	pendingFilled := false
-
-	ringBuffer := msgbuf.NewMessageBuffer(st.outgoingBufferSize)
-
-	for {
-		select {
-		case onOff = <-st.chStreamOnOff:
-			if onOff {
-				if pendingFilled {
-					chStreamToPeerOrNil = st.chStreamToConn
-				}
-				st.logger.Info("Turned on stream", nil)
-			} else {
-				chStreamToPeerOrNil = nil
-				st.logger.Info("Turned off stream", nil)
-			}
-
-		case msg := <-st.chSend:
-			if ringBuffer.Push(msg) != nil || !pendingFilled {
-				pending = streamIDAndData{st.streamID, ringBuffer.Peek()}
-				pendingFilled = true
-				if onOff {
-					chStreamToPeerOrNil = st.chStreamToConn
-				}
-			}
-
-		case chStreamToPeerOrNil <- pending:
-			ringBuffer.Pop()
-			if p := ringBuffer.Peek(); p != nil {
-				pending = streamIDAndData{st.streamID, p}
-			} else {
-				pendingFilled = false
-				chStreamToPeerOrNil = nil
-			}
-
-		case <-st.ctx.Done():
-			return
-		}
-	}
-}
-
 /////////////////////////////////////////////
 // authenticated connection handling
 //////////////////////////////////////////////
 
 func authenticatedConnectionLoop(
 	ctx context.Context,
+	rlConn *ratelimitedconn.RateLimitedConn,
 	conn net.Conn,
 	chOtherStreamStateNotification chan<- streamStateNotification,
 	chSelfStreamStateNotification <-chan streamStateNotification,
 	demux *demuxer,
-	chWriteData <-chan streamIDAndData,
+	chGroupWriteData priorityRecvChannelGroup[streamIDAndMessage],
 	chTerminated chan<- struct{},
 	logger loghelper.LoggerWithContext,
 	metrics *peerMetrics,
@@ -1215,6 +1092,7 @@ func authenticatedConnectionLoop(
 	subs.Go(func() {
 		authenticatedConnectionReadLoop(
 			childCtx,
+			rlConn,
 			conn,
 			chOtherStreamStateNotification,
 			demux,
@@ -1230,7 +1108,8 @@ func authenticatedConnectionLoop(
 			childCtx,
 			conn,
 			chSelfStreamStateNotification,
-			chWriteData,
+			demux, // added for request/response tracking
+			chGroupWriteData,
 			chWriteTerminated,
 			logger,
 			metrics,
@@ -1248,6 +1127,7 @@ func authenticatedConnectionLoop(
 
 func authenticatedConnectionReadLoop(
 	ctx context.Context,
+	rlConn *ratelimitedconn.RateLimitedConn,
 	conn net.Conn,
 	chOtherStreamStateNotification chan<- streamStateNotification,
 	demux *demuxer,
@@ -1267,7 +1147,7 @@ func authenticatedConnectionReadLoop(
 		return true
 	}
 
-	skipInternal := func(n uint32) bool {
+	skipInternal := func(n int) bool {
 		r, err := io.Copy(io.Discard, io.LimitReader(conn, int64(n)))
 		if err != nil || r != int64(n) {
 			logger.Warn("Error reading from connection", commontypes.LogFields{"error": err})
@@ -1290,9 +1170,9 @@ func authenticatedConnectionReadLoop(
 
 	logWithHeader := func(header frameHeader) commontypes.Logger {
 		return logger.MakeChild(commontypes.LogFields{
-			"payloadLength":    header.PayloadLength,
-			"streamID":         header.StreamID,
-			"remoteStreamName": remoteStreamNameByID[header.StreamID],
+			"payloadLength":    header.PayloadSize(),
+			"streamID":         header.StreamID(),
+			"remoteStreamName": remoteStreamNameByID[header.StreamID()],
 		})
 	}
 
@@ -1300,127 +1180,211 @@ func authenticatedConnectionReadLoop(
 	openCloseFramesReceived := 0
 	const maxOpenCloseFramesReceived = 2 * MaxStreamsPerPeer
 
-	rawHeader := make([]byte, frameHeaderEncodedSize)
+	maxOpenCloseFramesExceededInternal := func(streamID streamID, payloadSize int) bool {
+		if openCloseFramesReceived <= maxOpenCloseFramesReceived {
+			return false
+		}
+
+		childLogger := logger.MakeChild(commontypes.LogFields{
+			"payloadLength":    payloadSize,
+			"streamID":         streamID,
+			"remoteStreamName": remoteStreamNameByID[streamID],
+		})
+		childLogger.Warn("authenticatedConnectionReadLoop: peer received too many open/close frames, closing connection",
+			commontypes.LogFields{
+				"maxOpenCloseFramesReceived": maxOpenCloseFramesReceived,
+			})
+		return true
+	}
+
+	frameHeaderBuffer := make([]byte, maxFrameHeaderSize)
+	readFrameHeader := func() (header frameHeader, ok bool) {
+		// Read frame type.
+		if !readInternal(frameHeaderBuffer[:1]) {
+			return nil, false
+		}
+
+		// Get the length of the frame header for the given type. Abort if the type is invalid.
+		frameType := frameType(frameHeaderBuffer[0])
+		headerSize, ok := frameHeaderSizes[frameType]
+		if !ok {
+			logger.Warn("Error decoding frame, invalid frame type", commontypes.LogFields{"frameType": frameType})
+			return nil, false
+		}
+		if !readInternal(frameHeaderBuffer[1:headerSize]) {
+			return nil, false
+		}
+
+		// Decode the frame header.
+		header, err := decodeFrameHeader(frameHeaderBuffer[:headerSize])
+		if err != nil {
+			if errors.Is(err, errMaxMessageSizeExceeded) {
+				logWithHeader(header).Warn(
+					"authenticatedConnectionReadLoop: message exceeds ragep2p message length limit, closing connection",
+					commontypes.LogFields{
+						"payloadLength":           header.PayloadSize(),
+						"ragep2pMaxMessageLength": MaxMessageLength,
+					})
+			} else {
+				logger.Warn("Error decoding header", commontypes.LogFields{"error": err})
+			}
+			return nil, false
+		}
+		return header, true
+	}
 
 	for {
-		if !readInternal(rawHeader) {
+		header, ok := readFrameHeader()
+		if !ok {
 			return
 		}
+		frameType := header.Type()
+		streamID := header.StreamID()
+		payloadSize := header.PayloadSize()
 
-		header, err := decodeFrameHeader(rawHeader)
-		if err != nil {
-			logger.Warn("Error decoding header", commontypes.LogFields{"error": err})
-			return
-		}
-
-		switch header.Type {
-		case frameTypeOpen:
+		if frameType == frameTypeOpenStream {
 			openCloseFramesReceived++
-			if header.PayloadLength == 0 || header.PayloadLength > MaxStreamNameLength {
-				return
-			}
-			streamName := make([]byte, header.PayloadLength)
+
+			streamName := make([]byte, payloadSize)
 			if !readInternal(streamName) {
 				return
 			}
-			remoteStreamNameByID[header.StreamID] = string(streamName)
+			remoteStreamNameByID[streamID] = string(streamName)
+
 			select {
-			case chOtherStreamStateNotification <- streamStateNotification{
-				header.StreamID,
-				string(streamName),
-				true,
-			}:
+			case chOtherStreamStateNotification <- streamStateNotification{streamID, string(streamName), true}:
 			case <-ctx.Done():
 				return
 			}
-		case frameTypeClose:
+
+			if maxOpenCloseFramesExceededInternal(streamID, payloadSize) {
+				return
+			}
+			continue
+		}
+
+		if frameType == frameTypeCloseStream {
 			openCloseFramesReceived++
-			if header.PayloadLength != 0 {
-				logWithHeader(header).Warn("Frame close payload length is not zero", nil)
-				return
-			}
-			delete(remoteStreamNameByID, header.StreamID)
+
+			delete(remoteStreamNameByID, streamID)
 			select {
-			case chOtherStreamStateNotification <- streamStateNotification{
-				header.StreamID,
-				"",
-				false,
-			}:
+			case chOtherStreamStateNotification <- streamStateNotification{streamID, "", false}:
 			case <-ctx.Done():
 				return
 			}
-		case frameTypeData:
-			if MaxMessageLength < header.PayloadLength {
-				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message exceeds ragep2p message length limit, closing connection", commontypes.LogFields{
-					"payloadLength":           header.PayloadLength,
-					"ragep2pMaxMessageLength": MaxMessageLength,
-				})
+
+			if maxOpenCloseFramesExceededInternal(streamID, 0) {
 				return
 			}
-			// Cast to int is safe since header.PayloadLength <= MaxMessageLength <= INT_MAX
-			switch demux.ShouldPush(header.StreamID, int(header.PayloadLength)) {
-			case shouldPushResultMessageTooBig:
-				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message too big, closing connection", commontypes.LogFields{
-					"payloadLength": header.PayloadLength,
+			continue
+		}
+
+		// Here, frameType is either frameTypeMessage, frameTypeRequest, or frameTypeResponse.
+
+		// The demuxer handles the rate limits for the three types.
+		// For responses a different rate limiting approach is applied.
+		var demuxShouldPushResult shouldPushResult
+		if frameType == frameTypeResponse {
+			// The type conversion here cannot panic, as decodeFrameHeader (for a frame of type frameTypeResponse),
+			// always returns an instance of responseFrameHeader.
+			requestID := (header.(responseFrameHeader)).requestID
+			demuxShouldPushResult = demux.ShouldPushResponse(streamID, requestID, payloadSize)
+		} else {
+			demuxShouldPushResult = demux.ShouldPush(streamID, payloadSize)
+		}
+
+		switch demuxShouldPushResult {
+		case shouldPushResultMessageTooBig:
+			logWithHeader(header).Warn("authenticatedConnectionReadLoop: message too big, closing connection", commontypes.LogFields{})
+			return
+
+		case shouldPushResultMessagesLimitExceeded:
+			limitsExceededTaper.Trigger(func(count uint64) {
+				logWithHeader(header).Warn("authenticatedConnectionReadLoop: message limit exceeded, dropping message", commontypes.LogFields{
+					"limitsExceededDroppedCount": count,
 				})
+			})
+			if !skipInternal(payloadSize) {
 				return
-			case shouldPushResultMessagesLimitExceeded:
-				limitsExceededTaper.Trigger(func(count uint64) {
-					logWithHeader(header).Warn("authenticatedConnectionReadLoop: message limit exceeded, dropping message", commontypes.LogFields{
-						"limitsExceededDroppedCount": count,
-					})
+			}
+		case shouldPushResultBytesLimitExceeded:
+			limitsExceededTaper.Trigger(func(count uint64) {
+				logWithHeader(header).Warn("authenticatedConnectionReadLoop: bytes limit exceeded, dropping message", commontypes.LogFields{
+					"limitsExceededDroppedCount": count,
 				})
-				if !skipInternal(header.PayloadLength) {
+			})
+			if !skipInternal(payloadSize) {
+				return
+			}
+
+		case shouldPushResultUnknownStream:
+			unknownStreamIDTaper.Trigger(func(count uint64) {
+				logWithHeader(header).Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
+					"unknownStreamIDDroppedCount": count,
+				})
+			})
+			if !skipInternal(payloadSize) {
+				return
+			}
+
+		case shouldPushResultResponseRejected:
+			limitsExceededTaper.Trigger(func(count uint64) {
+				logWithHeader(header).Warn(
+					"authenticatedConnectionReadLoop: response rejected, dropping message", commontypes.LogFields{
+						"limitsExceededDroppedCount": count,
+					},
+				)
+			})
+			if !skipInternal(payloadSize) {
+				return
+			}
+
+		case shouldPushResultYes:
+			limitsExceededTaper.Reset(func(oldCount uint64) {
+				logWithHeader(header).Info("authenticatedConnectionReadLoop: limits are no longer being exceeded", commontypes.LogFields{
+					"droppedCount": oldCount,
+				})
+			})
+			payload := make([]byte, payloadSize)
+
+			// Add a one-time exception for the connection rate limit, in case we want to read the payload of a response
+			// which was allowed by policy decision.
+			if frameType == frameTypeResponse {
+				rlConn.AllowTransientCapacity(payloadSize, true)
+				ok = readInternal(payload)
+				rlConn.ClearTransientCapacity()
+				if !ok {
 					return
 				}
-			case shouldPushResultBytesLimitExceeded:
-				limitsExceededTaper.Trigger(func(count uint64) {
-					logWithHeader(header).Warn("authenticatedConnectionReadLoop: bytes limit exceeded, dropping message", commontypes.LogFields{
-						"limitsExceededDroppedCount": count,
-					})
-				})
-				if !skipInternal(header.PayloadLength) {
+			} else {
+				if !readInternal(payload) {
 					return
 				}
-			case shouldPushResultUnknownStream:
+			}
+
+			var message InboundBinaryMessage
+			switch header := header.(type) {
+			case messageFrameHeader:
+				message = InboundBinaryMessagePlain{payload}
+			case requestFrameHeader:
+				message = InboundBinaryMessageRequest{RequestHandle(header.requestID), payload}
+			case responseFrameHeader:
+				message = InboundBinaryMessageResponse{payload}
+			default:
+				panic("unknown type of ragep2p.frameHeader")
+			}
+
+			switch demux.PushMessage(streamID, message) {
+			case pushResultSuccess:
+			case pushResultDropped:
+				logWithHeader(header).Trace("authenticatedConnectionReadLoop: demuxer is overflowing for stream, dropping oldest message", nil)
+			case pushResultUnknownStream:
 				unknownStreamIDTaper.Trigger(func(count uint64) {
 					logWithHeader(header).Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
 						"unknownStreamIDDroppedCount": count,
 					})
 				})
-				if !skipInternal(header.PayloadLength) {
-					return
-				}
-			case shouldPushResultYes:
-				limitsExceededTaper.Reset(func(oldCount uint64) {
-					logWithHeader(header).Info("authenticatedConnectionReadLoop: limits are no longer being exceeded", commontypes.LogFields{
-						"droppedCount": oldCount,
-					})
-				})
-				data := make([]byte, header.PayloadLength)
-				if !readInternal(data) {
-					return
-				}
-				switch demux.PushMessage(header.StreamID, data) {
-				case pushResultSuccess:
-				case pushResultDropped:
-					logWithHeader(header).Trace("authenticatedConnectionReadLoop: demuxer is overflowing for stream, dropping oldest message", nil)
-				case pushResultUnknownStream:
-					unknownStreamIDTaper.Trigger(func(count uint64) {
-						logWithHeader(header).Warn("authenticatedConnectionReadLoop: unknown stream id, dropping message", commontypes.LogFields{
-							"unknownStreamIDDroppedCount": count,
-						})
-					})
-				}
-
 			}
-		}
-
-		if openCloseFramesReceived > maxOpenCloseFramesReceived {
-			logWithHeader(header).Warn("authenticatedConnectionReadLoop: peer received too many open/close frames, closing connection", commontypes.LogFields{
-				"maxOpenCloseFramesReceived": maxOpenCloseFramesReceived,
-			})
-			return
 		}
 	}
 }
@@ -1429,7 +1393,8 @@ func authenticatedConnectionWriteLoop(
 	ctx context.Context,
 	conn net.Conn,
 	chSelfStreamStateNotification <-chan streamStateNotification,
-	chWriteData <-chan streamIDAndData,
+	demux *demuxer,
+	chGroupWriteData priorityRecvChannelGroup[streamIDAndMessage],
 	chWriteTerminated chan<- struct{},
 	logger loghelper.LoggerWithContext,
 	metrics *peerMetrics,
@@ -1449,54 +1414,96 @@ func authenticatedConnectionWriteLoop(
 		return true
 	}
 
-	for {
-		select {
-		case data := <-chWriteData:
-			if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
-				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
-				return
-			}
-			header := frameHeader{
-				frameTypeData,
-				data.StreamID,
-				uint32(len(data.Data)),
-			}
-			if !writeInternal(header.Encode()) {
-				return
-			}
-			if !writeInternal(data.Data) {
-				return
-			}
-			metrics.messageBytes.Observe(float64(len(data.Data)))
-		case notification := <-chSelfStreamStateNotification:
-			if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
-				logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
-				return
-			}
-			var header frameHeader
-			streamName := []byte(notification.streamName)
-			if notification.open {
-				header = frameHeader{
-					frameTypeOpen,
-					notification.streamID,
-					uint32(len(streamName)),
-				}
-			} else {
-				header = frameHeader{
-					frameTypeClose,
-					notification.streamID,
-					uint32(0),
-				}
-			}
-			if !writeInternal(header.Encode()) {
-				return
-			}
-			if notification.open && !writeInternal(streamName) {
-				return
-			}
+	sendInternal := func(data streamIDAndMessage) bool {
+		if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
+			logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
+			return false
+		}
 
+		streamID := data.StreamID
+		message := data.Message
+
+		// The header's value is set based on the type of message in the switch statement below.
+		var header []byte
+		var payload []byte
+
+		switch m := message.(type) {
+		// Requests: Generate a new random request ID, track it, and the request header.
+		case OutboundBinaryMessageRequest:
+			requestID, err := getRandomRequestID()
+			if err != nil {
+				logger.Error("Error while sending request (failed to generate random request id)", commontypes.LogFields{})
+				return false
+			}
+			demux.responseChecker.SetPolicy(streamID, requestID, m.ResponsePolicy)
+			header = requestFrameHeader{streamID, len(m.Payload), requestID}.Encode()
+			payload = m.Payload
+
+		// Responses: The concrete type `outboundResponse` (as returned by PrepareResponse(...)) is used to get access
+		// to the `Id` field which needs to be added to the header for all responses.
+		case OutboundBinaryMessageResponse:
+			header = responseFrameHeader{streamID, len(m.Payload), m.requestID}.Encode()
+			payload = m.Payload
+
+		// Normal messages:
+		case OutboundBinaryMessagePlain:
+			header = messageFrameHeader{streamID, len(m.Payload)}.Encode()
+			payload = m.Payload
+		}
+
+		if !writeInternal(header) {
+			return false
+		}
+		if !writeInternal(payload) {
+			return false
+		}
+		metrics.messageBytes.Observe(float64(len(payload)))
+		return true
+	}
+
+	handleStreamStateNotifications := func(notification streamStateNotification) bool {
+		if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
+			logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
+			return false
+		}
+		if notification.open {
+			streamName := []byte(notification.streamName)
+			if !writeInternal(openStreamFrameHeader{notification.streamID, len(streamName)}.Encode()) {
+				return false
+			}
+			if !writeInternal(streamName) {
+				return false
+			}
+		} else {
+			if !writeInternal(closeStreamFrameHeader{notification.streamID}.Encode()) {
+				return false
+			}
+		}
+		return true
+	}
+
+	ok := true
+	for ok {
+		// Priority select statement: chGroupWriteData.Default is always drained before chGroupWriteData.Low
+		// Note: This is (and must be) also considered on the sending side of the channels.
+		select {
+		case streamIDAndMessage := <-chGroupWriteData.Default:
+			ok = sendInternal(streamIDAndMessage)
+		case notification := <-chSelfStreamStateNotification:
+			ok = handleStreamStateNotifications(notification)
 		case <-ctx.Done():
 			return
+		default:
+			select {
+			case streamIDAndMessage := <-chGroupWriteData.Default:
+				ok = sendInternal(streamIDAndMessage)
+			case streamIDAndMessage := <-chGroupWriteData.Low:
+				ok = sendInternal(streamIDAndMessage)
+			case notification := <-chSelfStreamStateNotification:
+				ok = handleStreamStateNotifications(notification)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}
 }

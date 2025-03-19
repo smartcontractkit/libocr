@@ -19,7 +19,16 @@ type BinaryNetworkEndpointLimits struct {
 	BytesCapacityPerOracle    int
 }
 
-// BinaryNetworkEndpointFactory creates permissioned BinaryNetworkEndpoints.
+// 2x one per priority
+type BinaryNetworkEndpoint2Config struct {
+	BinaryNetworkEndpointLimits
+
+	// Buffer sizes specified below override the values set in PeerConfig.
+	OverrideIncomingMessageBufferSize int
+	OverrideOutgoingMessageBufferSize int
+}
+
+// BinaryNetworkEndpointFactory creates permissioned BinaryNetworkEndpoint instances.
 //
 // All its functions should be thread-safe.
 type BinaryNetworkEndpointFactory interface {
@@ -31,6 +40,20 @@ type BinaryNetworkEndpointFactory interface {
 		f int,
 		limits BinaryNetworkEndpointLimits,
 	) (commontypes.BinaryNetworkEndpoint, error)
+	PeerID() string
+}
+
+// BinaryNetworkEndpoint2Factory creates permissioned BinaryNetworkEndpoint2 instances.
+//
+// All its functions should be thread-safe.
+type BinaryNetworkEndpoint2Factory interface {
+	NewEndpoint(
+		cd ConfigDigest,
+		peerIDs []string,
+		v2bootstrappers []commontypes.BootstrapperLocator,
+		defaultPriorityConfig BinaryNetworkEndpoint2Config,
+		lowPriorityConfig BinaryNetworkEndpoint2Config,
+	) (BinaryNetworkEndpoint2, error)
 	PeerID() string
 }
 
