@@ -456,6 +456,8 @@ func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommitte
 }
 
 func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certifiedCommit CertifiedCommit) {
+	certifiedCommit.Outcome = append([]byte{}, certifiedCommit.Outcome...)
+
 	if repatt.rounds[certifiedCommit.SeqNr] != nil && repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
 		repatt.logger.Debug("dropping redundant CertifiedCommit", commontypes.LogFields{
 			"seqNr": certifiedCommit.SeqNr,
@@ -494,7 +496,7 @@ func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.C
 		"Reports",
 		0, // Reports is a pure function and should finish "instantly"
 		func(ctx context.Context) ([]ocr3types.ReportPlus[RI], error) {
-			return repatt.reportingPlugin.Reports(ctx, verifiedCertifiedCommit.SeqNr, verifiedCertifiedCommit.Outcome)
+			return repatt.reportingPlugin.Reports(ctx, verifiedCertifiedCommit.SeqNr, append([]byte{}, verifiedCertifiedCommit.Outcome...))
 		},
 	)
 	if !ok {
