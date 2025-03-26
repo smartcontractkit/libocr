@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"runtime"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -486,6 +487,17 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 			repatt.backgroundComputeReports(ctx, certifiedCommit)
 		})
 	}
+
+	{
+		var rounds []uint64
+		for seqNr := range repatt.rounds {
+			rounds = append(rounds, seqNr)
+		}
+		slices.Sort(rounds)
+		repatt.logger.Warn("receivedVerifiedCertifiedCommit after", commontypes.LogFields{
+			"rounds": rounds,
+		})
+	}
 }
 
 func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.Context, verifiedCertifiedCommit CertifiedCommit) {
@@ -577,10 +589,30 @@ func (repatt *reportAttestationState[RI]) isBeyondLookahead(seqNr uint64) bool {
 // reap expired entries from repatt.finalized to prevent unbounded state growth
 func (repatt *reportAttestationState[RI]) reap() {
 	maxActiveRoundCount := repatt.expiryRounds() + repatt.lookaheadRounds()
+
+	repatt.logger.Warn("repatt.reap", commontypes.LogFields{
+		"targetActiveRoundCount": maxActiveRoundCount,
+		"expiryRounds":           repatt.expiryRounds(),
+		"lookaheadRounds()":      repatt.lookaheadRounds(),
+		"rounds":                 len(repatt.rounds),
+	})
+
 	// only reap if more than ~ a third of the rounds can be discarded
 	if 3*len(repatt.rounds) <= 4*maxActiveRoundCount {
 		return
 	}
+
+	{
+		var rounds []uint64
+		for seqNr := range repatt.rounds {
+			rounds = append(rounds, seqNr)
+		}
+		slices.Sort(rounds)
+		repatt.logger.Warn("repatt.reap before", commontypes.LogFields{
+			"rounds": rounds,
+		})
+	}
+
 	// A long time ago in a galaxy far, far away, Go used to leak memory when
 	// repeatedly adding and deleting from the same map without ever exceeding
 	// some maximum length. Fortunately, this is no longer the case
@@ -591,6 +623,18 @@ func (repatt *reportAttestationState[RI]) reap() {
 			delete(repatt.rounds, seqNr)
 		}
 	}
+
+	{
+		var rounds []uint64
+		for seqNr := range repatt.rounds {
+			rounds = append(rounds, seqNr)
+		}
+		slices.Sort(rounds)
+		repatt.logger.Warn("repatt.reap after", commontypes.LogFields{
+			"rounds": rounds,
+		})
+	}
+
 }
 
 // The age (denoted in rounds) after which a report is considered expired and
