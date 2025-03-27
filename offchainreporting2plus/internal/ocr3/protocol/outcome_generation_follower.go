@@ -568,11 +568,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalOutcome(ev EventC
 	}
 
 	outgen.followerState.phase = outgenFollowerPhaseSentPrepare
-	outgen.followerState.outcome = outcomeAndDigests{
-		append([]byte{}, ev.outcomeAndDigests.Outcome...),
-		ev.outcomeAndDigests.InputsDigest,
-		ev.outcomeAndDigests.Digest,
-	}
+	outgen.followerState.outcome = ev.outcomeAndDigests
 
 	outgen.logger.Debug("broadcasting MessagePrepare", commontypes.LogFields{
 		"seqNr": outgen.sharedState.seqNr,
@@ -686,7 +682,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		outgen.followerState.outcome.InputsDigest,
-		append([]byte{}, outgen.followerState.outcome.Outcome...),
+		outgen.followerState.outcome.Outcome,
 		prepareQuorumCertificate,
 	}) {
 		return
@@ -829,8 +825,6 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 }
 
 func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
-	commit.Outcome = append([]byte{}, commit.Outcome...)
-
 	if commit.SeqNr < outgen.sharedState.committedSeqNr {
 		outgen.logger.Critical("assumption violation, commitSeqNr is less than committedSeqNr", commontypes.LogFields{
 			"commitSeqNr":    commit.SeqNr,

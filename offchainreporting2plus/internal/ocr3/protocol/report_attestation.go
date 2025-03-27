@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/big"
 	"runtime"
-	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -65,12 +64,14 @@ type reportAttestationState[RI any] struct {
 
 	scheduler    *scheduler.Scheduler[EventMissingOutcome[RI]]
 	chLocalEvent chan EventComputedReports[RI]
-	// reap() is used to prevent unbounded state growth of rounds
+	// reap() is used to prevent unbounded state growth of rounds.
+
 	rounds map[uint64]*round[RI]
-	// highest sequence number for which we have attested reports
-	highestAttestedSeqNr uint64
-	// highest sequence number for which we have received report signatures
-	// from each oracle
+
+	// Highest sequence number for which we know a certified commit exists.
+	// This is used for determining the window of rounds we keep in memory.
+	// Computed as select_largest(f+1, highestReportSignaturesSeqNr).
+	highWaterMark                uint64
 	highestReportSignaturesSeqNr []uint64
 }
 
@@ -94,7 +95,7 @@ type oracle struct {
 }
 
 func (repatt *reportAttestationState[RI]) run() {
-	repatt.logger.Warn("ReportAttestation: running", nil)
+	repatt.logger.Info("ReportAttestation: running", nil)
 
 	for {
 		select {
@@ -112,10 +113,10 @@ func (repatt *reportAttestationState[RI]) run() {
 		// ensure prompt exit
 		select {
 		case <-repatt.ctx.Done():
-			repatt.logger.Warn("ReportAttestation: winding down", nil)
+			repatt.logger.Info("ReportAttestation: winding down", nil)
 			repatt.subs.Wait()
 			repatt.scheduler.Close()
-			repatt.logger.Warn("ReportAttestation: exiting", nil)
+			repatt.logger.Info("ReportAttestation: exiting", nil)
 			return
 		default:
 		}
@@ -126,20 +127,18 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 	msg MessageReportSignatures[RI],
 	sender commontypes.OracleID,
 ) {
+	repatt.updateHighWaterMark(msg.SeqNr, sender)
+
 	if repatt.isBeyondExpiry(msg.SeqNr) {
-		repatt.logger.Warn("ignoring MessageReportSignatures for expired seqNr", commontypes.LogFields{
+		repatt.logger.Debug("ignoring MessageReportSignatures for expired seqNr", commontypes.LogFields{
 			"seqNr":  msg.SeqNr,
 			"sender": sender,
 		})
 		return
 	}
 
-	if repatt.highestReportSignaturesSeqNr[sender] < msg.SeqNr {
-		repatt.highestReportSignaturesSeqNr[sender] = msg.SeqNr
-	}
-
 	if repatt.isBeyondLookahead(msg.SeqNr) {
-		repatt.logger.Warn("ignoring MessageReportSignatures for seqNr beyond lookahead", commontypes.LogFields{
+		repatt.logger.Debug("ignoring MessageReportSignatures for seqNr beyond lookahead", commontypes.LogFields{
 			"seqNr":  msg.SeqNr,
 			"sender": sender,
 		})
@@ -160,7 +159,7 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 	}
 
 	if len(repatt.rounds[msg.SeqNr].oracles[sender].signatures) != 0 {
-		repatt.logger.Warn("ignoring MessageReportSignatures with duplicate signature", commontypes.LogFields{
+		repatt.logger.Debug("ignoring MessageReportSignatures with duplicate signature", commontypes.LogFields{
 			"seqNr":  msg.SeqNr,
 			"sender": sender,
 		})
@@ -174,7 +173,7 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 
 func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOutcome[RI]) {
 	if repatt.rounds[ev.SeqNr].verifiedCertifiedCommit != nil {
-		repatt.logger.Warn("dropping EventMissingOutcome, already have Outcome", commontypes.LogFields{
+		repatt.logger.Debug("dropping EventMissingOutcome, already have Outcome", commontypes.LogFields{
 			"seqNr": ev.SeqNr,
 		})
 		return
@@ -185,7 +184,7 @@ func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOut
 
 func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg MessageCertifiedCommitRequest[RI], sender commontypes.OracleID) {
 	if repatt.rounds[msg.SeqNr] == nil || repatt.rounds[msg.SeqNr].verifiedCertifiedCommit == nil {
-		repatt.logger.Warn("dropping MessageCertifiedCommitRequest for outcome with unknown certified commit", commontypes.LogFields{
+		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for outcome with unknown certified commit", commontypes.LogFields{
 			"seqNr":  msg.SeqNr,
 			"sender": sender,
 		})
@@ -202,7 +201,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 
 	repatt.rounds[msg.SeqNr].oracles[sender].weServiced = true
 
-	repatt.logger.Warn("sending MessageCertifiedCommit", commontypes.LogFields{
+	repatt.logger.Debug("sending MessageCertifiedCommit", commontypes.LogFields{
 		"seqNr": msg.SeqNr,
 		"to":    sender,
 	})
@@ -232,7 +231,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 	oracle.theyServiced = true
 
 	if repatt.rounds[msg.CertifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
-		repatt.logger.Warn("dropping redundant MessageCertifiedCommit", commontypes.LogFields{
+		repatt.logger.Debug("dropping redundant MessageCertifiedCommit", commontypes.LogFields{
 			"seqNr":  msg.CertifiedCommit.SeqNr,
 			"sender": sender,
 		})
@@ -247,7 +246,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 		return
 	}
 
-	repatt.logger.Warn("received valid MessageCertifiedCommit", commontypes.LogFields{
+	repatt.logger.Debug("received valid MessageCertifiedCommit", commontypes.LogFields{
 		"seqNr":  msg.CertifiedCommit.SeqNr,
 		"sender": sender,
 	})
@@ -283,7 +282,7 @@ func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64
 	}
 	randomCandidate := candidates[int(randomIndex.Int64())]
 	repatt.rounds[seqNr].oracles[randomCandidate].weRequested = true
-	repatt.logger.Warn("sending MessageCertifiedCommitRequest", commontypes.LogFields{
+	repatt.logger.Debug("sending MessageCertifiedCommitRequest", commontypes.LogFields{
 		"seqNr": seqNr,
 		"to":    randomCandidate,
 	})
@@ -293,7 +292,7 @@ func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64
 
 func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 	if repatt.rounds[seqNr].complete {
-		repatt.logger.Warn("cannot complete, already completed", commontypes.LogFields{
+		repatt.logger.Debug("cannot complete, already completed", commontypes.LogFields{
 			"seqNr": seqNr,
 		})
 		return
@@ -309,7 +308,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		}
 
 		if oraclesThatSentNonemptySignatures <= repatt.config.F {
-			repatt.logger.Warn("cannot complete, missing CertifiedCommit and signatures", commontypes.LogFields{
+			repatt.logger.Debug("cannot complete, missing CertifiedCommit and signatures", commontypes.LogFields{
 				"oraclesThatSentNonemptySignatures": oraclesThatSentNonemptySignatures,
 				"seqNr":                             seqNr,
 				"threshold":                         repatt.config.F + 1,
@@ -322,7 +321,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 	}
 
 	if repatt.rounds[seqNr].reportsPlus == nil {
-		repatt.logger.Warn("cannot complete, reportsPlus not computed yet", commontypes.LogFields{
+		repatt.logger.Debug("cannot complete, reportsPlus not computed yet", commontypes.LogFields{
 			"seqNr": seqNr,
 		})
 		return
@@ -370,7 +369,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 	}
 
 	if goodSigs <= repatt.config.F {
-		repatt.logger.Warn("cannot complete, insufficient number of signatures", commontypes.LogFields{
+		repatt.logger.Debug("cannot complete, insufficient number of signatures", commontypes.LogFields{
 			"seqNr":     seqNr,
 			"goodSigs":  goodSigs,
 			"threshold": repatt.config.F + 1,
@@ -378,13 +377,9 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		return
 	}
 
-	if repatt.highestAttestedSeqNr < seqNr {
-		repatt.highestAttestedSeqNr = seqNr
-	}
-
 	repatt.rounds[seqNr].complete = true
 
-	repatt.logger.Warn("sending attested reports to transmission protocol", commontypes.LogFields{
+	repatt.logger.Debug("sending attested reports to transmission protocol", commontypes.LogFields{
 		"seqNr":   seqNr,
 		"reports": len(reportsPlus),
 	})
@@ -403,8 +398,6 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		case <-repatt.ctx.Done():
 		}
 	}
-
-	repatt.reap()
 }
 
 func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.OnchainPublicKey, seqNr uint64, reportsPlus []ocr3types.ReportPlus[RI], signatures [][]byte) bool {
@@ -424,8 +417,6 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 	allValid := true
 
 	for k := 0; k < n; k++ {
-		k := k
-
 		go func() {
 			defer wg.Done()
 			for i := k; i < len(reportsPlus); i += n {
@@ -457,10 +448,8 @@ func (repatt *reportAttestationState[RI]) eventCommittedOutcome(ev EventCommitte
 }
 
 func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certifiedCommit CertifiedCommit) {
-	certifiedCommit.Outcome = append([]byte{}, certifiedCommit.Outcome...)
-
 	if repatt.rounds[certifiedCommit.SeqNr] != nil && repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
-		repatt.logger.Warn("dropping redundant CertifiedCommit", commontypes.LogFields{
+		repatt.logger.Debug("dropping redundant CertifiedCommit", commontypes.LogFields{
 			"seqNr": certifiedCommit.SeqNr,
 		})
 		return
@@ -487,17 +476,6 @@ func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certif
 			repatt.backgroundComputeReports(ctx, certifiedCommit)
 		})
 	}
-
-	{
-		var rounds []uint64
-		for seqNr := range repatt.rounds {
-			rounds = append(rounds, seqNr)
-		}
-		slices.Sort(rounds)
-		repatt.logger.Warn("receivedVerifiedCertifiedCommit after", commontypes.LogFields{
-			"roundsLen": len(repatt.rounds),
-		})
-	}
 }
 
 func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.Context, verifiedCertifiedCommit CertifiedCommit) {
@@ -508,14 +486,14 @@ func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.C
 		"Reports",
 		0, // Reports is a pure function and should finish "instantly"
 		func(ctx context.Context) ([]ocr3types.ReportPlus[RI], error) {
-			return repatt.reportingPlugin.Reports(ctx, verifiedCertifiedCommit.SeqNr, append([]byte{}, verifiedCertifiedCommit.Outcome...))
+			return repatt.reportingPlugin.Reports(ctx, verifiedCertifiedCommit.SeqNr, verifiedCertifiedCommit.Outcome)
 		},
 	)
 	if !ok {
 		return
 	}
 
-	repatt.logger.Warn("successfully invoked ReportingPlugin.Reports", commontypes.LogFields{
+	repatt.logger.Debug("successfully invoked ReportingPlugin.Reports", commontypes.LogFields{
 		"seqNr":   verifiedCertifiedCommit.SeqNr,
 		"reports": len(reportsPlus),
 	})
@@ -529,9 +507,10 @@ func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.C
 
 func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedReports[RI]) {
 	if repatt.rounds[ev.SeqNr] == nil {
-		repatt.logger.Warn("discarding EventComputedReports from old round", commontypes.LogFields{
-			"evSeqNr":              ev.SeqNr,
-			"highestAttestedSeqNr": repatt.highestAttestedSeqNr,
+		repatt.logger.Debug("discarding EventComputedReports from old round", commontypes.LogFields{
+			"evSeqNr":       ev.SeqNr,
+			"highWaterMark": repatt.highWaterMark,
+			"expiryRounds":  repatt.expiryRounds(),
 		})
 		return
 	}
@@ -552,7 +531,7 @@ func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedR
 		sigs = append(sigs, sig)
 	}
 
-	repatt.logger.Warn("broadcasting MessageReportSignatures", commontypes.LogFields{
+	repatt.logger.Debug("broadcasting MessageReportSignatures", commontypes.LogFields{
 		"seqNr": ev.SeqNr,
 	})
 
@@ -564,54 +543,55 @@ func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedR
 	// no need to call tryComplete since receipt of our own MessageReportSignatures will do so
 }
 
+func (repatt *reportAttestationState[RI]) updateHighWaterMark(seqNr uint64, sender commontypes.OracleID) {
+	if repatt.highestReportSignaturesSeqNr[sender] >= seqNr {
+		return
+	}
+
+	repatt.highestReportSignaturesSeqNr[sender] = seqNr
+
+	var newHighWaterMark uint64
+	{
+		highestReportSignaturesSeqNr := append([]uint64{}, repatt.highestReportSignaturesSeqNr...)
+		sort.Slice(highestReportSignaturesSeqNr, func(i, j int) bool {
+			return highestReportSignaturesSeqNr[i] > highestReportSignaturesSeqNr[j]
+		})
+		newHighWaterMark = highestReportSignaturesSeqNr[repatt.config.F] // (f+1)th largest seqNr
+	}
+
+	if repatt.highWaterMark >= newHighWaterMark {
+		return
+	}
+
+	repatt.highWaterMark = newHighWaterMark // (f+1)th largest seqNr
+	repatt.reap()
+}
+
 func (repatt *reportAttestationState[RI]) isBeyondExpiry(seqNr uint64) bool {
-	highest := repatt.highestAttestedSeqNr
 	expiry := uint64(repatt.expiryRounds())
-	if highest <= expiry {
+	if repatt.highWaterMark <= expiry {
 		return false
 	}
-	return seqNr < highest-expiry
+	return seqNr < repatt.highWaterMark-expiry
 }
 
 func (repatt *reportAttestationState[RI]) isBeyondLookahead(seqNr uint64) bool {
-	highestReportSignaturesSeqNr := append([]uint64{}, repatt.highestReportSignaturesSeqNr...)
-	sort.Slice(highestReportSignaturesSeqNr, func(i, j int) bool {
-		return highestReportSignaturesSeqNr[i] > highestReportSignaturesSeqNr[j]
-	})
-	highest := highestReportSignaturesSeqNr[repatt.config.F] // (f+1)th largest seqNr
 	lookahead := uint64(repatt.lookaheadRounds())
 	if seqNr <= lookahead {
 		return false
 	}
-	return highest < seqNr-lookahead
+	return repatt.highWaterMark < seqNr-lookahead
 }
 
-// reap expired entries from repatt.finalized to prevent unbounded state growth
+// reap expired entries from repatt.rounds to prevent unbounded state growth
 func (repatt *reportAttestationState[RI]) reap() {
 	maxActiveRoundCount := repatt.expiryRounds() + repatt.lookaheadRounds()
-
-	repatt.logger.Warn("repatt.reap", commontypes.LogFields{
-		"targetActiveRoundCount": maxActiveRoundCount,
-		"expiryRounds":           repatt.expiryRounds(),
-		"lookaheadRounds()":      repatt.lookaheadRounds(),
-		"rounds":                 len(repatt.rounds),
-	})
-
-	// only reap if more than ~ a third of the rounds can be discarded
+	// only reap if more than ~ a third of the rounds can potentially be discarded
 	if 3*len(repatt.rounds) <= 4*maxActiveRoundCount {
 		return
 	}
 
-	{
-		var rounds []uint64
-		for seqNr := range repatt.rounds {
-			rounds = append(rounds, seqNr)
-		}
-		slices.Sort(rounds)
-		repatt.logger.Warn("repatt.reap before", commontypes.LogFields{
-			"rounds": rounds,
-		})
-	}
+	beforeRounds := len(repatt.rounds)
 
 	// A long time ago in a galaxy far, far away, Go used to leak memory when
 	// repeatedly adding and deleting from the same map without ever exceeding
@@ -624,17 +604,11 @@ func (repatt *reportAttestationState[RI]) reap() {
 		}
 	}
 
-	{
-		var rounds []uint64
-		for seqNr := range repatt.rounds {
-			rounds = append(rounds, seqNr)
-		}
-		slices.Sort(rounds)
-		repatt.logger.Warn("repatt.reap after", commontypes.LogFields{
-			"rounds": rounds,
-		})
-	}
-
+	repatt.logger.Debug("reaped expired rounds", commontypes.LogFields{
+		"before":        beforeRounds,
+		"after":         len(repatt.rounds),
+		"highWaterMark": repatt.highWaterMark,
+	})
 }
 
 // The age (denoted in rounds) after which a report is considered expired and

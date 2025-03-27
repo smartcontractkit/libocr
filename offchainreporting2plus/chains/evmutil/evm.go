@@ -35,7 +35,6 @@ func ContractConfigFromConfigSetEvent(changed ocr2aggregator.OCR2AggregatorConfi
 	}
 	signers := []types.OnchainPublicKey{}
 	for _, addr := range changed.Signers {
-		addr := addr
 		signers = append(signers, types.OnchainPublicKey(addr[:]))
 	}
 	return types.ContractConfig{
