@@ -190,7 +190,6 @@ func (o *ocrEndpointV2) Start() error {
 	}
 
 	for oid := range o.streams {
-		oid := oid
 		o.subs.Go(func() {
 			o.runRecv(oid)
 		})
@@ -322,7 +321,6 @@ func (o *ocrEndpointV2) Broadcast(payload []byte) {
 	var subs subprocesses.Subprocesses
 	defer subs.Wait()
 	for oracleID := range o.peerMapping {
-		oracleID := oracleID
 		subs.Go(func() {
 			o.SendTo(payload, oracleID)
 		})
