@@ -597,7 +597,6 @@ func (ho *Host) dialLoop() {
 		}
 		ho.peersMu.Unlock()
 		for _, p := range peers {
-			p := p // copy for goroutine
 			ds := dialStates[p.other]
 			dialProcesses.Go(func() {
 				p.connLifeCycleMu.Lock()

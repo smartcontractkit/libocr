@@ -164,7 +164,6 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 	}
 	offchainPublicKeys := make([][]byte, 0, len(o.OffchainPublicKeys))
 	for _, k := range o.OffchainPublicKeys {
-		k := k // have to copy or we append the same key over and over
 		offchainPublicKeys = append(offchainPublicKeys, k[:])
 	}
 	maxDurationInitializationNanoseconds := (*uint64)(nil)
@@ -202,7 +201,6 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 func enprotoSharedSecretEncryptions(e config.SharedSecretEncryptions) SharedSecretEncryptionsProto {
 	encs := make([][]byte, 0, len(e.Encryptions))
 	for _, enc := range e.Encryptions {
-		enc := enc
 		encs = append(encs, enc[:])
 	}
 	return SharedSecretEncryptionsProto{
