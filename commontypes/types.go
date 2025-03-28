@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 
+	// TODO: is there a way to remove this dependency?
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 

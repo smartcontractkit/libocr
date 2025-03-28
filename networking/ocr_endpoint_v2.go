@@ -57,7 +57,7 @@ type ocrEndpointV2 struct {
 	// internal and state management
 	chSendToSelf chan commontypes.BinaryMessageWithSender
 	chClose      chan struct{}
-	streams      map[commontypes.OracleID]*ragep2p.Stream
+	streams      map[commontypes.OracleID]*ragep2p.Stream2
 	registration io.Closer
 	state        ocrEndpointState
 
@@ -131,7 +131,7 @@ func newOCREndpointV2(
 		ownOracleID,
 		chSendToSelf,
 		make(chan struct{}),
-		make(map[commontypes.OracleID]*ragep2p.Stream),
+		make(map[commontypes.OracleID]*ragep2p.Stream2),
 		registration,
 		ocrEndpointUnstarted,
 		sync.RWMutex{},
@@ -168,9 +168,10 @@ func (o *ocrEndpointV2) Start() error {
 			continue
 		}
 		streamName := streamNameFromConfigDigest(o.configDigest)
-		stream, err := o.host.NewStream(
+		stream, err := o.host.NewStream2(
 			pid,
 			streamName,
+			ragep2p.StreamPriorityDefault,
 			o.config.OutgoingMessageBufferSize,
 			o.config.IncomingMessageBufferSize,
 			o.limits.MaxMessageLength,
@@ -208,16 +209,20 @@ func (o *ocrEndpointV2) Start() error {
 // remote goes mad and sends us thousands of messages, we don't drop any
 // messages from good remotes
 func (o *ocrEndpointV2) runRecv(oid commontypes.OracleID) {
-	chRecv := o.streams[oid].ReceiveMessages()
+	chRecv := o.streams[oid].Receive()
 	for {
 		select {
-		case payload := <-chRecv:
-			msg := commontypes.BinaryMessageWithSender{
-				Msg:    payload,
+		case msg := <-chRecv:
+			msgPlain, ok := msg.(ragep2p.InboundBinaryMessagePlain)
+			if !ok {
+				o.logger.Warn("dropping message ", nil) // TODO
+			}
+			msgWithSender := commontypes.BinaryMessageWithSender{
+				Msg:    msgPlain.Payload,
 				Sender: oid,
 			}
 			select {
-			case o.recv <- msg:
+			case o.recv <- msgWithSender:
 				continue
 			case <-o.chClose:
 				return
@@ -298,7 +303,7 @@ func (o *ocrEndpointV2) SendTo(payload []byte, to commontypes.OracleID) {
 		return
 	}
 
-	o.streams[to].SendMessage(payload)
+	o.streams[to].Send(ragep2p.OutboundBinaryMessagePlain{payload})
 }
 
 func (o *ocrEndpointV2) sendToSelf(payload []byte) {

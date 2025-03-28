@@ -128,14 +128,14 @@ func (crl *connRateLimiter) addRemoveStream(add bool, messagesLimit TokenBucketP
 
 func delta(messagesLimit TokenBucketParams, bytesLimit TokenBucketParams) (deltaRate ratelimit.MillitokensPerSecond, deltaCapacity uint32, ok bool) {
 	var deltaRateF float64
-	deltaRateF = messagesLimit.Rate * frameHeaderEncodedSize
+	deltaRateF = messagesLimit.Rate * maxFrameHeaderSize
 	deltaRateF += bytesLimit.Rate
 	deltaRateF *= tlsFactor
 	deltaRateF = math.Ceil(deltaRateF * 1000)
 	deltaRate = ratelimit.MillitokensPerSecond(deltaRateF)
 
 	var deltaCapacityF float64
-	deltaCapacityF = float64(messagesLimit.Capacity) * frameHeaderEncodedSize
+	deltaCapacityF = float64(messagesLimit.Capacity) * maxFrameHeaderSize
 	deltaCapacityF += float64(bytesLimit.Capacity)
 	deltaCapacityF *= tlsFactor
 	deltaCapacityF = math.Ceil(deltaCapacityF)
