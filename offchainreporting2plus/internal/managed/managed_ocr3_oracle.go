@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -105,7 +106,7 @@ func RunManagedOCR3Oracle[RI any](
 			defer initCancel()
 
 			ins := loghelper.NewIfNotStopped(
-				maxDurationInitialization+protocol.ReportingPluginTimeoutWarningGracePeriod,
+				maxDurationInitialization+common.ReportingPluginTimeoutWarningGracePeriod,
 				func() {
 					logger.Error("ManagedOCR3Oracle: ReportingPluginFactory.NewReportingPlugin is taking too long", commontypes.LogFields{
 						"maxDuration": maxDurationInitialization,

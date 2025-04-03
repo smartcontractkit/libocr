@@ -1,11 +1,13 @@
 package ragep2p
 
 import (
+	"fmt"
 	"math"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
+	"github.com/smartcontractkit/libocr/internal/ringbuffer"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/ratelimit"
+	"github.com/smartcontractkit/libocr/ragep2p/internal/responselimit"
 )
 
 type shouldPushResult int
@@ -17,6 +19,7 @@ const (
 	shouldPushResultMessagesLimitExceeded
 	shouldPushResultBytesLimitExceeded
 	shouldPushResultUnknownStream
+	shouldPushResultResponseRejected
 )
 
 type pushResult int
@@ -38,7 +41,7 @@ const (
 )
 
 type demuxerStream struct {
-	buffer          *msgbuf.MessageBuffer
+	buffer          *ringbuffer.RingBuffer[InboundBinaryMessage]
 	chSignal        chan struct{}
 	maxMessageSize  int
 	messagesLimiter ratelimit.TokenBucket
@@ -46,14 +49,16 @@ type demuxerStream struct {
 }
 
 type demuxer struct {
-	mutex   sync.Mutex
-	streams map[streamID]*demuxerStream
+	mutex           sync.Mutex
+	streams         map[streamID]*demuxerStream
+	responseChecker *responselimit.ResponseChecker
 }
 
 func newDemuxer() *demuxer {
 	return &demuxer{
 		sync.Mutex{},
 		map[streamID]*demuxerStream{},
+		responselimit.NewResponseChecker(),
 	}
 }
 
@@ -80,7 +85,7 @@ func (d *demuxer) AddStream(
 	}
 
 	d.streams[sid] = &demuxerStream{
-		msgbuf.NewMessageBuffer(incomingBufferSize),
+		ringbuffer.NewRingBuffer[InboundBinaryMessage](incomingBufferSize),
 		make(chan struct{}, 1),
 		maxMessageSize,
 		makeRateLimiter(messagesLimit),
@@ -94,6 +99,7 @@ func (d *demuxer) RemoveStream(sid streamID) {
 	defer d.mutex.Unlock()
 
 	delete(d.streams, sid)
+	d.responseChecker.ClearPoliciesForStream(sid)
 }
 
 func (d *demuxer) ShouldPush(sid streamID, size int) shouldPushResult {
@@ -123,7 +129,28 @@ func (d *demuxer) ShouldPush(sid streamID, size int) shouldPushResult {
 	return shouldPushResultYes
 }
 
-func (d *demuxer) PushMessage(sid streamID, msg []byte) pushResult {
+func (d *demuxer) ShouldPushResponse(sid streamID, rid requestID, size int) shouldPushResult {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	_, ok := d.streams[sid]
+	if !ok {
+		return shouldPushResultUnknownStream
+	}
+
+	checkResult := d.responseChecker.CheckResponse(sid, rid, size)
+	switch checkResult {
+	case responselimit.ResponseCheckResultReject:
+		return shouldPushResultResponseRejected
+	case responselimit.ResponseCheckResultAllow:
+		return shouldPushResultYes
+	}
+
+	// The above switch should be exhaustive. If it is not the linter is expected to catch this.
+	panic(fmt.Sprintf("unexpected ragep2p.responseCheckResult: %#v", checkResult))
+}
+
+func (d *demuxer) PushMessage(sid streamID, msg InboundBinaryMessage) pushResult {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -132,10 +159,8 @@ func (d *demuxer) PushMessage(sid streamID, msg []byte) pushResult {
 		return pushResultUnknownStream
 	}
 
-	var result pushResult
-	if s.buffer.Push(msg) == nil {
-		result = pushResultSuccess
-	} else {
+	result := pushResultSuccess
+	if _, evicted := s.buffer.PushEvict(msg); evicted {
 		result = pushResultDropped
 	}
 
@@ -149,7 +174,7 @@ func (d *demuxer) PushMessage(sid streamID, msg []byte) pushResult {
 
 // Pops a message from the underlying stream's buffer.
 // Returns a non-nil value iff popResult == popResultSuccess.
-func (d *demuxer) PopMessage(sid streamID) ([]byte, popResult) {
+func (d *demuxer) PopMessage(sid streamID) (InboundBinaryMessage, popResult) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -158,12 +183,12 @@ func (d *demuxer) PopMessage(sid streamID) ([]byte, popResult) {
 		return nil, popResultUnknownStream
 	}
 
-	result := s.buffer.Pop()
-	if result == nil {
+	result, ok := s.buffer.Pop()
+	if !ok {
 		return nil, popResultEmpty
 	}
 
-	if s.buffer.Peek() != nil {
+	if !s.buffer.IsEmpty() {
 		select {
 		case s.chSignal <- struct{}{}:
 		default:
