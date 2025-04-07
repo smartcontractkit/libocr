@@ -11,6 +11,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
+	"github.com/smartcontractkit/libocr/internal/peerkeyringhelper"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
 	"github.com/smartcontractkit/libocr/networking/rageping"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
@@ -19,9 +20,17 @@ import (
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
+// Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
 type PeerConfig struct {
+	// Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
+	//
+	// Deprecated: Use PeerKeyring instead. This field is maintained for
+	// backwards compatibility and will be removed in a future release.
 	PrivKey ed25519.PrivateKey
-	Logger  commontypes.Logger
+	// Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
+	PeerKeyring ragetypes.PeerKeyring
+
+	Logger commontypes.Logger
 
 	// V2ListenAddresses contains the addresses the peer will listen to on the network in <ip>:<port> form as
 	// accepted by net.Listen.
@@ -47,6 +56,17 @@ type PeerConfig struct {
 	LatencyMetricsServiceConfigs []*rageping.LatencyMetricsServiceConfig
 }
 
+func (c *PeerConfig) keyring() (ragetypes.PeerKeyring, error) {
+	switch {
+	case c.PeerKeyring != nil && c.PrivKey == nil:
+		return c.PeerKeyring, nil
+	case c.PrivKey != nil && c.PeerKeyring == nil:
+		return peerkeyringhelper.NewPeerKeyringWithPrivateKey(c.PrivKey)
+	default:
+		return nil, fmt.Errorf("exactly one of PrivKey (deprecated) or PeerKeyring must be provided")
+	}
+}
+
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
 type concretePeerV2 struct {
 	peerID                ragetypes.PeerID
@@ -61,14 +81,12 @@ type concretePeerV2 struct {
 // Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
 // Close() on the peer itself.
 func NewPeer(c PeerConfig) (*concretePeerV2, error) {
-	if err := ed25519SanityCheck(c.PrivKey); err != nil {
-		return nil, fmt.Errorf("ed25519 sanity check failed: %w", err)
+	keyring, err := c.keyring()
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate keyring: %w", err)
 	}
 
-	peerID, err := ragetypes.PeerIDFromPrivateKey(c.PrivKey)
-	if err != nil {
-		return nil, fmt.Errorf("error extracting v2 peer ID from private key: %w", err)
-	}
+	peerID := ragetypes.PeerIDFromKeyring(keyring)
 
 	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(commontypes.LogFields{
 		"id":     "PeerV2",
@@ -85,7 +103,7 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase, metricsRegistererWrapper)
 	host, err := ragep2p.NewHost(
 		ragep2p.HostConfig{c.V2DeltaDial},
-		c.PrivKey,
+		keyring,
 		c.V2ListenAddresses,
 		discoverer,
 		c.Logger,

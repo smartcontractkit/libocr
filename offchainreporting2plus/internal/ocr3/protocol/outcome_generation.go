@@ -146,7 +146,6 @@ type sharedState struct {
 
 	firstSeqNrOfEpoch uint64
 	seqNr             uint64
-	observationQuorum *int
 	committedSeqNr    uint64
 	committedOutcome  ocr3types.Outcome
 }
@@ -189,7 +188,6 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 
 		0,
 		0,
-		nil,
 		0,
 		nil,
 	}

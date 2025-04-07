@@ -2,7 +2,6 @@ package ragedisco
 
 import (
 	"context"
-	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -62,7 +61,7 @@ type discoveryProtocol struct {
 	chOutgoingMessages chan<- outgoingMessage
 	chConnectivity     chan<- connectivityMsg
 	chInternalBump     chan Announcement
-	privKey            ed25519.PrivateKey
+	keyring            ragetypes.PeerKeyring
 	ownID              ragetypes.PeerID
 	ownAddrs           []ragetypes.Address
 
@@ -91,16 +90,13 @@ func newDiscoveryProtocol(
 	chIncomingMessages <-chan incomingMessage,
 	chOutgoingMessages chan<- outgoingMessage,
 	chConnectivity chan<- connectivityMsg,
-	privKey ed25519.PrivateKey,
+	keyring ragetypes.PeerKeyring,
 	ownAddrs []ragetypes.Address,
 	db nettypes.DiscovererDatabase,
 	logger loghelper.LoggerWithContext,
 	metricsRegisterer prometheus.Registerer,
 ) (*discoveryProtocol, error) {
-	ownID, err := ragetypes.PeerIDFromPrivateKey(privKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to obtain peer id from private key: %w", err)
-	}
+	ownID := ragetypes.PeerIDFromKeyring(keyring)
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	return &discoveryProtocol{
@@ -111,7 +107,7 @@ func newDiscoveryProtocol(
 		chOutgoingMessages,
 		chConnectivity,
 		make(chan Announcement),
-		privKey,
+		keyring,
 		ownID,
 		ownAddrs,
 		sync.RWMutex{},
@@ -662,7 +658,7 @@ func (p *discoveryProtocol) lockedBumpOwnAnnouncement() (*Announcement, bool, er
 	if newctr > announcementVersionWarnThreshold {
 		logger.Warn("New announcement version too big!", commontypes.LogFields{"announcement": newann})
 	}
-	sann, err := newann.sign(p.privKey)
+	sann, err := newann.sign(p.keyring)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to sign own announcement: %w", err)
 	}

@@ -2,7 +2,6 @@ package ragedisco
 
 import (
 	"context"
-	"crypto/ed25519"
 	"fmt"
 	"sync"
 	"time"
@@ -78,7 +77,7 @@ func NewRagep2pDiscoverer(
 	}
 }
 
-func (r *Ragep2pDiscoverer) Start(host *ragep2p.Host, privKey ed25519.PrivateKey, logger loghelper.LoggerWithContext) error {
+func (r *Ragep2pDiscoverer) Start(host *ragep2p.Host, keyring ragetypes.PeerKeyring, logger loghelper.LoggerWithContext) error {
 	succeeded := false
 	defer func() {
 		if !succeeded {
@@ -103,7 +102,7 @@ func (r *Ragep2pDiscoverer) Start(host *ragep2p.Host, privKey ed25519.PrivateKey
 		r.chIncomingMessages,
 		r.chOutgoingMessages,
 		r.chConnectivity,
-		privKey,
+		keyring,
 		announceAddresses,
 		r.db,
 		logger,
