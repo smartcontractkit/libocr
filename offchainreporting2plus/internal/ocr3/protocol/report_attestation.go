@@ -130,17 +130,17 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 	repatt.tryReap(msg.SeqNr, sender)
 
 	if repatt.isBeyondExpiry(msg.SeqNr) {
-		repatt.logger.Debug("ignoring MessageReportSignatures for expired seqNr", commontypes.LogFields{
-			"seqNr":  msg.SeqNr,
-			"sender": sender,
+		repatt.logger.Debug("dropping MessageReportSignatures for expired seqNr", commontypes.LogFields{
+			"msgSeqNr": msg.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
 
 	if repatt.isBeyondLookahead(msg.SeqNr) {
-		repatt.logger.Debug("ignoring MessageReportSignatures for seqNr beyond lookahead", commontypes.LogFields{
-			"seqNr":  msg.SeqNr,
-			"sender": sender,
+		repatt.logger.Debug("dropping MessageReportSignatures for seqNr beyond lookahead", commontypes.LogFields{
+			"msgSeqNr": msg.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
@@ -159,9 +159,9 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 	}
 
 	if len(repatt.rounds[msg.SeqNr].oracles[sender].signatures) != 0 {
-		repatt.logger.Debug("ignoring MessageReportSignatures with duplicate signature", commontypes.LogFields{
-			"seqNr":  msg.SeqNr,
-			"sender": sender,
+		repatt.logger.Debug("dropping MessageReportSignatures with duplicate signature", commontypes.LogFields{
+			"msgSeqNr": msg.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
@@ -174,7 +174,7 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOutcome[RI]) {
 	if repatt.rounds[ev.SeqNr].verifiedCertifiedCommit != nil {
 		repatt.logger.Debug("dropping EventMissingOutcome, already have Outcome", commontypes.LogFields{
-			"seqNr": ev.SeqNr,
+			"evSeqNr": ev.SeqNr,
 		})
 		return
 	}
@@ -185,16 +185,16 @@ func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOut
 func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg MessageCertifiedCommitRequest[RI], sender commontypes.OracleID) {
 	if repatt.rounds[msg.SeqNr] == nil || repatt.rounds[msg.SeqNr].verifiedCertifiedCommit == nil {
 		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for outcome with unknown certified commit", commontypes.LogFields{
-			"seqNr":  msg.SeqNr,
-			"sender": sender,
+			"msgSeqNr": msg.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
 
 	if repatt.rounds[msg.SeqNr].oracles[sender].weServiced {
 		repatt.logger.Warn("dropping duplicate MessageCertifiedCommitRequest", commontypes.LogFields{
-			"seqNr":  msg.SeqNr,
-			"sender": sender,
+			"msgSeqNr": msg.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
@@ -202,8 +202,8 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 	repatt.rounds[msg.SeqNr].oracles[sender].weServiced = true
 
 	repatt.logger.Debug("sending MessageCertifiedCommit", commontypes.LogFields{
-		"seqNr": msg.SeqNr,
-		"to":    sender,
+		"msgSeqNr": msg.SeqNr,
+		"to":       sender,
 	})
 	repatt.netSender.SendTo(MessageCertifiedCommit[RI]{*repatt.rounds[msg.SeqNr].verifiedCertifiedCommit}, sender)
 }
@@ -211,8 +211,8 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCertifiedCommit[RI], sender commontypes.OracleID) {
 	if repatt.rounds[msg.CertifiedCommit.SeqNr] == nil {
 		repatt.logger.Warn("dropping MessageCertifiedCommit for unknown seqNr", commontypes.LogFields{
-			"seqNr":  msg.CertifiedCommit.SeqNr,
-			"sender": sender,
+			"msgSeqNr": msg.CertifiedCommit.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
@@ -220,7 +220,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 	oracle := &repatt.rounds[msg.CertifiedCommit.SeqNr].oracles[sender]
 	if !(oracle.weRequested && !oracle.theyServiced) {
 		repatt.logger.Warn("dropping unexpected MessageCertifiedCommit", commontypes.LogFields{
-			"seqNr":        msg.CertifiedCommit.SeqNr,
+			"msgSeqNr":     msg.CertifiedCommit.SeqNr,
 			"sender":       sender,
 			"weRequested":  oracle.weRequested,
 			"theyServiced": oracle.theyServiced,
@@ -232,23 +232,23 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 
 	if repatt.rounds[msg.CertifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
 		repatt.logger.Debug("dropping redundant MessageCertifiedCommit", commontypes.LogFields{
-			"seqNr":  msg.CertifiedCommit.SeqNr,
-			"sender": sender,
+			"msgSeqNr": msg.CertifiedCommit.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
 
 	if err := msg.CertifiedCommit.Verify(repatt.config.ConfigDigest, repatt.config.OracleIdentities, repatt.config.ByzQuorumSize()); err != nil {
 		repatt.logger.Warn("dropping MessageCertifiedCommit with invalid certified commit", commontypes.LogFields{
-			"seqNr":  msg.CertifiedCommit.SeqNr,
-			"sender": sender,
+			"msgSeqNr": msg.CertifiedCommit.SeqNr,
+			"sender":   sender,
 		})
 		return
 	}
 
 	repatt.logger.Debug("received valid MessageCertifiedCommit", commontypes.LogFields{
-		"seqNr":  msg.CertifiedCommit.SeqNr,
-		"sender": sender,
+		"msgSeqNr": msg.CertifiedCommit.SeqNr,
+		"sender":   sender,
 	})
 
 	repatt.receivedVerifiedCertifiedCommit(msg.CertifiedCommit)
@@ -507,7 +507,7 @@ func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.C
 
 func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedReports[RI]) {
 	if repatt.rounds[ev.SeqNr] == nil {
-		repatt.logger.Debug("discarding EventComputedReports from old round", commontypes.LogFields{
+		repatt.logger.Debug("dropping EventComputedReports from old round", commontypes.LogFields{
 			"evSeqNr":       ev.SeqNr,
 			"highWaterMark": repatt.highWaterMark,
 			"expiryRounds":  repatt.expiryRounds(),
@@ -522,9 +522,9 @@ func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedR
 		sig, err := repatt.onchainKeyring.Sign(repatt.config.ConfigDigest, ev.SeqNr, reportPlus.ReportWithInfo)
 		if err != nil {
 			repatt.logger.Error("error while signing report", commontypes.LogFields{
-				"seqNr": ev.SeqNr,
-				"index": i,
-				"error": err,
+				"evSeqNr": ev.SeqNr,
+				"index":   i,
+				"error":   err,
 			})
 			return
 		}
@@ -532,7 +532,7 @@ func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedR
 	}
 
 	repatt.logger.Debug("broadcasting MessageReportSignatures", commontypes.LogFields{
-		"seqNr": ev.SeqNr,
+		"evSeqNr": ev.SeqNr,
 	})
 
 	repatt.netSender.Broadcast(MessageReportSignatures[RI]{

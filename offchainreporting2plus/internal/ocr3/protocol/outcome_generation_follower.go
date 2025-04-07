@@ -84,7 +84,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	} else {
 		// We're dealing with a re-proposal from a failed epoch
 
-		prepareQc, ok := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQC, ok := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
 		if !ok {
 			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStart", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
@@ -96,11 +96,11 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		// in case of a re-proposal.
 		outcomeInputsDigest := OutcomeInputsDigest{}
 
-		outcomeDigest := MakeOutcomeDigest(prepareQc.Outcome)
+		outcomeDigest := MakeOutcomeDigest(prepareQC.Outcome)
 
 		prepareSignature, err := MakePrepareSignature(
 			outgen.ID(),
-			prepareQc.SeqNr,
+			prepareQC.SeqNr,
 			outcomeInputsDigest,
 			outcomeDigest,
 			outgen.offchainKeyring.OffchainSign,
@@ -113,13 +113,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 			return
 		}
 
-		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr + 1
-		outgen.sharedState.seqNr = prepareQc.SeqNr
-		outgen.sharedState.observationQuorum = nil
+		outgen.sharedState.firstSeqNrOfEpoch = prepareQC.SeqNr + 1
+		outgen.sharedState.seqNr = prepareQC.SeqNr
 
 		outgen.followerState.phase = outgenFollowerPhaseSentPrepare
 		outgen.followerState.outcome = outcomeAndDigests{
-			prepareQc.Outcome,
+			prepareQC.Outcome,
 			outcomeInputsDigest,
 			outcomeDigest,
 		}
@@ -128,7 +127,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		})
 		outgen.netSender.Broadcast(MessagePrepare[RI]{
 			outgen.sharedState.e,
-			prepareQc.SeqNr,
+			prepareQC.SeqNr,
 			prepareSignature,
 		})
 	}
@@ -136,7 +135,6 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 
 func (outgen *outcomeGenerationState[RI]) startSubsequentFollowerRound() {
 	outgen.sharedState.seqNr = outgen.sharedState.committedSeqNr + 1
-	outgen.sharedState.observationQuorum = nil
 
 	outgen.followerState.phase = outgenFollowerPhaseNewRound
 	outgen.followerState.query = nil
@@ -264,7 +262,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventComputedObservation[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
-		outgen.logger.Debug("discarding EventComputedObservation from old round", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedObservation from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
@@ -273,7 +271,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventCompu
 	}
 
 	if outgen.followerState.phase != outgenFollowerPhaseBackgroundObservation {
-		outgen.logger.Debug("discarding EventComputedObservation, wrong phase", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedObservation, wrong phase", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.followerState.phase,
 		})
@@ -536,7 +534,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedProposalOutcome(ev EventComputedProposalOutcome[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
-		outgen.logger.Debug("discarding EventComputedProposalOutcome from old round", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedProposalOutcome from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
@@ -545,7 +543,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalOutcome(ev EventC
 	}
 
 	if outgen.followerState.phase != outgenFollowerPhaseBackgroundProposalOutcome {
-		outgen.logger.Debug("discarding EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedProposalOutcome, wrong phase", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.followerState.phase,
 		})
@@ -836,7 +834,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 	if commit.SeqNr <= outgen.sharedState.committedSeqNr {
 
 		outgen.logger.Debug("skipping commit of already committed outcome", commontypes.LogFields{
-			"commitSeqNr ":   commit.SeqNr,
+			"commitSeqNr":    commit.SeqNr,
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
 	} else {
@@ -868,7 +866,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 // Updates and persists cert if it is greater than the current cert.
 // Returns false if the cert could not be persisted, in which case the round should be aborted.
 func (outgen *outcomeGenerationState[RI]) persistAndUpdateCertIfGreater(cert CertifiedPrepareOrCommit) (ok bool) {
-	if outgen.followerState.cert.Timestamp().Less(cert.Timestamp()) {
+	if outgen.followerState.cert.Timestamp().Less31(cert.Timestamp()) {
 		ctx, cancel := context.WithTimeout(outgen.ctx, outgen.localConfig.DatabaseTimeout)
 		defer cancel()
 		if err := outgen.database.WriteCert(ctx, outgen.config.ConfigDigest, cert); err != nil {
