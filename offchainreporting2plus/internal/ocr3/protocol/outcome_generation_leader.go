@@ -79,7 +79,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
-	notBadCount := 0 // Note: just because a request is not bad does not mean it's good. Tertium datur!
+	notBadCount := 0 // Note: just because a request is not marked bad does not mean it's good. Tertium datur!
 	for _, epochStartRequest := range outgen.leaderState.epochStartRequests {
 		if epochStartRequest.bad {
 			continue
@@ -91,16 +91,24 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
+	// The not-bad entries in epochStartRequests here are guaranteed to be
+	// nonempty due to definition of ByzQuorumSize.
 	var maxSender *commontypes.OracleID
 	for sender, epochStartRequest := range outgen.leaderState.epochStartRequests {
+		if epochStartRequest.bad {
+			continue
+		}
 		if maxSender != nil {
 			maxTimestamp := outgen.leaderState.epochStartRequests[*maxSender].message.HighestCertified.Timestamp()
 			if !maxTimestamp.Less31(epochStartRequest.message.HighestCertified.Timestamp()) {
 				continue
 			}
 		}
-
 		maxSender = &sender
+	}
+
+	if maxSender == nil {
+		return
 	}
 
 	maxRequest := outgen.leaderState.epochStartRequests[*maxSender]
