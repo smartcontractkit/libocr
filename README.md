@@ -2,7 +2,7 @@
 
 libocr consists of a Go library and a set of Solidity smart contracts that implement the *Chainlink Offchain Reporting Protocol*, a [Byzantine fault tolerant](https://en.wikipedia.org/wiki/Byzantine_fault) protocol that allows a set of oracles to generate *offchain* an aggregate report of the oracles' observations of some underlying data source. This report is then transmitted to an onchain contract in a single transaction.
 
-You may also be interested in [libocr's integration into the actual Chainlink node](https://github.com/smartcontractkit/chainlink/tree/develop/core/services/offchainreporting).
+You may also be interested in [libocr's integration into the actual Chainlink node](https://github.com/smartcontractkit/chainlink/tree/develop/core/services/ocr).
 
 
 ## Protocol Description
