@@ -2,6 +2,16 @@ package ringbuffer
 
 import "fmt"
 
+// TODO
+//
+// A new generic ring buffer implementation, which can gracefully handle Pop(), Peek() on empty buffers or
+// Push() on full buffers is available in lib/internal/ringbuffer.
+//
+// Usages of this ringbuffer should be updated to the new implementation.
+//
+// CAUTION: When updating, first rename all Push() usages if this implementation to PushEvict() to be logically
+//          compatible with the new implementation!
+
 // RingBuffer implements a fixed capacity ringbuffer for items of type
 // T
 type RingBuffer[T any] struct {

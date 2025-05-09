@@ -129,7 +129,6 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			// fields
 			uint64(v.Epoch),
 			tpm.epochStartProof(v.EpochStartProof),
-			v.Signature31,
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageEpochStart{pm}
 	case protocol.MessageRoundStart[RI]:
@@ -333,7 +332,6 @@ func (tpm *toProtoMessage[RI]) signedHighestCertifiedTimestamp(shct protocol.Sig
 		// fields
 		tpm.highestCertifiedTimestamp(shct.HighestCertifiedTimestamp),
 		shct.Signature,
-		shct.Signature31,
 	}
 }
 
@@ -346,7 +344,6 @@ func (tpm *toProtoMessage[RI]) highestCertifiedTimestamp(hct protocol.HighestCer
 		// fields
 		hct.SeqNr,
 		hct.CommittedElsePrepared,
-		hct.Epoch,
 	}
 }
 
@@ -466,7 +463,6 @@ func (fpm *fromProtoMessage[RI]) messageEpochStart(m *MessageEpochStart) (protoc
 	return protocol.MessageEpochStart[RI]{
 		m.Epoch,
 		srqc,
-		m.Signature31,
 	}, nil
 }
 
@@ -590,7 +586,6 @@ func (fpm *fromProtoMessage[RI]) signedHighestCertifiedTimestamp(m *SignedHighes
 	return protocol.SignedHighestCertifiedTimestamp{
 		hct,
 		m.Signature,
-		m.Signature31,
 	}, nil
 }
 
@@ -601,7 +596,6 @@ func (fpm *fromProtoMessage[RI]) highestCertifiedTimestamp(m *HighestCertifiedTi
 	return protocol.HighestCertifiedTimestamp{
 		m.SeqNr,
 		m.CommittedElsePrepared,
-		m.Epoch,
 	}, nil
 }
 
@@ -624,10 +618,8 @@ func (fpm *fromProtoMessage[RI]) epochStartProof(m *EpochStartProof) (protocol.E
 				protocol.HighestCertifiedTimestamp{
 					ashct.GetSignedHighestCertifiedTimestamp().GetHighestCertifiedTimestamp().GetSeqNr(),
 					ashct.GetSignedHighestCertifiedTimestamp().GetHighestCertifiedTimestamp().GetCommittedElsePrepared(),
-					ashct.GetSignedHighestCertifiedTimestamp().GetHighestCertifiedTimestamp().GetEpoch(),
 				},
 				ashct.GetSignedHighestCertifiedTimestamp().GetSignature(),
-				ashct.GetSignedHighestCertifiedTimestamp().GetSignature31(),
 			},
 			signer,
 		})

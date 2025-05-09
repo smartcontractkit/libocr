@@ -8,8 +8,9 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -146,6 +147,7 @@ type sharedState struct {
 
 	firstSeqNrOfEpoch uint64
 	seqNr             uint64
+	observationQuorum *int
 	committedSeqNr    uint64
 	committedOutcome  ocr3types.Outcome
 }
@@ -188,6 +190,7 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 
 		0,
 		0,
+		nil,
 		0,
 		nil,
 	}
@@ -376,7 +379,7 @@ func callPluginFromOutcomeGenerationBackground[T any, RI any](
 	outctx ocr3types.OutcomeContext,
 	f func(context.Context, ocr3types.OutcomeContext) (T, error),
 ) (T, bool) {
-	return callPluginFromBackground[T](
+	return common.CallPluginFromBackground[T](
 		ctx,
 		logger,
 		commontypes.LogFields{

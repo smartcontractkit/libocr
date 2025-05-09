@@ -194,10 +194,7 @@ func (msg MessageEpochStartRequest[RI]) CheckSize(n int, f int, limits ocr3types
 	if !msg.HighestCertified.CheckSize(n, f, limits, maxReportSigLen) {
 		return false
 	}
-	if len(msg.SignedHighestCertifiedTimestamp.Signature) > ed25519.SignatureSize {
-		return false
-	}
-	if len(msg.SignedHighestCertifiedTimestamp.Signature31) > ed25519.SignatureSize {
+	if len(msg.SignedHighestCertifiedTimestamp.Signature) != ed25519.SignatureSize {
 		return false
 	}
 	return true
@@ -221,7 +218,6 @@ func (msg MessageEpochStartRequest[RI]) epoch() uint64 {
 type MessageEpochStart[RI any] struct {
 	Epoch           uint64
 	EpochStartProof EpochStartProof
-	Signature31     EpochStartSignature31
 }
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageEpochStart[struct{}])(nil)
@@ -234,16 +230,9 @@ func (msg MessageEpochStart[RI]) CheckSize(n int, f int, limits ocr3types.Report
 		return false
 	}
 	for _, ashct := range msg.EpochStartProof.HighestCertifiedProof {
-		if len(ashct.SignedHighestCertifiedTimestamp.Signature) > ed25519.SignatureSize {
+		if len(ashct.SignedHighestCertifiedTimestamp.Signature) != ed25519.SignatureSize {
 			return false
 		}
-		if len(ashct.SignedHighestCertifiedTimestamp.Signature31) > ed25519.SignatureSize {
-			return false
-		}
-	}
-	//nolint:gosimple
-	if len(msg.Signature31) > ed25519.SignatureSize {
-		return false
 	}
 	return true
 }

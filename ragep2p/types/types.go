@@ -2,12 +2,12 @@ package types
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/ed25519"
 	"encoding"
 	"fmt"
 
 	"github.com/mr-tron/base58"
+	"github.com/smartcontractkit/libocr/ragep2p/internal/mtls"
 )
 
 // Address represents a network address & port such as "192.168.1.2:8080". It
@@ -15,7 +15,7 @@ import (
 type Address string
 
 // PeerID represents a unique identifier for another peer.
-type PeerID [ed25519.PublicKeySize]byte
+type PeerID [32]byte
 
 var (
 	_ fmt.Stringer               = PeerID{}
@@ -72,63 +72,15 @@ func (p *PeerID) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func PeerPublicKeyFromGenericPublicKey(publickey crypto.PublicKey) (PeerPublicKey, error) {
-	var result PeerPublicKey
-
-	pkslice, ok := publickey.(ed25519.PublicKey)
-	if !ok {
-		return result, fmt.Errorf("invalid ed25519 public key")
-	}
-	if ed25519.PublicKeySize != len(pkslice) {
-		return result, fmt.Errorf("invalid key size (expected %d, actual %d)", ed25519.PublicKeySize, len(pkslice))
-	}
-	copy(result[:], pkslice)
-	return result, nil
-}
-
-func MustPeerPublicKeyFromGenericPublicKey(publickey crypto.PublicKey) PeerPublicKey {
-	result, err := PeerPublicKeyFromGenericPublicKey(publickey)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-
-func PeerIDFromPeerPublicKey(pk PeerPublicKey) PeerID {
-	return PeerID(pk)
-}
-
 func PeerIDFromPublicKey(pk ed25519.PublicKey) (PeerID, error) {
-	peerPublicKey, err := PeerPublicKeyFromGenericPublicKey(pk)
-	return PeerIDFromPeerPublicKey(peerPublicKey), err
+	return mtls.StaticallySizedEd25519PublicKey(pk)
 }
 
 func PeerIDFromPrivateKey(sk ed25519.PrivateKey) (PeerID, error) {
 	return PeerIDFromPublicKey(sk.Public().(ed25519.PublicKey))
 }
 
-func PeerIDFromKeyring(keyring PeerKeyring) PeerID {
-	return PeerIDFromPeerPublicKey(keyring.PublicKey())
-}
-
 type PeerInfo struct {
 	ID    PeerID
 	Addrs []Address
-}
-
-// PeerPublicKey is the public key used to cryptographically identify an
-// oracle in p2p related communications and peer discovery.
-type PeerPublicKey [ed25519.PublicKeySize]byte
-
-func Ed25519PublicKeyFromPeerPublicKey(pk PeerPublicKey) ed25519.PublicKey {
-	return pk[:]
-}
-
-type PeerKeyring interface {
-	// Sign returns an EdDSA-Ed25519 signature on msg produced using the
-	// standard library's ed25519.Sign function. Must be fast.
-	Sign(msg []byte) (signature []byte, err error)
-
-	// PublicKey returns the public component of the keypair used in Sign.
-	PublicKey() PeerPublicKey
 }
