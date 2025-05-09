@@ -1,4 +1,4 @@
-package peerkeyringhelper
+package networking
 
 import (
 	"bytes"

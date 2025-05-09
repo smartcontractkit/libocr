@@ -61,7 +61,7 @@ type latencyMetricsPeerState struct {
 	metrics *latencyMetrics
 
 	// Main stream used for sending/receiving PING/PONG messages.
-	stream *ragep2p.Stream
+	stream *ragep2p.Stream2
 
 	// A reference counter for the number of times this particular peer has been registered. Only a single state is
 	// kept per peer (and config). Registering the same peer multiple times does not create a new ping/pong protocol
@@ -251,15 +251,16 @@ func (sg *latencyMetricsServiceGroup) Close() {
 	}
 }
 
-func (s *latencyMetricsService) initStream(peerID ragetypes.PeerID) (*ragep2p.Stream, error) {
+func (s *latencyMetricsService) initStream(peerID ragetypes.PeerID) (*ragep2p.Stream2, error) {
 	// Get a unique stream name for each configuration.
 	streamName := fmt.Sprintf(
 		"ping-pong-(%v|%v|%v|%v)", s.config.PingSize, s.config.MinPeriod, s.config.MaxPeriod, s.config.Timeout,
 	)
 
-	return s.host.NewStream(
+	return s.host.NewStream2(
 		peerID,
 		streamName,
+		ragep2p.StreamPriorityDefault,
 		s.streamConfig.outgoingBufferSize,
 		s.streamConfig.incomingBufferSize,
 		s.streamConfig.maxMessageLength,
@@ -377,9 +378,14 @@ func (s *latencyMetricsService) run(remotePeerID ragetypes.PeerID, peerState *la
 				ticker.Reset(s.getNextDelay())
 			}
 
-		case msg, ok := <-stream.ReceiveMessages():
+		case msg, ok := <-stream.Receive():
 			if !ok {
 				// Stream was closed, so we are shutting down.
+				return
+			}
+
+			plainMsg, ok := msg.(ragep2p.InboundBinaryMessagePlain)
+			if !ok {
 				return
 			}
 
@@ -390,14 +396,15 @@ func (s *latencyMetricsService) run(remotePeerID ragetypes.PeerID, peerState *la
 			//      2. Measure latency and update metrics.
 			//      3. Reschedule the ticker for sending a new PING message.
 			//  - Log invalid messages.
-			if len(msg) >= 4 {
-				msgType := binary.BigEndian.Uint32(msg)
-				if msgType == msgTypePing && len(msg) == s.config.PingSize {
-					s.processIncomingPingMessage(msg, remotePeerID, stream, metrics)
+			payload := plainMsg.Payload
+			if len(payload) >= 4 {
+				msgType := binary.BigEndian.Uint32(payload)
+				if msgType == msgTypePing && len(payload) == s.config.PingSize {
+					s.processIncomingPingMessage(payload, remotePeerID, stream, metrics)
 					break
 				}
-				if msgType == msgTypePong && len(msg) == pongSize {
-					if s.processIncomingPongMessage(msg, expectedPongMsg, lastPingSentAt, remotePeerID, metrics) {
+				if msgType == msgTypePong && len(payload) == pongSize {
+					if s.processIncomingPongMessage(payload, expectedPongMsg, lastPingSentAt, remotePeerID, metrics) {
 						expectedPongMsg = nil
 						ticker.Reset(s.getNextDelay())
 					}
@@ -407,14 +414,14 @@ func (s *latencyMetricsService) run(remotePeerID ragetypes.PeerID, peerState *la
 
 			// Truncate long messages before logging them. Using minPingSize here is just some suitable value,
 			// other small values are equally good.
-			msgPrefix := msg
-			if len(msg) > minPingSize {
-				msgPrefix = msg[:minPingSize]
+			msgPrefix := payload
+			if len(payload) > minPingSize {
+				msgPrefix = payload[:minPingSize]
 			}
 
 			s.logger.Warn(
 				"invalid message received",
-				commontypes.LogFields{"remotePeerID": remotePeerID, "msgPrefix": msgPrefix, "msgLen": len(msg)},
+				commontypes.LogFields{"remotePeerID": remotePeerID, "msgPrefix": msgPrefix, "msgLen": len(payload)},
 			)
 			metrics.invalidMessagesReceivedTotal.Inc()
 		}
@@ -422,7 +429,7 @@ func (s *latencyMetricsService) run(remotePeerID ragetypes.PeerID, peerState *la
 }
 
 func (s *latencyMetricsService) sendPing(
-	remotePeerID ragetypes.PeerID, stream *ragep2p.Stream, metrics *latencyMetrics,
+	remotePeerID ragetypes.PeerID, stream *ragep2p.Stream2, metrics *latencyMetrics,
 ) (lastPingSentAt time.Time, expectedPongMsg []byte) {
 	// Generate a new random PING message to be sent to the remote peer.
 	pingMsg, err := s.preparePingMessage()
@@ -439,7 +446,7 @@ func (s *latencyMetricsService) sendPing(
 	// Actually send the PING message and keep track of the current time to compute the latency when we
 	// receive corresponding PONG message.
 	lastPingSentAt = time.Now()
-	stream.SendMessage(pingMsg)
+	stream.Send(ragep2p.OutboundBinaryMessagePlain{pingMsg})
 	metrics.sentRequestsTotal.Inc()
 	s.logger.Trace(
 		"sending PING",
@@ -463,7 +470,7 @@ func (s *latencyMetricsService) processTimedOutPing(remotePeerID ragetypes.PeerI
 func (s *latencyMetricsService) processIncomingPingMessage(
 	pingMsg []byte,
 	remotePeerID ragetypes.PeerID,
-	stream *ragep2p.Stream,
+	stream *ragep2p.Stream2,
 	metrics *latencyMetrics,
 ) {
 	// Some valid PING message was received from the remote peer.
@@ -482,7 +489,7 @@ func (s *latencyMetricsService) processIncomingPingMessage(
 	}
 
 	s.logger.Trace("sending PONG", commontypes.LogFields{"remotePeerID": remotePeerID, "msg": pongMsg})
-	stream.SendMessage(pongMsg)
+	stream.Send(ragep2p.OutboundBinaryMessagePlain{pongMsg})
 }
 
 func (s *latencyMetricsService) processIncomingPongMessage(

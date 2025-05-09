@@ -60,7 +60,7 @@ func ocr3limits(cfg ocr3config.PublicConfig, pluginLimits ocr3types.ReportingPlu
 
 	maxLenMsgNewEpoch := overhead
 	maxLenMsgEpochStartRequest := add(maxLenCertifiedPrepareOrCommit, overhead)
-	maxLenMsgEpochStart := add(maxLenCertifiedPrepareOrCommit, mul(2*(ed25519.SignatureSize+sigOverhead), cfg.ByzQuorumSize()), overhead)
+	maxLenMsgEpochStart := add(maxLenCertifiedPrepareOrCommit, mul(ed25519.SignatureSize+sigOverhead, cfg.ByzQuorumSize()), overhead)
 	maxLenMsgRoundStart := add(pluginLimits.MaxQueryLength, overhead)
 	maxLenMsgObservation := add(pluginLimits.MaxObservationLength, overhead)
 	maxLenMsgProposal := add(mul(add(pluginLimits.MaxObservationLength, ed25519.SignatureSize+sigOverhead), cfg.N()), overhead)

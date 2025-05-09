@@ -47,6 +47,7 @@ type Stream interface {
 	Close() error
 }
 
+//nolint:staticcheck  // SA1019 Stream is deprecated, to be upgraded in a new PR.
 var _ Stream = &ragep2p.Stream{}
 
 //sumtype:decl
@@ -147,6 +148,7 @@ type peerGroup struct {
 // managedStream is a wrapper around ragep2p.Stream that removes the stream from
 // peerGroup upon Close.
 type managedStream struct {
+	//nolint:staticcheck  // SA1019 Stream is deprecated, to be upgraded in a new PR.
 	stream  *ragep2p.Stream
 	onClose func()
 }
@@ -187,6 +189,7 @@ func (f *peerGroup) NewStream(remotePeerID string, newStreamArgs NewStreamArgs) 
 			return nil, fmt.Errorf("peer ID %s is not in the set of peer IDs registered with this peer group", other)
 		}
 
+		//nolint:staticcheck  // SA1019 f.host.NewStream is deprecated
 		stream, err := f.host.NewStream(
 			other,
 			args.StreamName,
@@ -228,6 +231,7 @@ func (f *peerGroup) Close() error {
 			// defensive
 			continue
 		}
+		//nolint:staticcheck  // SA1019 Stream is deprecated, to be upgraded in a new PR.
 		stream, ok := e.Value.(*ragep2p.Stream)
 		if !ok {
 			// defensive

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/minheap"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/minheap"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 

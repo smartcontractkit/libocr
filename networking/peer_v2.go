@@ -11,7 +11,6 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
-	"github.com/smartcontractkit/libocr/internal/peerkeyringhelper"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
 	"github.com/smartcontractkit/libocr/networking/rageping"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
@@ -20,17 +19,9 @@ import (
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
-// Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
 type PeerConfig struct {
-	// Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
-	//
-	// Deprecated: Use PeerKeyring instead. This field is maintained for
-	// backwards compatibility and will be removed in a future release.
 	PrivKey ed25519.PrivateKey
-	// Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
-	PeerKeyring ragetypes.PeerKeyring
-
-	Logger commontypes.Logger
+	Logger  commontypes.Logger
 
 	// V2ListenAddresses contains the addresses the peer will listen to on the network in <ip>:<port> form as
 	// accepted by net.Listen.
@@ -56,17 +47,6 @@ type PeerConfig struct {
 	LatencyMetricsServiceConfigs []*rageping.LatencyMetricsServiceConfig
 }
 
-func (c *PeerConfig) keyring() (ragetypes.PeerKeyring, error) {
-	switch {
-	case c.PeerKeyring != nil && c.PrivKey == nil:
-		return c.PeerKeyring, nil
-	case c.PrivKey != nil && c.PeerKeyring == nil:
-		return peerkeyringhelper.NewPeerKeyringWithPrivateKey(c.PrivKey)
-	default:
-		return nil, fmt.Errorf("exactly one of PrivKey (deprecated) or PeerKeyring must be provided")
-	}
-}
-
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
 type concretePeerV2 struct {
 	peerID                ragetypes.PeerID
@@ -81,12 +61,14 @@ type concretePeerV2 struct {
 // Users are expected to create (using the OCR*Factory() methods) and close endpoints and bootstrappers before calling
 // Close() on the peer itself.
 func NewPeer(c PeerConfig) (*concretePeerV2, error) {
-	keyring, err := c.keyring()
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate keyring: %w", err)
+	if err := ed25519SanityCheck(c.PrivKey); err != nil {
+		return nil, fmt.Errorf("ed25519 sanity check failed: %w", err)
 	}
 
-	peerID := ragetypes.PeerIDFromKeyring(keyring)
+	peerID, err := ragetypes.PeerIDFromPrivateKey(c.PrivKey)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting v2 peer ID from private key: %w", err)
+	}
 
 	logger := loghelper.MakeRootLoggerWithContext(c.Logger).MakeChild(commontypes.LogFields{
 		"id":     "PeerV2",
@@ -103,7 +85,7 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase, metricsRegistererWrapper)
 	host, err := ragep2p.NewHost(
 		ragep2p.HostConfig{c.V2DeltaDial},
-		keyring,
+		c.PrivKey,
 		c.V2ListenAddresses,
 		discoverer,
 		c.Logger,
@@ -261,6 +243,45 @@ func (p2 *concretePeerV2) newEndpoint(
 	return endpoint, nil
 }
 
+func (p2 *concretePeerV2) newEndpoint3_1(
+	configDigest ocr2types.ConfigDigest,
+	v2peerIDs []string,
+	v2bootstrappers []commontypes.BootstrapperLocator,
+	defaultPriorityConfig ocr2types.BinaryNetworkEndpoint2Config,
+	lowPriorityConfig ocr2types.BinaryNetworkEndpoint2Config,
+) (ocr2types.BinaryNetworkEndpoint2, error) {
+	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode v2 peer IDs: %w", err)
+	}
+
+	decodedv2Bootstrappers, err := decodev2Bootstrappers(v2bootstrappers)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode v2 bootstrappers: %w", err)
+	}
+
+	registration, err := p2.register(configDigest, decodedv2PeerIDs, decodedv2Bootstrappers)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint, err := newOCREndpointV3(
+		p2.logger,
+		configDigest,
+		p2,
+		decodedv2PeerIDs,
+		decodedv2Bootstrappers,
+		defaultPriorityConfig,
+		lowPriorityConfig,
+		registration,
+	)
+	if err != nil {
+		// Important: we close registration in case newOCREndpointV2 failed to prevent zombie registrations.
+		return nil, errors.Join(err, registration.Close())
+	}
+	return endpoint, nil
+}
+
 func (p2 *concretePeerV2) newBootstrapper(
 	configDigest ocr2types.ConfigDigest,
 	v2peerIDs []string,
@@ -295,6 +316,10 @@ func (p2 *concretePeerV2) OCR1BinaryNetworkEndpointFactory() *ocr1BinaryNetworkE
 
 func (p2 *concretePeerV2) OCR2BinaryNetworkEndpointFactory() *ocr2BinaryNetworkEndpointFactory {
 	return &ocr2BinaryNetworkEndpointFactory{p2}
+}
+
+func (p2 *concretePeerV2) OCR3_1BinaryNetworkEndpointFactory() *ocr3_1BinaryNetworkEndpointFactory {
+	return &ocr3_1BinaryNetworkEndpointFactory{p2}
 }
 
 func (p2 *concretePeerV2) OCR1BootstrapperFactory() *ocr1BootstrapperFactory {

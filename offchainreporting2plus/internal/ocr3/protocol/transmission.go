@@ -5,13 +5,14 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/binary"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 	"slices"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/permutation"
@@ -115,7 +116,7 @@ func (t *transmissionState[RI]) backgroundEventAttestedReport(ctx context.Contex
 		delay = *delayMaybe
 	}
 
-	shouldAccept, ok := callPlugin[bool](
+	shouldAccept, ok := common.CallPlugin[bool](
 		ctx,
 		t.logger,
 		commontypes.LogFields{
@@ -160,7 +161,7 @@ func (t *transmissionState[RI]) scheduled(ev EventAttestedReport[RI]) {
 }
 
 func (t *transmissionState[RI]) backgroundScheduled(ctx context.Context, ev EventAttestedReport[RI]) {
-	shouldTransmit, ok := callPlugin[bool](
+	shouldTransmit, ok := common.CallPlugin[bool](
 		ctx,
 		t.logger,
 		commontypes.LogFields{

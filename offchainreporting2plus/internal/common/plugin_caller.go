@@ -1,4 +1,4 @@
-package protocol
+package common
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 const ReportingPluginTimeoutWarningGracePeriod = 100 * time.Millisecond
 
-func callPlugin[T any](
+func CallPlugin[T any](
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	logFields commontypes.LogFields,
@@ -48,10 +48,10 @@ func callPlugin[T any](
 	return result, true
 }
 
-// Unlike callPlugin, callPluginFromBackground only uses the "recommendedMaxDuration" to warn
+// Unlike CallPlugin, CallPluginFromBackground only uses the "recommendedMaxDuration" to warn
 // if the call takes longer than recommended, but does not use it for context expiration
 // purposes. Context expiration is solely controlled by the passed ctx.
-func callPluginFromBackground[T any](
+func CallPluginFromBackground[T any](
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	logFields commontypes.LogFields,

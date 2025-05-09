@@ -193,18 +193,18 @@ func (uann unsignedAnnouncement) digest() ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (uann unsignedAnnouncement) sign(keyring ragetypes.PeerKeyring) (Announcement, error) {
+func (uann unsignedAnnouncement) sign(sk ed25519.PrivateKey) (Announcement, error) {
 	digest, err := uann.digest()
 	if err != nil {
 		return Announcement{}, err
 	}
 
-	sig, err := keyring.Sign(digest)
-	if err != nil {
-		return Announcement{}, fmt.Errorf("keyring Sign failed: %w", err)
-	}
+	sig := ed25519.Sign(sk, digest)
 
-	epk := ragetypes.Ed25519PublicKeyFromPeerPublicKey(keyring.PublicKey())
+	epk, ok := sk.Public().(ed25519.PublicKey)
+	if !ok {
+		return Announcement{}, fmt.Errorf("public key is not ed25519 public key")
+	}
 
 	return Announcement{
 		uann,
