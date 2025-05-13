@@ -15,7 +15,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-// OracleIdentity is identical to the internal type in package config.
+// OracleIdentity is identical to the internal type [config.OracleIdentity].
 // We intentionally make a copy to make potential future internal modifications easier.
 type OracleIdentity struct {
 	OffchainPublicKey types.OffchainPublicKey
@@ -25,8 +25,9 @@ type OracleIdentity struct {
 	TransmitAccount  types.Account
 }
 
-// PublicConfig is identical to the internal type in package config.
-// We intentionally make a copy to make potential future internal modifications easier.
+// PublicConfig is identical to the internal type [ocr2config.PublicConfig]. See
+// the documentation there for details. We intentionally duplicate the internal
+// type to make potential future internal modifications easier.
 type PublicConfig struct {
 	DeltaProgress    time.Duration
 	DeltaResend      time.Duration
@@ -98,6 +99,7 @@ type OracleIdentityExtra struct {
 
 // ContractSetConfigArgsForIntegrationTest generates setConfig args for integration tests in core.
 // Only use this for testing, *not* for production.
+// See [ocr2config.PublicConfig] for documentation of the arguments.
 func ContractSetConfigArgsForEthereumIntegrationTest(
 	oracles []OracleIdentityExtra,
 	f int,
@@ -165,6 +167,7 @@ func ContractSetConfigArgsForEthereumIntegrationTest(
 
 // ContractSetConfigArgsForTestsWithAuxiliaryArgs generates setConfig args from
 // the relevant parameters. Only use this for testing, *not* for production.
+// See [ocr2config.PublicConfig] for documentation of the arguments.
 func ContractSetConfigArgsForTestsWithAuxiliaryArgs(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
@@ -252,6 +255,7 @@ func (a AuxiliaryArgs) rng() io.Reader {
 
 // ContractSetConfigArgsForTests generates setConfig args from the relevant
 // parameters. Only use this for testing, *not* for production.
+// See [ocr2config.PublicConfig] for documentation of the arguments.
 func ContractSetConfigArgsForTests(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,

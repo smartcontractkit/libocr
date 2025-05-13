@@ -172,6 +172,15 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 }
 
 func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOutcome[RI]) {
+	if repatt.rounds[ev.SeqNr] == nil {
+		repatt.logger.Debug("dropping EventMissingOutcome for unknown seqNr", commontypes.LogFields{
+			"evSeqNr":       ev.SeqNr,
+			"highWaterMark": repatt.highWaterMark,
+			"expiryRounds":  repatt.expiryRounds(),
+		})
+		return
+	}
+
 	if repatt.rounds[ev.SeqNr].verifiedCertifiedCommit != nil {
 		repatt.logger.Debug("dropping EventMissingOutcome, already have Outcome", commontypes.LogFields{
 			"evSeqNr": ev.SeqNr,
@@ -183,7 +192,17 @@ func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOut
 }
 
 func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg MessageCertifiedCommitRequest[RI], sender commontypes.OracleID) {
-	if repatt.rounds[msg.SeqNr] == nil || repatt.rounds[msg.SeqNr].verifiedCertifiedCommit == nil {
+	if repatt.rounds[msg.SeqNr] == nil {
+		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for unknown seqNr", commontypes.LogFields{
+			"msgSeqNr":      msg.SeqNr,
+			"sender":        sender,
+			"highWaterMark": repatt.highWaterMark,
+			"expiryRounds":  repatt.expiryRounds(),
+		})
+		return
+	}
+
+	if repatt.rounds[msg.SeqNr].verifiedCertifiedCommit == nil {
 		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for outcome with unknown certified commit", commontypes.LogFields{
 			"msgSeqNr": msg.SeqNr,
 			"sender":   sender,
@@ -211,8 +230,10 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCertifiedCommit[RI], sender commontypes.OracleID) {
 	if repatt.rounds[msg.CertifiedCommit.SeqNr] == nil {
 		repatt.logger.Warn("dropping MessageCertifiedCommit for unknown seqNr", commontypes.LogFields{
-			"msgSeqNr": msg.CertifiedCommit.SeqNr,
-			"sender":   sender,
+			"msgSeqNr":      msg.CertifiedCommit.SeqNr,
+			"sender":        sender,
+			"highWaterMark": repatt.highWaterMark,
+			"expiryRounds":  repatt.expiryRounds(),
 		})
 		return
 	}
@@ -507,7 +528,7 @@ func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.C
 
 func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedReports[RI]) {
 	if repatt.rounds[ev.SeqNr] == nil {
-		repatt.logger.Debug("dropping EventComputedReports from old round", commontypes.LogFields{
+		repatt.logger.Debug("dropping EventComputedReports for unknown seqNr", commontypes.LogFields{
 			"evSeqNr":       ev.SeqNr,
 			"highWaterMark": repatt.highWaterMark,
 			"expiryRounds":  repatt.expiryRounds(),
