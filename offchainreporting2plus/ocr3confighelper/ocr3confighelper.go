@@ -11,8 +11,9 @@ import (
 	"golang.org/x/crypto/curve25519"
 )
 
-// PublicConfig is identical to the internal type in package config.
-// We intentionally make a copy to make potential future internal modifications easier.
+// PublicConfig is identical to the internal type [ocr3config.PublicConfig]. See
+// the documentation there for details. We intentionally duplicate the internal
+// type to make potential future internal modifications easier.
 type PublicConfig struct {
 	DeltaProgress               time.Duration
 	DeltaResend                 time.Duration
@@ -81,6 +82,7 @@ func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 
 // ContractSetConfigArgsForTestsWithAuxiliaryArgsMercuryV02 generates setConfig
 // args for mercury v0.2. Only use this for testing, *not* for production.
+// See [ocr3config.PublicConfig] for documentation of the arguments.
 func ContractSetConfigArgsForTestsMercuryV02(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
@@ -130,6 +132,7 @@ func ContractSetConfigArgsForTestsMercuryV02(
 
 // ContractSetConfigArgsForTestsOCR3 generates setConfig args for OCR3. Only use
 // this for testing, *not* for production.
+// See [ocr3config.PublicConfig] for documentation of the arguments.
 func ContractSetConfigArgsForTests(
 	deltaProgress time.Duration,
 	deltaResend time.Duration,
@@ -196,6 +199,7 @@ func ContractSetConfigArgsForTests(
 // This function may be used in production. If you use this as part of multisig
 // tooling,  make sure that the input parameters are identical across all
 // signers.
+// See [ocr3config.PublicConfig] for documentation of the arguments.
 func ContractSetConfigArgsDeterministic(
 	// The ephemeral secret key used to encrypt the shared secret
 	ephemeralSk [curve25519.ScalarSize]byte,
