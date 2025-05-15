@@ -265,10 +265,21 @@ type AttributedCommitSignature struct {
 type HighestCertifiedTimestamp struct {
 	SeqNr                 uint64
 	CommittedElsePrepared bool
+	Epoch                 uint64
 }
 
 func (t HighestCertifiedTimestamp) Less(t2 HighestCertifiedTimestamp) bool {
 	return t.SeqNr < t2.SeqNr || t.SeqNr == t2.SeqNr && !t.CommittedElsePrepared && t2.CommittedElsePrepared
+}
+
+func (t HighestCertifiedTimestamp) Less31(t2 HighestCertifiedTimestamp) bool {
+	return t.SeqNr < t2.SeqNr ||
+		t.SeqNr == t2.SeqNr && !t.CommittedElsePrepared && t2.CommittedElsePrepared ||
+		t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared && t.Epoch < t2.Epoch
+}
+
+func (t HighestCertifiedTimestamp) Equal(t2 HighestCertifiedTimestamp) bool {
+	return t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared
 }
 
 const signedHighestCertifiedTimestampDomainSeparator = "ocr3 SignedHighestCertifiedTimestamp"
@@ -276,6 +287,7 @@ const signedHighestCertifiedTimestampDomainSeparator = "ocr3 SignedHighestCertif
 type SignedHighestCertifiedTimestamp struct {
 	HighestCertifiedTimestamp HighestCertifiedTimestamp
 	Signature                 []byte
+	Signature31               []byte
 }
 
 func MakeSignedHighestCertifiedTimestamp(
@@ -288,9 +300,15 @@ func MakeSignedHighestCertifiedTimestamp(
 		return SignedHighestCertifiedTimestamp{}, err
 	}
 
+	sig31, err := signer(signedHighestCertifiedTimestamp31Msg(ogid, highestCertifiedTimestamp))
+	if err != nil {
+		return SignedHighestCertifiedTimestamp{}, err
+	}
+
 	return SignedHighestCertifiedTimestamp{
 		highestCertifiedTimestamp,
 		sig,
+		sig31,
 	}, nil
 }
 
@@ -302,6 +320,7 @@ func (shct *SignedHighestCertifiedTimestamp) Verify(ogid OutcomeGenerationID, pu
 	}
 
 	ok := ed25519.Verify(pk, signedHighestCertifiedTimestampMsg(ogid, shct.HighestCertifiedTimestamp), shct.Signature)
+
 	if !ok {
 		return fmt.Errorf("SignedHighestCertifiedTimestamp signature failed to verify")
 	}
@@ -329,6 +348,32 @@ func signedHighestCertifiedTimestampMsg(
 		committedElsePreparedByte = 0
 	}
 	_, _ = h.Write([]byte{byte(committedElsePreparedByte)})
+
+	return ocr3DomainSeparatedSum(h)
+}
+
+func signedHighestCertifiedTimestamp31Msg(
+	ogid OutcomeGenerationID,
+	highestCertifiedTimestamp HighestCertifiedTimestamp,
+) []byte {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(signedHighestCertifiedTimestampDomainSeparator))
+
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+
+	_ = binary.Write(h, binary.BigEndian, highestCertifiedTimestamp.SeqNr)
+
+	var committedElsePreparedByte uint8
+	if highestCertifiedTimestamp.CommittedElsePrepared {
+		committedElsePreparedByte = 1
+	} else {
+		committedElsePreparedByte = 0
+	}
+	_, _ = h.Write([]byte{byte(committedElsePreparedByte)})
+
+	_ = binary.Write(h, binary.BigEndian, highestCertifiedTimestamp.Epoch)
 
 	return ocr3DomainSeparatedSum(h)
 }
@@ -372,7 +417,7 @@ func (qc *EpochStartProof) Verify(
 		}
 	}
 
-	if qc.HighestCertified.Timestamp() != maximumTimestamp {
+	if !qc.HighestCertified.Timestamp().Equal(maximumTimestamp) {
 		return fmt.Errorf("mismatch between timestamp of HighestCertified (%v) and the max from HighestCertifiedProof (%v)", qc.HighestCertified.Timestamp(), maximumTimestamp)
 	}
 
@@ -394,6 +439,7 @@ type CertifiedPrepareOrCommit interface {
 		byzQuorumSize int,
 	) error
 	CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool
+	SignatureMsg(ogid OutcomeGenerationID) []byte
 }
 
 var _ CertifiedPrepareOrCommit = &CertifiedPrepare{}
@@ -416,6 +462,7 @@ func (hc *CertifiedPrepare) Timestamp() HighestCertifiedTimestamp {
 	return HighestCertifiedTimestamp{
 		hc.SeqNr,
 		false,
+		hc.PrepareEpoch,
 	}
 }
 
@@ -468,6 +515,10 @@ func (hc *CertifiedPrepare) CheckSize(n int, f int, limits ocr3types.ReportingPl
 	return true
 }
 
+func (hc *CertifiedPrepare) SignatureMsg(ogid OutcomeGenerationID) []byte {
+	return prepareSignatureMsg(ogid, hc.SeqNr, hc.OutcomeInputsDigest, MakeOutcomeDigest(hc.Outcome))
+}
+
 var _ CertifiedPrepareOrCommit = &CertifiedCommit{}
 
 // The empty CertifiedCommit{} is the genesis value
@@ -488,6 +539,7 @@ func (hc *CertifiedCommit) Timestamp() HighestCertifiedTimestamp {
 	return HighestCertifiedTimestamp{
 		hc.SeqNr,
 		true,
+		hc.CommitEpoch,
 	}
 }
 
@@ -548,4 +600,56 @@ func (hc *CertifiedCommit) CheckSize(n int, f int, limits ocr3types.ReportingPlu
 		}
 	}
 	return true
+}
+
+func (hc *CertifiedCommit) SignatureMsg(ogid OutcomeGenerationID) []byte {
+	return commitSignatureMsg(ogid, hc.SeqNr, MakeOutcomeDigest(hc.Outcome))
+}
+
+const epochStartProofSignatureDomainSeparator = "ocr3 EpochStartProofSignature"
+
+func epochStartProofSignatureMsg(ogid OutcomeGenerationID, esp EpochStartProof) []byte {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(epochStartProofSignatureDomainSeparator))
+
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+
+	highestCertifiedEnc := esp.HighestCertified.SignatureMsg(ogid)
+	_ = binary.Write(h, binary.BigEndian, uint64(len(highestCertifiedEnc)))
+	_, _ = h.Write(highestCertifiedEnc)
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(esp.HighestCertifiedProof)))
+	for _, ashct := range esp.HighestCertifiedProof {
+
+		_ = binary.Write(h, binary.BigEndian, ashct.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.SeqNr)
+
+		var committedElsePreparedByte uint8
+		if ashct.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.CommittedElsePrepared {
+			committedElsePreparedByte = 1
+		} else {
+			committedElsePreparedByte = 0
+		}
+		_, _ = h.Write([]byte{byte(committedElsePreparedByte)})
+
+		_ = binary.Write(h, binary.BigEndian, ashct.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.Epoch)
+
+		_ = binary.Write(h, binary.BigEndian, uint64(len(ashct.SignedHighestCertifiedTimestamp.Signature31)))
+		_, _ = h.Write(ashct.SignedHighestCertifiedTimestamp.Signature31)
+
+		_ = binary.Write(h, binary.BigEndian, uint64(ashct.Signer))
+	}
+
+	return ocr3DomainSeparatedSum(h)
+}
+
+type EpochStartSignature31 []byte
+
+func MakeEpochStartSignature31(
+	ogid OutcomeGenerationID,
+	epochStartProof EpochStartProof,
+	signer func(msg []byte) ([]byte, error),
+) (EpochStartSignature31, error) {
+	return signer(epochStartProofSignatureMsg(ogid, epochStartProof))
 }

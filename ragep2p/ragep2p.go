@@ -2,7 +2,6 @@ package ragep2p
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
@@ -150,7 +149,7 @@ type HostConfig struct {
 type Host struct {
 	// Constructor args
 	config            HostConfig
-	secretKey         ed25519.PrivateKey
+	keyring           types.PeerKeyring
 	listenAddresses   []string
 	discoverer        Discoverer
 	logger            loghelper.LoggerWithContext
@@ -158,7 +157,7 @@ type Host struct {
 
 	hostMetrics *hostMetrics
 
-	// Derived from secretKey
+	// Derived from keyring
 	id      types.PeerID
 	tlsCert tls.Certificate
 
@@ -181,7 +180,7 @@ type Host struct {
 // discovering addresses of peers.
 func NewHost(
 	config HostConfig,
-	secretKey ed25519.PrivateKey,
+	keyring types.PeerKeyring,
 	listenAddresses []string,
 	discoverer Discoverer,
 	logger commontypes.Logger,
@@ -191,25 +190,27 @@ func NewHost(
 		return nil, fmt.Errorf("no listen addresses provided")
 	}
 
-	id, err := mtls.StaticallySizedEd25519PublicKey(secretKey.Public())
+	id := types.PeerIDFromKeyring(keyring)
+
+	tlsCert, err := mtls.NewMinimalX509CertFromKeyring(keyring)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create certificate from keyring for host: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Host{
 		config,
-		secretKey,
+		keyring,
 		listenAddresses,
 		discoverer,
 		// peerID might already be set to the same value if we are managed, but we don't take any chances
-		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": types.PeerID(id)}),
+		loghelper.MakeRootLoggerWithContext(logger).MakeChild(commontypes.LogFields{"id": "ragep2p", "peerID": id}),
 		metricsRegisterer,
 
-		newHostMetrics(metricsRegisterer, logger, types.PeerID(id)),
+		newHostMetrics(metricsRegisterer, logger, id),
 
 		id,
-		mtls.NewMinimalX509CertFromPrivateKey(secretKey),
+		tlsCert,
 
 		sync.Mutex{},
 		hostStatePending,
@@ -253,7 +254,7 @@ func (ho *Host) Start() error {
 		})
 	}
 
-	err := ho.discoverer.Start(ho, ho.secretKey, ho.logger)
+	err := ho.discoverer.Start(ho, ho.keyring, ho.logger)
 	if err != nil {
 		return fmt.Errorf("failed to start discoverer: %w", err)
 	}
@@ -597,7 +598,6 @@ func (ho *Host) dialLoop() {
 		}
 		ho.peersMu.Unlock()
 		for _, p := range peers {
-			p := p // copy for goroutine
 			ds := dialStates[p.other]
 			dialProcesses.Go(func() {
 				p.connLifeCycleMu.Lock()
@@ -690,7 +690,11 @@ func (ho *Host) handleOutgoingConnection(conn net.Conn, other types.PeerID, logg
 		}
 	}()
 
-	knck := knock.BuildKnock(other, ho.id, ho.secretKey)
+	knck, err := knock.BuildKnock(other, ho.id, ho.keyring)
+	if err != nil {
+		logger.Warn("Error while building knock", commontypes.LogFields{"error": err})
+		return
+	}
 	if err := conn.SetWriteDeadline(time.Now().Add(netTimeout)); err != nil {
 		logger.Warn("Closing connection, error during SetWriteDeadline", commontypes.LogFields{"error": err})
 		return
@@ -811,10 +815,10 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 		logger.Warn("Closing connection, error getting public key", commontypes.LogFields{"error": err})
 		return
 	}
-	if peer.other != pubKey {
+	if peer.other != types.PeerIDFromPeerPublicKey(pubKey) {
 		logger.Warn("TLS handshake PeerID mismatch", commontypes.LogFields{
 			"expected": peer.other,
-			"actual":   types.PeerID(pubKey),
+			"actual":   types.PeerIDFromPeerPublicKey(pubKey),
 		})
 		return
 	}
@@ -1528,7 +1532,7 @@ func incomingConnsRateLimit(durationBetweenDials time.Duration) ratelimit.Millit
 
 // Discoverer is responsible for discovering the addresses of peers on the network.
 type Discoverer interface {
-	Start(host *Host, privKey ed25519.PrivateKey, logger loghelper.LoggerWithContext) error
+	Start(host *Host, keyring types.PeerKeyring, logger loghelper.LoggerWithContext) error
 	Close() error
 	FindPeer(peer types.PeerID) ([]types.Address, error)
 }

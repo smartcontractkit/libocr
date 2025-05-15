@@ -25,15 +25,18 @@ func messageToSign(peerID types.PeerID) []byte {
 // message and must correspond to self.
 //
 // Returns a knock message exactly KnockSize bytes long.
-func BuildKnock(other types.PeerID, self types.PeerID, secretKey ed25519.PrivateKey) []byte {
+func BuildKnock(other types.PeerID, self types.PeerID, keyring types.PeerKeyring) ([]byte, error) {
 	msg := messageToSign(other)
-	sig := ed25519.Sign(secretKey, msg)
+	sig, err := keyring.Sign(msg)
+	if err != nil {
+		return nil, fmt.Errorf("keyring failed to sign knock message: %w", err)
+	}
 
 	knock := make([]byte, 0, KnockSize)
 	knock = append(knock, version)
 	knock = append(knock, self[:]...)
 	knock = append(knock, sig...)
-	return knock
+	return knock, nil
 }
 
 var (

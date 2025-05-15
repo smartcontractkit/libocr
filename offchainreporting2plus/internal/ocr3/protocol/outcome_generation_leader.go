@@ -79,27 +79,41 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
-	goodCount := 0
+	notBadCount := 0 // Note: just because a request is not marked bad does not mean it's good. Tertium datur!
+	for _, epochStartRequest := range outgen.leaderState.epochStartRequests {
+		if epochStartRequest.bad {
+			continue
+		}
+		notBadCount++
+	}
+
+	if notBadCount < outgen.config.ByzQuorumSize() {
+		return
+	}
+
+	// The not-bad entries in epochStartRequests here are guaranteed to be
+	// nonempty due to definition of ByzQuorumSize.
 	var maxSender *commontypes.OracleID
 	for sender, epochStartRequest := range outgen.leaderState.epochStartRequests {
 		if epochStartRequest.bad {
 			continue
 		}
-		goodCount++
-
-		if maxSender == nil || outgen.leaderState.epochStartRequests[*maxSender].message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.Less(epochStartRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
-			sender := sender
-			maxSender = &sender
+		if maxSender != nil {
+			maxTimestamp := outgen.leaderState.epochStartRequests[*maxSender].message.HighestCertified.Timestamp()
+			if !maxTimestamp.Less31(epochStartRequest.message.HighestCertified.Timestamp()) {
+				continue
+			}
 		}
+		maxSender = &sender
 	}
 
-	if maxSender == nil || goodCount < outgen.config.ByzQuorumSize() {
+	if maxSender == nil {
 		return
 	}
 
 	maxRequest := outgen.leaderState.epochStartRequests[*maxSender]
 
-	if maxRequest.message.HighestCertified.Timestamp() != maxRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp {
+	if !maxRequest.message.HighestCertified.Timestamp().Equal(maxRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
 		maxRequest.bad = true
 		outgen.logger.Warn("timestamp mismatch in MessageEpochStartRequest", commontypes.LogFields{
 			"sender":                          *maxSender,
@@ -159,9 +173,23 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		"contributors": contributors,
 	})
 
+	epochStartSignature31, err := MakeEpochStartSignature31(
+		outgen.ID(),
+		epochStartProof,
+		outgen.offchainKeyring.OffchainSign,
+	)
+
+	if err != nil {
+		outgen.logger.Error("MakeEpochStartSignature31 returned error", commontypes.LogFields{
+			"error": err,
+		})
+		return
+	}
+
 	outgen.netSender.Broadcast(MessageEpochStart[RI]{
 		outgen.sharedState.e,
 		epochStartProof,
+		epochStartSignature31,
 	})
 
 	if epochStartProof.HighestCertified.IsGenesis() {
@@ -172,12 +200,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else {
-		prepareQc, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQC, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
 		if !ok {
 			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStartRequest", nil)
 			return
 		}
-		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr + 1
+		outgen.sharedState.firstSeqNrOfEpoch = prepareQC.SeqNr + 1
 		// We're dealing with a re-proposal from a failed epoch based on a
 		// prepare qc.
 		// We don't want to send MessageRoundStart.
@@ -241,7 +269,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundQuery(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedQuery(ev EventComputedQuery[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.committedSeqNr+1 {
-		outgen.logger.Debug("discarding EventComputedQuery from old round", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedQuery from old round", commontypes.LogFields{
 			"seqNr":          outgen.sharedState.seqNr,
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 			"evEpoch":        ev.Epoch,
@@ -392,7 +420,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation(ev EventComputedValidateVerifyObservation[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
-		outgen.logger.Debug("discarding EventComputedValidateVerifyObservation from old round", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedValidateVerifyObservation from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
@@ -401,7 +429,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 	}
 
 	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart && outgen.leaderState.phase != outgenLeaderPhaseGrace {
-		outgen.logger.Debug("discarding EventComputedValidateVerifyObservation, wrong phase", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedValidateVerifyObservation, wrong phase", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.leaderState.phase,
 		})
@@ -484,7 +512,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedObservationQuorumSuccess(ev EventComputedObservationQuorumSuccess[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
-		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess from old round", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedObservationQuorumSuccess from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
@@ -493,7 +521,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedObservationQuorumSuccess(
 	}
 
 	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart {
-		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess, wrong phase", commontypes.LogFields{
+		outgen.logger.Debug("dropping EventComputedObservationQuorumSuccess, wrong phase", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.leaderState.phase,
 		})
