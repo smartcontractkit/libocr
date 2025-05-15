@@ -29,7 +29,7 @@ func RunReportAttestation[RI any](
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainSignVerifier ocr3types.SignVerifier[RI],
 	reportingPlugin ocr3types.ReportingPlugin[RI],
 ) {
 	sched := scheduler.NewScheduler[EventMissingOutcome[RI]]()
@@ -37,7 +37,7 @@ func RunReportAttestation[RI any](
 
 	newReportAttestationState(ctx, chNetToReportAttestation,
 		chOutcomeGenerationToReportAttestation, chReportAttestationToTransmission,
-		config, contractTransmitter, logger, netSender, onchainKeyring, reportingPlugin, sched).run()
+		config, contractTransmitter, logger, netSender, onchainSignVerifier, reportingPlugin, sched).run()
 }
 
 const expiryMinRounds int = 10
@@ -59,7 +59,7 @@ type reportAttestationState[RI any] struct {
 	contractTransmitter                    ocr3types.ContractTransmitter[RI]
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender[RI]
-	onchainKeyring                         ocr3types.OnchainKeyring[RI]
+	onchainSignVerifier                    ocr3types.SignVerifier[RI]
 	reportingPlugin                        ocr3types.ReportingPlugin[RI]
 
 	scheduler    *scheduler.Scheduler[EventMissingOutcome[RI]]
@@ -449,7 +449,7 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 					return
 				}
 
-				if !repatt.onchainKeyring.Verify(publicKey, repatt.config.ConfigDigest, seqNr, reportsPlus[i].ReportWithInfo, signatures[i]) {
+				if !repatt.onchainSignVerifier.Verify(publicKey, repatt.config.ConfigDigest, seqNr, reportsPlus[i].ReportWithInfo, signatures[i]) {
 					mutex.Lock()
 					allValid = false
 					mutex.Unlock()
@@ -540,7 +540,7 @@ func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedR
 
 	var sigs [][]byte
 	for i, reportPlus := range ev.ReportsPlus {
-		sig, err := repatt.onchainKeyring.Sign(repatt.config.ConfigDigest, ev.SeqNr, reportPlus.ReportWithInfo)
+		sig, err := repatt.onchainSignVerifier.Sign(repatt.config.ConfigDigest, ev.SeqNr, reportPlus.ReportWithInfo)
 		if err != nil {
 			repatt.logger.Error("error while signing report", commontypes.LogFields{
 				"evSeqNr": ev.SeqNr,
@@ -669,7 +669,7 @@ func newReportAttestationState[RI any](
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainSignVerifier ocr3types.SignVerifier[RI],
 	reportingPlugin ocr3types.ReportingPlugin[RI],
 	sched *scheduler.Scheduler[EventMissingOutcome[RI]],
 ) *reportAttestationState[RI] {
@@ -684,7 +684,7 @@ func newReportAttestationState[RI any](
 		contractTransmitter,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "repatt"}),
 		netSender,
-		onchainKeyring,
+		onchainSignVerifier,
 		reportingPlugin,
 
 		sched,
