@@ -208,7 +208,7 @@ func RunManagedOCR3Oracle[RI any](
 				offchainKeyring,
 				onchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
-				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
 			return nil, false

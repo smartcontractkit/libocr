@@ -13,8 +13,10 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-// PublicConfig is the configuration disseminated through the smart contract
-// It's public, because anybody can read it from the blockchain
+// PublicConfig is the configuration disseminated through the smart contract.
+// It's public, because anybody can read it from the blockchain.
+// The various parameters (e.g. Delta*, MaxDuration*) have some dependencies
+// on each other, so be sure to consider the holistic impact of changes to them.
 type PublicConfig struct {
 	// If an epoch (driven by a leader) fails to achieve progress (generate a
 	// report) after DeltaProgress, we enter a new epoch. This parameter must be

@@ -204,6 +204,8 @@ func (pace *pacemakerState[RI]) eventTResendTimeout() {
 func (pace *pacemakerState[RI]) eventTProgressTimeout() {
 	pace.logger.Debug("TProgress fired", commontypes.LogFields{
 		"deltaProgress": pace.config.DeltaProgress.String(),
+		"e":             pace.e,
+		"l":             pace.l,
 	})
 	pace.eventNewEpochRequest()
 }
@@ -309,6 +311,7 @@ func (pace *pacemakerState[RI]) messageNewEpochWish(msg MessageNewEpochWish[RI],
 		}
 		pace.metrics.epoch.Set(float64(pace.e))
 		pace.metrics.leader.Set(float64(pace.l))
+		pace.telemetrySender.EpochStarted(pace.config.ConfigDigest, uint32(pace.e), pace.l)
 		pace.tProgress = time.After(pace.config.DeltaProgress) // restart timer T_{progress}
 
 		pace.notifyOutcomeGenerationOfNewEpoch = true // invoke event newEpochStart(e, l)

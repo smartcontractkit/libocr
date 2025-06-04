@@ -37,6 +37,7 @@ func RunTransmission(
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	reportingPlugin types.ReportingPlugin,
+	telemetrySender TelemetrySender,
 	transmitter types.ContractTransmitter,
 ) {
 	t := transmissionState{
@@ -50,6 +51,7 @@ func RunTransmission(
 		localConfig:                        localConfig,
 		logger:                             logger,
 		reportingPlugin:                    reportingPlugin,
+		telemetrySender:                    telemetrySender,
 		transmitter:                        transmitter,
 	}
 	t.run()
@@ -66,6 +68,7 @@ type transmissionState struct {
 	localConfig                        types.LocalConfig
 	logger                             loghelper.LoggerWithContext
 	reportingPlugin                    types.ReportingPlugin
+	telemetrySender                    TelemetrySender
 	transmitter                        types.ContractTransmitter
 
 	chPersist chan<- persist.TransmissionDBUpdate
@@ -173,6 +176,7 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 				"epoch": ev.Epoch,
 				"round": ev.Round,
 			})
+			t.telemetrySender.TransmissionShouldAcceptFinalizedReportComputed(ts, false, false)
 			return
 		}
 
@@ -181,16 +185,20 @@ func (t *transmissionState) eventTransmit(ev EventTransmit) {
 				"epoch": ev.Epoch,
 				"round": ev.Round,
 			})
+			t.telemetrySender.TransmissionShouldAcceptFinalizedReportComputed(ts, false, true)
 			return
 		}
 	}
 
+	t.telemetrySender.TransmissionShouldAcceptFinalizedReportComputed(ts, true, true)
+
 	now := time.Now()
-	delayMaybe := t.transmitDelay(ev.Epoch, ev.Round)
-	if delayMaybe == nil {
+	delays := t.transmitDelays(ev.Epoch, ev.Round)
+	t.telemetrySender.TransmissionScheduleComputed(ts, now, delays)
+	delay, ok := delays[t.id]
+	if !ok {
 		return
 	}
-	delay := *delayMaybe
 
 	transmission := types.PendingTransmission{
 		now.Add(delay),
@@ -266,11 +274,13 @@ func (t *transmissionState) eventTTransmitTimeout() {
 
 		if err != nil {
 			t.logger.Error("eventTTransmitTimeout: ReportingPlugin.ShouldTransmitAcceptedReport error", commontypes.LogFields{"error": err})
+			t.telemetrySender.TransmissionShouldTransmitAcceptedReportComputed(item.ReportTimestamp, false, false)
 			return
 		}
 
 		if !shouldTransmit {
 			t.logger.Info("eventTTransmitTimeout: ReportingPlugin.ShouldTransmitAcceptedReport returned false", nil)
+			t.telemetrySender.TransmissionShouldTransmitAcceptedReportComputed(item.ReportTimestamp, false, true)
 			return
 		}
 	}
@@ -279,6 +289,7 @@ func (t *transmissionState) eventTTransmitTimeout() {
 		"epoch": item.Epoch,
 		"round": item.Round,
 	})
+	t.telemetrySender.TransmissionShouldTransmitAcceptedReportComputed(item.ReportTimestamp, true, true)
 
 	{
 		ctx, cancel := context.WithTimeout(
@@ -321,7 +332,10 @@ func (t *transmissionState) eventTTransmitTimeout() {
 	})
 }
 
-func (t *transmissionState) transmitDelay(epoch uint32, round uint8) *time.Duration {
+// Computes a map from oracle ids to to transmission delays. This is
+// deterministic across all oracles. The result is derived pseudorandomly
+// uniformly and independently per epoch and round.
+func (t *transmissionState) transmitDelays(epoch uint32, round uint8) map[commontypes.OracleID]time.Duration {
 	// No need for HMAC. Since we use Keccak256, prepending
 	// with key gives us a PRF already.
 	hash := sha3.NewLegacyKeccak256()
@@ -336,15 +350,36 @@ func (t *transmissionState) transmitDelay(epoch uint32, round uint8) *time.Durat
 
 	var key [16]byte
 	copy(key[:], hash.Sum(nil))
-	pi := permutation.Permutation(t.config.N(), key)
 
-	sum := 0
-	for i, s := range t.config.S {
-		sum += s
-		if pi[t.id] < sum {
-			result := time.Duration(i) * t.config.DeltaStage
-			return &result
+	// Permutation from transmission order index to oracle id
+	piInv := make([]int, t.config.N())
+	{
+		// Permutation from oracle id to transmission order index. The
+		// permutations are structured in this "inverted" way for historical
+		// compatibility
+		pi := permutation.Permutation(t.config.N(), key)
+		for i := range pi {
+			piInv[pi[i]] = i
 		}
 	}
-	return nil
+
+	result := make(map[commontypes.OracleID]time.Duration, t.config.N())
+
+	accumulatedStageSize := 0
+	for stageIdx, stageSize := range t.config.S {
+		// i is the index of the oracle sorted by transmission order
+		for i := accumulatedStageSize; i < accumulatedStageSize+stageSize; i++ {
+			if i >= len(piInv) {
+				// Index is larger than index of the last oracle. This happens
+				// when sum(S) > N.
+				break
+			}
+			oracleId := commontypes.OracleID(piInv[i])
+			result[oracleId] = time.Duration(stageIdx) * t.config.DeltaStage
+		}
+
+		accumulatedStageSize += stageSize
+	}
+
+	return result
 }

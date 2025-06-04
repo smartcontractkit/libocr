@@ -456,6 +456,8 @@ func (pace *pacemakerState) messageNewepoch(msg MessageNewEpoch, sender commonty
 			pace.metrics.leader.Set(float64(pace.l))
 			pace.persist()
 
+			pace.telemetrySender.EpochStarted(pace.config.ConfigDigest, pace.e, pace.l)
+
 			// abort instance [...], initialize instance (e,l) of report generation
 			pace.spawnReportGeneration()
 

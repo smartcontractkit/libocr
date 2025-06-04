@@ -10,13 +10,14 @@ import (
 )
 
 type OCR2TelemetrySender struct {
-	chTelemetry chan<- *serialization.TelemetryWrapper
-	logger      commontypes.Logger
-	taper       loghelper.LogarithmicTaper
+	chTelemetry                 chan<- *serialization.TelemetryWrapper
+	logger                      commontypes.Logger
+	taper                       loghelper.LogarithmicTaper
+	enableTransmissionTelemetry bool
 }
 
-func NewOCR2TelemetrySender(chTelemetry chan<- *serialization.TelemetryWrapper, logger commontypes.Logger) *OCR2TelemetrySender {
-	return &OCR2TelemetrySender{chTelemetry, logger, loghelper.LogarithmicTaper{}}
+func NewOCR2TelemetrySender(chTelemetry chan<- *serialization.TelemetryWrapper, logger commontypes.Logger, enableTransmissionTelemetry bool) *OCR2TelemetrySender {
+	return &OCR2TelemetrySender{chTelemetry, logger, loghelper.LogarithmicTaper{}, enableTransmissionTelemetry}
 }
 
 func (ts *OCR2TelemetrySender) send(t *serialization.TelemetryWrapper) {
@@ -36,20 +37,106 @@ func (ts *OCR2TelemetrySender) send(t *serialization.TelemetryWrapper) {
 	}
 }
 
-func (ts *OCR2TelemetrySender) RoundStarted(
+func (ts *OCR2TelemetrySender) EpochStarted(
 	configDigest types.ConfigDigest,
 	epoch uint32,
-	round uint8,
+	leader commontypes.OracleID,
+) {
+	t := time.Now().UnixNano()
+	ts.send(&serialization.TelemetryWrapper{
+		Wrapped: &serialization.TelemetryWrapper_EpochStarted{&serialization.TelemetryEpochStarted{
+			ConfigDigest: configDigest[:],
+			Epoch:        uint64(epoch),
+			Leader:       uint64(leader),
+		}},
+		UnixTimeNanoseconds: t,
+	})
+}
+
+func (ts *OCR2TelemetrySender) RoundStarted(
+	reportTimestamp types.ReportTimestamp,
 	leader commontypes.OracleID,
 ) {
 	t := time.Now().UnixNano()
 	ts.send(&serialization.TelemetryWrapper{
 		Wrapped: &serialization.TelemetryWrapper_RoundStarted{&serialization.TelemetryRoundStarted{
-			ConfigDigest: configDigest[:],
-			Epoch:        uint64(epoch),
-			Round:        uint64(round),
+			ConfigDigest: reportTimestamp.ConfigDigest[:],
+			Epoch:        uint64(reportTimestamp.Epoch),
+			Round:        uint64(reportTimestamp.Round),
 			Leader:       uint64(leader),
 			Time:         uint64(t),
+		}},
+		UnixTimeNanoseconds: t,
+	})
+}
+
+func (ts *OCR2TelemetrySender) TransmissionScheduleComputed(
+	reportTimestamp types.ReportTimestamp,
+	now time.Time,
+	schedule map[commontypes.OracleID]time.Duration,
+) {
+	if !ts.enableTransmissionTelemetry {
+		return
+	}
+
+	t := time.Now().UnixNano()
+
+	scheduleDelayNanosecondsPerNode := make(map[uint64]uint64, len(schedule))
+	for oracle, delay := range schedule {
+		scheduleDelayNanosecondsPerNode[uint64(oracle)] = uint64(delay.Nanoseconds())
+	}
+
+	ts.send(&serialization.TelemetryWrapper{
+		Wrapped: &serialization.TelemetryWrapper_TransmissionScheduleComputed{&serialization.TelemetryTransmissionScheduleComputed{
+			ConfigDigest:                    reportTimestamp.ConfigDigest[:],
+			Epoch:                           uint64(reportTimestamp.Epoch),
+			Round:                           uint64(reportTimestamp.Round),
+			UnixTimeNanoseconds:             uint64(now.UnixNano()),
+			ScheduleDelayNanosecondsPerNode: scheduleDelayNanosecondsPerNode,
+		}},
+		UnixTimeNanoseconds: t,
+	})
+}
+
+func (ts *OCR2TelemetrySender) TransmissionShouldAcceptFinalizedReportComputed(
+	reportTimestamp types.ReportTimestamp,
+	result bool,
+	ok bool,
+) {
+	if !ts.enableTransmissionTelemetry {
+		return
+	}
+
+	t := time.Now().UnixNano()
+	ts.send(&serialization.TelemetryWrapper{
+		Wrapped: &serialization.TelemetryWrapper_TransmissionShouldAcceptFinalizedReportComputed{&serialization.TelemetryTransmissionShouldAcceptFinalizedReportComputed{
+			ConfigDigest: reportTimestamp.ConfigDigest[:],
+			Epoch:        uint64(reportTimestamp.Epoch),
+			Round:        uint64(reportTimestamp.Round),
+			Result:       result,
+			Ok:           ok,
+		}},
+		UnixTimeNanoseconds: t,
+	})
+}
+
+func (ts *OCR2TelemetrySender) TransmissionShouldTransmitAcceptedReportComputed(
+	reportTimestamp types.ReportTimestamp,
+	result bool,
+	ok bool,
+) {
+	if !ts.enableTransmissionTelemetry {
+		return
+	}
+
+	t := time.Now().UnixNano()
+	ts.send(&serialization.TelemetryWrapper{
+		Wrapped: &serialization.TelemetryWrapper_TransmissionShouldTransmitAcceptedReportComputed{&serialization.TelemetryTransmissionShouldTransmitAcceptedReportComputed{
+			ConfigDigest: reportTimestamp.ConfigDigest[:],
+			Epoch:        uint64(reportTimestamp.Epoch),
+			Round:        uint64(reportTimestamp.Round),
+			Result:       result,
+			Ok:           ok,
 		}},
 		UnixTimeNanoseconds: t,
 	})

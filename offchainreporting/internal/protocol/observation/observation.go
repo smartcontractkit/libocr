@@ -58,7 +58,6 @@ func (o Observation) GoEthereumValue() *big.Int { return o.v }
 
 func (o Observation) Deviates(old Observation, thresholdPPB uint64) bool {
 	if old.v.Cmp(i(0)) == 0 {
-		//nolint:gosimple
 		if o.v.Cmp(i(0)) == 0 {
 			return false // Both values are zero; no deviation
 		}

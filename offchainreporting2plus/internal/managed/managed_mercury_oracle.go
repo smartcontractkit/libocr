@@ -229,7 +229,7 @@ func RunManagedMercuryOracle(
 				offchainKeyring,
 				ocr3OnchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[mercuryshim.MercuryReportInfo]{reportingPlugin, reportingPluginLimits},
-				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
 			return nil, false

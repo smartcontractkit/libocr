@@ -116,12 +116,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	repgen.followerState.sentReport = false
 	repgen.followerState.completedRound = false
 
-	repgen.telemetrySender.RoundStarted(
-		repgen.config.ConfigDigest,
-		repgen.e,
-		repgen.followerState.r,
-		repgen.l,
-	)
+	repgen.telemetrySender.RoundStarted(repgen.followerReportTimestamp(), repgen.l)
 
 	var o types.Observation
 	{

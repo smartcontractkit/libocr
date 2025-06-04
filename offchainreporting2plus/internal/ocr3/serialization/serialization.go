@@ -142,6 +142,7 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			uint64(v.Epoch),
 			v.SeqNr,
 			v.Query,
+			v.Signature31,
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageRoundStart{pm}
 	case protocol.MessageObservation[RI]:
@@ -171,6 +172,7 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			uint64(v.Epoch),
 			v.SeqNr,
 			pbasos,
+			v.Signature31,
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageProposal{pm}
 	case protocol.MessagePrepare[RI]:
@@ -482,6 +484,7 @@ func (fpm *fromProtoMessage[RI]) messageProposal(m *MessageProposal) (protocol.M
 		m.Epoch,
 		m.SeqNr,
 		asos,
+		m.Signature31,
 	}, nil
 }
 
@@ -647,6 +650,7 @@ func (fpm *fromProtoMessage[RI]) messageRoundStart(m *MessageRoundStart) (protoc
 		m.Epoch,
 		m.SeqNr,
 		m.Query,
+		m.Signature31,
 	}, nil
 }
 
