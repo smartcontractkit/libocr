@@ -378,6 +378,10 @@ type OffchainPublicKey [ed25519.PublicKeySize]byte
 // oracle to the on-chain smart contract.
 type OnchainPublicKey []byte
 
+func (opk OnchainPublicKey) Equal(other OnchainPublicKey) bool {
+	return bytes.Equal(opk, other)
+}
+
 // ConfigEncryptionPublicKey is the public key used to receive an encrypted
 // version of the secret shared amongst all oracles on a common contract.
 type ConfigEncryptionPublicKey [curve25519.PointSize]byte // X25519

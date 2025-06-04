@@ -1,6 +1,7 @@
 package managed
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -75,7 +76,7 @@ func RunManagedMercuryOracle(
 				skipResourceExhaustionChecks,
 				contractConfig,
 				offchainKeyring,
-				ocr3OnchainKeyring,
+				&shimComparableKeyRing{ocr3OnchainKeyring},
 				netEndpointFactory.PeerID(),
 				fromAccount,
 			)
@@ -250,4 +251,12 @@ func validateMercuryPluginLimits(limits ocr3types.MercuryPluginLimits) error {
 		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxMercuryReportLength))
 	}
 	return err
+}
+
+type shimComparableKeyRing struct {
+	ocr3types.OnchainKeyring[mercuryshim.MercuryReportInfo]
+}
+
+func (s *shimComparableKeyRing) Equal(other types.OnchainPublicKey) bool {
+	return bytes.Equal(other, s.PublicKey())
 }

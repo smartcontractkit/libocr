@@ -31,7 +31,7 @@ func RunOracle[RI any](
 	metricsRegisterer prometheus.Registerer,
 	netEndpoint NetworkEndpoint[RI],
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.SignVerifier[RI], //ocr3types.OnchainKeyring[RI],
 	reportingPlugin ocr3types.ReportingPlugin[RI],
 	telemetrySender TelemetrySender,
 ) {
@@ -66,7 +66,7 @@ type oracleState[RI any] struct {
 	metricsRegisterer   prometheus.Registerer
 	netEndpoint         NetworkEndpoint[RI]
 	offchainKeyring     types.OffchainKeyring
-	onchainKeyring      ocr3types.OnchainKeyring[RI]
+	onchainKeyring      ocr3types.SignVerifier[RI] //ocr3types.OnchainKeyring[RI]
 	reportingPlugin     ocr3types.ReportingPlugin[RI]
 	telemetrySender     TelemetrySender
 

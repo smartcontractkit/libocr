@@ -1,6 +1,7 @@
 package offchainreporting2plus
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -18,6 +19,7 @@ type OracleArgs interface {
 	oracleArgsMarker()
 	localConfig() types.LocalConfig
 	runManaged(ctx context.Context)
+	validate() error
 }
 
 // OCR2OracleArgs contains the configuration and services a caller must provide, in
@@ -68,6 +70,8 @@ type OCR2OracleArgs struct {
 	// "application logic" used in a OCR2 protocol instance.
 	ReportingPluginFactory types.ReportingPluginFactory
 }
+
+func (OCR2OracleArgs) validate() error { return nil } // No validation needed for OCR2
 
 func (OCR2OracleArgs) oracleArgsMarker() {}
 
@@ -144,6 +148,8 @@ type MercuryOracleArgs struct {
 	MercuryPluginFactory ocr3types.MercuryPluginFactory
 }
 
+func (MercuryOracleArgs) validate() error { return nil } // No validation needed for Mercury
+
 func (MercuryOracleArgs) oracleArgsMarker() {}
 
 func (args MercuryOracleArgs) localConfig() types.LocalConfig { return args.LocalConfig }
@@ -210,7 +216,15 @@ type OCR3OracleArgs[RI any] struct {
 
 	// OnchainKeyring is used to sign reports that can be validated
 	// offchain and by the target contract.
+	//
+	// it is an error if both OnchainKeyring and ComparableOnchainKeyring are set
 	OnchainKeyring ocr3types.OnchainKeyring[RI]
+
+	// ComparableOnchainKeyring is used to verify that the onchain keyring
+	// It enable custom equality check when comparing onchain keys fetch from the contract
+	//
+	// it is an error if both OnchainKeyring and ComparableOnchainKeyring are set
+	ComparableOnchainKeyring ocr3types.ComparableOnchainKeyring[RI]
 
 	// PluginFactory creates Plugins that determine the "application logic" used
 	// in a protocol instance.
@@ -220,6 +234,20 @@ type OCR3OracleArgs[RI any] struct {
 func (OCR3OracleArgs[RI]) oracleArgsMarker() {}
 
 func (args OCR3OracleArgs[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args OCR3OracleArgs[RI]) validate() error {
+	if args.OnchainKeyring != nil && args.ComparableOnchainKeyring != nil {
+		return fmt.Errorf("cannot set both OnchainKeyring and ComparableOnchainKeyring")
+	}
+	return nil
+}
+
+func (args OCR3OracleArgs[RI]) onchainKeyRing() ocr3types.ComparableOnchainKeyring[RI] {
+	if args.ComparableOnchainKeyring != nil {
+		return args.ComparableOnchainKeyring
+	}
+	return &shimComparableKeyRing[RI]{args.OnchainKeyring}
+}
 
 func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
@@ -238,9 +266,17 @@ func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
 		args.OffchainKeyring,
-		args.OnchainKeyring,
+		args.onchainKeyRing(),
 		args.ReportingPluginFactory,
 	)
+}
+
+type shimComparableKeyRing[RI any] struct {
+	ocr3types.OnchainKeyring[RI]
+}
+
+func (k *shimComparableKeyRing[RI]) Equal(onchainPublicKey types.OnchainPublicKey) bool {
+	return bytes.Equal(k.PublicKey(), onchainPublicKey)
 }
 
 type oracleState int
@@ -275,6 +311,9 @@ type oracle struct {
 func NewOracle(args OracleArgs) (Oracle, error) {
 	if err := SanityCheckLocalConfig(args.localConfig()); err != nil {
 		return nil, fmt.Errorf("bad local config while creating new oracle: %w", err)
+	}
+	if err := args.validate(); err != nil {
+		return nil, fmt.Errorf("bad oracle args while creating new oracle: %w", err)
 	}
 	return &oracle{
 		sync.Mutex{},

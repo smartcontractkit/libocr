@@ -38,7 +38,7 @@ func RunManagedOCR3Oracle[RI any](
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.ComparableOnchainKeyring[RI],
 	reportingPluginFactory ocr3types.ReportingPluginFactory[RI],
 ) {
 	subs := subprocesses.Subprocesses{}
