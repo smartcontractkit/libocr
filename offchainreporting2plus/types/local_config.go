@@ -77,6 +77,11 @@ type LocalConfig struct {
 	// validation will be done on this value.
 	MinOCR2MaxDurationQuery time.Duration
 
+	// If this is set, transmission telemetry will be sent in OCR protocol
+	// versions that support it. This feature is gated behind this variable
+	// to not cause a sudden increase in telemetry traffic.
+	EnableTransmissionTelemetry bool
+
 	// DANGER, this turns off all kinds of sanity checks. May be useful for testing.
 	// Set this to EnableDangerousDevelopmentMode to turn on dev mode.
 	DevelopmentMode string

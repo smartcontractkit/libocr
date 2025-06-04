@@ -202,6 +202,7 @@ func (o *oracleState) run() {
 			o.localConfig,
 			o.logger,
 			o.reportingPlugin,
+			o.telemetrySender,
 			o.contractTransmitter,
 		)
 	})
