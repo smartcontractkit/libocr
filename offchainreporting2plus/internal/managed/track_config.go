@@ -91,6 +91,10 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	ctx, cancel := context.WithTimeout(state.ctx, state.localConfig.ContractConfigLoadTimeout)
 	defer cancel()
 
+	state.logger.Info("Here we are again", commontypes.LogFields{
+		"error": "hhj",
+	})
+
 	blockheight, err := state.configTracker.LatestBlockHeight(ctx)
 	if err != nil {
 		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestBlockHeight()", ctx, commontypes.LogFields{
@@ -107,7 +111,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, false
 	}
 	if latestConfigDigest == (types.ConfigDigest{}) {
-		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest. Looks like the contract has not been configured", commontypes.LogFields{
+		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest, oh crap. Looks like the contract has not been configured", commontypes.LogFields{
 			"configDigest": latestConfigDigest,
 		})
 		return nil, false
