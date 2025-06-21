@@ -44,6 +44,8 @@ func RunManagedOCR3Oracle[RI any](
 	subs := subprocesses.Subprocesses{}
 	defer subs.Wait()
 
+	fmt.Print("OCRDEBUG: ManagedOCR3Oracle: RunManagedOCR3Oracle called\n")
+
 	var chTelemetrySend chan<- *serialization.TelemetryWrapper
 	{
 		chTelemetry := make(chan *serialization.TelemetryWrapper, 100)

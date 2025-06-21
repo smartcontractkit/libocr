@@ -104,6 +104,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, false
 	}
 
+	fmt.Printf("Type of configTracker: %T\n", state.configTracker)
+
 	changedInBlock, latestConfigDigest, err := state.configTracker.LatestConfigDetails(ctx)
 	if err != nil {
 		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", ctx, commontypes.LogFields{
