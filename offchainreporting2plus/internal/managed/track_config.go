@@ -93,7 +93,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer cancel()
 
 	state.logger.Info("Here we are again", commontypes.LogFields{
-		"error": "oohhere1",
+		"error": "oohhere2",
 	})
 
 	blockheight, err := state.configTracker.LatestBlockHeight(ctx)
@@ -105,6 +105,19 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	}
 
 	fmt.Printf("Type of configTracker: %T\n", state.configTracker)
+
+	changedInBlockl, latestConfigDigestl, err1 := state.configTracker.LatestConfigDetails(ctx)
+	latestBlockHeight, err2 := state.configTracker.LatestBlockHeight(ctx)
+	config, err3 := state.configTracker.LatestConfig(ctx, 0)
+
+	fmt.Printf("changedInBlock: %v\n", changedInBlockl)
+	fmt.Printf("latestConfigDigest: %v\n", latestConfigDigestl)
+	if err1 != nil || err2 != nil || err3 != nil {
+		fmt.Printf("Error in TrackConfig: %v, %v, %v\n", err1, err2, err3)
+	}
+
+	fmt.Printf("LatestBlockHeight from configTracker: %d\n", latestBlockHeight)
+	fmt.Printf("Config from configTracker: %+v\n", config)
 
 	changedInBlock, latestConfigDigest, err := state.configTracker.LatestConfigDetails(ctx)
 	if err != nil {
