@@ -63,10 +63,14 @@ func RunManagedOCR3Oracle[RI any](
 		func(ctx context.Context, logger loghelper.LoggerWithContext, contractConfig types.ContractConfig) (err error, retry bool) {
 			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: runWithContractConfig called with contractConfig: %+v\n", contractConfig)
+
 			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3Oracle: error getting FromAccount: %w", err), true
 			}
+
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: FromAccount: %s\n", fromAccount)
 
 			sharedConfig, oid, err := ocr3config.SharedConfigFromContractConfig(
 				skipResourceExhaustionChecks,
@@ -76,6 +80,8 @@ func RunManagedOCR3Oracle[RI any](
 				netEndpointFactory.PeerID(),
 				fromAccount,
 			)
+
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: SharedConfigFromContractConfig returned sharedConfig: %+v, oid: %s\n", sharedConfig, oid)
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3Oracle: error while decoding ContractConfig: %w", err), false
 			}
