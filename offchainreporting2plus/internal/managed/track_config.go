@@ -93,7 +93,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	defer cancel()
 
 	state.logger.Info("Here we are again", commontypes.LogFields{
-		"error": "hhj",
+		"error": "oohhere1",
 	})
 
 	blockheight, err := state.configTracker.LatestBlockHeight(ctx)

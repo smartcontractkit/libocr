@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ac9797f5-d3e8-4622-9162-278d12a88bc2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/offchainreporting2plus/internal/managed/managed_ocr3_oracle.go" beforeDir="false" afterPath="$PROJECT_DIR$/offchainreporting2plus/internal/managed/managed_ocr3_oracle.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/offchainreporting2plus/internal/managed/run_with_contract_config.go" beforeDir="false" afterPath="$PROJECT_DIR$/offchainreporting2plus/internal/managed/run_with_contract_config.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/offchainreporting2plus/internal/ocr3/protocol/oracle.go" beforeDir="false" afterPath="$PROJECT_DIR$/offchainreporting2plus/internal/ocr3/protocol/oracle.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/offchainreporting2plus/oracle.go" beforeDir="false" afterPath="$PROJECT_DIR$/offchainreporting2plus/oracle.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/offchainreporting2plus/internal/managed/track_config.go" beforeDir="false" afterPath="$PROJECT_DIR$/offchainreporting2plus/internal/managed/track_config.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
