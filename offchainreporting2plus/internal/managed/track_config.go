@@ -108,7 +108,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 
 	changedInBlockl, latestConfigDigestl, err1 := state.configTracker.LatestConfigDetails(ctx)
 	latestBlockHeight, err2 := state.configTracker.LatestBlockHeight(ctx)
-	config, err3 := state.configTracker.LatestConfig(ctx, 0)
+	config, err3 := state.configTracker.LatestConfig(ctx, latestBlockHeight)
 
 	fmt.Printf("changedInBlock: %v\n", changedInBlockl)
 	fmt.Printf("latestConfigDigest: %v\n", latestConfigDigestl)
