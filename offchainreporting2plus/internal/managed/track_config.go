@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -110,6 +111,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
+	fmt.Println("This is a debug trial line")
+
 	if latestConfigDigest == (types.ConfigDigest{}) {
 		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest, oh crap. Looks like the contract has not been configured", commontypes.LogFields{
 			"configDigest": latestConfigDigest,
