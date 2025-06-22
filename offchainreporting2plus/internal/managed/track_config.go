@@ -108,7 +108,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 
 	changedInBlockl, latestConfigDigestl, err1 := state.configTracker.LatestConfigDetails(ctx)
 	latestBlockHeight, err2 := state.configTracker.LatestBlockHeight(ctx)
-	config, err3 := state.configTracker.LatestConfig(ctx, latestBlockHeight)
+	config, err3 := state.configTracker.LatestConfig(ctx, changedInBlockl)
 
 	fmt.Printf("changedInBlock: %v\n", changedInBlockl)
 	fmt.Printf("latestConfigDigest: %v\n", latestConfigDigestl)
@@ -126,7 +126,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
-	fmt.Println("This is a debug trial line")
+	fmt.Println("This is a debug trial line 1")
 
 	if latestConfigDigest == (types.ConfigDigest{}) {
 		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest, oh crap. Looks like the contract has not been configured", commontypes.LogFields{
@@ -134,12 +134,17 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
+
+	fmt.Println("This is a debug trial line 2")
 	if state.configDigest == latestConfigDigest {
 		return nil, false
 	}
+
+	fmt.Println("This is a debug trial line 3")
 	if !state.localConfig.SkipContractConfigConfirmations && blockheight < changedInBlock+uint64(state.localConfig.ContractConfigConfirmations)-1 {
 		return nil, true
 	}
+	fmt.Println("This is a debug trial line 4")
 
 	contractConfig, err := state.configTracker.LatestConfig(ctx, changedInBlock)
 	if err != nil {
@@ -148,6 +153,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, true
 	}
+
+	fmt.Println("This is a debug trial line 5")
 
 	if latestConfigDigest != contractConfig.ConfigDigest {
 		state.logger.Error("TrackConfig: received config change with ConfigDigest mismatch", commontypes.LogFields{
@@ -158,6 +165,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, false
 	}
 
+	fmt.Println("This is a debug trial line 6")
+
 	// Ignore configs where the configDigest doesn't match, they might have
 	// been corrupted somehow.
 	if err := state.configDigester.CheckContractConfig(ctx, contractConfig); err != nil {
@@ -167,6 +176,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
+
+	fmt.Println("This is a debug trial line 5")
 
 	return &contractConfig, false
 }
