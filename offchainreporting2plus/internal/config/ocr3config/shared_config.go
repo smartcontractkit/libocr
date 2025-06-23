@@ -57,12 +57,19 @@ func SharedConfigFromContractConfig[RI any](
 		return SharedConfig{}, 0, err
 	}
 
+	fmt.Printf("SharedConfigFromContractConfig: publicConfig: %+v\n", publicConfig)
+
 	oracleID := commontypes.OracleID(math.MaxUint8)
 	{
 		onchainPublicKey := onchainKeyring.PublicKey()
+		fmt.Printf("SharedConfigFromContractConfig: onchainPublicKey: %x\n", onchainPublicKey)
+
 		offchainPublicKey := offchainKeyring.OffchainPublicKey()
+
+		fmt.Printf("SharedConfigFromContractConfig: offchainPublicKey: %x\n", offchainPublicKey)
 		var found bool
 		for i, identity := range publicConfig.OracleIdentities {
+			fmt.Printf("Comparing identity %d: %x with onchainPublicKey: %x\n", i, identity.OnchainPublicKey, onchainPublicKey)
 			if bytes.Equal(identity.OnchainPublicKey, onchainPublicKey) {
 				if identity.OffchainPublicKey != offchainPublicKey {
 					return SharedConfig{}, 0, errors.Errorf(
