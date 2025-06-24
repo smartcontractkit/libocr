@@ -98,12 +98,14 @@ func RunManagedOCR3Oracle[RI any](
 				metricsRegistererWrapper,
 			)
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 1")
 			// Run with new config
 			peerIDs := []string{}
 			for _, identity := range sharedConfig.OracleIdentities {
 				peerIDs = append(peerIDs, identity.PeerID)
 			}
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 2")
 			childLogger := logger.MakeChild(commontypes.LogFields{
 				"oid": oid,
 			})
@@ -112,6 +114,7 @@ func RunManagedOCR3Oracle[RI any](
 			initCtx, initCancel := context.WithTimeout(ctx, maxDurationInitialization)
 			defer initCancel()
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 3")
 			ins := loghelper.NewIfNotStopped(
 				maxDurationInitialization+protocol.ReportingPluginTimeoutWarningGracePeriod,
 				func() {
@@ -121,6 +124,7 @@ func RunManagedOCR3Oracle[RI any](
 				},
 			)
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 4")
 			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(initCtx, ocr3types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
@@ -134,8 +138,10 @@ func RunManagedOCR3Oracle[RI any](
 				sharedConfig.MaxDurationShouldAcceptAttestedReport,
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
 			})
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 5")
 
 			ins.Stop()
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 6")
 
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3Oracle: error during NewReportingPlugin(): %w", err), true
@@ -146,6 +152,7 @@ func RunManagedOCR3Oracle[RI any](
 				"ManagedOCR3Oracle: error during reportingPlugin.Close()",
 			)
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 7")
 			if err := validateOCR3ReportingPluginLimits(reportingPluginInfo.Limits); err != nil {
 				logger.Error("ManagedOCR3Oracle: invalid ReportingPluginInfo", commontypes.LogFields{
 					"error":               err,
@@ -153,6 +160,7 @@ func RunManagedOCR3Oracle[RI any](
 				})
 				return fmt.Errorf("ManagedOCR3Oracle: invalid MercuryPluginInfo"), false
 			}
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 8")
 
 			maxSigLen := onchainKeyring.MaxSignatureLength()
 			lims, err := limits.OCR3Limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, maxSigLen)
@@ -165,6 +173,7 @@ func RunManagedOCR3Oracle[RI any](
 				})
 				return fmt.Errorf("ManagedOCR3Oracle: error during limits"), false
 			}
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 9")
 			binNetEndpoint, err := netEndpointFactory.NewEndpoint(
 				sharedConfig.ConfigDigest,
 				peerIDs,
@@ -180,6 +189,8 @@ func RunManagedOCR3Oracle[RI any](
 				})
 				return fmt.Errorf("ManagedOCR3Oracle: error during NewEndpoint"), true
 			}
+
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 10")
 
 			// No need to binNetEndpoint.Start/Close since netEndpoint will handle that for us
 
@@ -197,12 +208,15 @@ func RunManagedOCR3Oracle[RI any](
 			if err := netEndpoint.Start(); err != nil {
 				return fmt.Errorf("ManagedOCR3Oracle: error during netEndpoint.Start(): %w", err), true
 			}
+
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 11")
 			defer loghelper.CloseLogError(
 				netEndpoint,
 				logger,
 				"ManagedOCR3Oracle: error during netEndpoint.Close()",
 			)
 
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 12")
 			protocol.RunOracle[RI](
 				ctx,
 				sharedConfig,
@@ -218,6 +232,8 @@ func RunManagedOCR3Oracle[RI any](
 				shim.LimitCheckOCR3ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
 				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
+
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 13")
 
 			return nil, false
 		},

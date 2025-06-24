@@ -106,6 +106,8 @@ func SharedConfigFromContractConfig[RI any](
 		return SharedConfig{}, 0, fmt.Errorf("could not decrypt shared secret: %w", err)
 	}
 
+	fmt.Printf("returning public config and oracleID: %v, %d\n", publicConfig, oracleID)
+
 	return SharedConfig{
 		publicConfig,
 		x,
