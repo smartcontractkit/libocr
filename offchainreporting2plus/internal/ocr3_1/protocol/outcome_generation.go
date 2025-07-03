@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
@@ -32,15 +33,17 @@ func RunOutcomeGeneration[RI any](
 	chPacemakerToOutcomeGeneration <-chan EventToOutcomeGeneration[RI],
 	chOutcomeGenerationToPacemaker chan<- EventToPacemaker[RI],
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI],
+	blobBroadcastFetcher ocr3_1types.BlobBroadcastFetcher,
 	config ocr3config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
+	kvStore KeyValueStore,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
-	reportingPlugin ocr3types.ReportingPlugin[RI],
+	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 	telemetrySender TelemetrySender,
 
 	restoredCert CertifiedPrepareOrCommit,
@@ -55,9 +58,11 @@ func RunOutcomeGeneration[RI any](
 		chPacemakerToOutcomeGeneration:         chPacemakerToOutcomeGeneration,
 		chOutcomeGenerationToPacemaker:         chOutcomeGenerationToPacemaker,
 		chOutcomeGenerationToReportAttestation: chOutcomeGenerationToReportAttestation,
+		blobBroadcastFetcher:                   blobBroadcastFetcher,
 		config:                                 config,
 		database:                               database,
 		id:                                     id,
+		kvStore:                                kvStore,
 		localConfig:                            localConfig,
 		logger:                                 logger.MakeUpdated(commontypes.LogFields{"proto": "outgen"}),
 		metrics:                                newOutcomeGenerationMetrics(metricsRegisterer, logger),
@@ -78,15 +83,17 @@ type outcomeGenerationState[RI any] struct {
 	chPacemakerToOutcomeGeneration         <-chan EventToOutcomeGeneration[RI]
 	chOutcomeGenerationToPacemaker         chan<- EventToPacemaker[RI]
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI]
+	blobBroadcastFetcher                   ocr3_1types.BlobBroadcastFetcher
 	config                                 ocr3config.SharedConfig
 	database                               Database
 	id                                     commontypes.OracleID
+	kvStore                                KeyValueStore
 	localConfig                            types.LocalConfig
 	logger                                 loghelper.LoggerWithContext
 	metrics                                *outcomeGenerationMetrics
 	netSender                              NetworkSender[RI]
 	offchainKeyring                        types.OffchainKeyring
-	reportingPlugin                        ocr3types.ReportingPlugin[RI]
+	reportingPlugin                        ocr3_1types.ReportingPlugin[RI]
 	telemetrySender                        TelemetrySender
 
 	epochCtx         context.Context
@@ -102,7 +109,7 @@ type leaderState[RI any] struct {
 
 	epochStartRequests map[commontypes.OracleID]*epochStartRequest[RI]
 
-	readyToStartRound bool // TODO: explain meaning of this vs design doc
+	readyToStartRound bool
 	tRound            <-chan time.Time
 
 	query           types.Query
@@ -126,19 +133,24 @@ type followerState[RI any] struct {
 
 	proposalPool *pool.Pool[MessageProposal[RI]]
 
-	outcome outcomeAndDigests
+	stateTransitionInfo stateTransitionInfo
+
+	openKVTxn KeyValueStoreReadWriteTransaction
 
 	// lock
+
 	cert CertifiedPrepareOrCommit
 
 	preparePool *pool.Pool[PrepareSignature]
 	commitPool  *pool.Pool[CommitSignature]
 }
 
-type outcomeAndDigests struct {
-	Outcome      ocr3types.Outcome
-	InputsDigest OutcomeInputsDigest
-	Digest       OutcomeDigest
+type stateTransitionInfo struct {
+	InputsDigest               StateTransitionInputsDigest
+	Outputs                    StateTransitionOutputs
+	OutputDigest               StateTransitionOutputDigest
+	ReportsPlusPrecursor       ocr3_1types.ReportsPlusPrecursor
+	ReportsPlusPrecursorDigest ReportsPlusPrecursorDigest
 }
 
 type sharedState struct {
@@ -147,12 +159,26 @@ type sharedState struct {
 
 	firstSeqNrOfEpoch uint64
 	seqNr             uint64
-	committedSeqNr    uint64
-	committedOutcome  ocr3types.Outcome
+	observationQuorum *int
+
+	committedSeqNr uint64
 }
 
 func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCommit) {
-	outgen.logger.Info("OutcomeGeneration: running", nil)
+	var restoredCommitedSeqNr uint64
+	if restoredCert != nil {
+		if commitQC, ok := restoredCert.(*CertifiedCommit); ok {
+			restoredCommitedSeqNr = commitQC.SeqNr()
+		} else if prepareQc, ok := restoredCert.(*CertifiedPrepare); ok {
+			if prepareQc.SeqNr() > 1 {
+				restoredCommitedSeqNr = prepareQc.SeqNr() - 1
+			}
+		}
+	}
+
+	outgen.logger.Info("OutcomeGeneration: running", commontypes.LogFields{
+		"restoredCommittedSeqNr": restoredCommitedSeqNr,
+	})
 
 	// Initialization
 	outgen.epochCtx, outgen.epochCtxCancel = context.WithCancel(outgen.ctx)
@@ -177,7 +203,8 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		nil,
 		nil,
 		nil,
-		outcomeAndDigests{},
+		stateTransitionInfo{},
+		nil,
 		restoredCert,
 		nil,
 		nil,
@@ -188,9 +215,9 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		0,
 
 		0,
-		0,
-		0,
+		restoredCommitedSeqNr,
 		nil,
+		restoredCommitedSeqNr,
 	}
 
 	// Event Loop
@@ -303,7 +330,7 @@ func (outgen *outcomeGenerationState[RI]) eventNewEpochStart(ev EventNewEpochSta
 
 	outgen.followerState.phase = outgenFollowerPhaseNewEpoch
 	outgen.followerState.tInitial = time.After(outgen.config.DeltaInitial)
-	outgen.followerState.outcome = outcomeAndDigests{}
+	outgen.followerState.stateTransitionInfo = stateTransitionInfo{}
 
 	outgen.followerState.roundStartPool = pool.NewPool[MessageRoundStart[RI]](poolSize)
 	outgen.followerState.proposalPool = pool.NewPool[MessageProposal[RI]](poolSize)
@@ -315,6 +342,8 @@ func (outgen *outcomeGenerationState[RI]) eventNewEpochStart(ev EventNewEpochSta
 	outgen.leaderState.readyToStartRound = false
 	outgen.leaderState.observationPool = pool.NewPool[SignedObservation](1) // only one observation per sender & round, and we do not need to worry about observations from the future
 	outgen.leaderState.tGrace = nil
+
+	outgen.refreshCommittedSeqNrAndCert()
 
 	var highestCertified CertifiedPrepareOrCommit
 	var highestCertifiedTimestamp HighestCertifiedTimestamp
@@ -353,7 +382,7 @@ func (outgen *outcomeGenerationState[RI]) ID() OutcomeGenerationID {
 	return OutcomeGenerationID{outgen.config.ConfigDigest, outgen.sharedState.e}
 }
 
-func (outgen *outcomeGenerationState[RI]) OutcomeCtx(seqNr uint64) ocr3types.OutcomeContext {
+func (outgen *outcomeGenerationState[RI]) RoundCtx(seqNr uint64) RoundContext {
 	if seqNr != outgen.sharedState.committedSeqNr+1 {
 		outgen.logger.Critical("assumption violation, seqNr isn't successor to committedSeqNr", commontypes.LogFields{
 			"seqNr":          seqNr,
@@ -361,33 +390,32 @@ func (outgen *outcomeGenerationState[RI]) OutcomeCtx(seqNr uint64) ocr3types.Out
 		})
 		panic("")
 	}
-	return ocr3types.OutcomeContext{
+	return RoundContext{
 		seqNr,
-		outgen.sharedState.committedOutcome,
 		outgen.sharedState.e,
 		seqNr - outgen.sharedState.firstSeqNrOfEpoch + 1,
 	}
 }
 
-func callPluginFromOutcomeGenerationBackground[T any, RI any](
+func callPluginFromOutcomeGenerationBackground[T any](
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	name string,
 	recommendedMaxDuration time.Duration,
-	outctx ocr3types.OutcomeContext,
-	f func(context.Context, ocr3types.OutcomeContext) (T, error),
+	roundCtx RoundContext,
+	f func(context.Context, RoundContext) (T, error),
 ) (T, bool) {
 	return common.CallPluginFromBackground[T](
 		ctx,
 		logger,
 		commontypes.LogFields{
-			"seqNr": outctx.SeqNr,
-			"round": outctx.Round, // nolint: staticcheck
+			"seqNr": roundCtx.SeqNr,
+			"round": roundCtx.Round, // nolint: staticcheck
 		},
 		name,
 		recommendedMaxDuration,
 		func(ctx context.Context) (T, error) {
-			return f(ctx, outctx)
+			return f(ctx, roundCtx)
 		},
 	)
 }
