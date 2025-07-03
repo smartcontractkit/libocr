@@ -7,7 +7,6 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -16,6 +15,7 @@ type outgenLeaderPhase string
 const (
 	outgenLeaderPhaseUnknown        outgenLeaderPhase = "unknown"
 	outgenLeaderPhaseNewEpoch       outgenLeaderPhase = "newEpoch"
+	outgenLeaderPhaseAbdicate       outgenLeaderPhase = "abdicate"
 	outgenLeaderPhaseSentEpochStart outgenLeaderPhase = "sentEpochStart"
 	outgenLeaderPhaseSentRoundStart outgenLeaderPhase = "sentRoundStart"
 	outgenLeaderPhaseGrace          outgenLeaderPhase = "grace"
@@ -23,6 +23,13 @@ const (
 )
 
 func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEpochStartRequest[RI], sender commontypes.OracleID) {
+
+	outgen.logger.Debug("received MessageEpochStartRequest", commontypes.LogFields{
+		"sender":                       sender,
+		"msgHighestCertifiedTimestamp": msg.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp,
+		"msgEpoch":                     msg.Epoch,
+	})
+
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessageEpochStartRequest for wrong epoch", commontypes.LogFields{
 			"sender":   sender,
@@ -79,41 +86,27 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
-	notBadCount := 0 // Note: just because a request is not marked bad does not mean it's good. Tertium datur!
-	for _, epochStartRequest := range outgen.leaderState.epochStartRequests {
-		if epochStartRequest.bad {
-			continue
-		}
-		notBadCount++
-	}
-
-	if notBadCount < outgen.config.ByzQuorumSize() {
-		return
-	}
-
-	// The not-bad entries in epochStartRequests here are guaranteed to be
-	// nonempty due to definition of ByzQuorumSize.
+	goodCount := 0
 	var maxSender *commontypes.OracleID
 	for sender, epochStartRequest := range outgen.leaderState.epochStartRequests {
 		if epochStartRequest.bad {
 			continue
 		}
-		if maxSender != nil {
-			maxTimestamp := outgen.leaderState.epochStartRequests[*maxSender].message.HighestCertified.Timestamp()
-			if !maxTimestamp.Less(epochStartRequest.message.HighestCertified.Timestamp()) {
-				continue
-			}
+		goodCount++
+
+		if maxSender == nil || outgen.leaderState.epochStartRequests[*maxSender].message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.Less(epochStartRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
+			sender := sender
+			maxSender = &sender
 		}
-		maxSender = &sender
 	}
 
-	if maxSender == nil {
+	if maxSender == nil || goodCount < outgen.config.ByzQuorumSize() {
 		return
 	}
 
 	maxRequest := outgen.leaderState.epochStartRequests[*maxSender]
 
-	if !maxRequest.message.HighestCertified.Timestamp().Equal(maxRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
+	if maxRequest.message.HighestCertified.Timestamp() != maxRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp {
 		maxRequest.bad = true
 		outgen.logger.Warn("timestamp mismatch in MessageEpochStartRequest", commontypes.LogFields{
 			"sender":                          *maxSender,
@@ -158,11 +151,19 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		highestCertifiedProof,
 	}
 
+	outgen.refreshCommittedSeqNrAndCert()
+	if !outgen.ensureHighestCertifiedIsCompatible(maxRequest.message.HighestCertified, "potential broadcast of EpochStartProof") {
+		outgen.leaderState.phase = outgenLeaderPhaseAbdicate
+
+		return
+	}
+
 	// This is a sanity check to ensure that we only construct epochStartProofs that are actually valid.
 	// This should never fail.
 	if err := epochStartProof.Verify(outgen.ID(), outgen.config.OracleIdentities, outgen.config.ByzQuorumSize()); err != nil {
 		outgen.logger.Critical("EpochStartProof is invalid, very surprising!", commontypes.LogFields{
 			"proof": epochStartProof,
+			"error": err,
 		})
 		return
 	}
@@ -170,26 +171,14 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 	outgen.leaderState.phase = outgenLeaderPhaseSentEpochStart
 
 	outgen.logger.Info("broadcasting MessageEpochStart", commontypes.LogFields{
-		"contributors": contributors,
+		"contributors":              contributors,
+		"highestCertifiedTimestamp": epochStartProof.HighestCertified.Timestamp(),
+		"highestCertifiedQCSeqNr":   epochStartProof.HighestCertified.SeqNr(),
 	})
-
-	epochStartSignature31, err := MakeEpochStartSignature31(
-		outgen.ID(),
-		epochStartProof,
-		outgen.offchainKeyring.OffchainSign,
-	)
-
-	if err != nil {
-		outgen.logger.Error("MakeEpochStartSignature31 returned error", commontypes.LogFields{
-			"error": err,
-		})
-		return
-	}
 
 	outgen.netSender.Broadcast(MessageEpochStart[RI]{
 		outgen.sharedState.e,
 		epochStartProof,
-		epochStartSignature31,
 	})
 
 	if epochStartProof.HighestCertified.IsGenesis() {
@@ -200,12 +189,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else {
-		prepareQC, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
+		prepareQc, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
 		if !ok {
 			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStartRequest", nil)
 			return
 		}
-		outgen.sharedState.firstSeqNrOfEpoch = prepareQC.SeqNr + 1
+		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr() + 1
 		// We're dealing with a re-proposal from a failed epoch based on a
 		// prepare qc.
 		// We don't want to send MessageRoundStart.
@@ -222,18 +211,36 @@ func (outgen *outcomeGenerationState[RI]) eventTRoundTimeout() {
 }
 
 func (outgen *outcomeGenerationState[RI]) startSubsequentLeaderRound() {
+	outgen.logger.Debug("trying to start new leader round", commontypes.LogFields{
+		"seqNr": outgen.sharedState.seqNr,
+	})
+
 	if !outgen.leaderState.readyToStartRound {
+		outgen.logger.Debug("not ready to start new leader round yet", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+		})
 		outgen.leaderState.readyToStartRound = true
 		return
 	}
 	outgen.leaderState.readyToStartRound = false
+	outgen.logger.Debug("starting new leader round", commontypes.LogFields{
+		"seqNr": outgen.sharedState.seqNr,
+	})
 
 	{
 		ctx := outgen.epochCtx
 		logger := outgen.logger
-		outctx := outgen.OutcomeCtx(outgen.sharedState.committedSeqNr + 1)
+		roundCtx := outgen.RoundCtx(outgen.sharedState.committedSeqNr + 1)
+		kvReadTxn, err := outgen.kvStore.NewReadTransaction(roundCtx.SeqNr)
+		if err != nil {
+			outgen.logger.Warn("failed to create new transaction, aborting startSubsequentLeaderRound", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"error": err,
+			})
+			return
+		}
 		outgen.subs.Go(func() {
-			outgen.backgroundQuery(ctx, logger, outctx)
+			outgen.backgroundQuery(ctx, logger, roundCtx, kvReadTxn)
 		})
 	}
 }
@@ -241,26 +248,28 @@ func (outgen *outcomeGenerationState[RI]) startSubsequentLeaderRound() {
 func (outgen *outcomeGenerationState[RI]) backgroundQuery(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
-	outctx ocr3types.OutcomeContext,
+	roundCtx RoundContext,
+	kvReadTxn KeyValueStoreReadTransaction,
 ) {
-	query, ok := callPluginFromOutcomeGenerationBackground[types.Query, RI](
+	query, ok := callPluginFromOutcomeGenerationBackground[types.Query](
 		ctx,
 		logger,
 		"Query",
 		outgen.config.MaxDurationQuery,
-		outctx,
-		func(ctx context.Context, outctx ocr3types.OutcomeContext) (types.Query, error) {
-			return outgen.reportingPlugin.Query(ctx, outctx)
+		roundCtx,
+		func(ctx context.Context, outctx RoundContext) (types.Query, error) {
+			return outgen.reportingPlugin.Query(ctx, roundCtx.SeqNr, kvReadTxn, outgen.blobBroadcastFetcher)
 		},
 	)
+	kvReadTxn.Discard()
 	if !ok {
 		return
 	}
 
 	select {
 	case outgen.chLocalEvent <- EventComputedQuery[RI]{
-		outctx.Epoch,
-		outctx.SeqNr,
+		roundCtx.Epoch,
+		roundCtx.SeqNr,
 		query,
 	}:
 	case <-ctx.Done():
@@ -269,26 +278,11 @@ func (outgen *outcomeGenerationState[RI]) backgroundQuery(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedQuery(ev EventComputedQuery[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.committedSeqNr+1 {
-		outgen.logger.Debug("dropping EventComputedQuery from old round", commontypes.LogFields{
+		outgen.logger.Debug("discarding EventComputedQuery from old round", commontypes.LogFields{
 			"seqNr":          outgen.sharedState.seqNr,
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 			"evEpoch":        ev.Epoch,
 			"evSeqNr":        ev.SeqNr,
-		})
-		return
-	}
-
-	roundStartSignature31, err := MakeRoundStartSignature31(
-		outgen.ID(),
-		outgen.sharedState.committedSeqNr+1,
-		ev.Query,
-		outgen.offchainKeyring.OffchainSign,
-	)
-	if err != nil {
-		outgen.logger.Error("MakeRoundStartSignature31 returned error", commontypes.LogFields{
-			"error":          err,
-			"seqNr":          outgen.sharedState.seqNr,
-			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
 		return
 	}
@@ -307,11 +301,16 @@ func (outgen *outcomeGenerationState[RI]) eventComputedQuery(ev EventComputedQue
 		outgen.sharedState.e,
 		outgen.sharedState.committedSeqNr + 1,
 		ev.Query,
-		roundStartSignature31,
 	})
 }
 
 func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservation[RI], sender commontypes.OracleID) {
+
+	outgen.logger.Debug("received MessageObservation", commontypes.LogFields{
+		"sender":   sender,
+		"msgSeqNr": msg.SeqNr,
+		"msgEpoch": msg.Epoch,
+	})
 
 	if msg.Epoch != outgen.sharedState.e {
 		outgen.logger.Debug("dropping MessageObservation for wrong epoch", commontypes.LogFields{
@@ -365,10 +364,21 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 		ctx := outgen.epochCtx
 		logger := outgen.logger
 		ogid := outgen.ID()
-		outctx := outgen.OutcomeCtx(outgen.sharedState.seqNr)
-		query := outgen.leaderState.query
+		roundCtx := outgen.RoundCtx(outgen.sharedState.seqNr)
+		aq := types.AttributedQuery{
+			outgen.leaderState.query,
+			outgen.sharedState.l,
+		}
+		kvReadTxn, err := outgen.kvStore.NewReadTransaction(roundCtx.SeqNr)
+		if err != nil {
+			outgen.logger.Warn("failed to create new transaction, aborting messageObservation", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"error": err,
+			})
+			return
+		}
 		outgen.subs.Go(func() {
-			outgen.backgroundVerifyValidateObservation(ctx, logger, ogid, outctx, sender, msg.SignedObservation, query)
+			outgen.backgroundVerifyValidateObservation(ctx, logger, ogid, roundCtx, sender, msg.SignedObservation, aq, kvReadTxn)
 		})
 	}
 }
@@ -377,40 +387,47 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	ogid OutcomeGenerationID,
-	outctx ocr3types.OutcomeContext,
+	roundCtx RoundContext,
 	sender commontypes.OracleID,
 	signedObservation SignedObservation,
-	query types.Query,
+	aq types.AttributedQuery,
+	kvReadTxn KeyValueStoreReadTransaction,
 ) {
-
 	if err := signedObservation.Verify(
 		ogid,
-		outctx.SeqNr,
-		query,
+		roundCtx.SeqNr,
+		aq.Query,
 		outgen.config.OracleIdentities[sender].OffchainPublicKey,
 	); err != nil {
 		logger.Warn("dropping MessageObservation carrying invalid SignedObservation", commontypes.LogFields{
 			"sender": sender,
-			"seqNr":  outctx.SeqNr,
+			"seqNr":  roundCtx.SeqNr,
 			"error":  err,
 		})
 		return
 	}
 
-	err, ok := callPluginFromOutcomeGenerationBackground[error, RI](
+	err, ok := callPluginFromOutcomeGenerationBackground[error](
 		ctx,
 		logger,
 		"ValidateObservation",
 		0, // ValidateObservation is a pure function and should finish "instantly"
-		outctx,
-		func(ctx context.Context, outctx ocr3types.OutcomeContext) (error, error) {
-			return outgen.reportingPlugin.ValidateObservation(ctx, outctx, query, types.AttributedObservation{signedObservation.Observation, sender}), nil
+		roundCtx,
+		func(ctx context.Context, roundCtx RoundContext) (error, error) {
+			return outgen.reportingPlugin.ValidateObservation(ctx,
+				roundCtx.SeqNr,
+				aq,
+				types.AttributedObservation{signedObservation.Observation, sender},
+				kvReadTxn,
+				outgen.blobBroadcastFetcher,
+			), nil
 		},
 	)
+	kvReadTxn.Discard()
 	if !ok {
 		logger.Error("dropping MessageObservation carrying Observation that could not be validated", commontypes.LogFields{
 			"sender": sender,
-			"seqNr":  outctx.SeqNr,
+			"seqNr":  roundCtx.SeqNr,
 		})
 		return
 	}
@@ -418,7 +435,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 	if err != nil {
 		logger.Warn("dropping MessageObservation carrying invalid Observation", commontypes.LogFields{
 			"sender": sender,
-			"seqNr":  outctx.SeqNr,
+			"seqNr":  roundCtx.SeqNr,
 			"error":  err,
 		})
 		return
@@ -426,8 +443,8 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 
 	select {
 	case outgen.chLocalEvent <- EventComputedValidateVerifyObservation[RI]{
-		outctx.Epoch,
-		outctx.SeqNr,
+		roundCtx.Epoch,
+		roundCtx.SeqNr,
 		sender,
 	}:
 	case <-ctx.Done():
@@ -436,7 +453,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation(ev EventComputedValidateVerifyObservation[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
-		outgen.logger.Debug("dropping EventComputedValidateVerifyObservation from old round", commontypes.LogFields{
+		outgen.logger.Debug("discarding EventComputedValidateVerifyObservation from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
@@ -445,7 +462,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 	}
 
 	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart && outgen.leaderState.phase != outgenLeaderPhaseGrace {
-		outgen.logger.Debug("dropping EventComputedValidateVerifyObservation, wrong phase", commontypes.LogFields{
+		outgen.logger.Debug("discarding EventComputedValidateVerifyObservation, wrong phase", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.leaderState.phase,
 		})
@@ -454,7 +471,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 
 	outgen.logger.Debug("got valid MessageObservation", commontypes.LogFields{
 		"sender": ev.Sender,
-		"seqNr":  outgen.sharedState.seqNr,
+		"seqNr":  ev.SeqNr,
 	})
 
 	outgen.leaderState.observationPool.StoreVerified(outgen.sharedState.seqNr, ev.Sender, true)
@@ -462,8 +479,11 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 	{
 		ctx := outgen.epochCtx
 		logger := outgen.logger
-		outctx := outgen.OutcomeCtx(outgen.sharedState.seqNr)
-		query := outgen.leaderState.query
+		outctx := outgen.RoundCtx(outgen.sharedState.seqNr)
+		aq := types.AttributedQuery{
+			outgen.leaderState.query,
+			outgen.sharedState.l,
+		}
 		aos := []types.AttributedObservation{}
 		for sender, observationPoolEntry := range outgen.leaderState.observationPool.Entries(outgen.sharedState.seqNr) {
 			if observationPoolEntry.Verified == nil || !*observationPoolEntry.Verified {
@@ -471,14 +491,23 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 			}
 			aos = append(aos, types.AttributedObservation{observationPoolEntry.Item.Observation, sender})
 		}
+		kvReadTxn, err := outgen.kvStore.NewReadTransaction(outctx.SeqNr)
+		if err != nil {
+			outgen.logger.Warn("failed to create new transaction, aborting eventComputedValidateVerifyObservation", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"error": err,
+			})
+			return
+		}
 
 		outgen.subs.Go(func() {
 			outgen.backgroundObservationQuorum(
 				ctx,
 				logger,
 				outctx,
-				query,
+				aq,
 				aos,
+				kvReadTxn,
 			)
 		})
 	}
@@ -487,20 +516,22 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
-	outctx ocr3types.OutcomeContext,
-	query types.Query,
+	roundCtx RoundContext,
+	aq types.AttributedQuery,
 	aos []types.AttributedObservation,
+	kvReadTxn KeyValueStoreReadTransaction,
 ) {
-	observationQuorum, ok := callPluginFromOutcomeGenerationBackground[bool, RI](
+	observationQuorum, ok := callPluginFromOutcomeGenerationBackground[bool](
 		ctx,
 		logger,
 		"ObservationQuorum",
 		0, // ObservationQuorum is a pure function and should finish "instantly"
-		outctx,
-		func(ctx context.Context, outctx ocr3types.OutcomeContext) (bool, error) {
-			return outgen.reportingPlugin.ObservationQuorum(ctx, outctx, query, aos)
+		roundCtx,
+		func(ctx context.Context, roundCtx RoundContext) (bool, error) {
+			return outgen.reportingPlugin.ObservationQuorum(ctx, roundCtx.SeqNr, aq, aos, kvReadTxn, outgen.blobBroadcastFetcher)
 		},
 	)
+	kvReadTxn.Discard()
 
 	if !ok {
 		return
@@ -511,7 +542,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 			logger.Warn("ObservationQuorum returned false despite there being at least n-f valid observations. This is the maximum number of valid observations we are guaranteed to receive. Maybe there is a bug in the ReportingPlugin.", commontypes.LogFields{
 				"attributedObservationCount": len(aos),
 				"nMinusF":                    outgen.config.N() - outgen.config.F,
-				"seqNr":                      outctx.SeqNr,
+				"seqNr":                      roundCtx.SeqNr,
 			})
 		}
 		return
@@ -519,8 +550,8 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 
 	select {
 	case outgen.chLocalEvent <- EventComputedObservationQuorumSuccess[RI]{
-		outctx.Epoch,
-		outctx.SeqNr,
+		roundCtx.Epoch,
+		roundCtx.SeqNr,
 	}:
 	case <-ctx.Done():
 	}
@@ -528,7 +559,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 
 func (outgen *outcomeGenerationState[RI]) eventComputedObservationQuorumSuccess(ev EventComputedObservationQuorumSuccess[RI]) {
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
-		outgen.logger.Debug("dropping EventComputedObservationQuorumSuccess from old round", commontypes.LogFields{
+		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
 			"evEpoch": ev.Epoch,
 			"evSeqNr": ev.SeqNr,
@@ -537,7 +568,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedObservationQuorumSuccess(
 	}
 
 	if outgen.leaderState.phase != outgenLeaderPhaseSentRoundStart {
-		outgen.logger.Debug("dropping EventComputedObservationQuorumSuccess, wrong phase", commontypes.LogFields{
+		outgen.logger.Debug("discarding EventComputedObservationQuorumSuccess, wrong phase", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"phase": outgen.leaderState.phase,
 		})
@@ -581,7 +612,6 @@ func (outgen *outcomeGenerationState[RI]) eventTGraceTimeout() {
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		asos,
-		nil,
 	})
 
 	outgen.leaderState.observationPool.ReapCompleted(outgen.sharedState.seqNr)

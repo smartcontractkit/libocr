@@ -261,6 +261,45 @@ func (p2 *concretePeerV2) newEndpoint(
 	return endpoint, nil
 }
 
+func (p2 *concretePeerV2) newEndpoint3_1(
+	configDigest ocr2types.ConfigDigest,
+	v2peerIDs []string,
+	v2bootstrappers []commontypes.BootstrapperLocator,
+	defaultPriorityConfig ocr2types.BinaryNetworkEndpoint2Config,
+	lowPriorityConfig ocr2types.BinaryNetworkEndpoint2Config,
+) (ocr2types.BinaryNetworkEndpoint2, error) {
+	decodedv2PeerIDs, err := decodev2PeerIDs(v2peerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode v2 peer IDs: %w", err)
+	}
+
+	decodedv2Bootstrappers, err := decodev2Bootstrappers(v2bootstrappers)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode v2 bootstrappers: %w", err)
+	}
+
+	registration, err := p2.register(configDigest, decodedv2PeerIDs, decodedv2Bootstrappers)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint, err := newOCREndpointV3(
+		p2.logger,
+		configDigest,
+		p2,
+		decodedv2PeerIDs,
+		decodedv2Bootstrappers,
+		defaultPriorityConfig,
+		lowPriorityConfig,
+		registration,
+	)
+	if err != nil {
+		// Important: we close registration in case newOCREndpointV2 failed to prevent zombie registrations.
+		return nil, errors.Join(err, registration.Close())
+	}
+	return endpoint, nil
+}
+
 func (p2 *concretePeerV2) newBootstrapper(
 	configDigest ocr2types.ConfigDigest,
 	v2peerIDs []string,
@@ -295,6 +334,10 @@ func (p2 *concretePeerV2) OCR1BinaryNetworkEndpointFactory() *ocr1BinaryNetworkE
 
 func (p2 *concretePeerV2) OCR2BinaryNetworkEndpointFactory() *ocr2BinaryNetworkEndpointFactory {
 	return &ocr2BinaryNetworkEndpointFactory{p2}
+}
+
+func (p2 *concretePeerV2) OCR3_1BinaryNetworkEndpointFactory() *ocr3_1BinaryNetworkEndpointFactory {
+	return &ocr3_1BinaryNetworkEndpointFactory{p2}
 }
 
 func (p2 *concretePeerV2) OCR1BootstrapperFactory() *ocr1BootstrapperFactory {
