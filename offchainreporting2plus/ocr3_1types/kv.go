@@ -19,8 +19,9 @@ type KeyValueReadTransaction interface {
 	Read(key []byte) ([]byte, error)
 	// Range iterates over the key-value pairs with keys in the range [loKey,
 	// hiKeyExcl), in ascending order of key. Key-value stores typically store
-	// keys in a sorted order, making this a fast operation. hiKeyExcl can be
-	// set to 0 length or nil for iteration without an upper bound.
+	// keys in a sorted order, making this a fast operation. loKey can be set to
+	// 0 length or nil for iteration without a lower bound. hiKeyExcl can be set
+	// to 0 length or nil for iteration without an upper bound.
 	//
 	// WARNING: DO NOT perform any writes/deletes to the key-value store while
 	// the iterator is opened.
