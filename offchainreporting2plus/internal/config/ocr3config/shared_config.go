@@ -52,6 +52,8 @@ func SharedConfigFromContractConfig[RI any](
 	peerID string,
 	transmitAccount types.Account,
 ) (SharedConfig, commontypes.OracleID, error) {
+	fmt.Printf("SharedConfigFromContractConfig: at the start")
+
 	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(skipResourceExhaustionChecks, change)
 	if err != nil {
 		return SharedConfig{}, 0, err

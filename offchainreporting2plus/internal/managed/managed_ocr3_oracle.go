@@ -85,8 +85,11 @@ func RunManagedOCR3Oracle[RI any](
 
 			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: SharedConfigFromContractConfig returned sharedConfig: %+v, oid: %s\n", sharedConfig, oid)
 			if err != nil {
+				fmt.Printf("ManagedOCR3Oracle: error while decoding ContractConfig: %v\n", err)
 				return fmt.Errorf("ManagedOCR3Oracle: error while decoding ContractConfig: %w", err), false
 			}
+
+			fmt.Printf("OCRDEBUG: ManagedOCR3Oracle: 0")
 
 			registerer := prometheus.WrapRegistererWith(
 				prometheus.Labels{
