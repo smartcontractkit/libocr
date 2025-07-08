@@ -226,6 +226,8 @@ func (args OCR3OracleArgs[RI]) localConfig() types.LocalConfig { return args.Loc
 func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
 
+	fmt.Printf("OCRDEBUG: run managed")
+
 	managed.RunManagedOCR3Oracle(
 		ctx,
 
@@ -369,6 +371,8 @@ func (o *oracle) Start() error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
+	fmt.Printf("OCRDEBUG: Starting Oracle with config: %s\n", o.oracleArgs.localConfig())
+
 	if o.state != oracleStateUnstarted {
 		return fmt.Errorf("can only start Oracle once")
 	}
@@ -388,6 +392,8 @@ func (o *oracle) Start() error {
 func (o *oracle) Close() error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
+
+	fmt.Printf("OCRDEBUG: Closing Oracle with config: %s\n", o.oracleArgs.localConfig())
 
 	if o.state != oracleStateStarted {
 		return fmt.Errorf("can only close a started oracle")
