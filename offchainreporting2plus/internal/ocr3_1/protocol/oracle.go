@@ -167,6 +167,7 @@ func (o *oracleState[RI]) run() {
 	chNetToStatePersistence := make(chan MessageToStatePersistenceWithSender[RI])
 	o.chNetToStatePersistence = chNetToStatePersistence
 
+	chOutcomeGenerationToStatePersistence := make(chan EventToStatePersistence[RI])
 	chReportAttestationToStatePersistence := make(chan EventToStatePersistence[RI])
 
 	chNetToBlobExchange := make(chan MessageToBlobExchangeWithSender[RI])
@@ -243,6 +244,7 @@ func (o *oracleState[RI]) run() {
 			chPacemakerToOutcomeGeneration,
 			chOutcomeGenerationToPacemaker,
 			chOutcomeGenerationToReportAttestation,
+			chOutcomeGenerationToStatePersistence,
 			&blobEndpoint,
 			o.config,
 			o.database,
@@ -282,6 +284,7 @@ func (o *oracleState[RI]) run() {
 			o.childCtx,
 
 			chNetToStatePersistence,
+			chOutcomeGenerationToStatePersistence,
 			chReportAttestationToStatePersistence,
 			o.config,
 			o.database,

@@ -542,7 +542,8 @@ func (p *discoveryProtocol) lockedProcessAnnouncement(ann Announcement) error {
 	}
 
 	if p.locked.numGroupsByOracle[pid] == 0 {
-		return fmt.Errorf("peer %s is not an oracle in any of our jobs; perhaps whoever sent this is running a job that includes us and this peer, but we are not running that job", pid)
+		return nil
+
 	}
 
 	err = ann.verify()
