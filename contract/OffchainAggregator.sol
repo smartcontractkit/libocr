@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import "./AccessControllerInterface.sol";
 import "./AggregatorV2V3Interface.sol";
@@ -8,6 +9,7 @@ import "./LinkTokenInterface.sol";
 import "./Owned.sol";
 import "./OffchainAggregatorBilling.sol";
 import "./TypeAndVersionInterface.sol";
+import "./interfaces/ITransmitterCertificateHelper.sol";
 
 /**
   * @notice Onchain verification of reports from the offchain reporting protocol
@@ -58,6 +60,8 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
   // Highest answer the system is allowed to report in response to transmissions
   int192 immutable public maxAnswer;
 
+  ITransmitterCertificateHelper internal s_transmitterCertificateHelper;
+
   /*
    * @param _maximumGasPrice highest gas price for which transmitter will be compensated
    * @param _reasonableGasPrice transmitter will receive reward for gas prices under this value
@@ -73,23 +77,15 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
    * @param _description short human-readable description of observable this contract's answers pertain to
    */
   constructor(
-    uint32 _maximumGasPrice,
-    uint32 _reasonableGasPrice,
-    uint32 _microLinkPerEth,
-    uint32 _linkGweiPerObservation,
-    uint32 _linkGweiPerTransmission,
-    LinkTokenInterface _link,
+    BillingConstructorArgs memory _billingConstructorArgs,
     int192 _minAnswer,
     int192 _maxAnswer,
-    AccessControllerInterface _billingAccessController,
     AccessControllerInterface _requesterAccessController,
     uint8 _decimals,
-    string memory _description
+    string memory _description,
+    ITransmitterCertificateHelper transmitterCertificateHelper
   )
-    OffchainAggregatorBilling(_maximumGasPrice, _reasonableGasPrice, _microLinkPerEth,
-      _linkGweiPerObservation, _linkGweiPerTransmission, _link,
-      _billingAccessController
-    )
+    OffchainAggregatorBilling(_billingConstructorArgs)
   {
     decimals = _decimals;
     s_description = _description;
@@ -97,6 +93,10 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     setValidatorConfig(AggregatorValidatorInterface(0x0), 0);
     minAnswer = _minAnswer;
     maxAnswer = _maxAnswer;
+    
+    require(address(transmitterCertificateHelper) != address(0),"transmitterCertificateHelper cannot be zero address");
+    emit TransmitterCertificateHelperSet(s_transmitterCertificateHelper, transmitterCertificateHelper);
+    s_transmitterCertificateHelper=transmitterCertificateHelper;
   }
 
   /*
@@ -115,6 +115,18 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
   /*
    * Config logic
    */
+
+  function transmitterCertificateHelper() external view returns (ITransmitterCertificateHelper) {
+    return s_transmitterCertificateHelper;
+  }
+
+  event TransmitterCertificateHelperSet(ITransmitterCertificateHelper oldTransmitterCertificateHelper,ITransmitterCertificateHelper newTransmitterCertificateHelper);
+
+  function setTransmitterCertificateHelper(ITransmitterCertificateHelper newTransmitterCertificateHelper) external onlyOwner() {
+    require(address(newTransmitterCertificateHelper) != address(0),"transmitterCertificateHelper cannot be zero address");
+    emit TransmitterCertificateHelperSet(s_transmitterCertificateHelper, newTransmitterCertificateHelper);
+    s_transmitterCertificateHelper = newTransmitterCertificateHelper;
+  }
 
   /**
    * @notice triggers a new run of the offchain reporting protocol
@@ -652,6 +664,7 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
         msg.sender == s_transmitters[transmitter.index],
         "unauthorized transmitter"
       );
+      require(s_transmitterCertificateHelper.isTransmitterInitialized(msg.sender),"Transmitter must be intialized");
       // record epochAndRound here, so that we don't have to carry the local
       // variable in transmit. The change is reverted if something fails later.
       r.hotVars.latestEpochAndRound = epochAndRound;

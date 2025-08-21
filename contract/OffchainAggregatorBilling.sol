@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import "./AccessControllerInterface.sol";
 import "./LinkTokenInterface.sol";
@@ -144,21 +145,25 @@ contract OffchainAggregatorBilling is Owned {
   uint256 constant private  maxUint16 = (1 << 16) - 1;
   uint256 constant internal maxUint128 = (1 << 128) - 1;
 
+  struct BillingConstructorArgs{
+    uint32 maximumGasPrice;
+    uint32 reasonableGasPrice;
+    uint32 microLinkPerEth;
+    uint32 linkGweiPerObservation;
+    uint32 linkGweiPerTransmission;
+    LinkTokenInterface link;
+    AccessControllerInterface billingAccessController;
+  }
+
   constructor(
-    uint32 _maximumGasPrice,
-    uint32 _reasonableGasPrice,
-    uint32 _microLinkPerEth,
-    uint32 _linkGweiPerObservation,
-    uint32 _linkGweiPerTransmission,
-    LinkTokenInterface _link,
-    AccessControllerInterface _billingAccessController
+   BillingConstructorArgs memory _args
   )
   {
-    setBillingInternal(_maximumGasPrice, _reasonableGasPrice, _microLinkPerEth,
-      _linkGweiPerObservation, _linkGweiPerTransmission);
-    s_linkToken = _link;
-    emit LinkTokenSet(LinkTokenInterface(address(0)), _link);
-    setBillingAccessControllerInternal(_billingAccessController);
+    setBillingInternal(_args.maximumGasPrice, _args.reasonableGasPrice, _args.microLinkPerEth,
+      _args.linkGweiPerObservation, _args.linkGweiPerTransmission);
+    s_linkToken = _args.link;
+    emit LinkTokenSet(LinkTokenInterface(address(0)), _args.link);
+    setBillingAccessControllerInternal(_args.billingAccessController);
     uint16[maxNumOracles] memory counts; // See s_oracleObservationsCounts docstring
     uint256[maxNumOracles] memory gas; // see s_gasReimbursementsLinkWei docstring
     for (uint8 i = 0; i < maxNumOracles; i++) {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import "./OffchainAggregator.sol";
 import "./SimpleReadAccessController.sol";
@@ -10,32 +11,22 @@ import "./SimpleReadAccessController.sol";
 contract AccessControlledOffchainAggregator is OffchainAggregator, SimpleReadAccessController {
 
   constructor(
-    uint32 _maximumGasPrice,
-    uint32 _reasonableGasPrice,
-    uint32 _microLinkPerEth,
-    uint32 _linkGweiPerObservation,
-    uint32 _linkGweiPerTransmission,
-    LinkTokenInterface _link,
+    BillingConstructorArgs memory _billingConstructorArgs,
     int192 _minAnswer,
     int192 _maxAnswer,
-    AccessControllerInterface _billingAccessController,
     AccessControllerInterface _requesterAccessController,
     uint8 _decimals,
-    string memory description
+    string memory description,
+    ITransmitterCertificateHelper transmitterCertificateHelper
   )
     OffchainAggregator(
-      _maximumGasPrice,
-      _reasonableGasPrice,
-      _microLinkPerEth,
-      _linkGweiPerObservation,
-      _linkGweiPerTransmission,
-      _link,
+      _billingConstructorArgs,
       _minAnswer,
       _maxAnswer,
-      _billingAccessController,
       _requesterAccessController,
       _decimals,
-      description
+      description,
+      transmitterCertificateHelper
     ) {
     }
 

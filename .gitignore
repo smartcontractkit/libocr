@@ -145,3 +145,21 @@ tags
 *.code-workspace
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,linux,emacs,vim,go,vscode
+
+node_modules
+.env
+
+# Hardhat files
+/cache
+/artifacts
+
+# TypeChain files
+/typechain
+/typechain-types
+
+# solidity-coverage files
+/coverage
+/coverage.json
+
+# Hardhat Ignition default folder for deployments against a local node
+ignition/deployments/chain-31337
