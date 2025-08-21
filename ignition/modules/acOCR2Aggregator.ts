@@ -3,7 +3,7 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const linkDefault = "0xDA333D5948610a7634202A9420c0c17034B6484A"
+export const linkDefault = "0xDA333D5948610a7634202A9420c0c17034B6484A"
 
 export const requesterACmodule = buildModule("requesterAC", (m) => {
   const requesterAC = m.contract("SimpleWriteAccessController");

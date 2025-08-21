@@ -1,0 +1,1814 @@
+{
+    "allFeeds": {
+        "bnb": [
+            "0x9a177bb9f5b6083e962f9e62bd21d4b5660aeb03",
+            "0xb7ed5be7977d61e83534230f3256c021e0fae0b6",
+            "0xa8357bf572460fc40f4b0acacbb2a6a61c89f475",
+            "0xcabb46ffb38c93348df16558df156e9f68f9f7f1",
+            "0x2d5fc41d1365ffe13d03d91e82e04ca878d69f4b",
+            "0xa767f745331d267c7751297d982b050c93985627",
+            "0x51d08ca89d3e8c12535ba8aed33cdf2557ab5b2a",
+            "0xb056b7c804297279a9a673289264c17e6dc6055d",
+            "0x498f912b09b5df618c77fcc9e8da503304df92bf",
+            "0x5974855ce31ee8e1fff2e76591cbf83d7110f151",
+            "0x7b49524ee5740c99435f52d731dfc94082fe61ab",
+            "0x3334bf7ec892ca03d1378b51769b7782eaf318c4",
+            "0xc78b99ae87ff43535b0c782128db3cb49c74a4d3",
+            "0x2a548935a323bb7329a5e3f1667b979f16bc890b",
+            "0x43d80f616daf0b0b42a928eed32147dc59027d41",
+            "0x0567f2323251f0aab15c8dfb1967e4e8a7d42aee",
+            "0x90d36d4909730c390546ac288c5c7bec3f62ff4d",
+            "0x5cb1cb3ea5fb46de1ce1d0f3badb3212e8d8ef48",
+            "0x08e70777b982a58d23d05e3d7714f44837c06a21",
+            "0x116eeb23384451c78ed366d4f67d5ad44ee771a0",
+            "0xf1769eb4d1943af02ab1096d7893759f6177d6b8",
+            "0x264990fbd0a4796a3e3d8e37c4d5f87a3aca5ebf",
+            "0x889158e39628c0397dc54b84f6b1cbe0aaeb7ffc",
+            "0xcb23da9ea243f53194cbc2380a6d4d9bc046161f",
+            "0xb6064ed41d4f67e353768aa239ca86f4f73665a1",
+            "0xe3ca2f3bad1d8327820f648c759f17162b5383ae",
+            "0x964261740356cb4aad0c3d2003ce808a4176a46d",
+            "0x1f771b2b1f3c3db6c7a1d5f38961a49cecd116da",
+            "0x2d1ab79d059e21ae519d88f978caf39d74e31aeb",
+            "0x0db8945f9aef5651fa5bd52314c5aae78dfde540",
+            "0x2e1c3b6fcae47b20dd343d9354f7b1140a1e6b27",
+            "0xc4429b539397a3166ef3ef132c29e34715a3abb4",
+            "0x3b37c6f1e3207de5a4664e837072bd9a25269b39",
+            "0x8ec213e7191488c7873cec6dac8e97cdbadb7b35",
+            "0x132d3c0b1d2cea0bc552588063bdbb210fdeecfa",
+            "0x87701b15c08687341c2a847ca44ecfbc8d7873e1",
+            "0x3ab0a0d137d4f946fbb19eecc6e92e64660231c8",
+            "0xba8683e9c3b1455be6e18e7768e8cad95eb5ed49",
+            "0xc333eb0086309a16aa7c8308dfd32c8bba0a2592",
+            "0x63d407f32aa72e63c7209ce1c2f5da40b3aae726",
+            "0x9ef1b8c0e4f7dc8bf5719ea496883dc6401d5b2e",
+            "0x0bf79f617988c472dca68ff41efe1338955b9a80",
+            "0x390180e80058a8499930f0c13963ad3e0d86bfc9",
+            "0x657e700c66c48c135c4a29c4292908dbda7aa280",
+            "0xe5dbfd9003bff9df5feb2f4f445ca00fb121fb83",
+            "0x13a9c98b07f098c5319f4ff786eb16e22dc738e1",
+            "0x0e9d55932893fb1308882c7857285b2b0bcc4f4a",
+            "0x8faf16f710003e538189334541f5d4a391da46a0",
+            "0x66cd2975d02f5f5cdef2e05cbca12549b1a5022d",
+            "0x8b0d36ae4cf8e277773a7ba5f35c09edb144241b",
+            "0xeda73f8acb669274b15a977cb0cda57a84f18c2a",
+            "0xdf4dd957a84f798acfadd448badd2d8b9bc99047",
+            "0x84210d9013a30c6ab169e28840a6cc54b60fa042",
+            "0x63a9133cd7c611d6049761038c16f238fdda71d7",
+            "0xef0a3109ce97e0b58557f0e3ba95ea16bfa4a89d",
+            "0x8f26ba94180371baa2d2c143f96b6886dcaca250",
+            "0x22db8397a6e77e41471de256a7803829fdc8bc57",
+            "0x12bf0c3f7d5aca9e711930d704da2774358d9210",
+            "0xf2f8273f6b9fc22c90891dc802caf60eef805cdf",
+            "0x41a292dced910690b86b99a6cbc2e181dc56de57",
+            "0xb38722f6a608646a538e882ee9972d15c86fc597",
+            "0xca236e327f629f9fc2c30a4e95775ebf0b89fac8",
+            "0x801a72542e6f2c1a022ec6865600d6872b191308",
+            "0x4e5a43a79f53c0a8e83489648ea7e429278f8b2d",
+            "0x74e72f37a8c415c8f1a98ed42e78ff997435791d",
+            "0x4978c0abe6899178c1a74838ee0062280888e2cf",
+            "0xfc76e9445952a3c31369dfd26edfdfb9713df5bb",
+            "0x6101f4dfbb24cac3d64e28a815255b428b93639f",
+            "0x6b25f7f189c3f26d3cac43b754578b67fc8d952a",
+            "0x5d209ce1fbabeaa8e6f9de4514a74ffb4b34560f",
+            "0x16c0c1f971b1780f952572670a9d5ce4123582a1",
+            "0x0fe4d87883005fcafaf56b81d09473d9a29dcdc3",
+            "0x1fe6c9bd9b29e5810c2819f37dda8559739ebec9",
+            "0xea5c2cbb5cd57dac24e26180b19a929f3e9699b8",
+            "0xcf95796f3016801a1da5c518fc7a59c51dcef793",
+            "0x887f177cbed2cf555a64e7bf125e1825eb69db82",
+            "0x7f8cad4690a38ac28bda3d132ef83db1c17557df",
+            "0xe96ffde2ba50e0e869520475ee1bc73ca2dee326",
+            "0x1ccad765d39aa2060eb4f6dd94e5874db786c16f",
+            "0x081195b56674bb87b2b92f6d58f7c5f449ace19d",
+            "0x9a41b56b2c24683e2f23bde15c14bc7c4a58c3c4",
+            "0x20123c6ebd45c6496102beea86e1a6616ca547c6",
+            "0x3065b2369820f76c829b9bbcaf4b90f9f47d6314",
+            "0xa615be6cb0f3f36a641858db6f30b9242d0abed8",
+            "0x0e8a53dd9c13589df6382f13da6b3ec8f919b323",
+            "0x47e01580c537cd47da339ea3a4afb5998ccf037c",
+            "0xb24d1dee5f9a3f761d286b56d2bc44ce1d02df7e",
+            "0xc6a1314e89d01517a90ae4b0d9d5e499a324b283",
+            "0x1a269ea1b209da2c12bdcdab22635c9e6c5028b2",
+            "0xa679c72a97b654cfff58ab704de3ba15cde89b07",
+            "0xe188a9875af525d25334d75f3327863b2b8cd0f1",
+            "0x601caa447c59dc4e25992f4057bbe828f66193c0",
+            "0xf4c5e535756d11994fcbb12ba8add0192d9b88be",
+            "0xeea2ae9c074e87596a85abe698b2afebc9b57893",
+            "0xa3334a9762090e827413a7495afece76f41dfc06",
+            "0x7e728dfa6bca9023d9abee759fdf56beab8ac7ad",
+            "0x25298f020c3ca1392da76eb7ac844813b218ccf7",
+            "0xb57f259e7c24e56a1da00f66b55a5640d9f9e7e4",
+            "0xad8b4e59a7f25b68945faf0f3a3eaf027832ffb0",
+            "0x45f86ca2a8bc9ebd757225b19a1a0d7051be46db",
+            "0x51597f405303c4377e36123cbc172b13269ea163",
+            "0x10402b01cd2e6a9ed6dbe683cbc68f78ff02f8fc",
+            "0xd5c40f5144848bd4ef08a9605d860e727b991513",
+            "0xb97ad0e74fa7d920791e90258a6e2085088b4320",
+            "0xede67e8dda821090e019be754a7f61b4129fbf17",
+            "0xe8ed18e29402cd223bc5b73d30e40ccdf7b72986",
+            "0x9f1fd2cef7b226d555a747da0411f93c5fe74e13",
+            "0x9e7377e194e41d63795907c92c3eb351a2eb0233",
+            "0x02bfe714e78e2ad1bb1c2bee93ec8dc5423b66d4",
+            "0xd97ab9e5bd461ebcd55009791c410294f7b42cdb",
+            "0xb1bed6c1fc1ade2a975f54f24851c7f410e27718",
+            "0x817326922c909b16944817c207562b25c4df16ad",
+            "0x86896feb19d8a607c3b11f2af50a0f239bd71cd0",
+            "0x27cc356a5891a3fe6f84d0457de4d108c6078888",
+            "0x798a65d349b2b5e6645695912880b54dffd79074",
+            "0x93a67d414896a280bf8ffb3b389fe3686e014fda",
+            "0x8264d6983b219be65c4d62f1c82b3a2999944cf2",
+            "0x9a18137adcf7b05f033ad26968ed5a9cf0bf8e6b",
+            "0xf369a13e7f2449e58dde8302f008ee9131f8d859",
+            "0xbf63f430a79d4036a5900c19818aff1fa710f206",
+            "0xf841761481df19831ccc851a54d8350ae6022583",
+            "0xd7eaa5bf3013a96e3d515c055dbd98dbdc8c620d",
+            "0xde1952a1bf53f8e558cc761ad2564884e55b2c6f",
+            "0x4f3cf381c58bf69b798167cb537103d2c8ef1a71",
+            "0xd164a1559e78b9e6eacb12b2e627f31d2f603c0f",
+            "0x06f34edd61be3b2ff3f630b500df81eea8312350",
+            "0xdc7ea2fa4068d135d7a7a9f3583f674c34ef114a",
+            "0xf93b9b23c46331704ec550c24cb4110975057863",
+            "0x921fa3c67286385b22de244e51e5925d98b03130",
+            "0xf37be32598e9851f785aca86c2162e7c1a8466dd",
+            "0x4c75d01cfa4d998770b399246400a6dc40fb9645",
+            "0x81ca991cef14e7bfb3fa8cc70303a2deaeb09a42",
+            "0xec5bf47f443d92b1bedf9058a472d91461e4f9b3",
+            "0x696b7ea5827548cd35c743a0a05c1f3130196e5e"
+        ],
+        "ethereum": [
+            "0x72afaecf99c9d9c8215ff44c77b94b99c28741e8",
+            "0xc929ad75b72593967de83e7f7cda0493458261d9",
+            "0x6df09e975c830ecae5bd4ed9d90f3a95a4f88012",
+            "0xbd7f896e60b650c01caf2d7279a1148189a68884",
+            "0xf02c1e2a3b77c1cacc72f72b44f7d0a4c62e4a85",
+            "0x547a514d5e3769680ce22b2361c10ea13619e8a9",
+            "0xe20ca8d7546932360e37e9d72c1a47334af57706",
+            "0xc7de7f4d4c9c991ff62a07d18b3e31e349833a18",
+            "0xd10abbc76679a20055e167bb80a24ac851b37056",
+            "0x31697852a68433dbcc2ff612c516d69e3d9bd08f",
+            "0x77f9710e7d0a19669a13c055f62cd80d313df022",
+            "0xebca574f1ce4d17cd02c20f47ef8210c08cc4255",
+            "0xff3eeb22b5e3de6e705b44749c2559d704923fd7",
+            "0x32eafc72772821936bcc9b8a32dc394fefcdbfd9",
+            "0x58921ac140522867bf50b9e009599da0ca4a2379",
+            "0xc1438aa3823a6ba0c159cfa8d98df5a994ba120b",
+            "0xdf2917806e30300537aeb49a7663062f4d1f2b5f",
+            "0x0d16d4528239e9ee52fa531af613acdb23d88c94",
+            "0x14e613ac84a31f709eadbdf89c6cc390fdc9540a",
+            "0xdeb288f737066589598e9214e782fa5a8ed689e8",
+            "0xf4030086522a5beea4988f8ca5b36dbc97bee88c",
+            "0x85355da30ee4b35f4b30759bd49a1ebe3fc41bdb",
+            "0xb41e773f507f7a7ea890b1afb7d2b660c30c8b0a",
+            "0xd41390267afec3fa5b4c0b3aa6c706556cce75ec",
+            "0xa34317db73e77d453b1b8d04550c44d10e981c8e",
+            "0xf017fcb346a1885194689ba23eff2fe6fa5c483b",
+            "0x449d117117838ffa61263b61da6301aa2a88b13a",
+            "0xef8a4af35cd47424672e3c590abd37fbb7a7759a",
+            "0x1b39ee86ec5979ba5c322b826b3ecb8c79991699",
+            "0xdbd020caef83efd542f4de03e3cf0c28a4428bd5",
+            "0x8a12be339b0cd1829b91adc01977caa5e9ac121e",
+            "0xcd627aa160a6fa45eb793d19ef54f5062f20f33f",
+            "0xeef0c605546958c1f899b6fb336c20671f9cd49f",
+            "0xf4e1b57fb228879d057ac5ae33973e8c53e4a0e0",
+            "0xc9cbf687f43176b302f03f5e58470b77d07c61c6",
+            "0xd962fc30a72a84ce50161031391756bf2876af5d",
+            "0xf05d9b6c08757eacb1fbec18e36a1b7566a13deb",
+            "0x9a51192e065ecc6bdeafe5e194ce54702de4f1f5",
+            "0x773616e4d11a78f511299002da57a0a94577f1f4",
+            "0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9",
+            "0x5c7a079dbf188dabc66e389482849b05acb17421",
+            "0x029849bbc0b1d93b85a8b6190e979fd38f5760e2",
+            "0xd2a593bf7594ace1fad597adb697b5645d5eddb2",
+            "0xf2917e602c2dca458937fad715bb1e465305a4a1",
+            "0x24d9ab51950f3d62e9144fdc2f3135daa6ce8d1b",
+            "0x5c00128d4d1c2f4f652c267d7bcdd7ac99c16e16",
+            "0xac559f25b1619171cbc396a50854a3240b6a4e99",
+            "0x5147ea642caef7bd9c1265aadca78f997abb9649",
+            "0x5424384b256154046e9667ddfaaa5e550145215e",
+            "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419",
+            "0x19678515847d8de85034dad0390e09c3048d31cd",
+            "0xb49f677943bc038e9857d61e7d053caa2c1734c1",
+            "0x04f84020fdf10d9ee64d1dcc2986edf2f556da11",
+            "0xe5346a4fd329768a99455d969724768a00ca63fb",
+            "0xfaa9147190c2c2cc5b8387b4f49016bdb3380572",
+            "0x0606be69451b1c9861ac6b3626b99093b713e801",
+            "0x14d04fff8d21bd62987a5ce9ce543d2f1edf5d3e",
+            "0xb9e1e3a9feff48998e45fa90847ed4d467e8bcfd",
+            "0xf0985f7e2cabff22cecc5a71282a89582c382efe",
+            "0x6ebc52c8c1089be9eb3945c4350b68b8e4c2233f",
+            "0x5c0ab2d9b5a7ed9f470386e82bb36a3613cdd4b5",
+            "0x3f12643d3f6f874d39c2a4c9f2cd6f2dbac877fc",
+            "0x17d054ecac33d91f7340645341efb5de9009f1c1",
+            "0x86cf33a451de9dc61a2862fd94ff4ad4bd65a5d2",
+            "0x5c8d8aab4ffa4652753df94f299330bb4479bf85",
+            "0x32d1463eb53b73c095625719afa544d5426354cb",
+            "0xd27e6d02b72eb6fce04ad5690c419196b4ef2885",
+            "0xbaebefc1d023c0feccc047bff42e75f15ff213e6",
+            "0xbce206cae7f0ec07b545edde332a47c2f75bbeb3",
+            "0x656c0544ef4c98a6a98491833a89204abb045d6b",
+            "0xf8ff43e991a81e6ec886a3d281a2c6cc19ae70fc",
+            "0x01435677fb11763550905594a16b645847c1d0f3",
+            "0x5c29868c58b6e15e2b962943278969ab6a7d3212",
+            "0x4e844125952d32acdf339be976c98e22f6f318db",
+            "0xdc530d9457755926550b59e8eccdae7624181557",
+            "0x76f8c9e423c228e83dcb11d17f0bd8aeb0ca01bb",
+            "0xc7e9b623ed51f033b32ae7f1282b1ad62c28c183",
+            "0x2c1d072e956affc0d435cb7ac38ef18d24d9127c",
+            "0x160ac928a16c93ed4895c2de6f81ecce9a7eb7b4",
+            "0x3d7ae7e594f2f2091ad8798313450130d0aba3a0",
+            "0xe858728eb31a25c4accce17d01b68dcfc3a0ed2c",
+            "0x82a44d92d6c329826dc557c5e1be6ebec5d5feb9",
+            "0x29d26c008e8f201ed0d864b1fd9392d29d0c8e96",
+            "0x24551a8fb2a7211a25a17b1481f043a8a8adc7f2",
+            "0xec1d1b3b0443256cc3860e24a46f108e699484aa",
+            "0xdaea8386611a157b08829ed4997a8a62b557014c",
+            "0x771cf56ae75bc907193177237b423a9da831280a",
+            "0x3977cfc9e4f29c184d4675f4eb8e0013236e5f3e",
+            "0x703118c4cbcccbf2ab31913e0f8075fbbb15f563",
+            "0xe3fd61cd8935eae81e1c31af36d7134e411490cd",
+            "0x9944d86ceb9160af5c5feb251fd671923323f8c3",
+            "0x3b41d5571468904d4e53b6a8d93a6bac43f02dc9",
+            "0x3c7db4d25deab7c89660512c5494dc9a3fc40f78",
+            "0x8f1df6d7f2db73eece86a18b4381f4707b918fb1",
+            "0x6ce4ef3689f26edd40ed3ccbe3cc29dab62c915f",
+            "0x393cc05bad439c9b36489384f11487d9c8410471",
+            "0x536218f9e9eb48863970252233c8f271f554c2d0",
+            "0x26c46b7ad0012ca71f2298ada567dc9af14e7f2a",
+            "0x4e155ed98afe9034b7a5962f6c84c86d869daa9d",
+            "0x759bbc1be8f90ee6457c44abc7d443842a976d02",
+            "0x35e3f7e558c04ce7eee1629258ecbba03b36ec56",
+            "0xe25277ff4bbf9081c75ab0eb13b4a13a721f3e13",
+            "0x8dd1cd88f43af196ae478e91b9f5e4ac69a97c61",
+            "0xc04611c43842220fd941515f86d1dddb15f04e46",
+            "0xee10fe5e7aa92dd7b136597449c3d5813cfc5f18",
+            "0x79291a9d692df95334b1a0b3b4ae6bc606782f8c",
+            "0xdc3ea94cd0ac27d9a86c180091e7f78c683d3699",
+            "0x4ffc43a60e009b551865a93d232e33fce9f01507",
+            "0x8c110b94c5f1d347facf5e1e938ab2db60e3c9a8",
+            "0x86392dc19c0b719886221c78ab11eb8cf5c52812",
+            "0xcfe54b5cd566ab89272946f602d76ea879cab4a8",
+            "0x7a9f34a0aa917d438e9b6e630067062b7f8f6f3d",
+            "0xe572cef69f43c2e488b33924af04bdace19079cf",
+            "0xcc70f09a6cc17553b2e31954cd36e4a2d89501f7",
+            "0x2a638b1203a3b62ff003598b7165fc5cd5b13b00",
+            "0x2d27d9e1b74936d8e83c4ba118f09a4c4a897f62",
+            "0x1f34794a16d644b9810477ebf3f0b3870141e2e3",
+            "0x1c88503c9a52ae6aae1f9bb99b3b7e9b8ab35459",
+            "0x8350b7de6a6a2c1368e7d4bd968190e13e354297",
+            "0x7f0347903f413a6c4c540f39145e2a2249639931",
+            "0xb09fc5fd3f11cf9eb5e1c5dba43114e3c9f477b5",
+            "0x3886ba987236181d98f2401c507fb8bea7871df2",
+            "0xec746ecf986e2927abd291a2a1716c940100f8ba",
+            "0xec8761a0a73c34329ca5b1d3dc7ed07f30e836e2",
+            "0xd6aa3d25116d8da79ea0246c4826eb951872e02e",
+            "0x553303d460ee0afb37edff9be42922d8ff63220e",
+            "0x19e2d716288751c5a59deab61af012d5df895962",
+            "0x7e891debd8fa0a4cf6be58ddff5a8ca174febdcb",
+            "0xfc9e30cf89f8a00dba3d34edf8b65bcdadecc1cb",
+            "0xf0d9bb015cd7bfab877b7156146dc09bf461370d",
+            "0x986b5e1e1755e3c2440e960477f25201b0a8bbd4",
+            "0x8fffffd4afb6115b954bd326cbe7b4ba576818f6",
+            "0xfb6471acd42c91ff265344ff73e88353521d099f",
+            "0xea674bbc33ae708bc9eb4ba348b04e4eb55b496b",
+            "0x8697d23509f328f90135933de0dde38eb86d4893",
+            "0x09023c0da49aaf8fc3fa3adf34c6a7016d38d5e3",
+            "0xff30586cd0f29ed462364c7e81375fc0c71219b1",
+            "0xee9f2375b4bdf6387aa8265dd4fb8f16512a1d46",
+            "0x3e7d1eab13ad0104d2750b8863b489d65364e32d",
+            "0x7bb7bf4ca536dbc49545704bfacaa13633d18718",
+            "0x62c2ab773b7324ad9e030d777989b3b5d5c54c0a",
+            "0xa569d910839ae8865da8f8e70fffb0cba869f961",
+            "0xb177857a1799aa5f7feb5799fdf12cbe8fdf78b1",
+            "0x66704dad467a7ca508b3be15865d9b9f3e186c90",
+            "0x34ad75691e25a8e9b681aaa85dbeb7ef6561b42c",
+            "0xde49c7b5c0e54b1624ed21c7d88ba6593d444aa0",
+            "0xacfcf155a0de611414c510d43446c27a4ee6a758",
+            "0xfdfd9c85ad200c506cf9e21f1fd8dd01932fbb23",
+            "0x379589227b15f1a12195d3f2d90bbc9f31f95235",
+            "0x214ed9da11d2fbe465a6fc601a91e62ebec1a0d6",
+            "0xeb988b77b94c186053282bfcd8b7ed55142d3cab",
+            "0x7c5d4f8345e66f68099581db340cd65b078c41f4",
+            "0xa027702dbb89fbd58938e4324ac03b58d812b0e1",
+            "0x617689cab8329d57fea64f4c086190e6797b8b5e",
+            "0x2da4983a622a8498bb1a21fae9d8f6c664939962",
+            "0x2885d15b8af22648b98b122b22fdf4d2a56c6023",
+            "0x2665701293fcbeb223d11a08d826563edcce423a",
+            "0x471a6299c027bd81ed4d66069dc510bd0569f4f8",
+            "0x636a000262f6aa9e1f094abf0ad8f645c44f641c",
+            "0x9b4a96210bc8d9d55b1908b465d8b0de68b7ff83",
+            "0x5b563107c8666d2142c216114228443b94152362",
+            "0xde3f7dd92c4701bcf59f47235bcb61e727c45f80",
+            "0x9d2f2f96b24c444ee32e57c04f7d944bcb8c8549",
+            "0xff3bc18ccbd5999ce63e788a1c250a88626ad099",
+            "0xe471bc940aa9831a0aea21e6f40c1a1236eb4bb3",
+            "0x936b31c428c29713343e05d631e69304f5cf5f49",
+            "0xd93571a6201978976e37c4a0f7be17806f2feab2",
+            "0x7b2fb2c667af80bccc0b2556378352dfde2be914",
+            "0x861d15f8a4059cb918bd6f3670adaeb1220b298f",
+            "0x5c9c449bbc9a6075a2c061df312a35fd1e05ff22",
+            "0x43921ca0eca1ea69722c048a6afbc2cad0bb80e9",
+            "0xfd628af590c4150a9651c1f4ddd0b4f532b703ae",
+            "0x75a0d3264a949c2c920d7f25df174af1faf73399",
+            "0x0a8cd0115b1ee87eba5b8e06a9a15ed93e230f7a",
+            "0xc28198df9aee1c4990994b35ff51efa4c769e534",
+            "0xcc72039a141c6e34a779ef93aef5eb4c82a893c7",
+            "0xe80bac615c38d01c101b0b1b943b05e20c8c2f76",
+            "0xad4a9bed9a5e2c1c9a6e43d35db53c83873dd901",
+            "0xda9258afc797cd64d1b6fc651051224cdab1b25e",
+            "0x60cbe8d88ef519cf3c62414d76f50818d211fea1",
+            "0x0c89c488e763ac2d69cb058ccac7a8b283ee3dba",
+            "0xbe456fd14720c3accc30a2013bffd782c9cb75d5",
+            "0xaffd8f5578e8590665de561bde9e7badb99300d9",
+            "0xf3ab3e54de3b4bcaebef6c66cec0a3a88f262757",
+            "0x289b5036cd942e619e1ee48670f98d214e745aac",
+            "0x477e363c51ab0c4d13b22cd6b57d56d4a3cb7abe",
+            "0xa81fe04086865e63e12dd3776978e49deea2ea4e",
+            "0xadcc914f882965ef1b2f1043522b3b81ed081491",
+            "0xcbe87dc0cf9d807848a3e703b01a90b28ecfb2a7",
+            "0xc8cd82067ea907ea4af81b625d2bb653e21b5156",
+            "0x7eaa6f116ab9e57f58d9a9ce88cc3f1c2476ecfa",
+            "0xad410e655c0fe4741f573152592eeb766e686ce7",
+            "0x8731a3223fea0cfaaf16370423ed99e32697f0fe",
+            "0xc590d9fb8ee78a0909dff341ccf717000b7b7ff2",
+            "0x461790bdaf5aed3df6a88cb97dec42dd0efa73c0"
+        ],
+        "polygon": [
+            "0x443c5116cdf663eb387e72c688d276e702135c87",
+            "0x7e7b45b08f68ec69a99aab12e42fccb078e10094",
+            "0xbe23a3aa13038cfc28afd0ece4fde379fe7fbfc4",
+            "0x72484b12719e23115761d5da1646945632979bb6",
+            "0xdafa1989a504c48ee20a582f2891eeb25e2fa23f",
+            "0x882554df528115a743c4537828da8d5b58e52544",
+            "0x03bc6d9efed65708d35fdaefb25e87631a0a3437",
+            "0xf9184b8e5da48c19fa4e06f83f77742e748cca96",
+            "0x2ac3f3bfac8fc9094bc3f0f9041a51375235b992",
+            "0x062df9c4efd2030e243ffcc398b652e8b8f95c6f",
+            "0xe01ea2fbd8d76ee323fbed03eb9a8625ec981a10",
+            "0x9c371ae34509590e10ab98205d2df5936a1ad875",
+            "0x82c9d4e88862f194c2bd874a106a90ddd0d35aab",
+            "0xf626964ba5e81405f47e8004f0b276bb974742b5",
+            "0x03cd157746c61f44597dd54c6f6702105258c722",
+            "0xd106b538f2a868c28ca1ec7e298c3325e0251d66",
+            "0x2346ce62bd732c62618944e51cbfa09d985d86d2",
+            "0x327d9822e9932996f55b39f557aec838313da8b7",
+            "0x82a6c4af830caa6c97bb504425f6a66165c2c26e",
+            "0xb90da3ff54c3ed09115abf6fba0ff4645586af2c",
+            "0x19b0f0833c78c0848109e3842d34d2fdf2ca69ba",
+            "0xc907e116054ad103354f2d350fd2514433d57f6f",
+            "0x18e4058491c3f58bc2f747a9e64ca256ed6b318d",
+            "0xaca44abb8b04d07d883202f99fa5e3c53ed57fb5",
+            "0x0a6a03cdf7d0b48d4e4ba8e362a4ffc3aac4f3c0",
+            "0xc76f762cedf0f78a439727861628e0fdfe1e70c2",
+            "0x2409987e514ad8b0973c2b90ee1d95051df0ecb9",
+            "0x04bb437aa63e098236fa47365f0268547f6eab32",
+            "0x2a8758b7257102461bc958279054e372c2b1bde6",
+            "0xfaa9147190c2c2cc5b8387b4f49016bdb3380572",
+            "0x1cf68c76803c9a415be301f50e82e44c64b7f1d4",
+            "0x336584c8e6dc19637a5b36206b1c79923111b405",
+            "0x5ec151834040b4d453a1ea46aa634c1773b36084",
+            "0x5d37e4b374e6907de8fc7fb33ee3b0af403c7403",
+            "0x97371df4492605486e23da797fa68e55fc38a13f",
+            "0xfc539a559e170f848323e19dfd66007520510085",
+            "0x4746dec9e833a82ec7c2c1356372ccf2cfcd2f3d",
+            "0xd94427edee70e4991b4b8ddcc848f2b58ed01c0b",
+            "0x4205ec5fd179a843caa7b0860a8ec7d980013359",
+            "0x59161117086a4c7a9beda16c66e40bdaa1c5a8b6",
+            "0xbaf9327b6564454f4a3364c33efeef032b4b4444",
+            "0xbd238a35fb47ae22f0cc551f14ffb8e8f04fca21",
+            "0xacb51f1a83922632ca02b25a8164c10748001bde",
+            "0xc70aaf9092de3a4e5000956e672cdf5e996b4610",
+            "0x2e48b7924fbe04d575ba229a59b64547d9da16e9",
+            "0xdf3f72be10d194b58b1bb56f2c4183e661cb2114",
+            "0xf9680d99d6c9589e2a93a78a04a279e509205945",
+            "0x67935f65d1577ced9f4929d3679a157e95c1c02c",
+            "0x73366fe0aa0ded304479862808e02506fe556a98",
+            "0x5b4586c911144a947d7814fd71fe0872b8334748",
+            "0xa07703e5c2ed1516107c7c72a494493dcb99c676",
+            "0x00dbeb1e45485d53df7c2f0df1aa0b6dc30311d3",
+            "0x817a7d43f0277ca480ae03ec76fc63a2ec7114ba",
+            "0x6c0fe985d3cacbcde428b84fc9431792694d0f51",
+            "0x099a2540848573e94fb1ca0fa420b00acbbc845a",
+            "0xe638249af9642cda55a92245525268482ee4c67b",
+            "0xdd229ce42f11d8ee7fff29bdb71c7b81352e11be",
+            "0x9cb43aa3d036cb035a694ba0aaa91f8875b16ce1",
+            "0x1b32682c033b2dd7efdc615fa82d353e254f39b5",
+            "0x3fabbfb300b1e2d7c9b84512fe9d30aedf24c410",
+            "0xc5878bdf8a89fa3bf0dc8389ae8ee6de601d01bc",
+            "0x84227a76a04289473057bef706646199d7c58c34",
+            "0x8d5eb34c509261533235b91350d359edcb969d33",
+            "0x3636b780588328dc3f5df075de5627dbc9a6ba10",
+            "0xda0f8df6f5db15b346f4b8d1156722027e194e60",
+            "0xd647a6fc9bc6402301583c91decc5989d8bc382d",
+            "0x7899dd75c329efe63e35b02bc7d60d3739fb23c5",
+            "0x10e5f3dfc81b3e5ef4e648c4454d04e79e1e41e2",
+            "0x24b820870f726da9b0d83b0b28a93885061dbf50",
+            "0xb77fa460604b9c6435a235d057f7d319ac83cb53",
+            "0x5787befdc0ecd210dfa948264631cd53e68f7802",
+            "0xd9ffdb71ebe7496cc440152d43986aae0ab76665",
+            "0xeb99f173cf7d9a6dc4d889c2ad7103e8383b6efa",
+            "0xa1cbf3fe43bc3501e3fc4b573e822c70e76a7512",
+            "0x807b59d12520830d1864286fa0271c27baa94197",
+            "0xa070427bf5ba5709f70e98b94cb2f435a242c46c",
+            "0xb89d583b72abf9c3a7e6e093251c2fcad3365312",
+            "0xc43081d9ea6d1c53f1f0e525504d47dd60de12da",
+            "0x171b16562ea3476f5c61d1b8dad031dba0768545",
+            "0xa302a0b8a499fd0f00449df0a490dede21105955",
+            "0x8ec0ec2e0f26d8253abf39db4b1793d76b49c6d5",
+            "0xc86105dccf9bd629cea7fd41f94c6050bf96d57f",
+            "0x0f6914d8e7e1214cdb3a4c6fbf729b75c69df608",
+            "0x218231089bebb2a31970c3b77e96ecfb3ba006d1",
+            "0xb34bce11040702f71c11529d00179b2959bce6c0",
+            "0xf7f291042f6cbc4dec0ad75c17786511a530dbe8",
+            "0x2251169d32e7538652a9a8c86bf0c43bfcd956f1",
+            "0x3d49406edd4d52fb7ffd25485f32e073b529c924",
+            "0xbd92b4919ae82be8473859295def0e778a626302",
+            "0x8ce3cac0e6635ce04783709ca3cc4f5fc5304299",
+            "0x3710abeb1a0fc7c2ec59c26c8daa7a448ff6125a",
+            "0xbb3ef70953fc3766bec4ab7a9bf05b6e4caf89c6",
+            "0xbf90a5d9b6ee9019028dbfc2a9e50056d5252894",
+            "0x10c8264c0935b3b9870013e057f330ff3e9c56dc",
+            "0x187c42f6c0e7395aea00b1b30cb0ff807ef86d5d",
+            "0x0f1d5bd7be9b30fc09e110cd6504bd450e53cb0e",
+            "0x17414eb5159a082e8d41d243c1601c2944401431",
+            "0x49b0c695039243bbfeb8ecd054eb70061fd54aa0",
+            "0x5164ad28fb12a5e55946090ec3ee1b748afb3785",
+            "0x38611b09f8f2d520c14ea973765c225bf57b9eac",
+            "0xed7051d55eeaf85e36053d6b0f2c51e59625b047",
+            "0x307ccf7cbd17b69a487b9c3dbe483931cf3e1833",
+            "0xd78325dca0f90f0ffe53ccea1b02bb12e1bf8fdb",
+            "0x567e67f456c7453c583b6efa6f18452cdee1f5a8",
+            "0x7c5d415b64312d38c56b54358449d0a4058339d2",
+            "0x33d9b1baadcf4b26ab6f8e83e9cb8a611b2b3956",
+            "0x162d8c5bf15eb6bee003a1ffc4049c92114bc931",
+            "0xdf0fb4e4f928d2dcb76f438575fdd8682386e13c",
+            "0xefb7e6be8356ccc6827799b6a7348ee674a80eae",
+            "0xfe4a8cc5b5b2366c1b58bea3858e81843581b2f7",
+            "0x3b21a277babcb73b5a2325106fc04df8aa1ac5b6",
+            "0xf9d5aac6e5572aefa6bd64108ff86a222f69b64d",
+            "0x0a6513e40db6eb1b165753ad52e80663aea50545",
+            "0x5c3890e86f3e7ed7f5390532de147953580f1605",
+            "0xa338e0492b2f944e9f8c0653d3ad1484f2657a37",
+            "0xde31f8bfbd8c84b5360cfacca3539b938dd78ae6",
+            "0x6a99ec84819fb7007dd5d032068742604e755c56",
+            "0x10f964234cae09cb6a9854b56ff7d4f38cda5e6a",
+            "0x461c7b8d370a240ddb46b402748381c3210136b3",
+            "0x0c466540b2ee1a31b441671eac0ca886e051e410",
+            "0x692ae5510ca9070095a496dbcfbcda99d4024cd9",
+            "0xbe6fb0ab6302b693368d0e9001faf77ecc6571db",
+            "0x76631863c2ae7367af8f37cd10d251da7f1de186",
+            "0x785ba89291f676b5386652eb12b30cf361020694",
+            "0x691e26ab58ff05800e028b0876a41b720b26fc65",
+            "0x9896a1ea7a00f5f32ab131ebbee07487b0af31d0",
+            "0x9d3a43c111e7b2c6601705d9fcf7a70c95b1dc55",
+            "0xbc08c639e579a391c4228f20d0c29d0690092df0",
+            "0xc3e676e68db28c9fb2199f25b60560723237cc76",
+            "0xe71a04ace06e2667c7e1c802e998cbf44a6bf53c",
+            "0xd1d85bf11c28f878ee75bdc39387a2a15e0390b7",
+            "0x3ea1ec855fbda8ba0396975ec260ad2e9b2bc01c",
+            "0x1d22c334621364f16f050076ee15acd5eb8225ce",
+            "0x648e0ff6a36d58f6fce5927cb77601b73cadc2af",
+            "0x55e75d35c44a9ee1a5b05416640965ebca4a8d33",
+            "0xad4395fc414fc1575a7a38c20b0bfdbdb09ee41a",
+            "0x4517002fcd31062ea38680df9ee37f29528c2707",
+            "0x0fb2bed999da86cb1fdd97e746600a96141eea09"
+        ],
+        "polygon-zkevm": [
+            "0xf2f574b5e45e4c179f4af62bbfdca7df2e2c6ca9",
+            "0xae243804e1903bdbe26ae5f35bc6e4794be21574",
+            "0xa4fd5c39d975067c877f287e78d600da07e8344c",
+            "0x97d9f9a00dee0004be8ca0a8fa374d486567ee2d",
+            "0x0e3ea8bc02ee78d21edad8e1e907e575fca1c1a8",
+            "0x2eecadd4d8d3a4939440f07419741c4898095317",
+            "0x44285b60cc13557935ca4945d20475bd1f1058f4",
+            "0x0167d934cb7240e65c35e347f00ca5b12567523a",
+            "0x8499f6e7d6ac56c83f66206035d33bd1908a8b5d",
+            "0x4177730ef1bd0c0c798c7eb8ab23f9509177214d",
+            "0x2fe92f6a59d08da453afdaef20925185e9d2e897"
+        ],
+        "solana": [
+            "3g5z9lvhgpaxnurd12g8sx9pfmrf9yxtgheyrhhzzjdu",
+            "f6rapkrbd31k6zzrwxt8aqrrkwzbzqcmh2vbmvbgftpx",
+            "cv4t27xbjvokuywp72nqqanvzea7w4yf9l4enyt9kx5o",
+            "45wfbynxh1pmm3jwjuvuxk6qppgf4rm6pdsoipjahud8",
+            "716hfaecqotxcxcj8hs8nr7ag6q9dbw2ox3k3m8v7ugq",
+            "4gj7ct98qfgmelsdx4vqq4nqdlmmtfnvedynx6abescd",
+            "dy63gqvfuxpcbhwq7qt8eyfquaabthxx4avcgzhcrf3s",
+            "ccap5kdmqjxrytfnu43rbgvzzwzkdvcelysqgrjs2vxr",
+            "ch31xns5z3m1ctabkw34jcxppciazarpijchj9rxtemt",
+            "gzguokxe8unn7vcg1dtomwd27tl4bvupsk2m1yk6xfz5",
+            "8vauuqc5wvz9z9oquggdsjygudtfjmyqgu5vucqxtk5u",
+            "a7nfxsgsujm7qke8vnc9s9wyrlm2mz5gfv3hshs9bqjc"
+        ]
+    },
+    "uniquePair": {
+        "1INCH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AAPL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AAVE / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AAVE Network Emergency Count (BNB Chain)": {
+            "decimals": "0",
+            "smartDataFeed": false
+        },
+        "ADA / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "ETH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AMZN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ATOM / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AUD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AVAX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AXS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BAND / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BAND / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BCH / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BCH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BNB / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BR / USD": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BRL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BSW / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BTC / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BTC / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BTC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "C98 / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CAKE / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "CAKE / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CFX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CHF / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CHR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "COIN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "COMP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CRV / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Calculated BNBx / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Calculated SAVAX / USD": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "DAI / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "DAI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DODO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DOGE / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DOT / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "DOT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ETH / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "EUR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FDUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FET / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FIL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FRAX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FXS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GBP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GME / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GMT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GOOGL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "HIGH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ICP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "INJ / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "INR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "JPM / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "JPY / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "KAVA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "KNC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "LBTC / BTC": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "LINK / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "LINK / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "LISTA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "LTC / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "LTC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MASK / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "META / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MRNA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MSFT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MXN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "NEAR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "NFLX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "NVDA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ONG / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ONT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "PAXG / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "PFE / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "PHP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "POL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "QQQ / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "RDNT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SGD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SHIB / USD": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "SOL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SPELL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SPY / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ZRO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SUSDE / USDE Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "SUSHI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SXP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SolvBTC.BBN / SolvBTC Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "TRX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TSLA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TWT / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "UNI / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "UNI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USD1 / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDC / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "USDC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDE / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDT / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "USDT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDf / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "VET / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "WIN / USD": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "WOO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "WSTETH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "WTI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XAG / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XAU / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XLM / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XRP / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "XRP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XTZ / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "XTZ / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XVS / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "XVS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "YFI / BNB": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "YFI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ZAR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ZBU / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ezETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "ezETH / ETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "sUSDf / USDf Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "solvBTC / BTC": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "uniBTC / BTC Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "weETH / eETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "wstETH / stETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "1INCH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "AAVE / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "AMPL / USD": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "APE / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "APE / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ARB / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AVAIL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Arbitrum Healthcheck": {
+            "decimals": "N/A",
+            "smartDataFeed": false
+        },
+        "BADGER / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BAL / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "BAL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BAT / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "C3M / EUR": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CAD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CBETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "CNY / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "COMP / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "CRV / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "CRVUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CSPX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CVX / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "CVX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Calculated XSUSHI / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "Consumer Price Index": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "DAI / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "DOLO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DPI / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "DPI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "EIGEN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ENJ / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "ENS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ETH / BTC": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ETHFI / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "EURC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FBTC / BTC Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "COP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FIL / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "FRAX / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "FTT / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "GHO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GRT / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "GRT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "IB01 / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "IBTA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "IMX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "KNC / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "KRW / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "LDO / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "LINK / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "LRC / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "LUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "LsETH / ETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "MANA / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "MAVIA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MKR / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "MKR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "MLN / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "NEIRO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "NZD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "OETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "OUSDT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "PERP / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "wrsETH / rsETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "PumpBTC / BTC Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "RETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "RLUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "RPL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "RSR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SAND / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SHIB / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "SHV / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SKY / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SNX / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "SNX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "STETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "STETH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "STG / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SUSHI / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "SWELL / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "SXT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TAO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TBTC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TRUMP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TRY / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TUSD / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "Total Marketcap / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "UNI / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "USCC NAV - Aave LlamaRisk": {
+            "decimals": "6",
+            "smartDataFeed": false
+        },
+        "USD0 / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USD0++ / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDC / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "USDL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDT / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "USDe / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USDtb / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "USTB NAV - Aave LlamaRisk": {
+            "decimals": "6",
+            "smartDataFeed": false
+        },
+        "WAMPL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "WBTC / BTC": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XCN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "YFI / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "ZRX / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "ZRX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "cbBTC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "deUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "frxUSD / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "mETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "pufETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "rsETH / ETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "sUSDe / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "stBTC / BTC Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "tETH / wstETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "weETH / ETH": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "AAVE Network Emergency Count (Polygon)": {
+            "decimals": "0",
+            "smartDataFeed": false
+        },
+        "ADA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ALGO / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BADGER / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BAT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "BTC-USD Total Marketcap": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "CHZ / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Calculated MaticX / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Calculated stMATIC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DASH / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DGB / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "DOGE-USD Total Marketcap": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ETC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ETH-USD Total Marketcap": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FB / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "FTT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GHST / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "GHST / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "GNS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "HBAR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ILS / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ILV / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "LINK / MATIC": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "MANA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "OGN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "OM / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "PLN / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "QNT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "QUICK / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SEK / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SLP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "SPY.US": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "STORJ / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "THB / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "THETA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "TRUMATIC / MATIC Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "UMA / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "WBTC / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "WBTC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "WSTETH / ETH": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "XMR / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "XPT / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ZEC / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "ibBTC PricePerShare": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "sUSDe / USDe Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "wstETH-stETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "rETH / ETH Exchange Rate": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "MEW-USD": {
+            "decimals": "18",
+            "smartDataFeed": false
+        },
+        "OP / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "mSOL / USD": {
+            "decimals": "8",
+            "smartDataFeed": false
+        },
+        "Solv Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "enzoBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "stBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "21BTC Proof of Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "EUTBL NAV": {
+            "decimals": "6",
+            "smartDataFeed": true
+        },
+        "FBTC Proof of Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "HBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "M NAV": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "Nexus wETH Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "PumpBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "STBT Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "SolvBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "Swell ETH Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "Swell Restaked ETH Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "TUSD Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "USCC NAV per Share": {
+            "decimals": "6",
+            "smartDataFeed": true
+        },
+        "USTB AUM": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "USTB NAV per Share": {
+            "decimals": "6",
+            "smartDataFeed": true
+        },
+        "USTBL NAV": {
+            "decimals": "6",
+            "smartDataFeed": true
+        },
+        "WBTC Proof of Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "bgBTC Proof of Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "cbBTC Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "eETH Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "stETH Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "tfBILL NAV": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "uniBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "xSolvBTC Proof of Reserves": {
+            "decimals": "18",
+            "smartDataFeed": true
+        },
+        "COPW Reserves": {
+            "decimals": "6",
+            "smartDataFeed": true
+        },
+        "bC3M Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "bCSPX Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "bIB01 Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "bIBTA Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        },
+        "bNVDA Reserves / Proof of Reserves": {
+            "decimals": "8",
+            "smartDataFeed": true
+        }
+    }
+}
