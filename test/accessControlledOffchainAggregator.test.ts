@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers, ignition } from "hardhat";
 import { Result } from "ethers";
 
-import acOffchainAggregator from "../ignition/modules/acOCR2Aggregator"
+import acOffchainAggregator from "../ignition/modules/acOffchainAggregator"
 import { AccessControlledOffchainAggregator } from "../typechain-types/AccessControlledOffchainAggregator"
 
 import { EACAggregatorProxy, TransmitterCertificateHelper } from "../typechain-types";

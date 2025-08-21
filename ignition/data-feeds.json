@@ -504,15 +504,21 @@
     "uniquePair": {
         "1INCH / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "AAPL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "AAVE / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "AAVE Network Emergency Count (BNB Chain)": {
             "decimals": "0",
@@ -524,27 +530,39 @@
         },
         "ETH / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "500000"
         },
         "AMZN / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ATOM / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "AUD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "AVAX / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "AXS / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "BAND / BNB": {
             "decimals": "18",
@@ -560,11 +578,15 @@
         },
         "BCH / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "BNB / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "BR / USD": {
             "decimals": "18",
@@ -572,7 +594,9 @@
         },
         "BRL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "BSW / USD": {
             "decimals": "8",
@@ -584,11 +608,15 @@
         },
         "BTC / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "BTC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "500000"
         },
         "C98 / USD": {
             "decimals": "8",
@@ -600,7 +628,9 @@
         },
         "CAKE / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "CFX / USD": {
             "decimals": "8",
@@ -608,7 +638,9 @@
         },
         "CHF / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "CHR / USD": {
             "decimals": "8",
@@ -616,15 +648,21 @@
         },
         "COIN / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "COMP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "5000000"
         },
         "CRV / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "5000000"
         },
         "Calculated BNBx / USD": {
             "decimals": "8",
@@ -640,15 +678,21 @@
         },
         "DAI / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "DODO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "DOGE / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "DOT / BNB": {
             "decimals": "18",
@@ -656,7 +700,9 @@
         },
         "DOT / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "ETH / BNB": {
             "decimals": "18",
@@ -664,7 +710,9 @@
         },
         "EUR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "1000000"
         },
         "FDUSD / USD": {
             "decimals": "8",
@@ -676,19 +724,27 @@
         },
         "FIL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "FRAX / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "FXS / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "5000000"
         },
         "GBP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "GME / USD": {
             "decimals": "8",
@@ -700,7 +756,9 @@
         },
         "GOOGL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "HIGH / USD": {
             "decimals": "8",
@@ -708,15 +766,21 @@
         },
         "ICP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "INJ / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "INR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "1200000000000",
+            "alphaPPB": "2000000"
         },
         "JPM / USD": {
             "decimals": "8",
@@ -724,7 +788,9 @@
         },
         "JPY / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "KAVA / USD": {
             "decimals": "8",
@@ -732,11 +798,15 @@
         },
         "KNC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "LBTC / BTC": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "LINK / BNB": {
             "decimals": "18",
@@ -744,7 +814,9 @@
         },
         "LINK / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "2000000"
         },
         "LISTA / USD": {
             "decimals": "8",
@@ -756,7 +828,9 @@
         },
         "LTC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "MASK / USD": {
             "decimals": "8",
@@ -764,7 +838,9 @@
         },
         "META / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "MRNA / USD": {
             "decimals": "8",
@@ -776,15 +852,21 @@
         },
         "MSFT / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "MXN / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "1000000"
         },
         "NEAR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "NFLX / USD": {
             "decimals": "8",
@@ -792,7 +874,9 @@
         },
         "NVDA / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ONG / USD": {
             "decimals": "8",
@@ -804,7 +888,9 @@
         },
         "PAXG / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "PFE / USD": {
             "decimals": "8",
@@ -812,11 +898,15 @@
         },
         "PHP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "POL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "QQQ / USD": {
             "decimals": "8",
@@ -824,31 +914,45 @@
         },
         "RDNT / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SGD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "SHIB / USD": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SOL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "SPELL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SPY / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ZRO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SUSDE / USDE Exchange Rate": {
             "decimals": "18",
@@ -856,7 +960,9 @@
         },
         "SUSHI / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SXP / USD": {
             "decimals": "8",
@@ -864,19 +970,27 @@
         },
         "SolvBTC.BBN / SolvBTC Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "100000"
         },
         "TRX / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "TSLA / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "TUSD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "TWT / BNB": {
             "decimals": "18",
@@ -888,11 +1002,15 @@
         },
         "UNI / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1500000"
         },
         "USD1 / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "USDC / BNB": {
             "decimals": "18",
@@ -900,7 +1018,9 @@
         },
         "USDC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "USDE / USD": {
             "decimals": "8",
@@ -912,7 +1032,9 @@
         },
         "USDT / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "USDf / USD": {
             "decimals": "8",
@@ -920,7 +1042,9 @@
         },
         "USR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "VET / USD": {
             "decimals": "8",
@@ -932,27 +1056,39 @@
         },
         "WOO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "WSTETH / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "WTI / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XAG / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XAU / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XLM / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XRP / BNB": {
             "decimals": "18",
@@ -960,7 +1096,9 @@
         },
         "XRP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XTZ / BNB": {
             "decimals": "18",
@@ -968,7 +1106,9 @@
         },
         "XTZ / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XVS / BNB": {
             "decimals": "18",
@@ -976,7 +1116,9 @@
         },
         "XVS / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "YFI / BNB": {
             "decimals": "18",
@@ -984,23 +1126,33 @@
         },
         "YFI / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ZAR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "ZBU / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "10000000"
         },
         "ezETH / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ezETH / ETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "21600000000000",
+            "alphaPPB": "5000000"
         },
         "sUSDf / USDf Exchange Rate": {
             "decimals": "18",
@@ -1008,15 +1160,21 @@
         },
         "solvBTC / BTC": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "10000000"
         },
         "uniBTC / BTC Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "100000"
         },
         "weETH / eETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "wstETH / stETH Exchange Rate": {
             "decimals": "18",
@@ -1040,18 +1198,24 @@
         },
         "APE / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ARB / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "500000"
         },
         "AVAIL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "20000000"
         },
         "Arbitrum Healthcheck": {
-            "decimals": "N/A",
+            "decimals": "0",
             "smartDataFeed": false
         },
         "BADGER / ETH": {
@@ -1064,7 +1228,9 @@
         },
         "BAL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "5000000"
         },
         "BAT / ETH": {
             "decimals": "18",
@@ -1076,15 +1242,21 @@
         },
         "CAD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "CBETH / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "CNY / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "COMP / ETH": {
             "decimals": "18",
@@ -1096,7 +1268,9 @@
         },
         "CRVUSD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "CSPX / USD": {
             "decimals": "8",
@@ -1108,7 +1282,9 @@
         },
         "CVX / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "Calculated XSUSHI / ETH": {
             "decimals": "18",
@@ -1124,7 +1300,9 @@
         },
         "DOLO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "43200000000000",
+            "alphaPPB": "5000000"
         },
         "DPI / ETH": {
             "decimals": "18",
@@ -1132,7 +1310,9 @@
         },
         "DPI / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "10000000"
         },
         "EIGEN / USD": {
             "decimals": "8",
@@ -1148,7 +1328,9 @@
         },
         "ETH / BTC": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "3600000000000",
+            "alphaPPB": "2500000"
         },
         "ETHFI / USD": {
             "decimals": "8",
@@ -1156,11 +1338,15 @@
         },
         "EURC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "FBTC / BTC Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "100000"
         },
         "COP / USD": {
             "decimals": "8",
@@ -1180,7 +1366,9 @@
         },
         "GHO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "2000000"
         },
         "GRT / ETH": {
             "decimals": "18",
@@ -1188,7 +1376,9 @@
         },
         "GRT / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "IB01 / USD": {
             "decimals": "8",
@@ -1200,7 +1390,9 @@
         },
         "IMX / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "KNC / ETH": {
             "decimals": "18",
@@ -1208,7 +1400,9 @@
         },
         "KRW / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "LDO / ETH": {
             "decimals": "18",
@@ -1216,7 +1410,9 @@
         },
         "LINK / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "50000000"
         },
         "LRC / ETH": {
             "decimals": "18",
@@ -1224,7 +1420,9 @@
         },
         "LUSD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "LsETH / ETH Exchange Rate": {
             "decimals": "18",
@@ -1236,7 +1434,9 @@
         },
         "MAVIA / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "MKR / ETH": {
             "decimals": "18",
@@ -1244,7 +1444,9 @@
         },
         "MKR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "MLN / ETH": {
             "decimals": "18",
@@ -1256,7 +1458,9 @@
         },
         "NZD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "OETH / ETH": {
             "decimals": "18",
@@ -1264,7 +1468,9 @@
         },
         "OUSDT / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "PERP / ETH": {
             "decimals": "18",
@@ -1272,7 +1478,9 @@
         },
         "wrsETH / rsETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "PumpBTC / BTC Exchange Rate": {
             "decimals": "18",
@@ -1280,7 +1488,9 @@
         },
         "RETH / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "RLUSD / USD": {
             "decimals": "8",
@@ -1288,19 +1498,27 @@
         },
         "RPL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "RSR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SAND / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SHIB / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SHV / USD": {
             "decimals": "8",
@@ -1316,19 +1534,27 @@
         },
         "SNX / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "STETH / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "10000000"
         },
         "STETH / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "STG / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "SUSHI / ETH": {
             "decimals": "18",
@@ -1344,19 +1570,27 @@
         },
         "TAO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "20000000"
         },
         "TBTC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "TRUMP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "TRY / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "TUSD / ETH": {
             "decimals": "18",
@@ -1388,7 +1622,9 @@
         },
         "USDL / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "10000000"
         },
         "USDP / USD": {
             "decimals": "8",
@@ -1396,7 +1632,9 @@
         },
         "USDS / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "USDT / ETH": {
             "decimals": "18",
@@ -1404,7 +1642,9 @@
         },
         "USDe / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "USDtb / USD": {
             "decimals": "8",
@@ -1420,7 +1660,9 @@
         },
         "WBTC / BTC": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XCN / USD": {
             "decimals": "8",
@@ -1440,15 +1682,21 @@
         },
         "cbBTC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "1200000000000",
+            "alphaPPB": "3000000"
         },
         "deUSD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "frxUSD / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1000000"
         },
         "mETH / ETH": {
             "decimals": "18",
@@ -1456,27 +1704,39 @@
         },
         "pufETH / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "rsETH / ETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "500000"
         },
         "sUSDe / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "stBTC / BTC Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "100000"
         },
         "tETH / wstETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "2000"
         },
         "weETH / ETH": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "AAVE Network Emergency Count (Polygon)": {
             "decimals": "0",
@@ -1484,11 +1744,15 @@
         },
         "ADA / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ALGO / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "BADGER / USD": {
             "decimals": "8",
@@ -1500,7 +1764,9 @@
         },
         "BTC-USD Total Marketcap": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "CHZ / USD": {
             "decimals": "8",
@@ -1528,11 +1794,15 @@
         },
         "ETC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "ETH-USD Total Marketcap": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "20000000"
         },
         "FB / USD": {
             "decimals": "8",
@@ -1552,7 +1822,9 @@
         },
         "GNS / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "HBAR / USD": {
             "decimals": "8",
@@ -1576,7 +1848,9 @@
         },
         "OGN / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "OM / USD": {
             "decimals": "8",
@@ -1596,7 +1870,9 @@
         },
         "SEK / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "3000000"
         },
         "SLP / USD": {
             "decimals": "8",
@@ -1632,15 +1908,21 @@
         },
         "WBTC / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "500000"
         },
         "WSTETH / ETH": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "XMR / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "1200000000000",
+            "alphaPPB": "2000000"
         },
         "XPT / USD": {
             "decimals": "8",
@@ -1656,15 +1938,21 @@
         },
         "sUSDe / USDe Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "wstETH-stETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1"
         },
         "rETH / ETH Exchange Rate": {
             "decimals": "18",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1"
         },
         "MEW-USD": {
             "decimals": "18",
@@ -1672,7 +1960,9 @@
         },
         "OP / USD": {
             "decimals": "8",
-            "smartDataFeed": false
+            "smartDataFeed": false,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "mSOL / USD": {
             "decimals": "8",
@@ -1688,7 +1978,9 @@
         },
         "stBTC Proof of Reserves": {
             "decimals": "18",
-            "smartDataFeed": true
+            "smartDataFeed": true,
+            "deltaC": "86400000000000",
+            "alphaPPB": "10000000"
         },
         "21BTC Proof of Reserves": {
             "decimals": "8",
@@ -1700,7 +1992,9 @@
         },
         "FBTC Proof of Reserves": {
             "decimals": "8",
-            "smartDataFeed": true
+            "smartDataFeed": true,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "HBTC Proof of Reserves": {
             "decimals": "18",
@@ -1708,7 +2002,9 @@
         },
         "M NAV": {
             "decimals": "8",
-            "smartDataFeed": true
+            "smartDataFeed": true,
+            "deltaC": "86400000000000",
+            "alphaPPB": "1"
         },
         "Nexus wETH Reserves": {
             "decimals": "18",
@@ -1764,7 +2060,9 @@
         },
         "cbBTC Reserves": {
             "decimals": "8",
-            "smartDataFeed": true
+            "smartDataFeed": true,
+            "deltaC": "86400000000000",
+            "alphaPPB": "5000000"
         },
         "eETH Proof of Reserves": {
             "decimals": "18",
