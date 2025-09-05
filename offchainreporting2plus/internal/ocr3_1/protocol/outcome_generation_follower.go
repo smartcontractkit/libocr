@@ -83,6 +83,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 
 	outgen.refreshCommittedSeqNrAndCert()
 	if !outgen.ensureHighestCertifiedIsCompatible(msg.EpochStartProof.HighestCertified, "MessageEpochStart") {
+		select {
+		case outgen.chOutcomeGenerationToStatePersistence <- EventStateSyncRequest[RI]{
+			msg.EpochStartProof.HighestCertified.SeqNr(),
+		}:
+		case <-outgen.ctx.Done():
+		}
 		return
 	}
 
@@ -154,6 +160,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 				prepareQc.ReportsPlusPrecursor,
 				reportPlusPrecursorDigest,
 			}
+
 			outgen.logger.Debug("broadcasting MessagePrepare (reproposal where prepareQcSeqNr == committedSeqNr)", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
 			})
@@ -914,38 +921,33 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		return
 	}
 
-	if outgen.followerState.openKVTxn == nil {
-		outgen.logger.Critical("assumption violation, open kv transaction must exist in this phase", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"phase": outgen.followerState.phase,
-		})
-		panic("")
-	}
-	err := outgen.followerState.openKVTxn.Commit()
-	outgen.followerState.openKVTxn.Discard()
-	outgen.followerState.openKVTxn = nil
-	if err != nil {
-		outgen.logger.Warn("failed to commit kv transaction", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-			"error": err,
-		})
+	if outgen.followerState.openKVTxn != nil {
+		err := outgen.followerState.openKVTxn.Commit()
+		outgen.followerState.openKVTxn.Discard()
+		outgen.followerState.openKVTxn = nil
+		if err != nil {
+			outgen.logger.Warn("failed to commit kv transaction", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"error": err,
+			})
 
-		{
-			kvSeqNr, err := outgen.kvStore.HighestCommittedSeqNr()
-			if err != nil {
-				outgen.logger.Error("failed to validate kv commit post-condition, upon kv commit failure", commontypes.LogFields{
-					"seqNr": outgen.sharedState.seqNr,
-					"error": err,
-				})
-				return
-			}
+			{
+				kvSeqNr, err := outgen.kvStore.HighestCommittedSeqNr()
+				if err != nil {
+					outgen.logger.Error("failed to validate kv commit post-condition, upon kv commit failure", commontypes.LogFields{
+						"seqNr": outgen.sharedState.seqNr,
+						"error": err,
+					})
+					return
+				}
 
-			if kvSeqNr < outgen.sharedState.seqNr {
-				outgen.logger.Error("kv commit failed and post-condition (seqNr <= kvSeqNr) is not satisfied", commontypes.LogFields{
-					"seqNr":   outgen.sharedState.seqNr,
-					"kvSeqNr": kvSeqNr,
-				})
-				return
+				if kvSeqNr < outgen.sharedState.seqNr {
+					outgen.logger.Error("kv commit failed and post-condition (seqNr <= kvSeqNr) is not satisfied", commontypes.LogFields{
+						"seqNr":   outgen.sharedState.seqNr,
+						"kvSeqNr": kvSeqNr,
+					})
+					return
+				}
 			}
 		}
 	}
@@ -1252,6 +1254,7 @@ func (outgen *outcomeGenerationState[RI]) persistCommitAsBlock(commit *Certified
 }
 
 func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
+
 	preRefreshCommittedSeqNr := outgen.sharedState.committedSeqNr
 
 	postRefreshCommittedSeqNr, err := outgen.kvStore.HighestCommittedSeqNr()
@@ -1270,8 +1273,19 @@ func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 
 	if postRefreshCommittedSeqNr == preRefreshCommittedSeqNr {
 		return
+	} else if postRefreshCommittedSeqNr+1 == preRefreshCommittedSeqNr {
+
+		logger.Warn("last kv transaction commit failed, requesting state sync", nil)
+		select {
+		case outgen.chOutcomeGenerationToStatePersistence <- EventStateSyncRequest[RI]{
+			preRefreshCommittedSeqNr,
+		}:
+		case <-outgen.ctx.Done():
+		}
+
+		return
 	} else if postRefreshCommittedSeqNr < preRefreshCommittedSeqNr {
-		logger.Critical("assumption violation, kv is behind what outgen knows as committed", nil)
+		logger.Critical("assumption violation, kv is way behind what outgen knows as committed", nil)
 		panic("")
 	}
 

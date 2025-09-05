@@ -33,6 +33,7 @@ func RunOutcomeGeneration[RI any](
 	chPacemakerToOutcomeGeneration <-chan EventToOutcomeGeneration[RI],
 	chOutcomeGenerationToPacemaker chan<- EventToPacemaker[RI],
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI],
+	chOutcomeGenerationToStatePersistence chan<- EventToStatePersistence[RI],
 	blobBroadcastFetcher ocr3_1types.BlobBroadcastFetcher,
 	config ocr3config.SharedConfig,
 	database Database,
@@ -58,6 +59,7 @@ func RunOutcomeGeneration[RI any](
 		chPacemakerToOutcomeGeneration:         chPacemakerToOutcomeGeneration,
 		chOutcomeGenerationToPacemaker:         chOutcomeGenerationToPacemaker,
 		chOutcomeGenerationToReportAttestation: chOutcomeGenerationToReportAttestation,
+		chOutcomeGenerationToStatePersistence:  chOutcomeGenerationToStatePersistence,
 		blobBroadcastFetcher:                   blobBroadcastFetcher,
 		config:                                 config,
 		database:                               database,
@@ -83,6 +85,7 @@ type outcomeGenerationState[RI any] struct {
 	chPacemakerToOutcomeGeneration         <-chan EventToOutcomeGeneration[RI]
 	chOutcomeGenerationToPacemaker         chan<- EventToPacemaker[RI]
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI]
+	chOutcomeGenerationToStatePersistence  chan<- EventToStatePersistence[RI]
 	blobBroadcastFetcher                   ocr3_1types.BlobBroadcastFetcher
 	config                                 ocr3config.SharedConfig
 	database                               Database

@@ -121,7 +121,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 
 	contractConfig, err := state.configTracker.LatestConfig(ctx, changedInBlock)
 	if err != nil {
-		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", ctx, commontypes.LogFields{
+		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfig()", ctx, commontypes.LogFields{
 			"error": err,
 		})
 		return nil, true
