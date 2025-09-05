@@ -1188,7 +1188,10 @@ func (fpm *fromProtoMessage[RI]) chunkDigests(pbcds [][]byte) ([]protocol.BlobCh
 	}
 	cds := make([]protocol.BlobChunkDigest, 0, len(pbcds))
 	for _, pbcd := range pbcds {
-		cds = append(cds, protocol.BlobChunkDigest(pbcd))
+		var blockChunkDigest protocol.BlobChunkDigest
+		copy(blockChunkDigest[:], pbcd)
+
+		cds = append(cds, blockChunkDigest)
 	}
 	return cds, nil
 }
@@ -1217,7 +1220,7 @@ func (fpm *fromProtoMessage[RI]) messageBlobChunkResponse(m *MessageBlobChunkRes
 	copy(blobDigest[:], m.BlobDigest)
 
 	return protocol.MessageBlobChunkResponse[RI]{
-		fpm.requestHandle,
+		nil, // TODO: consider using a sentinel value here, e.g. "EmptyRequestHandleForInboundResponse"
 		blobDigest,
 		m.ChunkIndex,
 		m.Chunk,

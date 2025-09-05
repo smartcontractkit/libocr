@@ -13,12 +13,25 @@ import (
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
-func peerGroupStreamNamePrefix(configDigestPrefix ocr2types.ConfigDigestPrefix) (streamNamePrefix string, ok bool) {
+func peerGroupStreamNamePrefix(configDigest ocr2types.ConfigDigest) (streamNamePrefix string, err error) {
+	configDigestPrefix := ocr2types.ConfigDigestPrefixFromConfigDigest(configDigest)
+
 	switch configDigestPrefix { // nolint:exhaustive
 	case ocr2types.ConfigDigestPrefixCCIPMultiRoleRMNCombo:
-		return "ccip-rmn/", true
+		return "ccip-rmn/", nil
+	case ocr2types.ConfigDigestPrefixDONToDONMessagingGroup:
+		// We include the full config digest in the stream name prefix to have clean
+		// namespacing between different PeerGroups.
+		return fmt.Sprintf("don-to-don/%s/", configDigest), nil
+	case ocr2types.ConfigDigestPrefixDONToDONDiscoveryGroup:
+		// We include the full config digest in the stream name prefix to have clean
+		// namespacing between different PeerGroups.
+		// Based on the current don-to-don design, we do not expect to have any streams
+		// with this config digest prefix, but we nevertheless need to allowlist it
+		// to enable creation of corresponding PeerGroups.
+		return fmt.Sprintf("don-to-don-discovery/%s/", configDigest), nil
 	default:
-		return "", false
+		return "", fmt.Errorf("config digest prefix %s is not allowed", configDigestPrefix)
 	}
 }
 
@@ -84,10 +97,9 @@ func (f *peerGroupFactory) NewPeerGroup(
 	peerIDs []string,
 	bootstrappers []commontypes.BootstrapperLocator,
 ) (PeerGroup, error) {
-	configDigestPrefix := ocr2types.ConfigDigestPrefixFromConfigDigest(configDigest)
-	streamNamePrefix, ok := peerGroupStreamNamePrefix(configDigestPrefix)
-	if !ok {
-		return nil, fmt.Errorf("config digest prefix %s is not allowed", configDigestPrefix)
+	streamNamePrefix, err := peerGroupStreamNamePrefix(configDigest)
+	if err != nil {
+		return nil, fmt.Errorf("could not get stream name prefix: %w", err)
 	}
 
 	decodedv2PeerIDs, err := decodev2PeerIDs(peerIDs)

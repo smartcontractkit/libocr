@@ -17,6 +17,7 @@ func RunStatePersistence[RI any](
 	ctx context.Context,
 
 	chNetToStatePersistence <-chan MessageToStatePersistenceWithSender[RI],
+	chOutcomeGenerationToStatePersistence <-chan EventToStatePersistence[RI],
 	chReportAttestationToStatePersistence <-chan EventToStatePersistence[RI],
 	config ocr3config.SharedConfig,
 	database Database,
@@ -32,6 +33,7 @@ func RunStatePersistence[RI any](
 	defer sched.Close()
 
 	newStatePersistenceState(ctx, chNetToStatePersistence,
+		chOutcomeGenerationToStatePersistence,
 		chReportAttestationToStatePersistence,
 		config, database, id, kvStore, logger, netSender, reportingPlugin, sched).run(restoredState)
 }
@@ -42,6 +44,7 @@ type statePersistenceState[RI any] struct {
 	ctx context.Context
 
 	chNetToStatePersistence               <-chan MessageToStatePersistenceWithSender[RI]
+	chOutcomeGenerationToStatePersistence <-chan EventToStatePersistence[RI]
 	chReportAttestationToStatePersistence <-chan EventToStatePersistence[RI]
 	tTryReplay                            <-chan time.Time
 	config                                ocr3config.SharedConfig
@@ -70,6 +73,8 @@ func (state *statePersistenceState[RI]) run(restoredState StatePersistenceState)
 		select {
 		case msg := <-state.chNetToStatePersistence:
 			msg.msg.processStatePersistence(state, msg.sender)
+		case ev := <-state.chOutcomeGenerationToStatePersistence:
+			ev.processStatePersistence(state)
 		case ev := <-state.chReportAttestationToStatePersistence:
 			ev.processStatePersistence(state)
 		case ev := <-state.blockSyncState.scheduler.Scheduled():
@@ -180,6 +185,7 @@ func (state *statePersistenceState[RI]) eventStateSyncRequest(ev EventStateSyncR
 	state.logger.Debug("received EventStateSyncRequest", commontypes.LogFields{
 		"heardSeqNr": ev.SeqNr,
 	})
+	state.tTryReplay = time.After(0)
 	state.heardSeqNr(ev.SeqNr)
 }
 
@@ -319,7 +325,7 @@ func (state *statePersistenceState[RI]) eventReadyToSendNextBlockSyncRequest(ev 
 func newStatePersistenceState[RI any](
 	ctx context.Context,
 	chNetToStatePersistence <-chan MessageToStatePersistenceWithSender[RI],
-
+	chOutcomeGenerationToStatePersistence <-chan EventToStatePersistence[RI],
 	chReportAttestationToStatePersistence <-chan EventToStatePersistence[RI],
 	config ocr3config.SharedConfig,
 	database Database,
@@ -348,6 +354,7 @@ func newStatePersistenceState[RI any](
 		ctx,
 
 		chNetToStatePersistence,
+		chOutcomeGenerationToStatePersistence,
 		chReportAttestationToStatePersistence,
 		tTryReplay,
 		config,
