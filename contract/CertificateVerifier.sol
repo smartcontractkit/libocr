@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
-pragma abicoder v2;
+pragma solidity 0.8.30;
 
 import "./Owned.sol";
 import "./libs/DateConverter.sol";
@@ -133,16 +132,30 @@ contract CertificateVerifier is ICertVerifier, CertificateVerifierStorageAccesso
             cert.expirationDate,
             cert.nonSerializedParts[3]
         );
-        packedData = abi.encodePacked(packedData, cert.publicKey, cert.nonSerializedParts[4], cert.ca, cert.nonSerializedParts[5]);
+        packedData = abi.encodePacked(packedData, cert.publicKey, cert.nonSerializedParts[4], cert.ca);
 
+        uint256 index = 5;
         if (cert.userData != 0) {
-            packedData = abi.encodePacked(packedData, cert.userData, cert.nonSerializedParts[6]);
+            packedData = abi.encodePacked(packedData, cert.nonSerializedParts[index], cert.userData);
+            index++;
         }
+
         if (cert.mrEnclave != 0) {
-            packedData = abi.encodePacked(packedData, cert.mrEnclave);
+            packedData = abi.encodePacked(packedData, cert.nonSerializedParts[index], cert.mrEnclave);
+            index++;
         }
+
         if (cert.mrSigner != 0) {
-            packedData = abi.encodePacked(packedData, cert.nonSerializedParts[7], cert.mrSigner);
+            packedData = abi.encodePacked(packedData, cert.nonSerializedParts[index], cert.mrSigner);
+            index++;
+        }
+
+        /***
+        * 2 - magic number as each certificate has strictly 2 non-serialized parts at the 
+        * end that correspond to the signature and are not part of TBS;
+        */
+        if (index < cert.nonSerializedParts.length - 2) {
+            packedData = abi.encodePacked(packedData, cert.nonSerializedParts[index]);
         }
 
         return SignatureHelper.checkCertSignature(cert.signature, caPubKey, packedData);

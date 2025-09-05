@@ -2,7 +2,6 @@ import { IgnitionModuleBuilder } from "@nomicfoundation/ignition-core/dist/src/t
 import { NamedArtifactContractDeploymentFuture } from "@nomicfoundation/ignition-core/dist/src/types/module";
 import { buildModule, } from "@nomicfoundation/hardhat-ignition/modules";
 import multipleDeploy, { uniquePairs } from "./multipleDeploy";
-import { AbiCoder } from 'ethers';
 
 import fs from 'fs'
 import path from 'path';
@@ -12,32 +11,16 @@ const paramsFlagIndex = args.indexOf('--parameters');
 const paramsPath = paramsFlagIndex !== -1 ? args[paramsFlagIndex + 1] : "ignition/parameters.json";
 const multipleSetupParams = JSON.parse(fs.readFileSync(path.join(__dirname, '../../' + paramsPath)).toString()).multipleSetup;
 
-const codingStructure = ["tuple(int64 deltaProgress,int64 deltaResend,int64 deltaRound,int64 deltaGrace,int64 deltaC,uint64 alphaPPB,int64 deltaStage,uint8 rMax,uint8[] s,bytes32[] offchainPublicKeys,string peerIDs,tuple(bytes32 diffieHellmanPoint,bytes32 sharedSecretHash,bytes16[] encryptions) sharedSecretEncryptions)"]
-
 async function setConfig(m: IgnitionModuleBuilder, aggregator: NamedArtifactContractDeploymentFuture<"AccessControlledOffchainAggregator">, options?: { deltaC: string, alphaPPB: string }) {
-  const deployer = m.getAccount(0)
-  const signers = multipleSetupParams.signers
-  const transmitters = multipleSetupParams.transmitters
-  const payees = multipleSetupParams.payees ?? new Array(transmitters.length).fill(deployer)
-
-  const setPayees = m.call(aggregator, "setPayees", [transmitters, payees], { id: aggregator.id.replace("#", "_") + "_setPayees" })
-
   // node config
-  const threshold = 1
-  const encodedConfigVersion = 1
-  const nodesConfig = { ...multipleSetupParams.nodesConfig }
+  const { deltaProgress, deltaResend, deltaRound, deltaGrace, deltaC: deltaCdefault, alphaPPB: alphaPPBdefault, deltaStage, rMax, encodedConfigVersion } = multipleSetupParams.nodesConfig
 
-  if (options?.deltaC !== undefined) {
-    nodesConfig.deltaC = options.deltaC
-  }
-  if (options?.alphaPPB !== undefined) {
-    nodesConfig.alphaPPB = options.alphaPPB
-  }
-  const encoded = AbiCoder.defaultAbiCoder().encode(codingStructure, [nodesConfig]);
+  const deltaC = options?.deltaC !== undefined ? options.deltaC : deltaCdefault
+  const alphaPPB = options?.alphaPPB !== undefined ? options.alphaPPB : alphaPPBdefault
 
-  const mainConfig = [signers, transmitters, threshold, encodedConfigVersion, encoded]
+  const config = [deltaProgress, deltaResend, deltaRound, deltaGrace, deltaC, alphaPPB, deltaStage, rMax, encodedConfigVersion]
 
-  m.call(aggregator, "setConfig", mainConfig, { after: [setPayees], id: aggregator.id.replace("#", "_") + "_setConfig" })
+  m.call(aggregator, "setConsensusConfig", config, { id: aggregator.id.replace("#", "_") + "_setConsensusConfig" })
 }
 
 export const multipleSetup = buildModule("multipleSetup", (m) => {

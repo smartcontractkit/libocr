@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat';
 import { BytesLike, HDNodeWallet } from 'ethers';
-import { ChunkedX509CertStruct, BytesBlacklistStruct } from '../../typechain-types/CertificateVerifier.sol/CertificateVerifier';
+import { ChunkedX509CertStruct, BytesBlacklistStruct } from '../../typechain-types/contract/CertificateVerifier.sol/CertificateVerifier';
 
 export class CertificateHelper {
     cert: ChunkedX509CertStruct;

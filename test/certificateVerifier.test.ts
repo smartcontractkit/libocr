@@ -115,7 +115,7 @@ describe('Certificate verifier', function () {
             expect(certHash).to.equal(certificate.certHash);
         });
 
-        it('Successful verification examples sertificates', async function () {
+        it('Successful verification examples certificates', async function () {
             const rootCert = (await import('./certsExamples/rootCert.json')).default;
             const subroot1Cert = (await import('./certsExamples/subroot1Cert.json')).default;
             const subroot2Cert = (await import('./certsExamples/subroot2Cert.json')).default;
@@ -124,11 +124,19 @@ describe('Certificate verifier', function () {
             await certVerifier.verifyCert(rootCert, rootCert.publicKey);
             await certVerifier.verifyCert(subroot1Cert, rootCert.publicKey);
             await certVerifier.verifyCert(subroot2Cert, subroot1Cert.publicKey);
+            await expect(certVerifier.verifyCert(wrongSignatureCert, wrongSignatureCert.publicKey)).to.rejectedWith('Invalid signature');
+
             await certVerifier.setRootCert(rootCert);
+            await certVerifier.verifyCertChain([subroot1Cert], 0)
             await expect(certVerifier.verifyCertChain([subroot2Cert, subroot1Cert], 0)).to.rejectedWith(
                 'Intermediate certificate does not have ca flag'
             );
-            await expect(certVerifier.verifyCert(wrongSignatureCert, wrongSignatureCert.publicKey)).to.rejectedWith('Invalid signature');
+
+            const chain2rootCert = (await import('./certsExamples/chain2-rootCert.json')).default;
+            await certVerifier.setRootCert(chain2rootCert);
+            const chain2subroot1Cert = (await import('./certsExamples/chain2-subroot1Cert.json')).default;
+            const chain2leafCert = (await import('./certsExamples/chain2-leafCert.json')).default;
+            await certVerifier.verifyCertChain([chain2leafCert, chain2subroot1Cert], 1)
         });
     });
 

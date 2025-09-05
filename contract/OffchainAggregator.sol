@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
-pragma abicoder v2;
+pragma solidity 0.8.30;
+
+import "./libs/LowLevelCall.sol";
 
 import "./AccessControllerInterface.sol";
 import "./AggregatorV2V3Interface.sol";
@@ -9,7 +10,7 @@ import "./LinkTokenInterface.sol";
 import "./Owned.sol";
 import "./OffchainAggregatorBilling.sol";
 import "./TypeAndVersionInterface.sol";
-import "./interfaces/ITransmitterCertificateHelper.sol";
+import "./interfaces/IAdminCertificateHelper.sol";
 
 /**
   * @notice Onchain verification of reports from the offchain reporting protocol
@@ -60,7 +61,9 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
   // Highest answer the system is allowed to report in response to transmissions
   int192 immutable public maxAnswer;
 
-  ITransmitterCertificateHelper internal s_transmitterCertificateHelper;
+  IAdminCertificateHelper internal s_adminCertificateHelper;
+  ConsensusConfig s_consensusConfig;
+  uint64 s_encodedConfigVersion;
 
   /*
    * @param _maximumGasPrice highest gas price for which transmitter will be compensated
@@ -83,20 +86,20 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     AccessControllerInterface _requesterAccessController,
     uint8 _decimals,
     string memory _description,
-    ITransmitterCertificateHelper transmitterCertificateHelper
+    IAdminCertificateHelper adminCertificateHelper
   )
     OffchainAggregatorBilling(_billingConstructorArgs)
   {
     decimals = _decimals;
     s_description = _description;
     setRequesterAccessController(_requesterAccessController);
-    setValidatorConfig(AggregatorValidatorInterface(0x0), 0);
+    setValidatorConfig(AggregatorValidatorInterface(address(0)), 0);
     minAnswer = _minAnswer;
     maxAnswer = _maxAnswer;
     
-    require(address(transmitterCertificateHelper) != address(0),"transmitterCertificateHelper cannot be zero address");
-    emit TransmitterCertificateHelperSet(s_transmitterCertificateHelper, transmitterCertificateHelper);
-    s_transmitterCertificateHelper=transmitterCertificateHelper;
+    require(address(adminCertificateHelper) != address(0),"adminCertificateHelper cannot be zero address");
+    emit AdminCertificateHelperSet(s_adminCertificateHelper, adminCertificateHelper);
+    s_adminCertificateHelper=adminCertificateHelper;
   }
 
   /*
@@ -116,16 +119,16 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
    * Config logic
    */
 
-  function transmitterCertificateHelper() external view returns (ITransmitterCertificateHelper) {
-    return s_transmitterCertificateHelper;
+  function adminCertificateHelper() external view returns (IAdminCertificateHelper) {
+    return s_adminCertificateHelper;
   }
 
-  event TransmitterCertificateHelperSet(ITransmitterCertificateHelper oldTransmitterCertificateHelper,ITransmitterCertificateHelper newTransmitterCertificateHelper);
+  event AdminCertificateHelperSet(IAdminCertificateHelper oldAdminCertificateHelper,IAdminCertificateHelper newAdminCertificateHelper);
 
-  function setTransmitterCertificateHelper(ITransmitterCertificateHelper newTransmitterCertificateHelper) external onlyOwner() {
-    require(address(newTransmitterCertificateHelper) != address(0),"transmitterCertificateHelper cannot be zero address");
-    emit TransmitterCertificateHelperSet(s_transmitterCertificateHelper, newTransmitterCertificateHelper);
-    s_transmitterCertificateHelper = newTransmitterCertificateHelper;
+  function setAdminCertificateHelper(IAdminCertificateHelper newAdminCertificateHelper) external onlyOwner() {
+    require(address(newAdminCertificateHelper) != address(0),"AdminCertificateHelper cannot be zero address");
+    emit AdminCertificateHelperSet(s_adminCertificateHelper, newAdminCertificateHelper);
+    s_adminCertificateHelper = newAdminCertificateHelper;
   }
 
   /**
@@ -148,66 +151,139 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     bytes encoded
   );
 
-  // Reverts transaction if config args are invalid
-  modifier checkConfigValid (
-    uint256 _numSigners, uint256 _numTransmitters, uint256 _threshold
-  ) {
-    require(_numSigners <= maxNumOracles, "too many signers");
-    require(_threshold > 0, "threshold must be positive");
-    require(
-      _numSigners == _numTransmitters,
-      "oracle addresses out of registration"
-    );
-    require(_numSigners > 3*_threshold, "faulty-oracle threshold too high");
-    _;
+  struct SharedSecretEncryptions{
+    bytes32 diffieHellmanPoint;
+    bytes32 sharedSecretHash;
+    bytes16[] encryptions;
   }
 
   /**
    * @notice sets offchain reporting protocol configuration incl. participating oracles
-   * @param _signers addresses with which oracles sign the reports
-   * @param _transmitters addresses oracles use to transmit the reports
-   * @param _threshold number of faulty oracles the system can tolerate
-   * @param _encodedConfigVersion version number for offchainEncoding schema
-   * @param _encoded encoded off-chain oracle configuration
+   * @param signers addresses with which oracles sign the reports
+   * @param transmitters addresses oracles use to transmit the reports
+   * @param threshold number of faulty oracles the system can tolerate
    */
-  function setConfig(
-    address[] calldata _signers,
-    address[] calldata _transmitters,
-    uint8 _threshold,
-    uint64 _encodedConfigVersion,
-    bytes calldata _encoded
-  )
-    external
-    checkConfigValid(_signers.length, _transmitters.length, _threshold)
-    onlyOwner()
-  {
-    while (s_signers.length != 0) { // remove any old signer/transmitter addresses
-      uint lastIdx = s_signers.length - 1;
-      address signer = s_signers[lastIdx];
-      address transmitter = s_transmitters[lastIdx];
+  struct ConsensusDonConfig{
+    address[] signers;
+    address[] transmitters;
+    uint8 threshold;
+    uint8[] s;
+    bytes32[] offchainPublicKeys;
+    string peerIDs;
+    SharedSecretEncryptions sharedSecretEncryptions;
+  }
+
+  struct ConsensusConfig{
+    int64 deltaProgress;
+    int64 deltaResend;
+    int64 deltaRound;
+    int64 deltaGrace;
+    int64 deltaC;
+    uint64 alphaPPB;
+    int64 deltaStage;
+    uint8 rMax;
+    uint8[] s;
+    bytes32[] offchainPublicKeys;
+    string peerIDs;
+    SharedSecretEncryptions sharedSecretEncryptions;
+  }
+
+  /**
+   * @notice sets offchain reporting protocol configuration
+   * @param _encodedConfigVersion version number for offchainEncoding schema
+   */
+  function setConsensusConfig(
+    int64 _deltaProgress,
+    int64 _deltaResend,
+    int64 _deltaRound,
+    int64 _deltaGrace,
+    int64 _deltaC,
+    uint64 _alphaPPB,
+    int64 _deltaStage,
+    uint8 _rMax,
+    uint64 _encodedConfigVersion
+  ) external onlyOwner() {
+    s_consensusConfig.deltaProgress=_deltaProgress;
+    s_consensusConfig.deltaResend=_deltaResend;
+    s_consensusConfig.deltaRound=_deltaRound;
+    s_consensusConfig.deltaGrace=_deltaGrace;
+    s_consensusConfig.deltaC=_deltaC;
+    s_consensusConfig.alphaPPB=_alphaPPB;
+    s_consensusConfig.deltaStage=_deltaStage;
+    s_consensusConfig.rMax=_rMax;
+    s_encodedConfigVersion=_encodedConfigVersion;
+    
+    if(s_transmitters.length!=0){
+      _setConfig();
+    }
+  }
+
+  /**
+   * @notice sets offchain reporting protocol configuration incl. participating oracles
+   */
+  function setConfig(ConsensusDonConfig calldata donConfig) external {
+    { 
+      // checkConfigValid
+      require(donConfig.signers.length <= maxNumOracles, "too many signers");
+      require(donConfig.threshold > 0, "threshold must be positive");
+      require(
+        donConfig.signers.length == donConfig.transmitters.length,
+        "oracle addresses out of registration"
+      );
+      require(donConfig.signers.length > 3*donConfig.threshold, "faulty-oracle threshold too high");
+    }
+
+    require(s_adminCertificateHelper.isAdmin(msg.sender),"Only confidential admin");
+
+    for(uint256 i;i<s_signers.length;i++) { // remove any old signer/transmitter addresses
+      address signer = s_signers[i];
+      address transmitter = s_transmitters[i];
       payOracle(transmitter);
       delete s_oracles[signer];
       delete s_oracles[transmitter];
-      s_signers.pop();
-      s_transmitters.pop();
     }
-
-    for (uint i = 0; i < _signers.length; i++) { // add new signer/transmitter addresses
+    delete s_signers;
+    delete s_transmitters;
+    
+    for (uint i = 0; i < donConfig.signers.length; i++) { // add new signer/transmitter addresses
       require(
-        s_oracles[_signers[i]].role == Role.Unset,
+        s_oracles[donConfig.signers[i]].role == Role.Unset,
         "repeated signer address"
       );
-      s_oracles[_signers[i]] = Oracle(uint8(i), Role.Signer);
-      require(s_payees[_transmitters[i]] != address(0), "payee must be set");
+      s_oracles[donConfig.signers[i]] = Oracle(uint8(i), Role.Signer);
+
+      if(s_payees[donConfig.transmitters[i]] == address(0)){
+        s_payees[donConfig.transmitters[i]]=owner;
+      }
+
       require(
-        s_oracles[_transmitters[i]].role == Role.Unset,
+        s_oracles[donConfig.transmitters[i]].role == Role.Unset,
         "repeated transmitter address"
       );
-      s_oracles[_transmitters[i]] = Oracle(uint8(i), Role.Transmitter);
-      s_signers.push(_signers[i]);
-      s_transmitters.push(_transmitters[i]);
+      s_oracles[donConfig.transmitters[i]] = Oracle(uint8(i), Role.Transmitter);
     }
-    s_hotVars.threshold = _threshold;
+    s_signers=donConfig.signers;
+    s_transmitters=donConfig.transmitters;
+
+    s_consensusConfig.s=donConfig.s;
+    s_consensusConfig.offchainPublicKeys=donConfig.offchainPublicKeys;
+    s_consensusConfig.peerIDs=donConfig.peerIDs;
+    s_consensusConfig.sharedSecretEncryptions=donConfig.sharedSecretEncryptions;
+
+    s_hotVars.threshold = donConfig.threshold;
+    _setConfig();
+  }
+  
+  /**
+   * _encoded encoded off-chain oracle configuration
+   */
+  function _setConfig() internal {
+    address[] memory _signers=s_signers;
+    address[] memory _transmitters=s_transmitters;
+    uint8 _threshold=s_hotVars.threshold;
+    uint64 _encodedConfigVersion=s_encodedConfigVersion;
+    bytes memory _encoded=abi.encode(s_consensusConfig);
+
     uint32 previousConfigBlockNumber = s_latestConfigBlockNumber;
     s_latestConfigBlockNumber = uint32(block.number);
     s_configCount += 1;
@@ -238,11 +314,11 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
   function configDigestFromConfigData(
     address _contractAddress,
     uint64 _configCount,
-    address[] calldata _signers,
-    address[] calldata _transmitters,
+    address[] memory _signers,
+    address[] memory _transmitters,
     uint8 _threshold,
     uint64 _encodedConfigVersion,
-    bytes calldata _encodedConfig
+    bytes memory _encodedConfig
   ) internal pure returns (bytes16) {
     return bytes16(keccak256(abi.encode(_contractAddress, _configCount,
       _signers, _transmitters, _threshold, _encodedConfigVersion, _encodedConfig
@@ -357,7 +433,7 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
     uint32 prevAggregatorRoundId = _aggregatorRoundId - 1;
     int256 prevAggregatorRoundAnswer = s_transmissions[prevAggregatorRoundId].answer;
     require(
-      callWithExactGasEvenIfTargetIsNoContract(
+      LowLevelCallLib.callWithExactGasEvenIfTargetIsNoContract(
         vc.gasLimit,
         address(vc.validator),
         abi.encodeWithSignature(
@@ -370,41 +446,6 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
       ),
       "insufficient gas"
     );
-  }
-
-  uint256 private constant CALL_WITH_EXACT_GAS_CUSHION = 5_000;
-
-  /**
-   * @dev calls target address with exactly gasAmount gas and data as calldata
-   * or reverts if at least gasAmount gas is not available.
-   */
-  function callWithExactGasEvenIfTargetIsNoContract(
-    uint256 _gasAmount,
-    address _target,
-    bytes memory _data
-  )
-    private
-    returns (bool sufficientGas)
-  {
-    // solhint-disable-next-line no-inline-assembly
-    assembly {
-      let g := gas()
-      // Compute g -= CALL_WITH_EXACT_GAS_CUSHION and check for underflow. We
-      // need the cushion since the logic following the above call to gas also
-      // costs gas which we cannot account for exactly. So cushion is a
-      // conservative upper bound for the cost of this logic.
-      if iszero(lt(g, CALL_WITH_EXACT_GAS_CUSHION)) {
-        g := sub(g, CALL_WITH_EXACT_GAS_CUSHION)
-        // If g - g//64 <= _gasAmount, we don't have enough gas. (We subtract g//64
-        // because of EIP-150.)
-        if gt(sub(g, div(g, 64)), _gasAmount) {
-          // Call and ignore success/return data. Note that we did not check
-          // whether a contract actually exists at the _target address.
-          pop(call(_gasAmount, _target, 0, add(_data, 0x20), mload(_data), 0, 0))
-          sufficientGas := true
-        }
-      }
-    }
   }
 
   /*
@@ -664,7 +705,6 @@ contract OffchainAggregator is Owned, OffchainAggregatorBilling, AggregatorV2V3I
         msg.sender == s_transmitters[transmitter.index],
         "unauthorized transmitter"
       );
-      require(s_transmitterCertificateHelper.isTransmitterInitialized(msg.sender),"Transmitter must be intialized");
       // record epochAndRound here, so that we don't have to carry the local
       // variable in transmit. The change is reverted if something fails later.
       r.hotVars.latestEpochAndRound = epochAndRound;

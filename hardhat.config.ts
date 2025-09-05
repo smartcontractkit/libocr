@@ -28,20 +28,21 @@ const config: HardhatUserConfig = {
       }
     },
     {
-      version: "0.8.19",
-      settings: {
-        optimizer: {
-          enabled: true,
-          runs: 10000
-        }, evmVersion: "paris"
-      },
-    },
-    {
       version: "0.7.6",
       settings: {
         optimizer: {
           enabled: true,
           runs: 20000
+        }
+      },
+    },
+    {
+      version: "0.8.30",
+      settings: {
+        viaIR: true,
+        optimizer: {
+          enabled: true,
+          runs: 5000
         }
       },
     },
@@ -53,7 +54,7 @@ const config: HardhatUserConfig = {
       chainId: 5611,
       ...URL_ACCOUNTS_SETTINGS,
       ignition: {
-        maxFeePerGas: 1_000_000_000n,
+        maxFeePerGas: 1_000_000n,
         maxPriorityFeePerGas: 1n,
         disableFeeBumping: true,
       },
@@ -62,7 +63,7 @@ const config: HardhatUserConfig = {
       chainId: 204,
       ...URL_ACCOUNTS_SETTINGS,
       ignition: {
-        maxFeePerGas: 1_000_000_000n,
+        maxFeePerGas: 1_000_000n,
         maxPriorityFeePerGas: 1n,
         disableFeeBumping: true,
       },
@@ -77,6 +78,27 @@ const config: HardhatUserConfig = {
     disambiguatePaths: true,
     runOnCompile: true,
     strict: false,
+  },
+  etherscan: {
+    apiKey: process.env.SCAN_API_KEY,
+    customChains: [
+      {
+        network: 'opbnbTestnet',
+        chainId: 5611,
+        urls: {
+          apiURL: 'https://api.etherscan.io/v2/api',
+          browserURL: 'https://opbnb-testnet.bscscan.com/',
+        },
+      },
+      {
+        network: 'opbnb',
+        chainId: 204,
+        urls: {
+          apiURL: 'https://api.etherscan.io/v2/api',
+          browserURL: 'https://opbnb.bscscan.com/',
+        },
+      },
+    ],
   },
 };
 

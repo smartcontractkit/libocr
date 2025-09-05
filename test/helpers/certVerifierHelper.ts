@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 import { BigNumberish, BytesLike } from "ethers"
 import { CertificateVerifier } from '../../typechain-types';
-import { ChunkedX509CertStruct, BytesBlacklistStruct } from '../../typechain-types/CertificateVerifier.sol/CertificateVerifier';
+import { ChunkedX509CertStruct, BytesBlacklistStruct } from '../../typechain-types/contract/CertificateVerifier.sol/CertificateVerifier';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 
 export class CertVerifierHelper {
@@ -15,13 +15,18 @@ export class CertVerifierHelper {
         this.address = address
     }
 
-    static async create(): Promise<CertVerifierHelper> {
-        const factory = await ethers.getContractFactory('CertificateVerifier');
-        const contract = await factory.deploy()
-        const address = await contract.getAddress()
+    static async create(certVerifierAddress?: string): Promise<CertVerifierHelper> {
+        let contract;
+        if (!certVerifierAddress) {
+            const factory = await ethers.getContractFactory('CertificateVerifier');
+            contract = await factory.deploy()
+            certVerifierAddress = await contract.getAddress()
+        } else {
+            contract = await ethers.getContractAt("CertificateVerifier", certVerifierAddress)
+        }
 
         const deployer = (await ethers.getSigners())[0];
-        return new CertVerifierHelper(contract, deployer, address);
+        return new CertVerifierHelper(contract, deployer, certVerifierAddress);
     }
 
     async setRootCert(cert: ChunkedX509CertStruct, signer: HardhatEthersSigner = this.deployer) {

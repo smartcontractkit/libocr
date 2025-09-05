@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
+pragma solidity 0.8.30;
 
 /**
  * @title The Owned contract
@@ -20,7 +20,7 @@ contract Owned {
   );
 
   constructor() {
-    owner = msg.sender;
+    owner = payable(msg.sender);
   }
 
   /**
@@ -45,7 +45,7 @@ contract Owned {
     require(msg.sender == pendingOwner, "Must be proposed owner");
 
     address oldOwner = owner;
-    owner = msg.sender;
+    owner = payable(msg.sender);
     pendingOwner = address(0);
 
     emit OwnershipTransferred(oldOwner, msg.sender);

@@ -5,6 +5,13 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 export const linkDefault = "0xDA333D5948610a7634202A9420c0c17034B6484A"
 
+const authorizedSolutionHashDefault = "0x62b71aa4c49e75ed0066dece4c0a28c37d8543c4870a475b9216e0a04bd778b2"
+
+export const LowLevelCallLibModule = buildModule("LowLevelCallLib", (m) => {
+  const lowLevelCallLib = m.library("LowLevelCallLib");
+  return { lowLevelCallLib };
+});
+
 export const requesterACmodule = buildModule("requesterAC", (m) => {
   const requesterAC = m.contract("SimpleWriteAccessController");
   return { requesterAC };
@@ -20,16 +27,20 @@ export const certificateVerifierModule = buildModule("CertificateVerifier", (m) 
   return { certificateVerifier };
 });
 
-export const transmitterCertificateHelperModule = buildModule("TransmitterCertificateHelper", (m) => {
+export const adminCertificateHelperModule = buildModule("AdminCertificateHelper", (m) => {
   const { certificateVerifier } = m.useModule(certificateVerifierModule);
-  const transmitterCertificateHelper = m.contract("TransmitterCertificateHelper", [certificateVerifier]);
-  return { transmitterCertificateHelper };
+  
+  const authorizedSolutionHash = m.getParameter("authorizedSolutionHash", authorizedSolutionHashDefault);
+  const adminCertificateHelper = m.contract("AdminCertificateHelper", [certificateVerifier,authorizedSolutionHash]);
+  return { adminCertificateHelper };
 });
 
+
 const acOffchainAggregator = buildModule("acOffchainAggregator", (m) => {
+  const { lowLevelCallLib } = m.useModule(LowLevelCallLibModule);
+  const { adminCertificateHelper } = m.useModule(adminCertificateHelperModule);
   const { requesterAC } = m.useModule(requesterACmodule);
   const { billingAC } = m.useModule(billingACmodule);
-  const { transmitterCertificateHelper } = m.useModule(transmitterCertificateHelperModule);
 
   const link = m.getParameter("linkToken", linkDefault);
 
@@ -39,15 +50,15 @@ const acOffchainAggregator = buildModule("acOffchainAggregator", (m) => {
   const linkGweiPerObservation = 701978
   const linkGweiPerTransmission = 4212083
   const billingConstructorArgs = [maximumGasPrice, reasonableGasPrice, microLinkPerEth, linkGweiPerObservation, linkGweiPerTransmission, link, billingAC]
-  const constructorConfig = [billingConstructorArgs, "10000000000", "1000000000000000", requesterAC, 8, "BTC / USD", transmitterCertificateHelper]
-  const acOffchainAggregator = m.contract("AccessControlledOffchainAggregator", constructorConfig);
+  const constructorConfig = [billingConstructorArgs, "10000000000", "1000000000000000", requesterAC, 8, "BTC / USD", adminCertificateHelper]
+  const acOffchainAggregator = m.contract("AccessControlledOffchainAggregator", constructorConfig, { libraries: { LowLevelCallLib: lowLevelCallLib } });
 
 
   const proxy = m.contract("EACAggregatorProxy", [acOffchainAggregator, "0x0000000000000000000000000000000000000000"]);
 
   m.call(acOffchainAggregator, "addAccess", [proxy])
 
-  return { acOffchainAggregator, proxy, transmitterCertificateHelper };
+  return { acOffchainAggregator, proxy, adminCertificateHelper };
 });
 
 export default acOffchainAggregator;

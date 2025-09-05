@@ -4,14 +4,14 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import fs from 'fs';
 import path from "path";
-import { billingACmodule, linkDefault, requesterACmodule, transmitterCertificateHelperModule } from "./acOffchainAggregator";
+import { billingACmodule, linkDefault, requesterACmodule, LowLevelCallLibModule, adminCertificateHelperModule } from "./acOffchainAggregator";
 export const uniquePairs = JSON.parse(fs.readFileSync(path.join(__dirname, '../' + "data-feeds.json")).toString()).uniquePair;
 
 const multipleDeploy = buildModule("multipleDeploy", (m) => {
-
+  const { lowLevelCallLib } = m.useModule(LowLevelCallLibModule);
   const { requesterAC } = m.useModule(requesterACmodule);
   const { billingAC } = m.useModule(billingACmodule);
-  const { transmitterCertificateHelper } = m.useModule(transmitterCertificateHelperModule);
+  const { adminCertificateHelper } = m.useModule(adminCertificateHelperModule);
 
   const link = m.getParameter("linkToken", linkDefault);
 
@@ -35,10 +35,10 @@ const multipleDeploy = buildModule("multipleDeploy", (m) => {
       requesterAC,
       decimals,
       description,
-      transmitterCertificateHelper
+      adminCertificateHelper
     ];
 
-    const acOffchainAggregator = m.contract("AccessControlledOffchainAggregator", constructorConfig, { id: accessControlledOffchainAggregatorUuid });
+    const acOffchainAggregator = m.contract("AccessControlledOffchainAggregator", constructorConfig, { id: accessControlledOffchainAggregatorUuid, libraries: { LowLevelCallLib: lowLevelCallLib } });
     const proxy = m.contract("EACAggregatorProxy", [acOffchainAggregator, "0x0000000000000000000000000000000000000000"], { id: eacAggregatorProxyUuid });
     m.call(acOffchainAggregator, "addAccess", [proxy])
     aggregatorsDeployments['aggregator_' + description] = acOffchainAggregator;
