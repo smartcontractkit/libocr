@@ -5,13 +5,14 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/binary"
-	"slices"
 	"time"
+
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/scheduler"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/permutation"
@@ -30,6 +31,7 @@ func RunTransmission[RI any](
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	reportingPlugin ocr3types.ReportingPlugin[RI],
+	telemetrySender TelemetrySender,
 ) {
 	sched := scheduler.NewScheduler[EventAttestedReport[RI]]()
 	defer sched.Close()
@@ -45,6 +47,7 @@ func RunTransmission[RI any](
 		localConfig,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "transmission"}),
 		reportingPlugin,
+		telemetrySender,
 
 		sched,
 	}
@@ -62,6 +65,7 @@ type transmissionState[RI any] struct {
 	localConfig                       types.LocalConfig
 	logger                            loghelper.LoggerWithContext
 	reportingPlugin                   ocr3types.ReportingPlugin[RI]
+	telemetrySender                   TelemetrySender
 
 	scheduler *scheduler.Scheduler[EventAttestedReport[RI]]
 }
@@ -101,21 +105,30 @@ func (t *transmissionState[RI]) eventAttestedReport(ev EventAttestedReport[RI]) 
 }
 
 func (t *transmissionState[RI]) backgroundEventAttestedReport(ctx context.Context, start time.Time, ev EventAttestedReport[RI]) {
-	var delay time.Duration
-	{
-		delayMaybe := t.transmitDelay(ev.SeqNr, ev.Index, ev.TransmissionScheduleOverride)
-		if delayMaybe == nil {
-			t.logger.Debug("dropping EventAttestedReport because we're not included in transmission schedule", commontypes.LogFields{
-				"seqNr":                        ev.SeqNr,
-				"index":                        ev.Index,
-				"transmissionScheduleOverride": ev.TransmissionScheduleOverride != nil,
-			})
-			return
-		}
-		delay = *delayMaybe
+	delays, ok := t.transmitDelays(ev.SeqNr, ev.Index, ev.TransmissionScheduleOverride)
+	t.telemetrySender.TransmissionScheduleComputed(
+		t.config.ConfigDigest,
+		ev.SeqNr,
+		ev.Index,
+		start,
+		ev.TransmissionScheduleOverride != nil,
+		delays,
+		ok,
+	)
+	if !ok {
+		return
+	}
+	delay, ok := delays[t.id]
+	if !ok {
+		t.logger.Debug("dropping EventAttestedReport because we're not included in transmission schedule", commontypes.LogFields{
+			"seqNr":                        ev.SeqNr,
+			"index":                        ev.Index,
+			"transmissionScheduleOverride": ev.TransmissionScheduleOverride != nil,
+		})
+		return
 	}
 
-	shouldAccept, ok := callPlugin[bool](
+	shouldAccept, ok := common.CallPlugin[bool](
 		ctx,
 		t.logger,
 		commontypes.LogFields{
@@ -132,6 +145,7 @@ func (t *transmissionState[RI]) backgroundEventAttestedReport(ctx context.Contex
 			)
 		},
 	)
+	t.telemetrySender.TransmissionShouldAcceptAttestedReportComputed(t.config.ConfigDigest, ev.SeqNr, ev.Index, shouldAccept, ok)
 	if !ok {
 		return
 	}
@@ -160,7 +174,7 @@ func (t *transmissionState[RI]) scheduled(ev EventAttestedReport[RI]) {
 }
 
 func (t *transmissionState[RI]) backgroundScheduled(ctx context.Context, ev EventAttestedReport[RI]) {
-	shouldTransmit, ok := callPlugin[bool](
+	shouldTransmit, ok := common.CallPlugin[bool](
 		ctx,
 		t.logger,
 		commontypes.LogFields{
@@ -177,6 +191,7 @@ func (t *transmissionState[RI]) backgroundScheduled(ctx context.Context, ev Even
 			)
 		},
 	)
+	t.telemetrySender.TransmissionShouldTransmitAcceptedReportComputed(t.config.ConfigDigest, ev.SeqNr, ev.Index, shouldTransmit, ok)
 	if !ok {
 		return
 	}
@@ -246,42 +261,85 @@ func (t *transmissionState[RI]) transmitPermutationKey(seqNr uint64, index int) 
 	return key
 }
 
-func (t *transmissionState[RI]) transmitDelayFromOverride(seqNr uint64, index int, transmissionScheduleOverride ocr3types.TransmissionSchedule) *time.Duration {
+func (t *transmissionState[RI]) transmitDelaysFromOverride(seqNr uint64, index int, transmissionScheduleOverride ocr3types.TransmissionSchedule) (delays map[commontypes.OracleID]time.Duration, ok bool) {
 	if len(transmissionScheduleOverride.TransmissionDelays) != len(transmissionScheduleOverride.Transmitters) {
-		t.logger.Error("invalid TransmissionScheduleOverride, cannot compute delay", commontypes.LogFields{
+		t.logger.Error("invalid TransmissionScheduleOverride, cannot compute delay, lengths do not match", commontypes.LogFields{
 			"seqNr":                        seqNr,
 			"index":                        index,
 			"transmissionScheduleOverride": transmissionScheduleOverride,
 		})
-		return nil
+		return nil, false
 	}
 
-	oracleIndex := slices.Index(transmissionScheduleOverride.Transmitters, t.id)
-	if oracleIndex < 0 {
-		return nil
-	}
-	pi := permutation.Permutation(len(transmissionScheduleOverride.TransmissionDelays), t.transmitPermutationKey(seqNr, index))
-	delay := transmissionScheduleOverride.TransmissionDelays[pi[oracleIndex]]
-	return &delay
-}
-
-func (t *transmissionState[RI]) transmitDelayDefault(seqNr uint64, index int) *time.Duration {
-	pi := permutation.Permutation(t.config.N(), t.transmitPermutationKey(seqNr, index))
-	sum := 0
-	for i, s := range t.config.S {
-		sum += s
-		if pi[t.id] < sum {
-			result := time.Duration(i) * t.config.DeltaStage
-			return &result
+	for _, oid := range transmissionScheduleOverride.Transmitters {
+		if !(0 <= int(oid) && int(oid) < t.config.N()) {
+			t.logger.Error("invalid TransmissionScheduleOverride, cannot compute delay, oracle id out of bounds", commontypes.LogFields{
+				"seqNr":                        seqNr,
+				"index":                        index,
+				"transmissionScheduleOverride": transmissionScheduleOverride,
+			})
+			return nil, false
 		}
 	}
-	return nil
+
+	// Permutation from index of oracle in transmissionScheduleOverride.Transmitters to transmission order index.
+	pi := permutation.Permutation(len(transmissionScheduleOverride.Transmitters), t.transmitPermutationKey(seqNr, index))
+
+	result := make(map[commontypes.OracleID]time.Duration, len(transmissionScheduleOverride.Transmitters))
+
+	for transmitterIndex, oid := range transmissionScheduleOverride.Transmitters {
+		if _, ok := result[oid]; ok {
+			t.logger.Error("invalid TransmissionScheduleOverride, cannot compute delay, duplicate oracle id", commontypes.LogFields{
+				"seqNr":                        seqNr,
+				"index":                        index,
+				"transmissionScheduleOverride": transmissionScheduleOverride,
+			})
+			return nil, false
+		}
+		result[oid] = transmissionScheduleOverride.TransmissionDelays[pi[transmitterIndex]]
+	}
+
+	return result, true
 }
 
-func (t *transmissionState[RI]) transmitDelay(seqNr uint64, index int, transmissionScheduleOverride *ocr3types.TransmissionSchedule) *time.Duration {
+func (t *transmissionState[RI]) transmitDelaysDefault(seqNr uint64, index int) map[commontypes.OracleID]time.Duration {
+	// Permutation from transmission order index to oracle id
+	piInv := make([]int, t.config.N())
+	{
+		// Permutation from oracle id to transmission order index. The
+		// permutations are structured in this "inverted" way for historical
+		// compatibility
+		pi := permutation.Permutation(t.config.N(), t.transmitPermutationKey(seqNr, index))
+		for i := range pi {
+			piInv[pi[i]] = i
+		}
+	}
+
+	result := make(map[commontypes.OracleID]time.Duration, t.config.N())
+
+	accumulatedStageSize := 0
+	for stageIdx, stageSize := range t.config.S {
+		// i is the index of the oracle sorted by transmission order
+		for i := accumulatedStageSize; i < accumulatedStageSize+stageSize; i++ {
+			if i >= len(piInv) {
+				// Index is larger than index of the last oracle. This happens
+				// when sum(S) > N.
+				break
+			}
+			oracleId := commontypes.OracleID(piInv[i])
+			result[oracleId] = time.Duration(stageIdx) * t.config.DeltaStage
+		}
+
+		accumulatedStageSize += stageSize
+	}
+
+	return result
+}
+
+func (t *transmissionState[RI]) transmitDelays(seqNr uint64, index int, transmissionScheduleOverride *ocr3types.TransmissionSchedule) (delays map[commontypes.OracleID]time.Duration, ok bool) {
 	if transmissionScheduleOverride != nil {
-		return t.transmitDelayFromOverride(seqNr, index, *transmissionScheduleOverride)
+		return t.transmitDelaysFromOverride(seqNr, index, *transmissionScheduleOverride)
 	} else {
-		return t.transmitDelayDefault(seqNr, index)
+		return t.transmitDelaysDefault(seqNr, index), true
 	}
 }

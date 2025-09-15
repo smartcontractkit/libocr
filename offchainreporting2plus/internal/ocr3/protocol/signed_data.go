@@ -269,17 +269,13 @@ type HighestCertifiedTimestamp struct {
 }
 
 func (t HighestCertifiedTimestamp) Less(t2 HighestCertifiedTimestamp) bool {
-	return t.SeqNr < t2.SeqNr || t.SeqNr == t2.SeqNr && !t.CommittedElsePrepared && t2.CommittedElsePrepared
-}
-
-func (t HighestCertifiedTimestamp) Less31(t2 HighestCertifiedTimestamp) bool {
 	return t.SeqNr < t2.SeqNr ||
 		t.SeqNr == t2.SeqNr && !t.CommittedElsePrepared && t2.CommittedElsePrepared ||
 		t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared && t.Epoch < t2.Epoch
 }
 
 func (t HighestCertifiedTimestamp) Equal(t2 HighestCertifiedTimestamp) bool {
-	return t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared
+	return t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared && t.Epoch == t2.Epoch
 }
 
 const signedHighestCertifiedTimestampDomainSeparator = "ocr3 SignedHighestCertifiedTimestamp"
@@ -320,9 +316,10 @@ func (shct *SignedHighestCertifiedTimestamp) Verify(ogid OutcomeGenerationID, pu
 	}
 
 	ok := ed25519.Verify(pk, signedHighestCertifiedTimestampMsg(ogid, shct.HighestCertifiedTimestamp), shct.Signature)
+	ok2 := ed25519.Verify(pk, signedHighestCertifiedTimestamp31Msg(ogid, shct.HighestCertifiedTimestamp), shct.Signature31)
 
-	if !ok {
-		return fmt.Errorf("SignedHighestCertifiedTimestamp signature failed to verify")
+	if !ok || !ok2 {
+		return fmt.Errorf("SignedHighestCertifiedTimestamp signature failed to verify (ok: %v, ok2: %v)", ok, ok2)
 	}
 
 	return nil
@@ -428,6 +425,8 @@ func (qc *EpochStartProof) Verify(
 	return nil
 }
 
+type CertifiedPrepareOrCommitDigest [32]byte
+
 type CertifiedPrepareOrCommit interface {
 	isCertifiedPrepareOrCommit()
 	Epoch() uint64
@@ -439,7 +438,7 @@ type CertifiedPrepareOrCommit interface {
 		byzQuorumSize int,
 	) error
 	CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool
-	SignatureMsg(ogid OutcomeGenerationID) []byte
+	Digest() CertifiedPrepareOrCommitDigest
 }
 
 var _ CertifiedPrepareOrCommit = &CertifiedPrepare{}
@@ -515,8 +514,35 @@ func (hc *CertifiedPrepare) CheckSize(n int, f int, limits ocr3types.ReportingPl
 	return true
 }
 
-func (hc *CertifiedPrepare) SignatureMsg(ogid OutcomeGenerationID) []byte {
-	return prepareSignatureMsg(ogid, hc.SeqNr, hc.OutcomeInputsDigest, MakeOutcomeDigest(hc.Outcome))
+// domain separation from other variants of CertifiedPrepareOrCommit
+const certifiedPrepareDigestDomainSeparator = "ocr3 CertifiedPrepareDigest"
+
+func (hc *CertifiedPrepare) Digest() CertifiedPrepareOrCommitDigest {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(certifiedPrepareDigestDomainSeparator))
+
+	_ = binary.Write(h, binary.BigEndian, hc.PrepareEpoch)
+
+	_ = binary.Write(h, binary.BigEndian, hc.SeqNr)
+
+	_, _ = h.Write(hc.OutcomeInputsDigest[:])
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(hc.Outcome)))
+	_, _ = h.Write(hc.Outcome)
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(hc.PrepareQuorumCertificate)))
+	for _, aps := range hc.PrepareQuorumCertificate {
+
+		_ = binary.Write(h, binary.BigEndian, uint64(len(aps.Signature)))
+		_, _ = h.Write(aps.Signature)
+
+		_ = binary.Write(h, binary.BigEndian, uint64(aps.Signer))
+	}
+
+	var result CertifiedPrepareOrCommitDigest
+	h.Sum(result[:0])
+	return result
 }
 
 var _ CertifiedPrepareOrCommit = &CertifiedCommit{}
@@ -602,23 +628,79 @@ func (hc *CertifiedCommit) CheckSize(n int, f int, limits ocr3types.ReportingPlu
 	return true
 }
 
-func (hc *CertifiedCommit) SignatureMsg(ogid OutcomeGenerationID) []byte {
-	return commitSignatureMsg(ogid, hc.SeqNr, MakeOutcomeDigest(hc.Outcome))
-}
+// domain separation from other variants of CertifiedPrepareOrCommit
+const certifiedCommitDigestDomainSeparator = "ocr3 CertifiedCommitDigest"
 
-const epochStartProofSignatureDomainSeparator = "ocr3 EpochStartProofSignature"
-
-func epochStartProofSignatureMsg(ogid OutcomeGenerationID, esp EpochStartProof) []byte {
+func (hc *CertifiedCommit) Digest() CertifiedPrepareOrCommitDigest {
 	h := sha256.New()
 
-	_, _ = h.Write([]byte(epochStartProofSignatureDomainSeparator))
+	_, _ = h.Write([]byte(certifiedCommitDigestDomainSeparator))
+
+	_ = binary.Write(h, binary.BigEndian, hc.CommitEpoch)
+
+	_ = binary.Write(h, binary.BigEndian, hc.SeqNr)
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(hc.Outcome)))
+	_, _ = h.Write(hc.Outcome)
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(hc.CommitQuorumCertificate)))
+	for _, acs := range hc.CommitQuorumCertificate {
+
+		_ = binary.Write(h, binary.BigEndian, uint64(len(acs.Signature)))
+		_, _ = h.Write(acs.Signature)
+
+		_ = binary.Write(h, binary.BigEndian, uint64(acs.Signer))
+	}
+
+	var result CertifiedPrepareOrCommitDigest
+	h.Sum(result[:0])
+	return result
+}
+
+const epochStartSignatureDomainSeparator = "ocr3 EpochStartSignature"
+
+type EpochStartSignature31 []byte
+
+func MakeEpochStartSignature31(
+	ogid OutcomeGenerationID,
+	epochStartProof EpochStartProof,
+	signer func(msg []byte) ([]byte, error),
+) (EpochStartSignature31, error) {
+	return signer(epochStartSignatureMsg(ogid, epochStartProof))
+}
+
+func (sig EpochStartSignature31) Verify(
+	ogid OutcomeGenerationID,
+	epochStartProof EpochStartProof,
+	publicKey types.OffchainPublicKey,
+) error {
+	pk := ed25519.PublicKey(publicKey[:])
+
+	if len(pk) != ed25519.PublicKeySize {
+		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
+	}
+
+	ok := ed25519.Verify(pk, epochStartSignatureMsg(ogid, epochStartProof), sig)
+	if !ok {
+		return fmt.Errorf("EpochStartSignature31 failed to verify")
+	}
+
+	return nil
+}
+
+func epochStartSignatureMsg(ogid OutcomeGenerationID, esp EpochStartProof) []byte {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(epochStartSignatureDomainSeparator))
 
 	_, _ = h.Write(ogid.ConfigDigest[:])
 	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
-	highestCertifiedEnc := esp.HighestCertified.SignatureMsg(ogid)
-	_ = binary.Write(h, binary.BigEndian, uint64(len(highestCertifiedEnc)))
-	_, _ = h.Write(highestCertifiedEnc)
+	var highestCertifiedDigest CertifiedPrepareOrCommitDigest
+	if esp.HighestCertified != nil {
+		highestCertifiedDigest = esp.HighestCertified.Digest()
+	}
+	_, _ = h.Write(highestCertifiedDigest[:])
 
 	_ = binary.Write(h, binary.BigEndian, uint64(len(esp.HighestCertifiedProof)))
 	for _, ashct := range esp.HighestCertifiedProof {
@@ -644,12 +726,116 @@ func epochStartProofSignatureMsg(ogid OutcomeGenerationID, esp EpochStartProof) 
 	return ocr3DomainSeparatedSum(h)
 }
 
-type EpochStartSignature31 []byte
+const roundStartSignatureDomainSeparator = "ocr3 RoundStartSignature"
 
-func MakeEpochStartSignature31(
+type RoundStartSignature31 []byte
+
+func MakeRoundStartSignature31(
 	ogid OutcomeGenerationID,
-	epochStartProof EpochStartProof,
+	seqNr uint64,
+	query types.Query,
 	signer func(msg []byte) ([]byte, error),
-) (EpochStartSignature31, error) {
-	return signer(epochStartProofSignatureMsg(ogid, epochStartProof))
+) (RoundStartSignature31, error) {
+	return signer(roundStartSignatureMsg(ogid, seqNr, query))
+}
+
+func (sig RoundStartSignature31) Verify(
+	ogid OutcomeGenerationID,
+	seqNr uint64,
+	query types.Query,
+	publicKey types.OffchainPublicKey,
+) error {
+	pk := ed25519.PublicKey(publicKey[:])
+
+	if len(pk) != ed25519.PublicKeySize {
+		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
+	}
+
+	ok := ed25519.Verify(pk, roundStartSignatureMsg(ogid, seqNr, query), sig)
+	if !ok {
+		return fmt.Errorf("RoundStartSignature31 failed to verify")
+	}
+	return nil
+}
+
+func roundStartSignatureMsg(
+	ogid OutcomeGenerationID,
+	seqNr uint64,
+	query types.Query,
+) []byte {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(roundStartSignatureDomainSeparator))
+
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+
+	_ = binary.Write(h, binary.BigEndian, seqNr)
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(query)))
+	_, _ = h.Write(query)
+
+	return ocr3DomainSeparatedSum(h)
+}
+
+const proposalSignatureDomainSeparator = "ocr3 ProposalSignature"
+
+type ProposalSignature31 []byte
+
+func MakeProposalSignature31(
+	ogid OutcomeGenerationID,
+	seqNr uint64,
+	attributedSignedObservations []AttributedSignedObservation,
+	signer func(msg []byte) ([]byte, error),
+) (ProposalSignature31, error) {
+	return signer(proposalSignatureMsg(ogid, seqNr, attributedSignedObservations))
+}
+
+func (sig ProposalSignature31) Verify(
+	ogid OutcomeGenerationID,
+	seqNr uint64,
+	attributedSignedObservations []AttributedSignedObservation,
+	publicKey types.OffchainPublicKey,
+) error {
+	pk := ed25519.PublicKey(publicKey[:])
+
+	if len(pk) != ed25519.PublicKeySize {
+		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
+	}
+
+	ok := ed25519.Verify(pk, proposalSignatureMsg(ogid, seqNr, attributedSignedObservations), sig)
+	if !ok {
+		return fmt.Errorf("ProposalSignature31 failed to verify")
+	}
+
+	return nil
+}
+
+func proposalSignatureMsg(
+	ogid OutcomeGenerationID,
+	seqNr uint64,
+	attributedSignedObservations []AttributedSignedObservation,
+) []byte {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(proposalSignatureDomainSeparator))
+
+	_, _ = h.Write(ogid.ConfigDigest[:])
+	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+
+	_ = binary.Write(h, binary.BigEndian, seqNr)
+
+	_ = binary.Write(h, binary.BigEndian, uint64(len(attributedSignedObservations)))
+	for _, aso := range attributedSignedObservations {
+
+		_ = binary.Write(h, binary.BigEndian, uint64(len(aso.SignedObservation.Observation)))
+		_, _ = h.Write(aso.SignedObservation.Observation)
+
+		_ = binary.Write(h, binary.BigEndian, uint64(len(aso.SignedObservation.Signature)))
+		_, _ = h.Write(aso.SignedObservation.Signature)
+
+		_ = binary.Write(h, binary.BigEndian, uint64(aso.Observer))
+	}
+
+	return ocr3DomainSeparatedSum(h)
 }

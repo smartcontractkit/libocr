@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -99,7 +100,7 @@ func RunManagedMercuryOracle(
 			defer initCancel()
 
 			ins := loghelper.NewIfNotStopped(
-				maxDurationInitialization+protocol.ReportingPluginTimeoutWarningGracePeriod,
+				maxDurationInitialization+common.ReportingPluginTimeoutWarningGracePeriod,
 				func() {
 					logger.Error("ManagedMercuryOracle: MercuryPluginFactory.NewMercuryPlugin is taking too long", commontypes.LogFields{
 						"maxDuration": maxDurationInitialization,
@@ -230,7 +231,7 @@ func RunManagedMercuryOracle(
 				offchainKeyring,
 				ocr3OnchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[mercuryshim.MercuryReportInfo]{reportingPlugin, reportingPluginLimits},
-				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
 			return nil, false

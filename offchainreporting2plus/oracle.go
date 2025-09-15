@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
@@ -21,6 +23,12 @@ type OracleArgs interface {
 	runManaged(ctx context.Context)
 	validate() error
 }
+
+var (
+	_ OracleArgs = OCR2OracleArgs{}
+	_ OracleArgs = OCR3OracleArgs[[]byte]{}
+	_ OracleArgs = OCR3_1OracleArgs[[]byte]{}
+)
 
 // OCR2OracleArgs contains the configuration and services a caller must provide, in
 // order to run the offchainreporting protocol.
@@ -277,6 +285,101 @@ type shimComparableKeyRing[RI any] struct {
 
 func (k *shimComparableKeyRing[RI]) Equal(onchainPublicKey types.OnchainPublicKey) bool {
 	return bytes.Equal(k.PublicKey(), onchainPublicKey)
+}
+
+type OCR3_1OracleArgs[RI any] struct {
+	// A factory for producing network endpoints. A network endpoints consists of
+	// networking methods a consumer must implement to allow a node to
+	// communicate with other participating nodes.
+	BinaryNetworkEndpointFactory types.BinaryNetworkEndpoint2Factory
+
+	// V2Bootstrappers is the list of bootstrap node addresses and IDs for the v2 stack.
+	V2Bootstrappers []commontypes.BootstrapperLocator
+
+	// Tracks configuration changes.
+	ContractConfigTracker types.ContractConfigTracker
+
+	// Transmit reports to the targeted system (e.g. a blockchain)
+	ContractTransmitter ocr3types.ContractTransmitter[RI]
+
+	// Database provides persistent storage.
+	Database ocr3_1types.Database
+
+	// KeyValueDatabaseFactory produces KeyValueDatabase for keeping the reporting plugins' state consistently across oracles.
+	KeyValueDatabaseFactory ocr3_1types.KeyValueDatabaseFactory
+
+	// LocalConfig contains oracle-specific configuration details which are not
+	// mandated by the on-chain configuration specification via OffchainAggregatoo.SetConfig.
+	LocalConfig types.LocalConfig
+
+	// Logger logs stuff.
+	Logger commontypes.Logger
+
+	// Enables adding metrics to track. This may be nil.
+	MetricsRegisterer prometheus.Registerer
+
+	// Used to send logs to a monitor.
+	MonitoringEndpoint commontypes.MonitoringEndpoint
+
+	// Computes a config digest using purely offchain logic.
+	OffchainConfigDigester types.OffchainConfigDigester
+
+	// OffchainKeyring contains the secret keys needed for the OCR protocol, and methods
+	// which use those keys without exposing them to the rest of the application.
+	OffchainKeyring types.OffchainKeyring
+
+	// OnchainKeyring is used to sign reports that can be validated
+	// offchain and by the target contract.
+	OnchainKeyring ocr3types.OnchainKeyring[RI]
+
+	// ComparableOnchainKeyring is used to verify that the onchain keyring
+	// It enable custom equality check when comparing onchain keys fetch from the contract
+	// it is an error if both OnchainKeyring and ComparableOnchainKeyring are set
+	ComparableOnchainKeyring ocr3types.ComparableOnchainKeyring[RI]
+
+	// PluginFactory creates Plugins that determine the "application logic" used
+	// in a protocol instance.
+	ReportingPluginFactory ocr3_1types.ReportingPluginFactory[RI]
+}
+
+func (args OCR3_1OracleArgs[RI]) validate() error {
+	if args.OnchainKeyring != nil && args.ComparableOnchainKeyring != nil {
+		return fmt.Errorf("cannot set both OnchainKeyring and ComparableOnchainKeyring")
+	}
+	return nil
+}
+
+func (args OCR3_1OracleArgs[RI]) onchainKeyRing() ocr3types.ComparableOnchainKeyring[RI] {
+	if args.ComparableOnchainKeyring != nil {
+		return args.ComparableOnchainKeyring
+	}
+	return &shimComparableKeyRing[RI]{args.OnchainKeyring}
+}
+
+func (OCR3_1OracleArgs[RI]) oracleArgsMarker() {}
+
+func (args OCR3_1OracleArgs[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args OCR3_1OracleArgs[RI]) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
+
+	managed.RunManagedOCR3_1Oracle(
+		ctx,
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.KeyValueDatabaseFactory,
+		args.LocalConfig,
+		logger,
+		args.MetricsRegisterer,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
+		args.onchainKeyRing(),
+		args.ReportingPluginFactory,
+	)
 }
 
 type oracleState int

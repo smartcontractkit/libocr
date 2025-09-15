@@ -233,6 +233,7 @@ func (o *oracleState[RI]) run() {
 			o.localConfig,
 			o.logger,
 			o.reportingPlugin,
+			o.telemetrySender,
 		)
 	})
 

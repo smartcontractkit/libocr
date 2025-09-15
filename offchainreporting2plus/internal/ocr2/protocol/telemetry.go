@@ -1,15 +1,39 @@
 package protocol
 
 import (
+	"time"
+
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 type TelemetrySender interface {
-	RoundStarted(
+	EpochStarted(
 		configDigest types.ConfigDigest,
 		epoch uint32,
-		round uint8,
 		leader commontypes.OracleID,
+	)
+
+	RoundStarted(
+		reportTimestamp types.ReportTimestamp,
+		leader commontypes.OracleID,
+	)
+
+	TransmissionScheduleComputed(
+		reportTimestamp types.ReportTimestamp,
+		now time.Time,
+		schedule map[commontypes.OracleID]time.Duration,
+	)
+
+	TransmissionShouldAcceptFinalizedReportComputed(
+		reportTimestamp types.ReportTimestamp,
+		result bool,
+		ok bool,
+	)
+
+	TransmissionShouldTransmitAcceptedReportComputed(
+		reportTimestamp types.ReportTimestamp,
+		result bool,
+		ok bool,
 	)
 }

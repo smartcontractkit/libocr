@@ -5,7 +5,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol/pool"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -866,7 +866,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) {
 // Updates and persists cert if it is greater than the current cert.
 // Returns false if the cert could not be persisted, in which case the round should be aborted.
 func (outgen *outcomeGenerationState[RI]) persistAndUpdateCertIfGreater(cert CertifiedPrepareOrCommit) (ok bool) {
-	if outgen.followerState.cert.Timestamp().Less31(cert.Timestamp()) {
+	if outgen.followerState.cert.Timestamp().Less(cert.Timestamp()) {
 		ctx, cancel := context.WithTimeout(outgen.ctx, outgen.localConfig.DatabaseTimeout)
 		defer cancel()
 		if err := outgen.database.WriteCert(ctx, outgen.config.ConfigDigest, cert); err != nil {

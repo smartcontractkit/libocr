@@ -237,7 +237,7 @@ func RunManagedOCR2Oracle(
 				onchainKeyring,
 				shim.LimitCheckReportingPlugin{reportingPlugin, reportingPluginInfo.Limits},
 				reportQuorum,
-				shim.NewOCR2TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR2TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
 			return nil, false

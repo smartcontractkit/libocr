@@ -337,7 +337,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 
 func DefaultDeviationFunc(_ context.Context, thresholdPPB uint64, old *big.Int, new *big.Int) (bool, error) {
 	if old.Cmp(i(0)) == 0 {
-		if new.Cmp(i(0)) == 0 { //nolint:gosimple
+		if new.Cmp(i(0)) == 0 {
 			return false, nil // Both values are zero; no deviation
 		}
 		return true, nil // Any deviation from 0 is significant

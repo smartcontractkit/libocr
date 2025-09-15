@@ -241,7 +241,6 @@ func (msg MessageEpochStart[RI]) CheckSize(n int, f int, limits ocr3types.Report
 			return false
 		}
 	}
-	//nolint:gosimple
 	if len(msg.Signature31) > ed25519.SignatureSize {
 		return false
 	}
@@ -264,15 +263,22 @@ func (msg MessageEpochStart[RI]) epoch() uint64 {
 }
 
 type MessageRoundStart[RI any] struct {
-	Epoch uint64
-	SeqNr uint64
-	Query types.Query
+	Epoch       uint64
+	SeqNr       uint64
+	Query       types.Query
+	Signature31 RoundStartSignature31
 }
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageRoundStart[struct{}])(nil)
 
 func (msg MessageRoundStart[RI]) CheckSize(n int, f int, limits ocr3types.ReportingPluginLimits, maxReportSigLen int) bool {
-	return len(msg.Query) <= limits.MaxQueryLength
+	if len(msg.Query) > limits.MaxQueryLength {
+		return false
+	}
+	if len(msg.Signature31) > ed25519.SignatureSize {
+		return false
+	}
+	return true
 }
 
 func (msg MessageRoundStart[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
@@ -321,6 +327,7 @@ type MessageProposal[RI any] struct {
 	Epoch                        uint64
 	SeqNr                        uint64
 	AttributedSignedObservations []AttributedSignedObservation
+	Signature31                  ProposalSignature31
 }
 
 var _ MessageToOutcomeGeneration[struct{}] = MessageProposal[struct{}]{}
@@ -336,6 +343,9 @@ func (msg MessageProposal[RI]) CheckSize(n int, f int, limits ocr3types.Reportin
 		if len(aso.SignedObservation.Signature) != ed25519.SignatureSize {
 			return false
 		}
+	}
+	if len(msg.Signature31) > ed25519.SignatureSize {
+		return false
 	}
 	return true
 }

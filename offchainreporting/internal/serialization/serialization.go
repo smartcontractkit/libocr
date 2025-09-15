@@ -389,7 +389,7 @@ func finalToProtoMessage(v protocol.MessageFinal) *protobuf.MessageFinal {
 			Signatures:             make([][]byte, len(v.Report.Signatures)),
 		},
 	}
-	for i, sig := range v.Report.Signatures { //nolint:gosimple
+	for i, sig := range v.Report.Signatures { //nolint:staticcheck
 		pm.Report.Signatures[i] = sig
 	}
 	return pm

@@ -19,8 +19,7 @@ func NewMinimalX509CertFromKeyring(keyring types.PeerKeyring) (tls.Certificate, 
 	}
 
 	// x509 args are of type any, even though crypto.Signer is required
-	var signer crypto.Signer //nolint:gosimple
-	signer = &peerKeyringCryptoSignerAdapter{keyring}
+	var signer crypto.Signer = &peerKeyringCryptoSignerAdapter{keyring}
 
 	encodedCert, err := x509.CreateCertificate(rand.Reader, &template, &template, signer.Public(), signer)
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol/pool"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -100,7 +100,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		}
 		if maxSender != nil {
 			maxTimestamp := outgen.leaderState.epochStartRequests[*maxSender].message.HighestCertified.Timestamp()
-			if !maxTimestamp.Less31(epochStartRequest.message.HighestCertified.Timestamp()) {
+			if !maxTimestamp.Less(epochStartRequest.message.HighestCertified.Timestamp()) {
 				continue
 			}
 		}
@@ -278,6 +278,21 @@ func (outgen *outcomeGenerationState[RI]) eventComputedQuery(ev EventComputedQue
 		return
 	}
 
+	roundStartSignature31, err := MakeRoundStartSignature31(
+		outgen.ID(),
+		outgen.sharedState.committedSeqNr+1,
+		ev.Query,
+		outgen.offchainKeyring.OffchainSign,
+	)
+	if err != nil {
+		outgen.logger.Error("MakeRoundStartSignature31 returned error", commontypes.LogFields{
+			"error":          err,
+			"seqNr":          outgen.sharedState.seqNr,
+			"committedSeqNr": outgen.sharedState.committedSeqNr,
+		})
+		return
+	}
+
 	outgen.leaderState.query = ev.Query
 
 	outgen.leaderState.observationPool.ReapCompleted(outgen.sharedState.committedSeqNr)
@@ -292,6 +307,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedQuery(ev EventComputedQue
 		outgen.sharedState.e,
 		outgen.sharedState.committedSeqNr + 1,
 		ev.Query,
+		roundStartSignature31,
 	})
 }
 
@@ -565,6 +581,7 @@ func (outgen *outcomeGenerationState[RI]) eventTGraceTimeout() {
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		asos,
+		nil,
 	})
 
 	outgen.leaderState.observationPool.ReapCompleted(outgen.sharedState.seqNr)
