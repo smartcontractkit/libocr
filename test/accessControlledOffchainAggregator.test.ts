@@ -3,7 +3,7 @@ import { ethers, ignition } from "hardhat";
 import { Result, Signer } from "ethers";
 import { takeSnapshot, SnapshotRestorer } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
-import acOffchainAggregator from "../ignition/modules/acOffchainAggregator"
+import acOffchainAggregator, { defaultConsensusConfig } from "../ignition/modules/acOffchainAggregator"
 import { AccessControlledOffchainAggregator, OffchainAggregator } from "../typechain-types/contract/AccessControlledOffchainAggregator"
 import { AdminCertificateHelper, EACAggregatorProxy } from "../typechain-types";
 
@@ -147,14 +147,14 @@ describe("AccessControlledOffchainAggregator", function () {
 
       const codingStructure = ["tuple(int64 deltaProgress,int64 deltaResend,int64 deltaRound,int64 deltaGrace,int64 deltaC,uint64 alphaPPB,int64 deltaStage,uint8 rMax,uint8[] s,bytes32[] offchainPublicKeys,string peerIDs,tuple(bytes32 diffieHellmanPoint,bytes32 sharedSecretHash,bytes16[] encryptions) sharedSecretEncryptions)"]
       const nodesConfig = {
-        deltaProgress: 0,
-        deltaResend: 0,
-        deltaRound: 0,
-        deltaGrace: 0,
-        deltaC: 0,
-        alphaPPB: 0,
-        deltaStage: 0,
-        rMax: 0,
+        deltaProgress: defaultConsensusConfig.deltaProgress,
+        deltaResend: defaultConsensusConfig.deltaResend,
+        deltaRound: defaultConsensusConfig.deltaRound,
+        deltaGrace: defaultConsensusConfig.deltaGrace,
+        deltaC: defaultConsensusConfig.deltaC,
+        alphaPPB: defaultConsensusConfig.alphaPPB,
+        deltaStage: defaultConsensusConfig.deltaStage,
+        rMax: defaultConsensusConfig.rMax,
         s: donConfig.s,
         offchainPublicKeys: donConfig.offchainPublicKeys,
         peerIDs: donConfig.peerIDs,
@@ -167,7 +167,7 @@ describe("AccessControlledOffchainAggregator", function () {
         signers: donConfig.signers,
         transmitters: donConfig.transmitters,
         threshold: donConfig.threshold,
-        encodedConfigVersion: 0,
+        encodedConfigVersion: defaultConsensusConfig.encodedConfigVersion,
         encoded: encoded
       }
 

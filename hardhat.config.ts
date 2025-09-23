@@ -87,10 +87,6 @@ const config: HardhatUserConfig = {
         disableFeeBumping: true,
       },
     },
-    arbitrum: {
-      chainId: 42161,
-      ...URL_ACCOUNTS_SETTINGS
-    },
   },
   contractSizer: {
     alphaSort: false,

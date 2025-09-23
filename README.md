@@ -34,3 +34,67 @@ Please see the whitepapers available at https://chainlinklabs.com/research for d
 ├── ragep2p: p2p networking
 └── subprocesses: helper package
 ```
+
+## Setup for contracts usage
+
+### 1. Install dependencies
+```sh
+npm install
+```
+
+### 2. Environment configuration
+Create a `.env` file in the root directory:
+```sh
+cp .env.example .env
+```
+
+Add your configuration to `.env`:
+```env
+DEPLOYER_PRIVATE_KEY=your_private_key_here
+RPC_URL=https://opbnb-testnet-rpc.bnbchain.org
+SCAN_API_KEY=your_bscscan_api_key_here
+```
+
+**Important:** 
+- Never commit your `.env` file to version control
+- Use a dedicated wallet for testing, not your main wallet
+- For mainnet deployment, use `https://opbnb-rpc.bnbchain.org`
+## Usage
+
+### Deploy contracts
+```sh
+# Deploy one AccessControlledOffchainAggregator BTC / USD
+npx hardhat ignition deploy  ignition/modules/acOffchainAggregator.ts --network <opbnb/opbnbTestnet/localhost/hardhat>
+
+# multiple deploy and setup
+npx hardhat ignition deploy  ignition/modules/multipleDeploy.ts --network <opbnb/opbnbTestnet/localhost/hardhat>
+npx hardhat ignition deploy  ignition/modules/multipleSetup.ts --network <opbnb/opbnbTestnet/localhost/hardhat>
+```
+
+### Verify contracts
+```sh
+# add to deploy command --verify flag. Example:
+npx hardhat ignition deploy  ignition/modules/acOffchainAggregator.ts --network <opbnb/opbnbTestnet/localhost/hardhat> --verify
+
+# or
+npx hardhat ignition verify <chain-5611/chain-204> --include-unrelated-contracts
+```
+
+### Build files {description:deployedFeedAddress} and {description:deployedProxyAddress}
+
+Output files: `aggregators-<204/5611>.json` and `proxies-<204/5611>.json`
+Custom dapps should use proxies.
+```sh
+npx hardhat buildDeployedAddressesByDescription --chain-id <204,5611>
+
+```
+
+### Run tests (no setup required)
+```sh
+npm run test
+```
+
+## Networks
+
+- **opBNB Testnet**: Chain ID 5611, RPC: https://opbnb-testnet-rpc.bnbchain.org
+- **opBNB Mainnet**: Chain ID 204, RPC: https://opbnb-rpc.bnbchain.org
