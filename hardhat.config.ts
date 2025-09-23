@@ -6,6 +6,25 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 dotenv.config({ path: path.join(__dirname, '/.env') });
 
+import fs from 'fs';
+import { uniquePairs } from './ignition/modules/multipleDeploy';
+
+task("buildDeployedAddressesByDescription").addParam('chainId', 'chain id of deployment chain')
+  .setAction(async ({ chainId }, hre) => {
+    const deploymnets = JSON.parse(fs.readFileSync(path.join(__dirname, `ignition/deployments/chain-${chainId}/deployed_addresses.json`)).toString());
+    const outputAggregators: any = {}
+    const outputProxies: any = {}
+    for (const description in uniquePairs) {
+      const uuid = description.replace(new RegExp('[+ /().-]', 'g'), '_');
+      const accessControlledOffchainAggregatorUuid = "multipleDeploy#accessControlledOffchainAggregator_" + uuid;
+      const proxyUuid = "multipleDeploy#Proxy_" + uuid;
+      outputAggregators[description] = deploymnets[accessControlledOffchainAggregatorUuid]
+      outputProxies[description] = deploymnets[proxyUuid]
+    }
+    fs.writeFileSync(`./aggregators-${chainId}.json`, JSON.stringify(outputAggregators, undefined, 2));
+    fs.writeFileSync(`./proxies-${chainId}.json`, JSON.stringify(outputProxies, undefined, 2));
+  });
+
 task("helper").setAction(async (args, hre) => { });
 
 
