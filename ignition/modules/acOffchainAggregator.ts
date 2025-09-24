@@ -56,11 +56,11 @@ const acOffchainAggregator = buildModule("acOffchainAggregator", (m) => {
 
   const link = m.getParameter("linkToken", linkDefault);
 
-  const maximumGasPrice = 1000
-  const reasonableGasPrice = 1
-  const microLinkPerEth = 205305307
-  const linkGweiPerObservation = 701978
-  const linkGweiPerTransmission = 4212083
+  const maximumGasPrice = 0
+  const reasonableGasPrice = 0
+  const microLinkPerEth = 0
+  const linkGweiPerObservation = 0
+  const linkGweiPerTransmission = 0
   const billingConstructorArgs = [maximumGasPrice, reasonableGasPrice, microLinkPerEth, linkGweiPerObservation, linkGweiPerTransmission, link, billingAC]
   const constructorConfig = [billingConstructorArgs, "10000000000", "1000000000000000", requesterAC, 8, "BTC / USD", adminCertificateHelper]
   const acOffchainAggregator = m.contract("AccessControlledOffchainAggregator", constructorConfig, { libraries: { LowLevelCallLib: lowLevelCallLib } });
