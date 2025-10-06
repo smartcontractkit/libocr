@@ -4,7 +4,7 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import fs from 'fs';
 import path from "path";
-import { billingACmodule, linkDefault, requesterACmodule, LowLevelCallLibModule, adminCertificateHelperModule } from "./acOffchainAggregator";
+import { billingACmodule, billingToken, requesterACmodule, LowLevelCallLibModule, adminCertificateHelperModule } from "./acOffchainAggregator";
 export const uniquePairs = JSON.parse(fs.readFileSync(path.join(__dirname, '../' + "data-feeds.json")).toString()).uniquePair;
 
 const multipleDeploy = buildModule("multipleDeploy", (m) => {
@@ -13,8 +13,6 @@ const multipleDeploy = buildModule("multipleDeploy", (m) => {
   const { billingAC } = m.useModule(billingACmodule);
   const { adminCertificateHelper } = m.useModule(adminCertificateHelperModule);
 
-  const link = m.getParameter("linkToken", linkDefault);
-
   // opbnbTestnet deploy params
   // const maximumGasPrice = 1000
   // const reasonableGasPrice = 1
@@ -22,13 +20,13 @@ const multipleDeploy = buildModule("multipleDeploy", (m) => {
   // const linkGweiPerObservation = 701978
   // const linkGweiPerTransmission = 4212083
 
-  // zero rewrads billing params
+  // zero rewards billing params
   const maximumGasPrice = 0
   const reasonableGasPrice = 0
   const microLinkPerEth = 0
   const linkGweiPerObservation = 0
   const linkGweiPerTransmission = 0
-  const billingConstructorArgs = [maximumGasPrice, reasonableGasPrice, microLinkPerEth, linkGweiPerObservation, linkGweiPerTransmission, link, billingAC]
+  const billingConstructorArgs = [maximumGasPrice, reasonableGasPrice, microLinkPerEth, linkGweiPerObservation, linkGweiPerTransmission, billingToken, billingAC]
 
   const aggregatorsDeployments: any = {};
   for (const description in uniquePairs) {

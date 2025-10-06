@@ -3,7 +3,24 @@
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-export const linkDefault = "0xDA333D5948610a7634202A9420c0c17034B6484A"
+class BillingToken {
+  billingToken: string;
+
+  constructor() {
+    const billingToken = process.env.BILLING_TOKEN
+    if (!billingToken) {
+      throw new Error("Billing token is undefined")
+    }
+    this.billingToken = billingToken
+    console.log("billing token", billingToken)
+  }
+
+  get() {
+    return this.billingToken
+  }
+
+}
+export const billingToken = new BillingToken().get()
 
 const authorizedSolutionHashDefault = "0x62b71aa4c49e75ed0066dece4c0a28c37d8543c4870a475b9216e0a04bd778b2"
 
@@ -54,14 +71,12 @@ const acOffchainAggregator = buildModule("acOffchainAggregator", (m) => {
   const { requesterAC } = m.useModule(requesterACmodule);
   const { billingAC } = m.useModule(billingACmodule);
 
-  const link = m.getParameter("linkToken", linkDefault);
-
   const maximumGasPrice = 0
   const reasonableGasPrice = 0
   const microLinkPerEth = 0
   const linkGweiPerObservation = 0
   const linkGweiPerTransmission = 0
-  const billingConstructorArgs = [maximumGasPrice, reasonableGasPrice, microLinkPerEth, linkGweiPerObservation, linkGweiPerTransmission, link, billingAC]
+  const billingConstructorArgs = [maximumGasPrice, reasonableGasPrice, microLinkPerEth, linkGweiPerObservation, linkGweiPerTransmission, billingToken, billingAC]
   const constructorConfig = [billingConstructorArgs, "10000000000", "1000000000000000", requesterAC, 8, "BTC / USD", adminCertificateHelper]
   const acOffchainAggregator = m.contract("AccessControlledOffchainAggregator", constructorConfig, { libraries: { LowLevelCallLib: lowLevelCallLib } });
 
