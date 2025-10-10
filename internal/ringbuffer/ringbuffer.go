@@ -91,3 +91,17 @@ func (rb *RingBuffer[T]) PushEvict(item T) (evicted T, didEvict bool) {
 	}
 	return evicted, didEvict
 }
+
+func (rb *RingBuffer[T]) SetCap(cap int) {
+
+	// KISS !
+	temp := NewRingBuffer[T](cap) // will panic if cap <= 0
+	for {
+		item, ok := rb.Pop()
+		if !ok {
+			break
+		}
+		temp.PushEvict(item)
+	}
+	*rb = *temp
+}

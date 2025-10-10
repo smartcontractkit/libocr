@@ -13,7 +13,7 @@ Please see the whitepapers available at https://chainlinklabs.com/research for d
 
 - OCR1 is deprecated and being phased out.
 - OCR2 & OCR3 are in production.
-- OCR3.1 is in alpha and excluded from any bug bounties at this time. So is the associated Key-Value-Database in `offchainreporting2plus/keyvaluedatabase/`.
+- OCR3.1 is in alpha and excluded from any bug bounties at this time. So are the associated Key-Value-Database in `offchainreporting2plus/keyvaluedatabase/` and helpers in `internal/jmt`, `internal/randmap`, `internal/singlewriter`.
 
 ## Organization
 ```

@@ -1,13 +1,17 @@
-package protocol //
+package protocol
 
 import (
 	"crypto/ed25519"
+	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/byzquorum"
+	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
+
+//go-sumtype:decl Message
 
 // Message is the interface used to pass an inter-oracle message to the local
 // oracle process.
@@ -62,14 +66,14 @@ type MessageToReportAttestationWithSender[RI any] struct {
 	sender commontypes.OracleID
 }
 
-type MessageToStatePersistence[RI any] interface {
+type MessageToStateSync[RI any] interface {
 	Message[RI]
 
-	processStatePersistence(state *statePersistenceState[RI], sender commontypes.OracleID)
+	processStateSync(stasy *stateSyncState[RI], sender commontypes.OracleID)
 }
 
-type MessageToStatePersistenceWithSender[RI any] struct {
-	msg    MessageToStatePersistence[RI]
+type MessageToStateSyncWithSender[RI any] struct {
+	msg    MessageToStateSync[RI]
 	sender commontypes.OracleID
 }
 
@@ -383,74 +387,165 @@ func (msg MessageCertifiedCommit[RI]) processReportAttestation(repatt *reportAtt
 }
 
 type MessageBlockSyncRequest[RI any] struct {
-	RequestHandle         types.RequestHandle // actual handle for outbound message, sentinel for inbound
-	HighestCommittedSeqNr uint64
-	Nonce                 uint64
+	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	StartSeqNr    uint64              // a successful response must contain at least the block with this sequence number
+	EndExclSeqNr  uint64              // the response may only contain sequence numbers less than this
 }
 
-var _ MessageToStatePersistence[struct{}] = MessageBlockSyncRequest[struct{}]{}
+var _ MessageToStateSync[struct{}] = MessageBlockSyncRequest[struct{}]{}
 
 func (msg MessageBlockSyncRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
 	return true
 }
 
 func (msg MessageBlockSyncRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToStatePersistence <- MessageToStatePersistenceWithSender[RI]{msg, sender}
+	o.chNetToStateSync <- MessageToStateSyncWithSender[RI]{msg, sender}
 }
 
-func (msg MessageBlockSyncRequest[RI]) processStatePersistence(state *statePersistenceState[RI], sender commontypes.OracleID) {
-	state.messageBlockSyncReq(msg, sender)
+func (msg MessageBlockSyncRequest[RI]) processStateSync(stasy *stateSyncState[RI], sender commontypes.OracleID) {
+	stasy.messageBlockSyncRequest(msg, sender)
 }
 
-type MessageBlockSyncSummary[RI any] struct {
-	LowestPersistedSeqNr uint64
+type MessageStateSyncSummary[RI any] struct {
+	LowestPersistedSeqNr  uint64
+	HighestCommittedSeqNr uint64
 }
 
-var _ MessageToStatePersistence[struct{}] = MessageBlockSyncSummary[struct{}]{}
+var _ MessageToStateSync[struct{}] = MessageStateSyncSummary[struct{}]{}
 
-func (msg MessageBlockSyncSummary[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageStateSyncSummary[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
 	return true
 }
 
-func (msg MessageBlockSyncSummary[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToStatePersistence <- MessageToStatePersistenceWithSender[RI]{msg, sender}
+func (msg MessageStateSyncSummary[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToStateSync <- MessageToStateSyncWithSender[RI]{msg, sender}
 }
 
-func (msg MessageBlockSyncSummary[RI]) processStatePersistence(state *statePersistenceState[RI], sender commontypes.OracleID) {
-	state.messageBlockSyncSummary(msg, sender)
+func (msg MessageStateSyncSummary[RI]) processStateSync(stasy *stateSyncState[RI], sender commontypes.OracleID) {
+	stasy.messageStateSyncSummary(msg, sender)
 }
 
-type MessageBlockSync[RI any] struct {
+type MessageBlockSyncResponse[RI any] struct {
 	RequestHandle                 types.RequestHandle // actual handle for outbound message, sentinel for inbound
-	AttestedStateTransitionBlocks []AttestedStateTransitionBlock
-	Nonce                         uint64
+	RequestStartSeqNr             uint64
+	RequestEndExclSeqNr           uint64
+	AttestedStateTransitionBlocks []AttestedStateTransitionBlock // must be contiguous and (if non-empty) starting at RequestStartSeqNr
 }
 
-var _ MessageToStatePersistence[struct{}] = MessageBlockSync[struct{}]{}
+var _ MessageToStateSync[struct{}] = MessageBlockSyncResponse[struct{}]{}
 
-func (msg MessageBlockSync[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageBlockSyncResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if len(msg.AttestedStateTransitionBlocks) > MaxBlocksPerBlockSyncResponse {
+		return false
+	}
+	for _, astb := range msg.AttestedStateTransitionBlocks {
+		if !astb.CheckSize(n, f, limits) {
+			return false
+		}
+	}
 	return true
 }
 
-func (msg MessageBlockSync[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToStatePersistence <- MessageToStatePersistenceWithSender[RI]{msg, sender}
+func (msg MessageBlockSyncResponse[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToStateSync <- MessageToStateSyncWithSender[RI]{msg, sender}
 }
 
-func (msg MessageBlockSync[RI]) processStatePersistence(state *statePersistenceState[RI], sender commontypes.OracleID) {
-	state.messageBlockSync(msg, sender)
+func (msg MessageBlockSyncResponse[RI]) processStateSync(stasy *stateSyncState[RI], sender commontypes.OracleID) {
+	stasy.messageBlockSyncResponse(msg, sender)
+}
+
+type MessageTreeSyncChunkRequest[RI any] struct {
+	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	ToSeqNr       uint64
+	StartIndex    jmt.Digest
+	EndInclIndex  jmt.Digest
+}
+
+var _ MessageToStateSync[struct{}] = MessageTreeSyncChunkRequest[struct{}]{}
+
+func (msg MessageTreeSyncChunkRequest[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+	return true
+}
+
+func (msg MessageTreeSyncChunkRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToStateSync <- MessageToStateSyncWithSender[RI]{msg, sender}
+}
+
+func (msg MessageTreeSyncChunkRequest[RI]) processStateSync(stasy *stateSyncState[RI], sender commontypes.OracleID) {
+	stasy.messageTreeSyncChunkRequest(msg, sender)
+}
+
+type MessageTreeSyncChunkResponse[RI any] struct {
+	RequestHandle       types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	ToSeqNr             uint64
+	StartIndex          jmt.Digest
+	RequestEndInclIndex jmt.Digest
+	GoAway              bool
+	EndInclIndex        jmt.Digest
+	KeyValues           []KeyValuePair
+	BoundingLeaves      []jmt.BoundingLeaf
+}
+
+var _ MessageToStateSync[struct{}] = MessageTreeSyncChunkResponse[struct{}]{}
+
+func (msg MessageTreeSyncChunkResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+	if len(msg.BoundingLeaves) > jmt.MaxBoundingLeaves {
+		return false
+	}
+	for _, bl := range msg.BoundingLeaves {
+		if len(bl.Siblings) > jmt.MaxProofLength {
+			return false
+		}
+	}
+	if len(msg.KeyValues) > MaxTreeSyncChunkKeys {
+		return false
+	}
+	treeSyncChunkLeavesSize := 0
+	for _, kv := range msg.KeyValues {
+		if len(kv.Key) > ocr3_1types.MaxMaxKeyValueKeyLength {
+			return false
+		}
+		if len(kv.Value) > ocr3_1types.MaxMaxKeyValueValueLength {
+			return false
+		}
+		treeSyncChunkLeavesSize += len(kv.Key) + len(kv.Value)
+	}
+	if treeSyncChunkLeavesSize > MaxTreeSyncChunkKeysPlusValuesLength {
+		return false
+	}
+	return true
+}
+
+func (msg MessageTreeSyncChunkResponse[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToStateSync <- MessageToStateSyncWithSender[RI]{msg, sender}
+}
+
+func (msg MessageTreeSyncChunkResponse[RI]) processStateSync(stasy *stateSyncState[RI], sender commontypes.OracleID) {
+	stasy.messageTreeSyncChunkResponse(msg, sender)
+}
+
+type MessageBlobOfferRequestInfo struct {
+	ExpiryTimestamp time.Time
 }
 
 type MessageBlobOffer[RI any] struct {
+	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	RequestInfo   *MessageBlobOfferRequestInfo
 	ChunkDigests  []BlobChunkDigest
 	PayloadLength uint64
 	ExpirySeqNr   uint64
-	Submitter     commontypes.OracleID
 }
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobOffer[struct{}]{}
 
-func (msg MessageBlobOffer[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
-	return true // TODO: add proper size checks
+func (msg MessageBlobOffer[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, _ int) bool {
+	if msg.PayloadLength > uint64(limits.MaxBlobPayloadLength) {
+		return false
+	}
+	if uint64(len(msg.ChunkDigests)) != numChunks(msg.PayloadLength) {
+		return false
+	}
+	return true
 }
 
 func (msg MessageBlobOffer[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
@@ -461,16 +556,48 @@ func (msg MessageBlobOffer[RI]) processBlobExchange(bex *blobExchangeState[RI], 
 	bex.messageBlobOffer(msg, sender)
 }
 
-type MessageBlobChunkRequest[RI any] struct {
+type MessageBlobOfferResponse[RI any] struct {
 	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
 	BlobDigest    BlobDigest
-	ChunkIndex    uint64
+	RejectOffer   bool
+	Signature     BlobAvailabilitySignature
+}
+
+var _ MessageToBlobExchange[struct{}] = MessageBlobOfferResponse[struct{}]{}
+
+func (msg MessageBlobOfferResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+	if msg.RejectOffer {
+		return len(msg.Signature) == 0
+	} else {
+		return len(msg.Signature) == ed25519.SignatureSize
+	}
+}
+
+func (msg MessageBlobOfferResponse[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+	o.chNetToBlobExchange <- MessageToBlobExchangeWithSender[RI]{msg, sender}
+}
+
+func (msg MessageBlobOfferResponse[RI]) processBlobExchange(bex *blobExchangeState[RI], sender commontypes.OracleID) {
+	bex.messageBlobOfferResponse(msg, sender)
+}
+
+type MessageBlobChunkRequestInfo struct {
+	ExpiryTimestamp time.Time
+}
+
+type MessageBlobChunkRequest[RI any] struct {
+	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+
+	RequestInfo *MessageBlobChunkRequestInfo
+
+	BlobDigest BlobDigest
+	ChunkIndex uint64
 }
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobChunkRequest[struct{}]{}
 
 func (msg MessageBlobChunkRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
-	return true // TODO: add proper size checks
+	return true
 }
 
 func (msg MessageBlobChunkRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
@@ -486,13 +613,17 @@ type MessageBlobChunkResponse[RI any] struct {
 
 	BlobDigest BlobDigest
 	ChunkIndex uint64
+	GoAway     bool
 	Chunk      []byte
 }
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobChunkResponse[struct{}]{}
 
 func (msg MessageBlobChunkResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
-	return true // TODO: add proper size checks
+	if len(msg.Chunk) > BlobChunkSize {
+		return false
+	}
+	return true
 }
 
 func (msg MessageBlobChunkResponse[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
@@ -501,23 +632,4 @@ func (msg MessageBlobChunkResponse[RI]) process(o *oracleState[RI], sender commo
 
 func (msg MessageBlobChunkResponse[RI]) processBlobExchange(bex *blobExchangeState[RI], sender commontypes.OracleID) {
 	bex.messageBlobChunkResponse(msg, sender)
-}
-
-type MessageBlobAvailable[RI any] struct {
-	BlobDigest BlobDigest
-	Signature  BlobAvailabilitySignature
-}
-
-var _ MessageToBlobExchange[struct{}] = MessageBlobAvailable[struct{}]{}
-
-func (msg MessageBlobAvailable[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
-	return true // TODO: add proper size checks
-}
-
-func (msg MessageBlobAvailable[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
-	o.chNetToBlobExchange <- MessageToBlobExchangeWithSender[RI]{msg, sender}
-}
-
-func (msg MessageBlobAvailable[RI]) processBlobExchange(bex *blobExchangeState[RI], sender commontypes.OracleID) {
-	bex.messageBlobAvailable(msg, sender)
 }

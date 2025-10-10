@@ -159,10 +159,8 @@ func RunManagedOCR3_1Oracle[RI any](
 				return fmt.Errorf("ManagedOCR3_1Oracle: invalid MercuryPluginInfo"), false
 			}
 
-			blobEndpointWrapper.SetLimits(reportingPluginInfo.Limits)
-
 			maxSigLen := onchainKeyring.MaxSignatureLength()
-			defaultLims, lowPriorityLimits, err := limits.OCR3_1Limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, maxSigLen)
+			defaultLims, lowPriorityLimits, serializedLengthLimits, err := limits.OCR3_1Limits(sharedConfig.PublicConfig, reportingPluginInfo.Limits, maxSigLen)
 			if err != nil {
 				logger.Error("ManagedOCR3_1Oracle: error during limits", commontypes.LogFields{
 					"error":                 err,
@@ -213,6 +211,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				registerer,
 				reportingPluginInfo.Limits,
 				sharedConfig.PublicConfig,
+				serializedLengthLimits,
 			)
 			err = netEndpoint.Start()
 			if err != nil {
@@ -233,6 +232,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				logger,
 				"ManagedOCR3_1Oracle: error during keyValueDatabase.Close()",
 			)
+			semanticOCR3_1KeyValueDatabase := shim.NewSemanticOCR3_1KeyValueDatabase(keyValueDatabase, reportingPluginInfo.Limits, logger, metricsRegisterer)
 
 			protocol.RunOracle[RI](
 				ctx,
@@ -241,7 +241,8 @@ func RunManagedOCR3_1Oracle[RI any](
 				contractTransmitter,
 				&shim.SerializingOCR3_1Database{database},
 				oid,
-				&shim.SemanticOCR3_1KeyValueStore{keyValueDatabase, reportingPluginInfo.Limits},
+				semanticOCR3_1KeyValueDatabase,
+				reportingPluginInfo.Limits,
 				localConfig,
 				childLogger,
 				registerer,

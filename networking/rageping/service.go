@@ -12,14 +12,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/ragep2p"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
 	unsafeRand "math/rand"
 )
 
 type latencyMetricsService struct {
-	host              *ragep2p.Host
+	host              ragep2pwrapper.Host
 	metricsRegisterer prometheus.Registerer
 	logger            loghelper.LoggerWithContext
 	peerStates        map[ragetypes.PeerID]*latencyMetricsPeerState
@@ -61,7 +61,7 @@ type latencyMetricsPeerState struct {
 	metrics *latencyMetrics
 
 	// Main stream used for sending/receiving PING/PONG messages.
-	stream *ragep2p.Stream
+	stream ragep2pwrapper.Stream
 
 	// A reference counter for the number of times this particular peer has been registered. Only a single state is
 	// kept per peer (and config). Registering the same peer multiple times does not create a new ping/pong protocol
@@ -83,8 +83,8 @@ type latencyMetricsServiceStreamLimits struct {
 	outgoingBufferSize int
 	incomingBufferSize int
 	maxMessageLength   int
-	messagesLimit      ragep2p.TokenBucketParams
-	bytesLimit         ragep2p.TokenBucketParams
+	messagesLimit      ragetypes.TokenBucketParams
+	bytesLimit         ragetypes.TokenBucketParams
 }
 
 func (c *LatencyMetricsServiceConfig) getStreamLimits() *latencyMetricsServiceStreamLimits {
@@ -106,10 +106,10 @@ func (c *LatencyMetricsServiceConfig) getStreamLimits() *latencyMetricsServiceSt
 	// considered for the rate limits.)
 	msgsCapacity := uint32(2 + 2 /* margin of error */)
 	msgsRate := 2.0 / c.MinPeriod.Seconds()
-	msgsLimit := ragep2p.TokenBucketParams{msgsRate, msgsCapacity}
+	msgsLimit := ragetypes.TokenBucketParams{msgsRate, msgsCapacity}
 	bytesCapacity := uint32((c.PingSize + pongSize) * 2)
 	bytesRate := float64(bytesCapacity) / c.MinPeriod.Seconds()
-	bytesLimit := ragep2p.TokenBucketParams{bytesRate, bytesCapacity}
+	bytesLimit := ragetypes.TokenBucketParams{bytesRate, bytesCapacity}
 
 	return &latencyMetricsServiceStreamLimits{
 		outgoingBufferSize,
@@ -251,7 +251,7 @@ func (sg *latencyMetricsServiceGroup) Close() {
 	}
 }
 
-func (s *latencyMetricsService) initStream(peerID ragetypes.PeerID) (*ragep2p.Stream, error) {
+func (s *latencyMetricsService) initStream(peerID ragetypes.PeerID) (ragep2pwrapper.Stream, error) {
 	// Get a unique stream name for each configuration.
 	streamName := fmt.Sprintf(
 		"ping-pong-(%v|%v|%v|%v)", s.config.PingSize, s.config.MinPeriod, s.config.MaxPeriod, s.config.Timeout,
@@ -422,7 +422,7 @@ func (s *latencyMetricsService) run(remotePeerID ragetypes.PeerID, peerState *la
 }
 
 func (s *latencyMetricsService) sendPing(
-	remotePeerID ragetypes.PeerID, stream *ragep2p.Stream, metrics *latencyMetrics,
+	remotePeerID ragetypes.PeerID, stream ragep2pwrapper.Stream, metrics *latencyMetrics,
 ) (lastPingSentAt time.Time, expectedPongMsg []byte) {
 	// Generate a new random PING message to be sent to the remote peer.
 	pingMsg, err := s.preparePingMessage()
@@ -463,7 +463,7 @@ func (s *latencyMetricsService) processTimedOutPing(remotePeerID ragetypes.PeerI
 func (s *latencyMetricsService) processIncomingPingMessage(
 	pingMsg []byte,
 	remotePeerID ragetypes.PeerID,
-	stream *ragep2p.Stream,
+	stream ragep2pwrapper.Stream,
 	metrics *latencyMetrics,
 ) {
 	// Some valid PING message was received from the remote peer.

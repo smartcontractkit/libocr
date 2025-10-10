@@ -3,7 +3,6 @@ package shim
 
 import (
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
@@ -19,14 +19,15 @@ import (
 )
 
 type OCR3_1SerializingEndpoint[RI any] struct {
-	chTelemetry  chan<- *serialization.TelemetryWrapper
-	configDigest types.ConfigDigest
-	endpoint     types.BinaryNetworkEndpoint2
-	maxSigLen    int
-	logger       commontypes.Logger
-	metrics      *serializingEndpointMetrics
-	pluginLimits ocr3_1types.ReportingPluginLimits
-	publicConfig ocr3config.PublicConfig
+	chTelemetry            chan<- *serialization.TelemetryWrapper
+	configDigest           types.ConfigDigest
+	endpoint               types.BinaryNetworkEndpoint2
+	maxSigLen              int
+	logger                 commontypes.Logger
+	metrics                *serializingEndpointMetrics
+	pluginLimits           ocr3_1types.ReportingPluginLimits
+	publicConfig           ocr3config.PublicConfig
+	serializedLengthLimits limits.OCR3_1SerializedLengthLimits
 
 	mutex        sync.Mutex
 	subprocesses subprocesses.Subprocesses
@@ -49,6 +50,7 @@ func NewOCR3_1SerializingEndpoint[RI any](
 	metricsRegisterer prometheus.Registerer,
 	pluginLimits ocr3_1types.ReportingPluginLimits,
 	publicConfig ocr3config.PublicConfig,
+	serializedLengthLimits limits.OCR3_1SerializedLengthLimits,
 ) *OCR3_1SerializingEndpoint[RI] {
 	return &OCR3_1SerializingEndpoint[RI]{
 		chTelemetry,
@@ -59,6 +61,7 @@ func NewOCR3_1SerializingEndpoint[RI any](
 		newSerializingEndpointMetrics(metricsRegisterer, logger),
 		pluginLimits,
 		publicConfig,
+		serializedLengthLimits,
 
 		sync.Mutex{},
 		subprocesses.Subprocesses{},
@@ -131,35 +134,52 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
 	case protocol.MessageCertifiedCommit[RI]:
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+	case protocol.MessageStateSyncSummary[RI]:
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityLow}, pbm
 	case protocol.MessageBlockSyncRequest[RI]:
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
-				math.MaxInt,
+				n.serializedLengthLimits.MaxLenMsgBlockSyncResponse,
 				time.Now().Add(protocol.DeltaMaxBlockSyncRequest),
 			},
 			payload,
 			types.BinaryMessagePriorityLow,
 		}, pbm
-	case protocol.MessageBlockSync[RI]:
+	case protocol.MessageBlockSyncResponse[RI]:
 		return msg.RequestHandle.MakeResponse(payload), pbm
-	case protocol.MessageBlockSyncSummary[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityLow}, pbm
-
+	case protocol.MessageTreeSyncChunkRequest[RI]:
+		return types.OutboundBinaryMessageRequest{
+			types.SingleUseSizedLimitedResponsePolicy{
+				n.serializedLengthLimits.MaxLenMsgTreeSyncChunkResponse,
+				time.Now().Add(protocol.DeltaMaxTreeSyncRequest),
+			},
+			payload,
+			types.BinaryMessagePriorityLow,
+		}, pbm
+	case protocol.MessageTreeSyncChunkResponse[RI]:
+		return msg.RequestHandle.MakeResponse(payload), pbm
 	case protocol.MessageBlobOffer[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessageRequest{
+			types.SingleUseSizedLimitedResponsePolicy{
+				n.serializedLengthLimits.MaxLenMsgBlobOfferResponse,
+				msg.RequestInfo.ExpiryTimestamp,
+			},
+			payload,
+			types.BinaryMessagePriorityDefault,
+		}, pbm
 	case protocol.MessageBlobChunkRequest[RI]:
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
-				math.MaxInt,
-				time.Now().Add(protocol.DeltaBlobChunkRequestTimeout),
+				n.serializedLengthLimits.MaxLenMsgBlobChunkResponse,
+				msg.RequestInfo.ExpiryTimestamp,
 			},
 			payload,
 			types.BinaryMessagePriorityDefault,
 		}, pbm
 	case protocol.MessageBlobChunkResponse[RI]:
 		return msg.RequestHandle.MakeResponse(payload), pbm
-	case protocol.MessageBlobAvailable[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+	case protocol.MessageBlobOfferResponse[RI]:
+		return msg.RequestHandle.MakeResponse(payload), pbm
 	}
 
 	panic("unreachable")
@@ -235,22 +255,29 @@ func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMe
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
 			return protocol.MessageBlockSyncRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlockSyncRequest")
 		}
-	case protocol.MessageBlockSync[RI]:
+	case protocol.MessageBlockSyncResponse[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageBlockSync[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlockSync")
+			return protocol.MessageBlockSyncResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlockSync")
 		}
-	case protocol.MessageBlockSyncSummary[RI]:
+	case protocol.MessageStateSyncSummary[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageBlockSyncSummary[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlockSyncSummary")
+			return protocol.MessageStateSyncSummary[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageStateSyncSummary")
 		}
-
+	case protocol.MessageTreeSyncChunkRequest[RI]:
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
+			return protocol.MessageTreeSyncChunkRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageTreeSyncRequest")
+		}
+	case protocol.MessageTreeSyncChunkResponse[RI]:
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
+			return protocol.MessageTreeSyncChunkResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageTreeSyncChunk")
+		}
 	case protocol.MessageBlobOffer[RI]:
-		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
 			return protocol.MessageBlobOffer[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobOffer")
 		}
-	case protocol.MessageBlobAvailable[RI]:
-		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageBlobAvailable[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobAvailable")
+	case protocol.MessageBlobOfferResponse[RI]:
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
+			return protocol.MessageBlobOfferResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobOfferResponse")
 		}
 	case protocol.MessageBlobChunkRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {

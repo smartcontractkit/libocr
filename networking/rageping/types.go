@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/ragep2p"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
@@ -77,7 +77,7 @@ func DefaultLatencyBuckets() []float64 {
 // configuration multiple times as parameter. (This minor restriction is a result of how the underlying streams are
 // initialized, and may be lifted if needed.)
 func NewLatencyMetricsService(
-	host *ragep2p.Host,
+	host ragep2pwrapper.Host,
 	registerer prometheus.Registerer,
 	logger loghelper.LoggerWithContext,
 	configs []*LatencyMetricsServiceConfig,

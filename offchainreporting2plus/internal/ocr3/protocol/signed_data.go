@@ -14,9 +14,9 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-// Returns a byte slice whose first four bytes are the string "ocr3" and the rest
-// of which is the sum returned by h. Used for domain separation vs ocr2, where
-// we just directly sign sha256 hashes.
+// Returns a byte slice that starts with the string "ocr3" and the rest
+// of which is the sum returned by h. Used for domain separation as per the comment
+// on offchainreporting2plus/types.OffchainKeyring.
 //
 // Any signatures made with the OffchainKeyring should use ocr3DomainSeparatedSum!
 func ocr3DomainSeparatedSum(h hash.Hash) []byte {

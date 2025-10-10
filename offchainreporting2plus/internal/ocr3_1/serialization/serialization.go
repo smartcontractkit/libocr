@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 
@@ -35,6 +36,22 @@ func SerializeCertifiedPrepareOrCommit(cpoc protocol.CertifiedPrepareOrCommit) (
 	return proto.Marshal(tpm.certifiedPrepareOrCommit(cpoc))
 }
 
+func SerializeTreeSyncStatus(m protocol.TreeSyncStatus) ([]byte, error) {
+	tpm := toProtoMessage[struct{}]{}
+	pb := TreeSyncStatus{
+		// zero-initialize protobuf built-ins
+		protoimpl.MessageState{},
+		0,
+		nil,
+		// fields
+		TreeSyncPhase(m.Phase),
+		m.TargetSeqNr,
+		m.TargetStateRootDigest[:],
+		tpm.pendingKeyDigestRanges(m.PendingKeyDigestRanges),
+	}
+	return proto.Marshal(&pb)
+}
+
 func SerializePacemakerState(m protocol.PacemakerState) ([]byte, error) {
 	pb := PacemakerState{
 		// zero-initialize protobuf built-ins
@@ -49,14 +66,16 @@ func SerializePacemakerState(m protocol.PacemakerState) ([]byte, error) {
 	return proto.Marshal(&pb)
 }
 
-func SerializeStatePersistenceState(m protocol.StatePersistenceState) ([]byte, error) {
-	pb := StatePersistenceState{
+func SerializeBlobMeta(m protocol.BlobMeta) ([]byte, error) {
+	pb := BlobMeta{
 		// zero-initialize protobuf built-ins
 		protoimpl.MessageState{},
 		0,
 		nil,
 		// fields
-		m.HighestPersistedStateTransitionBlockSeqNr,
+		m.PayloadLength,
+		m.ChunksHave,
+		m.ExpirySeqNr,
 	}
 	return proto.Marshal(&pb)
 }
@@ -97,6 +116,29 @@ func DeserializeTrustedPrepareOrCommit(b []byte) (protocol.CertifiedPrepareOrCom
 	return fpm.certifiedPrepareOrCommit(&pb)
 }
 
+func DeserializeTreeSyncStatus(b []byte) (protocol.TreeSyncStatus, error) {
+	pb := TreeSyncStatus{}
+	if err := proto.Unmarshal(b, &pb); err != nil {
+		return protocol.TreeSyncStatus{}, err
+	}
+	var stateRootDigest protocol.StateRootDigest
+	if len(stateRootDigest) < len(pb.TargetStateRootDigest) {
+		return protocol.TreeSyncStatus{}, fmt.Errorf("invalid state root digest length expected at most %d, got %d", len(stateRootDigest), len(pb.TargetStateRootDigest))
+	}
+	copy(stateRootDigest[:], pb.TargetStateRootDigest)
+	fpm := fromProtoMessage[struct{}]{}
+	pkdr, err := fpm.pendingKeyDigestRanges(pb.PendingKeyDigestRanges)
+	if err != nil {
+		return protocol.TreeSyncStatus{}, err
+	}
+	return protocol.TreeSyncStatus{
+		protocol.TreeSyncPhase(pb.Phase),
+		pb.TargetSeqNr,
+		stateRootDigest,
+		pkdr,
+	}, nil
+}
+
 func DeserializePacemakerState(b []byte) (protocol.PacemakerState, error) {
 	pb := PacemakerState{}
 	if err := proto.Unmarshal(b, &pb); err != nil {
@@ -109,13 +151,15 @@ func DeserializePacemakerState(b []byte) (protocol.PacemakerState, error) {
 	}, nil
 }
 
-func DeserializeStatePersistenceState(b []byte) (protocol.StatePersistenceState, error) {
-	pb := StatePersistenceState{}
+func DeserializeBlobMeta(b []byte) (protocol.BlobMeta, error) {
+	pb := BlobMeta{}
 	if err := proto.Unmarshal(b, &pb); err != nil {
-		return protocol.StatePersistenceState{}, err
+		return protocol.BlobMeta{}, err
 	}
-	return protocol.StatePersistenceState{
-		pb.HighestPersistedStateTransitionBlockSeqNr,
+	return protocol.BlobMeta{
+		pb.PayloadLength,
+		pb.ChunkHaves,
+		pb.ExpirySeqNr,
 	}, nil
 }
 
@@ -277,36 +321,65 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			0,
 			nil,
 			// fields
-			v.HighestCommittedSeqNr,
-			v.Nonce,
+			v.StartSeqNr,
+			v.EndExclSeqNr,
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageBlockSyncRequest{pm}
-	case protocol.MessageBlockSync[RI]:
+	case protocol.MessageBlockSyncResponse[RI]:
 		astbs := make([]*AttestedStateTransitionBlock, 0, len(v.AttestedStateTransitionBlocks))
 		for _, astb := range v.AttestedStateTransitionBlocks {
 			astbs = append(astbs, tpm.attestedStateTransitionBlock(astb))
 		}
-		pm := &MessageBlockSync{
+		pm := &MessageBlockSyncResponse{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
 			nil,
 			// fields
+			v.RequestStartSeqNr,
+			v.RequestEndExclSeqNr,
 			astbs,
-			v.Nonce,
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageBlockSync{pm}
-	case protocol.MessageBlockSyncSummary[RI]:
-		pm := &MessageBlockSyncSummary{
+		msgWrapper.Msg = &MessageWrapper_MessageBlockSyncResponse{pm}
+	case protocol.MessageStateSyncSummary[RI]:
+		pm := &MessageStateSyncSummary{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
 			0,
 			nil,
 			// fields
 			v.LowestPersistedSeqNr,
+			v.HighestCommittedSeqNr,
 		}
-		msgWrapper.Msg = &MessageWrapper_MessageBlockSyncSummary{pm}
-
+		msgWrapper.Msg = &MessageWrapper_MessageStateSyncSummary{pm}
+	case protocol.MessageTreeSyncChunkRequest[RI]:
+		pm := &MessageTreeSyncChunkRequest{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			v.ToSeqNr,
+			v.StartIndex[:],
+			v.EndInclIndex[:],
+		}
+		msgWrapper.Msg = &MessageWrapper_MessageTreeSyncChunkRequest{pm}
+	case protocol.MessageTreeSyncChunkResponse[RI]:
+		pm := &MessageTreeSyncChunkResponse{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			v.ToSeqNr,
+			v.StartIndex[:],
+			v.RequestEndInclIndex[:],
+			v.GoAway,
+			v.EndInclIndex[:],
+			tpm.treeSyncChunkKeyValues(v.KeyValues),
+			tpm.treeSyncChunkBoundingLeaves(v.BoundingLeaves),
+		}
+		msgWrapper.Msg = &MessageWrapper_MessageTreeSyncChunkResponse{pm}
 	case protocol.MessageBlobOffer[RI]:
 		pm := &MessageBlobOffer{
 			// zero-initialize protobuf built-ins
@@ -317,9 +390,20 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			tpm.chunkDigests(v.ChunkDigests),
 			v.PayloadLength,
 			v.ExpirySeqNr,
-			uint32(v.Submitter),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageBlobOffer{pm}
+	case protocol.MessageBlobOfferResponse[RI]:
+		pm := &MessageBlobOfferResponse{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			v.BlobDigest[:],
+			v.RejectOffer,
+			v.Signature[:],
+		}
+		msgWrapper.Msg = &MessageWrapper_MessageBlobOfferResponse{pm}
 	case protocol.MessageBlobChunkRequest[RI]:
 		pm := &MessageBlobChunkRequest{
 			// zero-initialize protobuf built-ins
@@ -340,21 +424,10 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			// fields
 			v.BlobDigest[:],
 			v.ChunkIndex,
+			v.GoAway,
 			v.Chunk,
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageBlobChunkResponse{pm}
-	case protocol.MessageBlobAvailable[RI]:
-		pm := &MessageBlobAvailable{
-			// zero-initialize protobuf built-ins
-			protoimpl.MessageState{},
-			0,
-			nil,
-			// fields
-			v.BlobDigest[:],
-			v.Signature[:],
-		}
-		msgWrapper.Msg = &MessageWrapper_MessageBlobAvailable{pm}
-
 	default:
 		return nil, fmt.Errorf("unable to serialize message of type %T", m)
 
@@ -401,6 +474,7 @@ func (tpm *toProtoMessage[RI]) certifiedPrepareOrCommit(cpoc protocol.CertifiedP
 				v.SeqNr(),
 				v.StateTransitionInputsDigest[:],
 				tpm.stateTransitionOutputs(v.StateTransitionOutputs),
+				v.StateRootDigest[:],
 				v.ReportsPlusPrecursor[:],
 				prepareQuorumCertificate,
 			}},
@@ -444,6 +518,7 @@ func (tpm *toProtoMessage[RI]) CertifiedCommit(cpocc protocol.CertifiedCommit) *
 		cpocc.SeqNr(),
 		cpocc.StateTransitionInputsDigest[:],
 		tpm.stateTransitionOutputs(cpocc.StateTransitionOutputs),
+		cpocc.StateRootDigest[:],
 		cpocc.ReportsPlusPrecursor[:],
 		commitQuorumCertificate,
 	}
@@ -472,6 +547,7 @@ func (tpm *toProtoMessage[RI]) CertifiedCommittedReports(ccr protocol.CertifiedC
 		ccr.SeqNr,
 		ccr.StateTransitionInputsDigest[:],
 		ccr.StateTransitionOutputDigest[:],
+		ccr.StateRootDigest[:],
 		ccr.ReportsPlusPrecursor[:],
 		commitQuorumCertificate,
 	}
@@ -555,8 +631,8 @@ func (tpm *toProtoMessage[RI]) attributedSignedObservation(aso protocol.Attribut
 }
 
 func (tpm *toProtoMessage[RI]) attestedStateTransitionBlock(astb protocol.AttestedStateTransitionBlock) *AttestedStateTransitionBlock {
-	attributedSignatures := make([]*AttributedCommitSignature, 0, len(astb.AttributedSignatures))
-	for _, as := range astb.AttributedSignatures {
+	attributedSignatures := make([]*AttributedCommitSignature, 0, len(astb.AttributedCommitSignatures))
+	for _, as := range astb.AttributedCommitSignatures {
 		attributedSignatures = append(attributedSignatures, &AttributedCommitSignature{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
@@ -589,6 +665,7 @@ func (tpm *toProtoMessage[RI]) stateTransitionBlock(stb protocol.StateTransition
 		stb.SeqNr(),
 		stb.StateTransitionInputsDigest[:],
 		tpm.stateTransitionOutputs(stb.StateTransitionOutputs),
+		stb.StateRootDigest[:],
 		stb.ReportsPlusPrecursor,
 	}
 }
@@ -615,6 +692,75 @@ func (tpm *toProtoMessage[RI]) stateTransitionOutputs(sto protocol.StateTransiti
 		// fields
 		pbWriteSet,
 	}
+}
+
+func (tpm *toProtoMessage[RI]) treeSyncChunkProof(proof []jmt.Digest) [][]byte {
+	pns := make([][]byte, 0, len(proof))
+	for _, pn := range proof {
+		pns = append(pns, pn[:])
+	}
+	return pns
+}
+
+func (tpm *toProtoMessage[RI]) treeSyncChunkBoundingLeaves(boundingLeaves []jmt.BoundingLeaf) []*BoundingLeaf {
+	pbbls := make([]*BoundingLeaf, 0, len(boundingLeaves))
+	for _, bl := range boundingLeaves {
+		pbbls = append(pbbls, &BoundingLeaf{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			tpm.leafKeyAndValueDigests(bl.Leaf),
+			tpm.treeSyncChunkProof(bl.Siblings),
+		})
+	}
+	return pbbls
+}
+
+func (tpm *toProtoMessage[RI]) leafKeyAndValueDigests(leafKeyAndValueDigests jmt.LeafKeyAndValueDigests) *LeafKeyAndValueDigests {
+	return &LeafKeyAndValueDigests{
+		// zero-initialize protobuf built-ins
+		protoimpl.MessageState{},
+		0,
+		nil,
+		// fields
+		leafKeyAndValueDigests.KeyDigest[:],
+		leafKeyAndValueDigests.ValueDigest[:],
+	}
+}
+
+func (tpm *toProtoMessage[RI]) treeSyncChunkKeyValues(kvps []protocol.KeyValuePair) []*KeyValuePair {
+	pbkvps := make([]*KeyValuePair, 0, len(kvps))
+	for _, kvp := range kvps {
+		pbkvps = append(pbkvps, &KeyValuePair{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			kvp.Key,
+			kvp.Value,
+		})
+	}
+	return pbkvps
+}
+
+func (tpm *toProtoMessage[RI]) pendingKeyDigestRanges(pkdr protocol.PendingKeyDigestRanges) []*KeyDigestRange {
+	allRanges := pkdr.All()
+	pbRanges := make([]*KeyDigestRange, 0, len(allRanges))
+	for _, r := range allRanges {
+		pbRanges = append(pbRanges, &KeyDigestRange{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			r.StartIndex[:],
+			r.EndInclIndex[:],
+		})
+	}
+	return pbRanges
 }
 
 //
@@ -649,22 +795,25 @@ func (fpm *fromProtoMessage[RI]) messageWrapper(wrapper *MessageWrapper) (protoc
 	case *MessageWrapper_MessageCertifiedCommitRequest:
 		return fpm.messageCertifiedCommitRequest(wrapper.GetMessageCertifiedCommitRequest())
 	case *MessageWrapper_MessageCertifiedCommit:
-		return fpm.messageCertifiedCommit(wrapper.GetMessageCertifiedCommit())
+		return fpm.MessageCertifiedCommit(wrapper.GetMessageCertifiedCommit())
 	case *MessageWrapper_MessageBlockSyncRequest:
 		return fpm.messageBlockSyncRequest(wrapper.GetMessageBlockSyncRequest())
-	case *MessageWrapper_MessageBlockSync:
-		return fpm.messageBlockSync(wrapper.GetMessageBlockSync())
-	case *MessageWrapper_MessageBlockSyncSummary:
-		return fpm.messageBlockSyncSummary(wrapper.GetMessageBlockSyncSummary())
-
+	case *MessageWrapper_MessageBlockSyncResponse:
+		return fpm.messageBlockSyncResponse(wrapper.GetMessageBlockSyncResponse())
+	case *MessageWrapper_MessageStateSyncSummary:
+		return fpm.messageStateSyncSummary(wrapper.GetMessageStateSyncSummary())
+	case *MessageWrapper_MessageTreeSyncChunkRequest:
+		return fpm.messageTreeSyncChunkRequest(wrapper.GetMessageTreeSyncChunkRequest())
+	case *MessageWrapper_MessageTreeSyncChunkResponse:
+		return fpm.messageTreeSyncChunkResponse(wrapper.GetMessageTreeSyncChunkResponse())
 	case *MessageWrapper_MessageBlobOffer:
 		return fpm.messageBlobOffer(wrapper.GetMessageBlobOffer())
+	case *MessageWrapper_MessageBlobOfferResponse:
+		return fpm.messageBlobOfferResponse(wrapper.GetMessageBlobOfferResponse())
 	case *MessageWrapper_MessageBlobChunkRequest:
 		return fpm.messageBlobChunkRequest(wrapper.GetMessageBlobChunkRequest())
 	case *MessageWrapper_MessageBlobChunkResponse:
 		return fpm.messageBlobChunkResponse(wrapper.GetMessageBlobChunkResponse())
-	case *MessageWrapper_MessageBlobAvailable:
-		return fpm.messageBlobAvailable(wrapper.GetMessageBlobAvailable())
 
 	default:
 		return nil, fmt.Errorf("unrecognized Msg type %T", msg)
@@ -782,6 +931,8 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol
 	}
 	var inputsDigest protocol.StateTransitionInputsDigest
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
+	var stateRootDigest protocol.StateRootDigest
+	copy(stateRootDigest[:], m.StateRootDigest)
 
 	prepareQuorumCertificate := make([]protocol.AttributedPrepareSignature, 0, len(m.PrepareQuorumCertificate))
 	for _, aps := range m.PrepareQuorumCertificate {
@@ -799,6 +950,7 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol
 		m.SeqNr,
 		inputsDigest,
 		outputs,
+		stateRootDigest,
 		m.ReportsPlusPrecursor,
 		prepareQuorumCertificate,
 	}, nil
@@ -815,6 +967,8 @@ func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.C
 	}
 	var inputsDigest protocol.StateTransitionInputsDigest
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
+	var stateRootDigest protocol.StateRootDigest
+	copy(stateRootDigest[:], m.StateRootDigest)
 
 	commitQuorumCertificate := make([]protocol.AttributedCommitSignature, 0, len(m.CommitQuorumCertificate))
 	for _, aps := range m.CommitQuorumCertificate {
@@ -832,6 +986,7 @@ func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.C
 		m.SeqNr,
 		inputsDigest,
 		outputs,
+		stateRootDigest,
 		m.ReportsPlusPrecursor,
 		commitQuorumCertificate,
 	}, nil
@@ -845,6 +1000,8 @@ func (fpm *fromProtoMessage[RI]) certifiedCommittedReports(m *CertifiedCommitted
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
 	var outputsDigest protocol.StateTransitionOutputDigest
 	copy(outputsDigest[:], m.StateTransitionOutputDigest)
+	var stateRootDigest protocol.StateRootDigest
+	copy(stateRootDigest[:], m.StateRootDigest)
 
 	commitQuorumCertificate := make([]protocol.AttributedCommitSignature, 0, len(m.CommitQuorumCertificate))
 	for _, aps := range m.CommitQuorumCertificate {
@@ -862,6 +1019,7 @@ func (fpm *fromProtoMessage[RI]) certifiedCommittedReports(m *CertifiedCommitted
 		m.SeqNr,
 		inputsDigest,
 		outputsDigest,
+		stateRootDigest,
 		m.ReportsPlusPrecursor,
 		commitQuorumCertificate,
 	}, nil
@@ -970,7 +1128,7 @@ func (fpm *fromProtoMessage[RI]) messageCertifiedCommitRequest(m *MessageCertifi
 	}, nil
 }
 
-func (fpm *fromProtoMessage[RI]) messageCertifiedCommit(m *MessageCertifiedCommit) (protocol.MessageCertifiedCommit[RI], error) {
+func (fpm *fromProtoMessage[RI]) MessageCertifiedCommit(m *MessageCertifiedCommit) (protocol.MessageCertifiedCommit[RI], error) {
 	if m == nil {
 		return protocol.MessageCertifiedCommit[RI]{}, fmt.Errorf("unable to extract a MessageCertifiedCommit value")
 	}
@@ -1041,32 +1199,34 @@ func (fpm *fromProtoMessage[RI]) messageBlockSyncRequest(m *MessageBlockSyncRequ
 	}
 	return protocol.MessageBlockSyncRequest[RI]{
 		fpm.requestHandle,
-		m.HighestCommittedSeqNr,
-		m.Nonce,
+		m.StartSeqNr,
+		m.EndExclSeqNr,
 	}, nil
 }
 
-func (fpm *fromProtoMessage[RI]) messageBlockSync(m *MessageBlockSync) (protocol.MessageBlockSync[RI], error) {
+func (fpm *fromProtoMessage[RI]) messageBlockSyncResponse(m *MessageBlockSyncResponse) (protocol.MessageBlockSyncResponse[RI], error) {
 	if m == nil {
-		return protocol.MessageBlockSync[RI]{}, fmt.Errorf("unable to extract a MessageBlockSync value")
+		return protocol.MessageBlockSyncResponse[RI]{}, fmt.Errorf("unable to extract a MessageBlockSyncResponse value")
 	}
 	astbs, err := fpm.attestedStateTransitionBlocks(m.AttestedStateTransitionBlocks)
 	if err != nil {
-		return protocol.MessageBlockSync[RI]{}, err
+		return protocol.MessageBlockSyncResponse[RI]{}, err
 	}
-	return protocol.MessageBlockSync[RI]{
+	return protocol.MessageBlockSyncResponse[RI]{
 		nil, // TODO: consider using a sentinel value here, e.g. "EmptyRequestHandleForInboundResponse"
+		m.RequestStartSeqNr,
+		m.RequestEndExclSeqNr,
 		astbs,
-		m.Nonce,
 	}, nil
 }
 
-func (fpm *fromProtoMessage[RI]) messageBlockSyncSummary(m *MessageBlockSyncSummary) (protocol.MessageBlockSyncSummary[RI], error) {
+func (fpm *fromProtoMessage[RI]) messageStateSyncSummary(m *MessageStateSyncSummary) (protocol.MessageStateSyncSummary[RI], error) {
 	if m == nil {
-		return protocol.MessageBlockSyncSummary[RI]{}, fmt.Errorf("unable to extract a MessageBlockSyncSummary value")
+		return protocol.MessageStateSyncSummary[RI]{}, fmt.Errorf("unable to extract a MessageStateSyncSummary value")
 	}
-	return protocol.MessageBlockSyncSummary[RI]{
+	return protocol.MessageStateSyncSummary[RI]{
 		m.LowestPersistedSeqNr,
+		m.HighestCommittedSeqNr,
 	}, nil
 }
 func (fpm *fromProtoMessage[RI]) attestedStateTransitionBlocks(pbastbs []*AttestedStateTransitionBlock) ([]protocol.AttestedStateTransitionBlock, error) {
@@ -1105,6 +1265,8 @@ func (fpm *fromProtoMessage[RI]) stateTransitionBlock(m *StateTransitionBlock) (
 	}
 	var inputsDigest protocol.StateTransitionInputsDigest
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
+	var stateRootDigest protocol.StateRootDigest
+	copy(stateRootDigest[:], m.StateRootDigest)
 
 	outputs, err := fpm.stateTransitionOutputs(m.StateTransitionOutputs)
 	if err != nil {
@@ -1115,6 +1277,7 @@ func (fpm *fromProtoMessage[RI]) stateTransitionBlock(m *StateTransitionBlock) (
 		m.SeqNr,
 		inputsDigest,
 		outputs,
+		stateRootDigest,
 		m.ReportsPlusPrecursor,
 	}, nil
 }
@@ -1150,9 +1313,9 @@ func (fpm *fromProtoMessage[RI]) stateTransitionOutputs(m *StateTransitionOutput
 		return protocol.StateTransitionOutputs{}, fmt.Errorf("unable to extract an StateTransitionOutputs value")
 	}
 
-	writeSet := make([]protocol.KeyValuePair, 0, len(m.WriteSet))
+	writeSet := make([]protocol.KeyValuePairWithDeletions, 0, len(m.WriteSet))
 	for _, pbkvmod := range m.WriteSet {
-		writeSet = append(writeSet, protocol.KeyValuePair{
+		writeSet = append(writeSet, protocol.KeyValuePairWithDeletions{
 			pbkvmod.Key,
 			pbkvmod.Value,
 			pbkvmod.Deleted,
@@ -1170,22 +1333,16 @@ func (fpm *fromProtoMessage[RI]) messageBlobOffer(m *MessageBlobOffer) (protocol
 	if err != nil {
 		return protocol.MessageBlobOffer[RI]{}, err
 	}
-	submitter, err := fpm.oracleID(m.Submitter)
-	if err != nil {
-		return protocol.MessageBlobOffer[RI]{}, err
-	}
 	return protocol.MessageBlobOffer[RI]{
+		fpm.requestHandle,
+		nil,
 		chunkDigests,
 		m.PayloadLength,
 		m.ExpirySeqNr,
-		submitter,
 	}, nil
 }
 
 func (fpm *fromProtoMessage[RI]) chunkDigests(pbcds [][]byte) ([]protocol.BlobChunkDigest, error) {
-	if pbcds == nil {
-		return nil, fmt.Errorf("unable to extract a ChunkDigests value")
-	}
 	cds := make([]protocol.BlobChunkDigest, 0, len(pbcds))
 	for _, pbcd := range pbcds {
 		var blockChunkDigest protocol.BlobChunkDigest
@@ -1194,6 +1351,22 @@ func (fpm *fromProtoMessage[RI]) chunkDigests(pbcds [][]byte) ([]protocol.BlobCh
 		cds = append(cds, blockChunkDigest)
 	}
 	return cds, nil
+}
+
+func (fpm *fromProtoMessage[RI]) messageBlobOfferResponse(m *MessageBlobOfferResponse) (protocol.MessageBlobOfferResponse[RI], error) {
+	if m == nil {
+		return protocol.MessageBlobOfferResponse[RI]{}, fmt.Errorf("unable to extract a MessageBlobOfferResponse value")
+	}
+
+	var blobDigest protocol.BlobDigest
+	copy(blobDigest[:], m.BlobDigest)
+
+	return protocol.MessageBlobOfferResponse[RI]{
+		nil, // TODO: consider using a sentinel value here, e.g. "EmptyRequestHandleForInboundResponse"
+		blobDigest,
+		m.RejectOffer,
+		m.Signature,
+	}, nil
 }
 
 func (fpm *fromProtoMessage[RI]) messageBlobChunkRequest(m *MessageBlobChunkRequest) (protocol.MessageBlobChunkRequest[RI], error) {
@@ -1206,6 +1379,7 @@ func (fpm *fromProtoMessage[RI]) messageBlobChunkRequest(m *MessageBlobChunkRequ
 
 	return protocol.MessageBlobChunkRequest[RI]{
 		fpm.requestHandle,
+		nil,
 		blobDigest,
 		m.ChunkIndex,
 	}, nil
@@ -1223,20 +1397,146 @@ func (fpm *fromProtoMessage[RI]) messageBlobChunkResponse(m *MessageBlobChunkRes
 		nil, // TODO: consider using a sentinel value here, e.g. "EmptyRequestHandleForInboundResponse"
 		blobDigest,
 		m.ChunkIndex,
+		m.GoAway,
 		m.Chunk,
 	}, nil
 }
 
-func (fpm *fromProtoMessage[RI]) messageBlobAvailable(m *MessageBlobAvailable) (protocol.MessageBlobAvailable[RI], error) {
+func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkRequest(m *MessageTreeSyncChunkRequest) (protocol.MessageTreeSyncChunkRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageBlobAvailable[RI]{}, fmt.Errorf("unable to extract a MessageBlobAvailable value")
+		return protocol.MessageTreeSyncChunkRequest[RI]{}, fmt.Errorf("unable to extract an MessageTreeSyncRequest value")
 	}
-
-	var blobDigest protocol.BlobDigest
-	copy(blobDigest[:], m.BlobDigest)
-
-	return protocol.MessageBlobAvailable[RI]{
-		blobDigest,
-		m.Signature,
+	startIndex, err := fpm.digest(m.StartIndex)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkRequest[RI]{}, err
+	}
+	endInclIndex, err := fpm.digest(m.EndInclIndex)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkRequest[RI]{}, err
+	}
+	return protocol.MessageTreeSyncChunkRequest[RI]{
+		fpm.requestHandle,
+		m.ToSeqNr,
+		startIndex,
+		endInclIndex,
 	}, nil
+}
+
+func (fpm *fromProtoMessage[RI]) treeSyncChunkProof(pbpns [][]byte) ([]jmt.Digest, error) {
+	proof := make([]jmt.Digest, 0, len(pbpns))
+	for _, pbpn := range pbpns {
+		var pn jmt.Digest
+		if len(pbpn) != len(pn) {
+			return proof, fmt.Errorf("invalid proof node length, expected %d, got %d ", len(pn), len(pbpn))
+		}
+		copy(pn[:], pbpn)
+		proof = append(proof, pn)
+	}
+	return proof, nil
+}
+
+func (fpm *fromProtoMessage[RI]) treeSyncChunkKeyValues(pbkvps []*KeyValuePair) ([]protocol.KeyValuePair, error) {
+	kvps := make([]protocol.KeyValuePair, 0, len(pbkvps))
+	for _, pbkvp := range pbkvps {
+		kvps = append(kvps, protocol.KeyValuePair{
+			pbkvp.Key,
+			pbkvp.Value,
+		})
+	}
+	return kvps, nil
+}
+
+func (fpm *fromProtoMessage[RI]) digest(pbdigest []byte) (jmt.Digest, error) {
+	if len(pbdigest) != len(jmt.Digest{}) {
+		return jmt.Digest{}, fmt.Errorf("digest must be %d bytes, got %d", len(jmt.Digest{}), len(pbdigest))
+	}
+	var digest jmt.Digest
+	copy(digest[:], pbdigest)
+	return digest, nil
+}
+
+func (fpm *fromProtoMessage[RI]) leafKeyAndValueDigests(pblkd *LeafKeyAndValueDigests) (jmt.LeafKeyAndValueDigests, error) {
+	keyDigest, err := fpm.digest(pblkd.KeyDigest)
+	if err != nil {
+		return jmt.LeafKeyAndValueDigests{}, err
+	}
+	valueDigest, err := fpm.digest(pblkd.ValueDigest)
+	if err != nil {
+		return jmt.LeafKeyAndValueDigests{}, err
+	}
+	return jmt.LeafKeyAndValueDigests{
+		keyDigest,
+		valueDigest,
+	}, nil
+}
+
+func (fpm *fromProtoMessage[RI]) treeSyncChunkBoundingLeaves(pbbls []*BoundingLeaf) ([]jmt.BoundingLeaf, error) {
+	boundingLeaves := make([]jmt.BoundingLeaf, 0, len(pbbls))
+	for _, pbbbl := range pbbls {
+		leafKeyAndValueDigests, err := fpm.leafKeyAndValueDigests(pbbbl.Leaf)
+		if err != nil {
+			return nil, err
+		}
+		siblings, err := fpm.treeSyncChunkProof(pbbbl.Siblings)
+		if err != nil {
+			return nil, err
+		}
+		boundingLeaves = append(boundingLeaves, jmt.BoundingLeaf{
+			leafKeyAndValueDigests,
+			siblings,
+		})
+	}
+	return boundingLeaves, nil
+}
+
+func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkResponse(m *MessageTreeSyncChunkResponse) (protocol.MessageTreeSyncChunkResponse[RI], error) {
+	if m == nil {
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, fmt.Errorf("unable to extract an MessageTreeSyncChunk value")
+	}
+	startIndex, err := fpm.digest(m.StartIndex)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, err
+	}
+	requestEndInclIndex, err := fpm.digest(m.RequestEndInclIndex)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, err
+	}
+	encInclIndex, err := fpm.digest(m.EndInclIndex)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, err
+	}
+	keyValues, err := fpm.treeSyncChunkKeyValues(m.KeyValues)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, err
+	}
+	boundingLeaves, err := fpm.treeSyncChunkBoundingLeaves(m.BoundingLeaves)
+	if err != nil {
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, err
+	}
+	return protocol.MessageTreeSyncChunkResponse[RI]{
+		nil, // TODO: consider using a sentinel value here, e.g. "EmptyRequestHandleForInboundResponse"
+		m.ToSeqNr,
+		startIndex,
+		requestEndInclIndex,
+		m.GoAway,
+		encInclIndex,
+		keyValues,
+		boundingLeaves,
+	}, nil
+}
+
+func (fpm *fromProtoMessage[RI]) pendingKeyDigestRanges(pbRanges []*KeyDigestRange) (protocol.PendingKeyDigestRanges, error) {
+	ranges := make([]protocol.KeyDigestRange, 0, len(pbRanges))
+	for _, pbr := range pbRanges {
+		startIndex, err := fpm.digest(pbr.StartIndex)
+		if err != nil {
+			return protocol.PendingKeyDigestRanges{}, err
+		}
+		endInclIndex, err := fpm.digest(pbr.EndInclIndex)
+		if err != nil {
+			return protocol.PendingKeyDigestRanges{}, err
+		}
+		ranges = append(ranges, protocol.KeyDigestRange{startIndex, endInclIndex})
+	}
+	return protocol.NewPendingKeyDigestRanges(ranges), nil
 }

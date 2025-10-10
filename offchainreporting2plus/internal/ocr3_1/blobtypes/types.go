@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"hash"
 
@@ -26,6 +25,12 @@ func ocr3_1DomainSeparatedSum(h hash.Hash) []byte {
 }
 
 type BlobChunkDigest [32]byte
+
+var _ fmt.Stringer = BlobChunkDigest{}
+
+func (bcd BlobChunkDigest) String() string {
+	return fmt.Sprintf("%x", bcd[:])
+}
 
 func MakeBlobChunkDigest(chunk []byte) BlobChunkDigest {
 	h := sha256.New()
@@ -71,7 +76,7 @@ func MakeBlobDigest(
 	return result
 }
 
-const blobAvailabilitySignatureDomainSeparator = "ocr3.1 BlobAvailabilitySignature"
+const blobAvailabilitySignatureDomainSeparator = "ocr3.1/BlobAvailabilitySignature/"
 
 type BlobAvailabilitySignature []byte
 
@@ -129,10 +134,11 @@ type LightCertifiedBlob struct {
 func (lc *LightCertifiedBlob) Verify(
 	configDigest types.ConfigDigest,
 	oracleIdentities []config.OracleIdentity,
+	fPlusOneSize int,
 	byzQuorumSize int,
 ) error {
-	if byzQuorumSize != len(lc.AttributedBlobAvailabilitySignatures) {
-		return fmt.Errorf("wrong number of signatures, expected %d for byz. quorum but got %d", byzQuorumSize, len(lc.AttributedBlobAvailabilitySignatures))
+	if !(fPlusOneSize <= len(lc.AttributedBlobAvailabilitySignatures) && len(lc.AttributedBlobAvailabilitySignatures) <= byzQuorumSize) {
+		return fmt.Errorf("wrong number of signatures, expected in range [%d, %d] for quorum but got %d", fPlusOneSize, byzQuorumSize, len(lc.AttributedBlobAvailabilitySignatures))
 	}
 
 	blobDigest := MakeBlobDigest(
@@ -161,27 +167,8 @@ func (lc *LightCertifiedBlob) Verify(
 }
 
 var _ BlobHandleSumType = &LightCertifiedBlob{}
-var _ encoding.BinaryMarshaler = LightCertifiedBlob{}
-var _ encoding.BinaryAppender = LightCertifiedBlob{}
-var _ encoding.BinaryUnmarshaler = &LightCertifiedBlob{}
 
 func (lc *LightCertifiedBlob) isBlobHandleSumType() {}
-
-func (lc LightCertifiedBlob) AppendBinary(b []byte) ([]byte, error) {
-	enc, err := json.Marshal(lc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal LightCertifiedBlob: %w", err)
-	}
-	return append(b, enc...), nil
-}
-
-func (lc LightCertifiedBlob) MarshalBinary() ([]byte, error) {
-	return lc.AppendBinary(nil)
-}
-
-func (lc *LightCertifiedBlob) UnmarshalBinary(data []byte) error {
-	return json.Unmarshal(data, &lc)
-}
 
 // go-sumtype:decl BlobHandleSumType
 

@@ -1,18 +1,14 @@
 package networking
 
 import (
-	"encoding"
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"sync"
 
 	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/networking/internal/ocrendpointv3/responselimit"
-	ocrendpointv3types "github.com/smartcontractkit/libocr/networking/internal/ocrendpointv3/types"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"github.com/smartcontractkit/libocr/ragep2p"
+	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 
@@ -29,7 +25,7 @@ type ocrEndpointV3 struct {
 	defaultPriorityConfig ocr2types.BinaryNetworkEndpoint2Config
 	lowPriorityConfig     ocr2types.BinaryNetworkEndpoint2Config
 	peerMapping           map[commontypes.OracleID]ragetypes.PeerID
-	host                  *ragep2p.Host
+	host                  *ragep2pnew.Host
 	configDigest          ocr2types.ConfigDigest
 	ownOracleID           commontypes.OracleID
 
@@ -43,8 +39,6 @@ type ocrEndpointV3 struct {
 	stateMu sync.RWMutex
 	subs    subprocesses.Subprocesses
 
-	responseChecker *responselimit.ResponseChecker
-
 	// recv is exposed to clients of this network endpoint
 	recv chan ocr2types.InboundBinaryMessageWithSender
 
@@ -52,8 +46,8 @@ type ocrEndpointV3 struct {
 }
 
 type priorityStreamGroup struct {
-	Low     *ragep2p.Stream
-	Default *ragep2p.Stream
+	Low     ragep2pnew.Stream2
+	Default ragep2pnew.Stream2
 }
 
 //nolint:unused
@@ -94,11 +88,16 @@ func newOCREndpointV3(
 		logger.Warn("OCREndpointV3: No bootstrappers were provided. Peer discovery might not work reliably for this instance.", nil)
 	}
 
+	host, ok := peer.host.RawWrappee().(*ragep2pnew.Host)
+	if !ok {
+		return nil, fmt.Errorf("host is not a wrapped ragep2pnew.Host. Please set the appropriate value for PeerConfig.EnableExperimentalRageP2P")
+	}
+
 	o := &ocrEndpointV3{
 		defaultPriorityConfig,
 		lowPriorityConfig,
 		peerMapping,
-		peer.host,
+		host,
 		configDigest,
 		ownOracleID,
 		chSendToSelf,
@@ -108,7 +107,6 @@ func newOCREndpointV3(
 		ocrEndpointUnstarted,
 		sync.RWMutex{},
 		subprocesses.Subprocesses{},
-		responselimit.NewResponseChecker(),
 		make(chan ocr2types.InboundBinaryMessageWithSender),
 		logger,
 	}
@@ -138,34 +136,45 @@ func (o *ocrEndpointV3) start() error {
 			continue
 		}
 
-		noLimitsMaxMessageLength := ragep2p.MaxMessageLength
-		noLimitsTokenBucketParams := ragep2p.TokenBucketParams{
-			math.MaxFloat64,
-			math.MaxUint32,
-		}
-
 		// Initialize the underlying streams, one stream per priority level.
-		lowPriorityStream, err := o.host.NewStream(
+		lowPriorityStream, err := o.host.NewStream2(
 			pid,
-			streamNameFromConfigDigestAndPriority(o.configDigest, ocr2types.BinaryMessagePriorityLow),
-			o.lowPriorityConfig.OverrideOutgoingMessageBufferSize,
-			o.lowPriorityConfig.OverrideIncomingMessageBufferSize,
-			noLimitsMaxMessageLength,
-			noLimitsTokenBucketParams,
-			noLimitsTokenBucketParams,
+			streamNameFromConfigDigestAndPriority(o.configDigest, ragep2pnew.StreamPriorityLow),
+			ragep2pnew.StreamPriorityLow,
+			ragep2pnew.Stream2Limits{o.lowPriorityConfig.OverrideOutgoingMessageBufferSize,
+				o.lowPriorityConfig.OverrideIncomingMessageBufferSize,
+				o.lowPriorityConfig.MaxMessageLength,
+				ragetypes.TokenBucketParams{
+					o.lowPriorityConfig.MessagesRatePerOracle,
+					uint32(o.lowPriorityConfig.MessagesCapacityPerOracle),
+				},
+				ragetypes.TokenBucketParams{
+					o.lowPriorityConfig.BytesRatePerOracle,
+					uint32(o.lowPriorityConfig.BytesCapacityPerOracle),
+				},
+			},
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create (low priority) stream for oracle %v (peer id: %q): %w", oid, pid, err)
 		}
 
-		defaultPriorityStream, err := o.host.NewStream(
+		defaultPriorityStream, err := o.host.NewStream2(
 			pid,
-			streamNameFromConfigDigestAndPriority(o.configDigest, ocr2types.BinaryMessagePriorityDefault),
-			o.defaultPriorityConfig.OverrideOutgoingMessageBufferSize,
-			o.defaultPriorityConfig.OverrideIncomingMessageBufferSize,
-			noLimitsMaxMessageLength,
-			noLimitsTokenBucketParams,
-			noLimitsTokenBucketParams,
+			streamNameFromConfigDigestAndPriority(o.configDigest, ragep2pnew.StreamPriorityDefault),
+			ragep2pnew.StreamPriorityDefault,
+			ragep2pnew.Stream2Limits{
+				o.defaultPriorityConfig.OverrideOutgoingMessageBufferSize,
+				o.defaultPriorityConfig.OverrideIncomingMessageBufferSize,
+				o.defaultPriorityConfig.MaxMessageLength,
+				ragetypes.TokenBucketParams{
+					o.defaultPriorityConfig.MessagesRatePerOracle,
+					uint32(o.defaultPriorityConfig.MessagesCapacityPerOracle),
+				},
+				ragetypes.TokenBucketParams{
+					o.defaultPriorityConfig.BytesRatePerOracle,
+					uint32(o.defaultPriorityConfig.BytesCapacityPerOracle),
+				},
+			},
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create (default priority) stream for oracle %v (peer id: %q): %w", oid, pid, err)
@@ -193,216 +202,68 @@ func (o *ocrEndpointV3) start() error {
 // remote goes mad and sends us thousands of messages, we don't drop any
 // messages from good remotes
 func (o *ocrEndpointV3) runRecv(oid commontypes.OracleID) {
-	chRecv1 := o.streams[oid].Default.ReceiveMessages()
-	chRecv2 := o.streams[oid].Low.ReceiveMessages()
+	chRecv1 := o.streams[oid].Default.Receive()
+	chRecv2 := o.streams[oid].Low.Receive()
 	for {
-		var (
-			msg      []byte
-			priority ocr2types.BinaryMessageOutboundPriority
-		)
-
 		select {
-		case msg = <-chRecv1:
-			priority = ocr2types.BinaryMessagePriorityDefault
-		case msg = <-chRecv2:
-			priority = ocr2types.BinaryMessagePriorityLow
-		case <-o.chClose:
-			return
-		}
-
-		inMsg, err := o.translateInboundMessage(msg, priority, oid)
-		if err != nil {
-			o.logger.Warn("Invalid inbound message", commontypes.LogFields{
-				"remoteOracleID": oid,
-				"priority":       priority,
-				"reason":         err,
-			})
-			continue
-		}
-		select {
-		case o.recv <- ocr2types.InboundBinaryMessageWithSender{inMsg, oid}:
-			continue
+		case msg := <-chRecv1:
+			select {
+			case o.recv <- ocr2types.InboundBinaryMessageWithSender{o.translateInboundMessage(msg, ocr2types.BinaryMessagePriorityDefault), oid}:
+				continue
+			case <-o.chClose:
+				return
+			}
+		case msg := <-chRecv2:
+			select {
+			case o.recv <- ocr2types.InboundBinaryMessageWithSender{o.translateInboundMessage(msg, ocr2types.BinaryMessagePriorityLow), oid}:
+				continue
+			case <-o.chClose:
+				return
+			}
 		case <-o.chClose:
 			return
 		}
 	}
 }
 
-type ocrEndpointV3PayloadType byte
+func (o *ocrEndpointV3) translateInboundMessage(inMsg ragep2pnew.InboundBinaryMessage, priority ocr2types.BinaryMessageOutboundPriority) ocr2types.InboundBinaryMessage {
+	switch msg := inMsg.(type) {
+	case ragep2pnew.InboundBinaryMessagePlain:
+		return ocr2types.InboundBinaryMessagePlain{msg.Payload, priority}
 
-const (
-	_ ocrEndpointV3PayloadType = iota
-	ocrEndpointV3PayloadTypePlain
-	ocrEndpointV3PayloadTypeRequest
-	ocrEndpointV3PayloadTypeResponse
-)
-
-type ocrEndpointV3Payload struct {
-	sumType ocrEndpointV3PayloadSumType
-}
-
-func (o *ocrEndpointV3Payload) MarshalBinary() ([]byte, error) {
-	var prefix byte
-	switch o.sumType.(type) {
-	case *ocrEndpointV3PayloadPlain:
-		prefix = byte(ocrEndpointV3PayloadTypePlain)
-	case *ocrEndpointV3PayloadRequest:
-		prefix = byte(ocrEndpointV3PayloadTypeRequest)
-	case *ocrEndpointV3PayloadResponse:
-		prefix = byte(ocrEndpointV3PayloadTypeResponse)
-	}
-	sumTypeBytes, err := o.sumType.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-	return append([]byte{prefix}, sumTypeBytes...), nil
-}
-
-func (o *ocrEndpointV3Payload) UnmarshalBinary(data []byte) error {
-	if len(data) < 1 {
-		return fmt.Errorf("data is too short to contain prefix")
-	}
-	prefix := ocrEndpointV3PayloadType(data[0])
-	data = data[1:]
-	switch prefix {
-	case ocrEndpointV3PayloadTypePlain:
-		o.sumType = &ocrEndpointV3PayloadPlain{}
-	case ocrEndpointV3PayloadTypeRequest:
-		o.sumType = &ocrEndpointV3PayloadRequest{}
-	case ocrEndpointV3PayloadTypeResponse:
-		o.sumType = &ocrEndpointV3PayloadResponse{}
-	}
-	return o.sumType.UnmarshalBinary(data)
-}
-
-//go-sumtype:decl ocrEndpointV3PayloadSumType
-
-type ocrEndpointV3PayloadSumType interface {
-	isOCREndpointV3PayloadSumType()
-	encoding.BinaryMarshaler
-	encoding.BinaryUnmarshaler
-}
-
-type ocrEndpointV3PayloadPlain struct {
-	payload []byte
-}
-
-func (op ocrEndpointV3PayloadPlain) isOCREndpointV3PayloadSumType() {}
-
-func (op *ocrEndpointV3PayloadPlain) MarshalBinary() ([]byte, error) {
-	return op.payload, nil
-}
-
-func (op *ocrEndpointV3PayloadPlain) UnmarshalBinary(data []byte) error {
-	op.payload = data
-	return nil
-}
-
-type ocrEndpointV3PayloadRequest struct {
-	requestID ocrendpointv3types.RequestID
-	payload   []byte
-}
-
-func (oreq ocrEndpointV3PayloadRequest) isOCREndpointV3PayloadSumType() {}
-
-func (oreq *ocrEndpointV3PayloadRequest) MarshalBinary() ([]byte, error) {
-	return append(oreq.requestID[:], oreq.payload...), nil
-}
-
-func (oreq *ocrEndpointV3PayloadRequest) UnmarshalBinary(data []byte) error {
-	if len(data) < len(oreq.requestID) {
-		return fmt.Errorf("data is too short to contain requestID")
-	}
-	oreq.requestID = ocrendpointv3types.RequestID(data[:len(oreq.requestID)])
-	oreq.payload = data[len(oreq.requestID):]
-	return nil
-}
-
-type ocrEndpointV3PayloadResponse struct {
-	requestID ocrendpointv3types.RequestID
-	payload   []byte
-}
-
-func (ores ocrEndpointV3PayloadResponse) isOCREndpointV3PayloadSumType() {}
-
-func (ores *ocrEndpointV3PayloadResponse) MarshalBinary() ([]byte, error) {
-	return append(ores.requestID[:], ores.payload...), nil
-}
-
-func (ores *ocrEndpointV3PayloadResponse) UnmarshalBinary(data []byte) error {
-	if len(data) < len(ores.requestID) {
-		return fmt.Errorf("data is too short to contain requestID")
-	}
-	ores.requestID = ocrendpointv3types.RequestID(data[:len(ores.requestID)])
-	ores.payload = data[len(ores.requestID):]
-	return nil
-}
-
-func (o *ocrEndpointV3) translateInboundMessage(ragepayload []byte, priority ocr2types.BinaryMessageOutboundPriority, from commontypes.OracleID) (ocr2types.InboundBinaryMessage, error) {
-	var payload ocrEndpointV3Payload
-	if err := payload.UnmarshalBinary(ragepayload); err != nil {
-		return nil, err
-	}
-
-	switch msg := payload.sumType.(type) {
-	case *ocrEndpointV3PayloadPlain:
-		return ocr2types.InboundBinaryMessagePlain{msg.payload, priority}, nil
-
-	case *ocrEndpointV3PayloadRequest:
-		rid := msg.requestID
-
+	case ragep2pnew.InboundBinaryMessageRequest:
 		return ocr2types.InboundBinaryMessageRequest{
-			ocrEndpointV3RequestHandle{priority, rid},
-			msg.payload,
+			ocrEndpointV3RequestHandle{priority, msg.RequestHandle},
+			msg.Payload,
 			priority,
-		}, nil
-
-	case *ocrEndpointV3PayloadResponse:
-		sid := ocrendpointv3types.StreamID{from, priority}
-		rid := msg.requestID
-
-		checkResult := o.responseChecker.CheckResponse(sid, rid, len(msg.payload))
-		switch checkResult {
-		case responselimit.ResponseCheckResultReject:
-			return nil, fmt.Errorf("rejected response")
-		case responselimit.ResponseCheckResultAllow:
-			return ocr2types.InboundBinaryMessageResponse{msg.payload, priority}, nil
 		}
 
-		panic(fmt.Sprintf("unexpected responselimit.ResponseCheckResult: %#v", checkResult))
+	case ragep2pnew.InboundBinaryMessageResponse:
+		return ocr2types.InboundBinaryMessageResponse{msg.Payload, priority}
 	}
-
-	panic("unknown ocrEndpointV3PayloadType")
+	panic("unknown type of ragep2pnew.InboundBinaryMessage")
 }
 
-func (o *ocrEndpointV3) translateOutboundMessage(outMsg ocr2types.OutboundBinaryMessage, to commontypes.OracleID) (
-	ragepayload []byte,
+func (o *ocrEndpointV3) translateOutboundMessage(outMsg ocr2types.OutboundBinaryMessage) (
+	ragemsg ragep2pnew.OutboundBinaryMessage,
 	priority ocr2types.BinaryMessageOutboundPriority,
-	err error,
 ) {
-	var payload ocrEndpointV3Payload
 	switch msg := outMsg.(type) {
 	case ocr2types.OutboundBinaryMessagePlain:
-		payload.sumType = &ocrEndpointV3PayloadPlain{msg.Payload}
+		ragemsg = ragep2pnew.OutboundBinaryMessagePlain{msg.Payload}
 		priority = msg.Priority
 
 	case ocr2types.OutboundBinaryMessageRequest:
-		var ocrendpointv3responsepolicy responselimit.ResponsePolicy
+		var rageresponsepolicy ragep2pnew.ResponsePolicy
 		switch responsepolicy := msg.ResponsePolicy.(type) {
 		case ocr2types.SingleUseSizedLimitedResponsePolicy:
-			ocrendpointv3responsepolicy = &responselimit.SingleUseSizedLimitedResponsePolicy{
+			rageresponsepolicy = &ragep2pnew.SingleUseSizedLimitedResponsePolicy{
 				responsepolicy.MaxSize,
 				responsepolicy.ExpiryTimestamp,
 			}
 		}
-
+		ragemsg = ragep2pnew.OutboundBinaryMessageRequest{rageresponsepolicy, msg.Payload}
 		priority = msg.Priority
-
-		sid := ocrendpointv3types.StreamID{to, priority}
-		rid := ocrendpointv3types.GetRandomRequestID()
-		o.responseChecker.SetPolicy(sid, rid, ocrendpointv3responsepolicy)
-
-		payload.sumType = &ocrEndpointV3PayloadRequest{rid, msg.Payload}
 
 	case ocr2types.OutboundBinaryMessageResponse:
 		requestHandle, ok := ocr2types.MustGetOutboundBinaryMessageResponseRequestHandle(msg).(ocrEndpointV3RequestHandle)
@@ -413,16 +274,14 @@ func (o *ocrEndpointV3) translateOutboundMessage(outMsg ocr2types.OutboundBinary
 			)
 			return
 		}
-
-		requestID := requestHandle.requestID
-		payload.sumType = &ocrEndpointV3PayloadResponse{requestID, msg.Payload}
+		ragemsg = requestHandle.rageRequestHandle.MakeResponse(msg.Payload)
 		priority = msg.Priority
 
 	default:
-		panic("unknown type of ocr2types.OutboundBinaryMessage")
+		panic("unknown type of commontypes.OutboundBinaryMessage")
 	}
-	ragepayload, err = payload.MarshalBinary()
-	return ragepayload, priority, err
+
+	return ragemsg, priority
 }
 
 func (o *ocrEndpointV3) runSendToSelf() {
@@ -457,19 +316,11 @@ func (o *ocrEndpointV3) Close() error {
 
 	var allErrors error
 	for oid, priorityGroupStream := range o.streams {
-		{
-			sid := ocrendpointv3types.StreamID{oid, ocr2types.BinaryMessagePriorityDefault}
-			o.responseChecker.ClearPoliciesForStream(sid)
-			if err := priorityGroupStream.Default.Close(); err != nil {
-				allErrors = errors.Join(allErrors, fmt.Errorf("error while closing (default priority) stream with oracle %v: %w", oid, err))
-			}
+		if err := priorityGroupStream.Default.Close(); err != nil {
+			allErrors = errors.Join(allErrors, fmt.Errorf("error while closing (default priority) stream with oracle %v: %w", oid, err))
 		}
-		{
-			sid := ocrendpointv3types.StreamID{oid, ocr2types.BinaryMessagePriorityLow}
-			o.responseChecker.ClearPoliciesForStream(sid)
-			if err := priorityGroupStream.Low.Close(); err != nil {
-				allErrors = errors.Join(allErrors, fmt.Errorf("error while closing (low priority) stream with oracle %v: %w", oid, err))
-			}
+		if err := priorityGroupStream.Low.Close(); err != nil {
+			allErrors = errors.Join(allErrors, fmt.Errorf("error while closing (low priority) stream with oracle %v: %w", oid, err))
 		}
 	}
 
@@ -506,24 +357,18 @@ func (o *ocrEndpointV3) SendTo(msg ocr2types.OutboundBinaryMessage, to commontyp
 		return
 	}
 
-	ragemsg, priority, err := o.translateOutboundMessage(msg, to)
-	if err != nil {
-		o.logger.Error("Failed to translate outbound message", commontypes.LogFields{
-			"error": err,
-		})
-		return
-	}
+	ragemsg, priority := o.translateOutboundMessage(msg)
 	switch priority {
 	case ocr2types.BinaryMessagePriorityDefault:
-		o.streams[to].Default.SendMessage(ragemsg)
+		o.streams[to].Default.Send(ragemsg)
 	case ocr2types.BinaryMessagePriorityLow:
-		o.streams[to].Low.SendMessage(ragemsg)
+		o.streams[to].Low.Send(ragemsg)
 	}
 }
 
 type ocrEndpointV3RequestHandle struct {
-	priority  ocr2types.BinaryMessageOutboundPriority
-	requestID ocrendpointv3types.RequestID
+	priority          ocr2types.BinaryMessageOutboundPriority
+	rageRequestHandle ragep2pnew.RequestHandle
 }
 
 func (rh ocrEndpointV3RequestHandle) MakeResponse(payload []byte) ocr2types.OutboundBinaryMessageResponse {
@@ -593,12 +438,12 @@ func (o *ocrEndpointV3) Receive() <-chan ocr2types.InboundBinaryMessageWithSende
 	return o.recv
 }
 
-func streamNameFromConfigDigestAndPriority(cd ocr2types.ConfigDigest, priority ocr2types.BinaryMessageOutboundPriority) string {
+func streamNameFromConfigDigestAndPriority(cd ocr2types.ConfigDigest, priority ragep2pnew.StreamPriority) string {
 	switch priority {
-	case ocr2types.BinaryMessagePriorityLow:
+	case ragep2pnew.StreamPriorityLow:
 		return fmt.Sprintf("ocr/%s/priority=low", cd)
-	case ocr2types.BinaryMessagePriorityDefault:
+	case ragep2pnew.StreamPriorityDefault:
 		return fmt.Sprintf("ocr/%s", cd)
 	}
-	panic("case implementation for ragep2p.StreamPriority missing")
+	panic("case implementation for ragep2pnew.StreamPriority missing")
 }

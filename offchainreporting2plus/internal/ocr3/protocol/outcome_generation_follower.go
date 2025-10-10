@@ -405,7 +405,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
 	{
 		seen := map[commontypes.OracleID]bool{}
 		for _, aso := range asos {
-			if !(0 <= int(aso.Observer) && int(aso.Observer) <= outgen.config.N()) {
+			if !(0 <= int(aso.Observer) && int(aso.Observer) < outgen.config.N()) {
 				logger.Warn("dropping MessageProposal that contains signed observation with invalid observer", commontypes.LogFields{
 					"seqNr":           outctx.SeqNr,
 					"invalidObserver": aso.Observer,
@@ -881,5 +881,6 @@ func (outgen *outcomeGenerationState[RI]) persistAndUpdateCertIfGreater(cert Cer
 
 		outgen.followerState.cert = cert
 	}
+
 	return true
 }

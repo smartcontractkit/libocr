@@ -132,3 +132,16 @@ type PeerKeyring interface {
 	// PublicKey returns the public component of the keypair used in Sign.
 	PublicKey() PeerPublicKey
 }
+
+// TokenBucketParams contains the two parameters for a token bucket rate
+// limiter.
+type TokenBucketParams struct {
+	Rate     float64
+	Capacity uint32
+}
+
+const MaxStreamsPerPeer = 2_000
+
+const MaxMessageLength = 1024 * 1024 * 1024 // 1 GiB. This must be smaller than INT32_MAX
+
+const MaxStreamNameLength = 256

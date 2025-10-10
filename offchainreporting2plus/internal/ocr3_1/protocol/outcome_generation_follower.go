@@ -3,12 +3,14 @@ package protocol
 import (
 	"bytes"
 	"context"
+	"sync"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 type outgenFollowerPhase string
@@ -22,6 +24,7 @@ const (
 	outgenFollowerPhaseBackgroundProposalStateTransition outgenFollowerPhase = "backgroundProposalStateTransition"
 	outgenFollowerPhaseSentPrepare                       outgenFollowerPhase = "sentPrepare"
 	outgenFollowerPhaseSentCommit                        outgenFollowerPhase = "sentCommit"
+	outgenFollowerPhaseBackgroundCommitted               outgenFollowerPhase = "backgroundCommitted"
 )
 
 func (outgen *outcomeGenerationState[RI]) eventTInitialTimeout() {
@@ -84,7 +87,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	outgen.refreshCommittedSeqNrAndCert()
 	if !outgen.ensureHighestCertifiedIsCompatible(msg.EpochStartProof.HighestCertified, "MessageEpochStart") {
 		select {
-		case outgen.chOutcomeGenerationToStatePersistence <- EventStateSyncRequest[RI]{
+		case outgen.chOutcomeGenerationToStateSync <- EventStateSyncRequest[RI]{
 			msg.EpochStartProof.HighestCertified.SeqNr(),
 		}:
 		case <-outgen.ctx.Done():
@@ -123,6 +126,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		if prepareQcSeqNr == outgen.sharedState.committedSeqNr {
 
 			stateTransitionInputsDigest := prepareQc.StateTransitionInputsDigest
+			stateRootDigest := prepareQc.StateRootDigest
 
 			stateTransitionOutputDigest := MakeStateTransitionOutputDigest(
 				outgen.ID(),
@@ -141,6 +145,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 				prepareQcSeqNr,
 				stateTransitionInputsDigest,
 				stateTransitionOutputDigest,
+				stateRootDigest,
 				reportPlusPrecursorDigest,
 				outgen.offchainKeyring.OffchainSign,
 			)
@@ -157,6 +162,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 				stateTransitionInputsDigest,
 				prepareQc.StateTransitionOutputs,
 				stateTransitionOutputDigest,
+				stateRootDigest,
 				prepareQc.ReportsPlusPrecursor,
 				reportPlusPrecursorDigest,
 			}
@@ -180,7 +186,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 			"seqNr": outgen.sharedState.seqNr,
 		})
 
-		kvReadWriteTxn, err := outgen.kvStore.NewReadWriteTransaction(prepareQcSeqNr)
+		kvReadWriteTxn, err := outgen.kvDb.NewSerializedReadWriteTransaction(prepareQcSeqNr)
 		if err != nil {
 			outgen.logger.Warn("could not create kv read/write transaction", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
@@ -198,6 +204,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 			inputsDigest := prepareQc.StateTransitionInputsDigest
 			writeSet := prepareQc.StateTransitionOutputs.WriteSet
 			reportsPlusPrecursor := prepareQc.ReportsPlusPrecursor
+			stateRootDigest := prepareQc.StateRootDigest
 
 			outgen.subs.Go(func() {
 				outgen.backgroundProposalStateTransition(
@@ -208,6 +215,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 
 					inputsDigest,
 					writeSet,
+					stateRootDigest,
 					reportsPlusPrecursor,
 
 					types.AttributedQuery{},
@@ -324,7 +332,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 			*outgen.followerState.query,
 			outgen.sharedState.l,
 		}
-		kvReadTxn, err := outgen.kvStore.NewReadTransaction(roundCtx.SeqNr)
+		kvReadTxn, err := outgen.kvDb.NewReadTransaction(roundCtx.SeqNr)
 		if err != nil {
 			outgen.logger.Warn("failed to create new transaction, aborting tryProcessRoundStartPool", commontypes.LogFields{
 				"seqNr": roundCtx.SeqNr,
@@ -343,7 +351,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 	logger loghelper.LoggerWithContext,
 	roundCtx RoundContext,
 	aq types.AttributedQuery,
-	kvReadTxn KeyValueStoreReadTransaction,
+	kvReadTxn KeyValueDatabaseReadTransaction,
 ) {
 	observation, ok := callPluginFromOutcomeGenerationBackground[types.Observation](
 		ctx,
@@ -352,7 +360,15 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 		outgen.config.MaxDurationObservation,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (types.Observation, error) {
-			return outgen.reportingPlugin.Observation(ctx, roundCtx.SeqNr, aq, kvReadTxn, outgen.blobBroadcastFetcher)
+			return outgen.reportingPlugin.Observation(ctx,
+				roundCtx.SeqNr,
+				aq,
+				kvReadTxn,
+				NewRoundBlobBroadcastFetcher(
+					roundCtx.SeqNr,
+					outgen.blobBroadcastFetcher,
+				),
+			)
 		},
 	)
 	kvReadTxn.Discard()
@@ -364,7 +380,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 	case outgen.chLocalEvent <- EventComputedObservation[RI]{
 		roundCtx.Epoch,
 		roundCtx.SeqNr,
-		aq.Query,
+		aq,
 		observation,
 	}:
 	case <-ctx.Done():
@@ -389,7 +405,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventCompu
 		return
 	}
 
-	so, err := MakeSignedObservation(outgen.ID(), outgen.sharedState.seqNr, ev.Query, ev.Observation, outgen.offchainKeyring.OffchainSign)
+	so, err := MakeSignedObservation(outgen.ID(), outgen.sharedState.seqNr, ev.AttributedQuery, ev.Observation, outgen.offchainKeyring.OffchainSign)
 	if err != nil {
 		outgen.logger.Error("MakeSignedObservation returned error", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
@@ -398,7 +414,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventCompu
 		return
 	}
 
-	if err := so.Verify(outgen.ID(), outgen.sharedState.seqNr, ev.Query, outgen.offchainKeyring.OffchainPublicKey()); err != nil {
+	if err := so.Verify(outgen.ID(), outgen.sharedState.seqNr, ev.AttributedQuery, outgen.offchainKeyring.OffchainPublicKey()); err != nil {
 		outgen.logger.Error("MakeSignedObservation produced invalid signature", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"error": err,
@@ -490,7 +506,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 	outgen.followerState.phase = outgenFollowerPhaseBackgroundProposalStateTransition
 
-	kvReadWriteTxn, err := outgen.kvStore.NewReadWriteTransaction(outgen.sharedState.seqNr)
+	kvReadWriteTxn, err := outgen.kvDb.NewSerializedReadWriteTransaction(outgen.sharedState.seqNr)
 	if err != nil {
 		outgen.logger.Warn("could not create kv read/write transaction", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
@@ -520,6 +536,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 
 				StateTransitionInputsDigest{},
 				nil,
+				StateRootDigest{},
 				nil,
 
 				aq,
@@ -537,12 +554,13 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 	roundCtx RoundContext,
 
 	stateTransitionInputsDigest StateTransitionInputsDigest,
-	writeSet []KeyValuePair,
+	writeSet []KeyValuePairWithDeletions,
+	stateRootDigest StateRootDigest,
 	reportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor,
 
 	aq types.AttributedQuery,
 	asos []AttributedSignedObservation,
-	kvReadWriteTxn KeyValueStoreReadWriteTransaction,
+	kvReadWriteTxn KeyValueDatabaseReadWriteTransaction,
 ) {
 	shouldDiscardKVTxn := true
 	defer func() {
@@ -553,7 +571,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 
 	if asos != nil {
 
-		aos, ok := outgen.checkAttributedSignedObservations(ctx, logger, ogid, roundCtx, aq, asos, kvReadWriteTxn)
+		aos, ok := outgen.backgroundCheckAttributedSignedObservations(ctx, logger, ogid, roundCtx, aq, asos, kvReadWriteTxn)
 		if !ok {
 			return
 		}
@@ -564,7 +582,17 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 			0, // StateTransition is a pure function and should finish "instantly"
 			roundCtx,
 			func(ctx context.Context, roundCtx RoundContext) (ocr3_1types.ReportsPlusPrecursor, error) {
-				return outgen.reportingPlugin.StateTransition(ctx, roundCtx.SeqNr, aq, aos, kvReadWriteTxn, outgen.blobBroadcastFetcher)
+				return outgen.reportingPlugin.StateTransition(
+					ctx,
+					roundCtx.SeqNr,
+					aq,
+					aos,
+					kvReadWriteTxn,
+					NewRoundBlobBroadcastFetcher(
+						roundCtx.SeqNr,
+						outgen.blobBroadcastFetcher,
+					),
+				)
 			},
 		)
 		if !ok {
@@ -574,7 +602,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 		stateTransitionInputsDigest = MakeStateTransitionInputsDigest(
 			ogid,
 			roundCtx.SeqNr,
-			aq.Query,
+			aq,
 			aos,
 		)
 
@@ -587,23 +615,31 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 			})
 			return
 		}
+		stateRootDigest, err = kvReadWriteTxn.CloseWriteSet()
+		if err != nil {
+			outgen.logger.Warn("failed to close the transaction WriteSet", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"error": err,
+			})
+			return
+		}
 	} else {
 
 		// apply write set instead of executing StateTransition
-		for _, m := range writeSet {
-			var err error
-			if m.Deleted {
-				err = kvReadWriteTxn.Delete(m.Key)
-			} else {
-				err = kvReadWriteTxn.Write(m.Key, m.Value)
-			}
-			if err != nil {
-				logger.Error("failed to write write-set modification", commontypes.LogFields{
-					"seqNr": outgen.sharedState.seqNr,
-					"error": err,
-				})
-				return
-			}
+		localStateRootDigest, err := kvReadWriteTxn.ApplyWriteSet(writeSet)
+		if err != nil {
+			outgen.logger.Warn("failed to apply write set to kv read/write transaction", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"error": err,
+			})
+			return
+		}
+		if localStateRootDigest != stateRootDigest {
+			logger.Error("StateRootDigest mismatch", commontypes.LogFields{
+				"localStateRootDigest":    localStateRootDigest,
+				"receivedStateRootDigest": stateRootDigest,
+			})
+			return
 		}
 	}
 
@@ -621,6 +657,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 			stateTransitionInputsDigest,
 			stateTransitionOutputs,
 			stateTransitionOutputDigest,
+			stateRootDigest,
 			reportsPlusPrecursor,
 			reportsPlusPrecursorDigest,
 		},
@@ -648,13 +685,14 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(e
 		return
 	}
 
-	outgen.followerState.openKVTxn = ev.KeyValueStoreReadWriteTransaction
+	outgen.followerState.openKVTxn = ev.KeyValueDatabaseReadWriteTransaction
 
 	prepareSignature, err := MakePrepareSignature(
 		outgen.ID(),
 		outgen.sharedState.seqNr,
 		ev.stateTransitionInfo.InputsDigest,
 		ev.stateTransitionInfo.OutputDigest,
+		ev.stateTransitionInfo.StateRootDigest,
 		ev.stateTransitionInfo.ReportsPlusPrecursorDigest,
 		outgen.offchainKeyring.OffchainSign,
 	)
@@ -739,6 +777,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 			outgen.sharedState.seqNr,
 			outgen.followerState.stateTransitionInfo.InputsDigest,
 			outgen.followerState.stateTransitionInfo.OutputDigest,
+			outgen.followerState.stateTransitionInfo.StateRootDigest,
 			outgen.followerState.stateTransitionInfo.ReportsPlusPrecursorDigest,
 			outgen.config.OracleIdentities[sender].OffchainPublicKey,
 		)
@@ -775,6 +814,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		outgen.sharedState.seqNr,
 		outgen.followerState.stateTransitionInfo.InputsDigest,
 		outgen.followerState.stateTransitionInfo.OutputDigest,
+		outgen.followerState.stateTransitionInfo.StateRootDigest,
 		outgen.followerState.stateTransitionInfo.ReportsPlusPrecursorDigest,
 		outgen.offchainKeyring.OffchainSign,
 	)
@@ -791,6 +831,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		outgen.sharedState.seqNr,
 		outgen.followerState.stateTransitionInfo.InputsDigest,
 		outgen.followerState.stateTransitionInfo.Outputs,
+		outgen.followerState.stateTransitionInfo.StateRootDigest,
 		outgen.followerState.stateTransitionInfo.ReportsPlusPrecursor,
 		prepareQuorumCertificate,
 	}) {
@@ -869,6 +910,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 			outgen.sharedState.seqNr,
 			outgen.followerState.stateTransitionInfo.InputsDigest,
 			outgen.followerState.stateTransitionInfo.OutputDigest,
+			outgen.followerState.stateTransitionInfo.StateRootDigest,
 			outgen.followerState.stateTransitionInfo.ReportsPlusPrecursorDigest,
 			outgen.config.OracleIdentities[sender].OffchainPublicKey,
 		)
@@ -909,6 +951,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		outgen.sharedState.seqNr,
 		outgen.followerState.stateTransitionInfo.InputsDigest,
 		outgen.followerState.stateTransitionInfo.Outputs,
+		outgen.followerState.stateTransitionInfo.StateRootDigest,
 		outgen.followerState.stateTransitionInfo.ReportsPlusPrecursor,
 		commitQuorumCertificate,
 	})
@@ -932,7 +975,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 			})
 
 			{
-				kvSeqNr, err := outgen.kvStore.HighestCommittedSeqNr()
+				kvSeqNr, err := outgen.kvDb.HighestCommittedSeqNr()
 				if err != nil {
 					outgen.logger.Error("failed to validate kv commit post-condition, upon kv commit failure", commontypes.LogFields{
 						"seqNr": outgen.sharedState.seqNr,
@@ -951,6 +994,95 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 			}
 		}
 	}
+
+	kvReadTxn, err := outgen.kvDb.NewReadTransaction(outgen.sharedState.seqNr + 1)
+	if err != nil {
+		outgen.logger.Warn("skipping call to ReportingPlugin.Committed", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"error": err,
+		})
+		outgen.completeRound()
+		return
+	}
+
+	outgen.followerState.phase = outgenFollowerPhaseBackgroundCommitted
+
+	{
+		ctx := outgen.epochCtx
+		logger := outgen.logger
+		roundCtx := RoundContext{
+			outgen.sharedState.seqNr,
+			outgen.sharedState.e,
+			outgen.sharedState.seqNr - outgen.sharedState.firstSeqNrOfEpoch + 1,
+		}
+		kvReadTxn := kvReadTxn
+		outgen.subs.Go(func() {
+			outgen.backgroundCommitted(
+				ctx,
+				logger,
+				roundCtx,
+				kvReadTxn,
+			)
+		})
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) backgroundCommitted(
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	roundCtx RoundContext,
+	kvReadTxn KeyValueDatabaseReadTransaction,
+) {
+	_, ok := callPluginFromOutcomeGenerationBackground[error](
+		ctx,
+		logger,
+		"Committed",
+		0, // Committed is a pure function and should finish "instantly"
+		roundCtx,
+		func(ctx context.Context, roundCtx RoundContext) (error, error) {
+			return outgen.reportingPlugin.Committed(ctx, roundCtx.SeqNr, kvReadTxn), nil
+		},
+	)
+	kvReadTxn.Discard()
+
+	if !ok {
+		outgen.logger.Info("continuing after ReportingPlugin.Committed returned an error", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+		})
+
+	}
+
+	select {
+	case outgen.chLocalEvent <- EventComputedCommitted[RI]{
+		roundCtx.Epoch,
+		roundCtx.SeqNr,
+	}:
+	case <-ctx.Done():
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) eventComputedCommitted(ev EventComputedCommitted[RI]) {
+	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
+		outgen.logger.Debug("discarding EventComputedCommitted from old round", commontypes.LogFields{
+			"seqNr":   outgen.sharedState.seqNr,
+			"evEpoch": ev.Epoch,
+			"evSeqNr": ev.SeqNr,
+		})
+		return
+	}
+
+	if outgen.followerState.phase != outgenFollowerPhaseBackgroundCommitted {
+		outgen.logger.Debug("discarding EventComputedCommitted, wrong phase", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"phase": outgen.followerState.phase,
+		})
+		return
+	}
+
+	outgen.completeRound()
+}
+
+func (outgen *outcomeGenerationState[RI]) completeRound() {
 
 	if uint64(outgen.config.RMax) <= outgen.sharedState.seqNr-outgen.sharedState.firstSeqNrOfEpoch+1 {
 		outgen.logger.Debug("epoch has been going on for too long, sending EventChangeLeader to Pacemaker", commontypes.LogFields{
@@ -1053,6 +1185,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) (persis
 					commit.SeqNr(),
 					commit.StateTransitionOutputs.WriteSet,
 				),
+				commit.StateRootDigest,
 				reportsPlusPrecursor,
 				commit.CommitQuorumCertificate,
 			},
@@ -1091,25 +1224,89 @@ func (outgen *outcomeGenerationState[RI]) persistAndUpdateCertIfGreater(cert Cer
 	return true
 }
 
+func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObservation(
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	ogid OutcomeGenerationID,
+	roundCtx RoundContext,
+	aq types.AttributedQuery,
+	aso AttributedSignedObservation,
+	kvReader ocr3_1types.KeyValueStateReader, // we don't discard the kvReader in this function because it is managed further up the call stack
+) bool {
+	if err := aso.SignedObservation.Verify(ogid, roundCtx.SeqNr, aq, outgen.config.OracleIdentities[aso.Observer].OffchainPublicKey); err != nil {
+		logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", commontypes.LogFields{
+			"seqNr": roundCtx.SeqNr,
+			"error": err,
+		})
+		return false
+	}
+
+	err, ok := callPluginFromOutcomeGenerationBackground[error](
+		ctx,
+		logger,
+		"ValidateObservation",
+
+		0, // ValidateObservation is a pure function and should finish "instantly"
+		roundCtx,
+		func(ctx context.Context, roundCtx RoundContext) (error, error) {
+			return outgen.reportingPlugin.ValidateObservation(
+				ctx,
+				roundCtx.SeqNr,
+				aq,
+				types.AttributedObservation{
+					aso.SignedObservation.Observation,
+					aso.Observer,
+				},
+				kvReader,
+				NewRoundBlobBroadcastFetcher(
+					roundCtx.SeqNr,
+					outgen.blobBroadcastFetcher,
+				),
+			), nil
+		},
+	)
+
+	if !ok {
+		logger.Error("dropping MessageProposal containing observation that could not be validated", commontypes.LogFields{
+			"seqNr":    roundCtx.SeqNr,
+			"observer": aso.Observer,
+		})
+		return false
+	}
+
+	if err != nil {
+		logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
+			"seqNr":    roundCtx.SeqNr,
+			"error":    err,
+			"observer": aso.Observer,
+		})
+		return false
+	}
+
+	return true
+}
+
 // If the attributed signed observations have valid signature, and they satisfy ValidateObservation
 // and ObservationQuorum plugin methods, this function returns the vector of corresponding
 // AttributedObservations and true.
-func (outgen *outcomeGenerationState[RI]) checkAttributedSignedObservations(
+func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObservations(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	ogid OutcomeGenerationID,
 	roundCtx RoundContext,
 	aq types.AttributedQuery,
 	asos []AttributedSignedObservation,
-	kvReader ocr3_1types.KeyValueReader,
+	kvReader ocr3_1types.KeyValueStateReader, // we don't discard the kvReader in this function because it is managed further up the call stack
 ) ([]types.AttributedObservation, bool) {
 
-	attributedObservations := []types.AttributedObservation{}
+	attributedObservations := make([]types.AttributedObservation, 0, len(asos))
 
-	seen := map[commontypes.OracleID]bool{}
+	subs, allValidMutex, allValid := subprocesses.Subprocesses{}, sync.Mutex{}, true
 
-	for _, aso := range asos {
-		if !(0 <= int(aso.Observer) && int(aso.Observer) <= outgen.config.N()) {
+	myObservationIncluded := false
+
+	for i, aso := range asos {
+		if !(0 <= int(aso.Observer) && int(aso.Observer) < outgen.config.N()) {
 			logger.Warn("dropping MessageProposal that contains signed observation with invalid observer", commontypes.LogFields{
 				"seqNr":           roundCtx.SeqNr,
 				"invalidObserver": aso.Observer,
@@ -1117,63 +1314,35 @@ func (outgen *outcomeGenerationState[RI]) checkAttributedSignedObservations(
 			return nil, false
 		}
 
-		if seen[aso.Observer] {
+		if i > 0 && !(asos[i-1].Observer < aso.Observer) {
 			logger.Warn("dropping MessageProposal that contains duplicate signed observation", commontypes.LogFields{
 				"seqNr": roundCtx.SeqNr,
 			})
 			return nil, false
 		}
 
-		seen[aso.Observer] = true
-
-		if err := aso.SignedObservation.Verify(ogid, roundCtx.SeqNr, aq.Query, outgen.config.OracleIdentities[aso.Observer].OffchainPublicKey); err != nil {
-			logger.Warn("dropping MessageProposal that contains signed observation with invalid signature", commontypes.LogFields{
-				"seqNr": roundCtx.SeqNr,
-				"error": err,
-			})
-			return nil, false
-		}
-
-		err, ok := callPluginFromOutcomeGenerationBackground[error](
-			ctx,
-			logger,
-			"ValidateObservation",
-			0, // ValidateObservation is a pure function and should finish "instantly"
-			roundCtx,
-			func(ctx context.Context, roundCtx RoundContext) (error, error) {
-				return outgen.reportingPlugin.ValidateObservation(
-					ctx,
-					roundCtx.SeqNr,
-					aq,
-					types.AttributedObservation{aso.SignedObservation.Observation, aso.Observer},
-					kvReader,
-					outgen.blobBroadcastFetcher,
-				), nil
-			},
-		)
-		// kvReader.Discard() must not happen here, because
-		// backgroundStateTransition (our caller) manages the lifecycle of the
-		// underlying transaction.
-		if !ok {
-			logger.Error("dropping MessageProposal containing observation that could not be validated", commontypes.LogFields{
-				"seqNr":    roundCtx.SeqNr,
-				"observer": aso.Observer,
-			})
-			return nil, false
-		}
-		if err != nil {
-			logger.Warn("dropping MessageProposal that contains an invalid observation", commontypes.LogFields{
-				"seqNr":    roundCtx.SeqNr,
-				"error":    err,
-				"observer": aso.Observer,
-			})
-			return nil, false
+		if aso.Observer == outgen.id {
+			myObservationIncluded = true
 		}
 
 		attributedObservations = append(attributedObservations, types.AttributedObservation{
 			aso.SignedObservation.Observation,
 			aso.Observer,
 		})
+
+		subs.Go(func() {
+			if !outgen.backgroundCheckAttributedSignedObservation(ctx, logger, ogid, roundCtx, aq, aso, kvReader) {
+				allValidMutex.Lock()
+				allValid = false
+				allValidMutex.Unlock()
+			}
+		})
+	}
+
+	subs.Wait()
+	if !allValid {
+		// no need to log, since backgroundCheckAttributedSignedObservation will already have done so
+		return nil, false
 	}
 
 	observationQuorum, ok := callPluginFromOutcomeGenerationBackground[bool](
@@ -1183,7 +1352,17 @@ func (outgen *outcomeGenerationState[RI]) checkAttributedSignedObservations(
 		0, // ObservationQuorum is a pure function and should finish "instantly"
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (bool, error) {
-			return outgen.reportingPlugin.ObservationQuorum(ctx, roundCtx.SeqNr, aq, attributedObservations, kvReader, outgen.blobBroadcastFetcher)
+			return outgen.reportingPlugin.ObservationQuorum(
+				ctx,
+				roundCtx.SeqNr,
+				aq,
+				attributedObservations,
+				kvReader,
+				NewRoundBlobBroadcastFetcher(
+					roundCtx.SeqNr,
+					outgen.blobBroadcastFetcher,
+				),
+			)
 		},
 	)
 
@@ -1198,7 +1377,7 @@ func (outgen *outcomeGenerationState[RI]) checkAttributedSignedObservations(
 		return nil, false
 	}
 
-	if seen[outgen.id] {
+	if myObservationIncluded {
 		outgen.metrics.includedObservationsTotal.Inc()
 	}
 
@@ -1206,8 +1385,7 @@ func (outgen *outcomeGenerationState[RI]) checkAttributedSignedObservations(
 }
 
 func (outgen *outcomeGenerationState[RI]) persistCommitAsBlock(commit *CertifiedCommit) bool {
-	ctx := outgen.ctx
-	configDigest := outgen.config.ConfigDigest
+
 	seqNr := commit.SeqNr()
 	astb := AttestedStateTransitionBlock{
 		StateTransitionBlock{
@@ -1215,51 +1393,61 @@ func (outgen *outcomeGenerationState[RI]) persistCommitAsBlock(commit *Certified
 			seqNr,
 			commit.StateTransitionInputsDigest,
 			commit.StateTransitionOutputs,
+			commit.StateRootDigest,
 			commit.ReportsPlusPrecursor,
 		},
 		commit.CommitQuorumCertificate,
 	}
 
-	werr := outgen.database.WriteAttestedStateTransitionBlock(
-		ctx,
-		configDigest,
-		seqNr,
-		astb,
-	)
-
-	if werr != nil {
-
-		astb, rerr := outgen.database.ReadAttestedStateTransitionBlock(
-			ctx,
-			configDigest,
-			seqNr,
-		)
-		if astb.StateTransitionBlock.SeqNr() == seqNr && rerr == nil {
-			// already persisted by someone else
-			return true
-		} else {
-			outgen.logger.Error("error persisting commit as attested state transition block", commontypes.LogFields{
-				"seqNr": seqNr,
-				"error": werr,
-			})
-			return false
-		}
-	} else {
-		// persited now by us
-		outgen.logger.Trace("persisted block", commontypes.LogFields{
-			"seqNr": seqNr,
+	tx, err := outgen.kvDb.NewUnserializedReadWriteTransactionUnchecked()
+	if err != nil {
+		outgen.logger.Error("error creating read transaction", commontypes.LogFields{
+			"error": err,
 		})
-		return true
+		return false
 	}
+	defer tx.Discard()
+
+	err = tx.WriteAttestedStateTransitionBlock(seqNr, astb)
+	if err != nil {
+		outgen.logger.Error("error writing attested state transition block", commontypes.LogFields{
+			"seqNr": seqNr,
+			"error": err,
+		})
+		return false
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		outgen.logger.Error("error committing transaction", commontypes.LogFields{
+			"error": err,
+		})
+		return false
+	}
+
+	// persited now
+	outgen.logger.Trace("persisted block", commontypes.LogFields{
+		"seqNr": seqNr,
+	})
+	return true
 }
 
 func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 
 	preRefreshCommittedSeqNr := outgen.sharedState.committedSeqNr
 
-	postRefreshCommittedSeqNr, err := outgen.kvStore.HighestCommittedSeqNr()
+	tx, err := outgen.kvDb.NewReadTransactionUnchecked()
 	if err != nil {
-		outgen.logger.Error("kvStore.HighestCommittedSeqNr() failed during refresh", commontypes.LogFields{
+		outgen.logger.Error("error creating read transaction", commontypes.LogFields{
+			"error": err,
+		})
+		return
+	}
+	defer tx.Discard()
+
+	postRefreshCommittedSeqNr, err := tx.ReadHighestCommittedSeqNr()
+	if err != nil {
+		outgen.logger.Error("kvDb.HighestCommittedSeqNr() failed during refresh", commontypes.LogFields{
 			"preRefreshCommittedSeqNr": preRefreshCommittedSeqNr,
 			"error":                    err,
 		})
@@ -1277,7 +1465,7 @@ func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 
 		logger.Warn("last kv transaction commit failed, requesting state sync", nil)
 		select {
-		case outgen.chOutcomeGenerationToStatePersistence <- EventStateSyncRequest[RI]{
+		case outgen.chOutcomeGenerationToStateSync <- EventStateSyncRequest[RI]{
 			preRefreshCommittedSeqNr,
 		}:
 		case <-outgen.ctx.Done():
@@ -1289,20 +1477,14 @@ func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 		panic("")
 	}
 
-	ctx := outgen.ctx
-	configDigest := outgen.config.ConfigDigest
-	astb, err := outgen.database.ReadAttestedStateTransitionBlock(
-		ctx,
-		configDigest,
-		postRefreshCommittedSeqNr,
-	)
+	astb, err := tx.ReadAttestedStateTransitionBlock(postRefreshCommittedSeqNr)
 	if err != nil {
 		logger.Error("error reading attested state transition block during refresh", commontypes.LogFields{
 			"error": err,
 		})
 		return
 	}
-	if astb.StateTransitionBlock.SeqNr() == 0 {
+	if astb.StateTransitionBlock.SeqNr() == 0 { // The block does not exist in the database
 		logger.Critical("assumption violation, attested state transition block for kv committed seq nr does not exist", nil)
 		panic("")
 	}
@@ -1320,8 +1502,9 @@ func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 		stb.SeqNr(),
 		stb.StateTransitionInputsDigest,
 		stb.StateTransitionOutputs,
+		stb.StateRootDigest,
 		stb.ReportsPlusPrecursor,
-		astb.AttributedSignatures,
+		astb.AttributedCommitSignatures,
 	})
 
 	if !persistedBlockAndCert {

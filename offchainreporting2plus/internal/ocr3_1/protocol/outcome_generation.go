@@ -33,12 +33,12 @@ func RunOutcomeGeneration[RI any](
 	chPacemakerToOutcomeGeneration <-chan EventToOutcomeGeneration[RI],
 	chOutcomeGenerationToPacemaker chan<- EventToPacemaker[RI],
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI],
-	chOutcomeGenerationToStatePersistence chan<- EventToStatePersistence[RI],
+	chOutcomeGenerationToStateSync chan<- EventToStateSync[RI],
 	blobBroadcastFetcher ocr3_1types.BlobBroadcastFetcher,
 	config ocr3config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
-	kvStore KeyValueStore,
+	kvDb KeyValueDatabase,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	metricsRegisterer prometheus.Registerer,
@@ -59,12 +59,12 @@ func RunOutcomeGeneration[RI any](
 		chPacemakerToOutcomeGeneration:         chPacemakerToOutcomeGeneration,
 		chOutcomeGenerationToPacemaker:         chOutcomeGenerationToPacemaker,
 		chOutcomeGenerationToReportAttestation: chOutcomeGenerationToReportAttestation,
-		chOutcomeGenerationToStatePersistence:  chOutcomeGenerationToStatePersistence,
+		chOutcomeGenerationToStateSync:         chOutcomeGenerationToStateSync,
 		blobBroadcastFetcher:                   blobBroadcastFetcher,
 		config:                                 config,
 		database:                               database,
 		id:                                     id,
-		kvStore:                                kvStore,
+		kvDb:                                   kvDb,
 		localConfig:                            localConfig,
 		logger:                                 logger.MakeUpdated(commontypes.LogFields{"proto": "outgen"}),
 		metrics:                                newOutcomeGenerationMetrics(metricsRegisterer, logger),
@@ -85,12 +85,12 @@ type outcomeGenerationState[RI any] struct {
 	chPacemakerToOutcomeGeneration         <-chan EventToOutcomeGeneration[RI]
 	chOutcomeGenerationToPacemaker         chan<- EventToPacemaker[RI]
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI]
-	chOutcomeGenerationToStatePersistence  chan<- EventToStatePersistence[RI]
+	chOutcomeGenerationToStateSync         chan<- EventToStateSync[RI]
 	blobBroadcastFetcher                   ocr3_1types.BlobBroadcastFetcher
 	config                                 ocr3config.SharedConfig
 	database                               Database
 	id                                     commontypes.OracleID
-	kvStore                                KeyValueStore
+	kvDb                                   KeyValueDatabase
 	localConfig                            types.LocalConfig
 	logger                                 loghelper.LoggerWithContext
 	metrics                                *outcomeGenerationMetrics
@@ -138,7 +138,7 @@ type followerState[RI any] struct {
 
 	stateTransitionInfo stateTransitionInfo
 
-	openKVTxn KeyValueStoreReadWriteTransaction
+	openKVTxn KeyValueDatabaseReadWriteTransaction
 
 	// lock
 
@@ -152,6 +152,7 @@ type stateTransitionInfo struct {
 	InputsDigest               StateTransitionInputsDigest
 	Outputs                    StateTransitionOutputs
 	OutputDigest               StateTransitionOutputDigest
+	StateRootDigest            StateRootDigest
 	ReportsPlusPrecursor       ocr3_1types.ReportsPlusPrecursor
 	ReportsPlusPrecursorDigest ReportsPlusPrecursorDigest
 }

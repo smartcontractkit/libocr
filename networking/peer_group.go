@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
@@ -60,7 +60,7 @@ type Stream interface {
 	Close() error
 }
 
-var _ Stream = &ragep2p.Stream{}
+var _ Stream = (ragep2pwrapper.Stream)(nil)
 
 //sumtype:decl
 type NewStreamArgs interface {
@@ -72,8 +72,8 @@ type NewStreamArgs1 struct {
 	OutgoingBufferSize int // number of messages that fit in the outgoing buffer
 	IncomingBufferSize int // number of messages that fit in the incoming buffer
 	MaxMessageLength   int
-	MessagesLimit      ragep2p.TokenBucketParams // rate limit for incoming messages
-	BytesLimit         ragep2p.TokenBucketParams // rate limit for incoming messages
+	MessagesLimit      ragetypes.TokenBucketParams // rate limit for incoming messages
+	BytesLimit         ragetypes.TokenBucketParams // rate limit for incoming messages
 }
 
 func (NewStreamArgs1) isNewStreamArgs() {}
@@ -146,7 +146,7 @@ const (
 
 type peerGroup struct {
 	reg  *endpointRegistration
-	host *ragep2p.Host
+	host ragep2pwrapper.Host
 
 	streamNamePrefix string
 	peerIDSet        map[ragetypes.PeerID]struct{}
@@ -159,7 +159,7 @@ type peerGroup struct {
 // managedStream is a wrapper around ragep2p.Stream that removes the stream from
 // peerGroup upon Close.
 type managedStream struct {
-	stream  *ragep2p.Stream
+	stream  ragep2pwrapper.Stream
 	onClose func()
 }
 
@@ -240,7 +240,7 @@ func (f *peerGroup) Close() error {
 			// defensive
 			continue
 		}
-		stream, ok := e.Value.(*ragep2p.Stream)
+		stream, ok := e.Value.(ragep2pwrapper.Stream)
 		if !ok {
 			// defensive
 			continue

@@ -16,6 +16,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/knock"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/msgbuf"
 	"github.com/smartcontractkit/libocr/ragep2p/internal/mtls"
@@ -26,13 +27,13 @@ import (
 )
 
 // Maximum number of streams with another peer that can be opened on a host
-const MaxStreamsPerPeer = 2_000
+const MaxStreamsPerPeer = types.MaxStreamsPerPeer
 
 // Maximum stream name length
-const MaxStreamNameLength = 256
+const MaxStreamNameLength = types.MaxStreamNameLength
 
 // Maximum length of messages sent with ragep2p
-const MaxMessageLength = 1024 * 1024 * 1024 // 1 GiB. This must be smaller than INT32_MAX
+const MaxMessageLength = types.MaxMessageLength
 
 const newConnTokens = MaxStreamsPerPeer * (frameHeaderEncodedSize + MaxStreamNameLength)
 
@@ -254,7 +255,7 @@ func (ho *Host) Start() error {
 		})
 	}
 
-	err := ho.discoverer.Start(ho, ho.keyring, ho.logger)
+	err := ho.discoverer.Start(Wrapped(ho), ho.keyring, ho.logger)
 	if err != nil {
 		return fmt.Errorf("failed to start discoverer: %w", err)
 	}
@@ -875,12 +876,7 @@ func (ho *Host) handleConnection(incoming bool, rlConn *ratelimitedconn.RateLimi
 	}
 }
 
-// TokenBucketParams contains the two parameters for a token bucket rate
-// limiter.
-type TokenBucketParams struct {
-	Rate     float64
-	Capacity uint32
-}
+type TokenBucketParams = types.TokenBucketParams
 
 // NewStream creates a new bidirectional stream with peer other for streamName.
 // It is parameterized with a maxMessageLength, the maximum size of a message in
@@ -1532,7 +1528,7 @@ func incomingConnsRateLimit(durationBetweenDials time.Duration) ratelimit.Millit
 
 // Discoverer is responsible for discovering the addresses of peers on the network.
 type Discoverer interface {
-	Start(host *Host, keyring types.PeerKeyring, logger loghelper.LoggerWithContext) error
+	Start(host ragep2pwrapper.Host, keyring types.PeerKeyring, logger loghelper.LoggerWithContext) error
 	Close() error
 	FindPeer(peer types.PeerID) ([]types.Address, error)
 }
