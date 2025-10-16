@@ -165,6 +165,85 @@ func ContractSetConfigArgsForEthereumIntegrationTest(
 		err
 }
 
+// ContractSetConfigArgsForBlockDAG generates setConfig args for BlockDAG integration tests.
+// Only use this for testing, *not* for production.
+// See [ocr2config.PublicConfig] for documentation of the arguments.
+func ContractSetConfigArgsForBlockDAG(
+	oracles []OracleIdentityExtra,
+	f int,
+	alphaPPB uint64,
+	deltaProgress time.Duration,
+	deltaResend time.Duration,
+	deltaRound time.Duration,
+	deltaGrace time.Duration,
+	deltaStage time.Duration,
+	maxDurationInitialization time.Duration,
+	maxDurationQuery time.Duration,
+	maxDurationObservation time.Duration,
+	maxDurationReport time.Duration,
+	maxDurationShouldAcceptFinalizedReport time.Duration,
+	maxDurationShouldTransmitAcceptedReport time.Duration,
+) (
+	signers []common.Address,
+	transmitters []common.Address,
+	f_ uint8,
+	onchainConfig []byte,
+	offchainConfigVersion uint64,
+	offchainConfig []byte,
+	err error,
+) {
+	S := []int{}
+	identities := []config.OracleIdentity{}
+	sharedSecretEncryptionPublicKeys := []types.ConfigEncryptionPublicKey{}
+	for _, oracle := range oracles {
+		S = append(S, 1)
+		identities = append(identities, config.OracleIdentity{
+			oracle.OffchainPublicKey,
+			oracle.OnchainPublicKey,
+			oracle.PeerID,
+			oracle.TransmitAccount,
+		})
+		sharedSecretEncryptionPublicKeys = append(sharedSecretEncryptionPublicKeys, oracle.ConfigEncryptionPublicKey)
+	}
+	sharedConfig := ocr2config.SharedConfig{
+		ocr2config.PublicConfig{
+			deltaProgress,
+			deltaResend,
+			deltaRound,
+			deltaGrace,
+			deltaStage,
+			3, // rMax
+			S,
+			identities,
+			median.OffchainConfig{
+				false,
+				alphaPPB,
+				false,
+				alphaPPB,
+				0,
+			}.Encode(),
+			util.PointerTo(maxDurationInitialization),
+			maxDurationQuery,
+			maxDurationObservation,
+			maxDurationReport,
+			maxDurationShouldAcceptFinalizedReport,
+			maxDurationShouldTransmitAcceptedReport,
+			f,
+			nil, // The median reporting plugin has an empty onchain config
+			types.ConfigDigest{},
+		},
+		&[config.SharedSecretSize]byte{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8},
+	}
+	setConfigArgs, err := ocr2config.XXXContractSetConfigArgsFromSharedConfigEthereum(sharedConfig, sharedSecretEncryptionPublicKeys)
+	return setConfigArgs.Signers,
+		setConfigArgs.Transmitters,
+		setConfigArgs.F,
+		setConfigArgs.OnchainConfig,
+		setConfigArgs.OffchainConfigVersion,
+		setConfigArgs.OffchainConfig,
+		err
+}
+
 // ContractSetConfigArgsForTestsWithAuxiliaryArgs generates setConfig args from
 // the relevant parameters. Only use this for testing, *not* for production.
 // See [ocr2config.PublicConfig] for documentation of the arguments.
