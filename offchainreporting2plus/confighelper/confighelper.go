@@ -7,12 +7,12 @@ import (
 	"io"
 	"time"
 
+	"github.com/RoSpaceDev/libocr/internal/util"
+	"github.com/RoSpaceDev/libocr/offchainreporting2/reportingplugin/median"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr2config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/smartcontractkit/libocr/internal/util"
-	"github.com/smartcontractkit/libocr/offchainreporting2/reportingplugin/median"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 // OracleIdentity is identical to the internal type [config.OracleIdentity].

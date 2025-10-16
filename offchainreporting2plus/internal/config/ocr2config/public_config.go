@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/pkg/errors"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 // PublicConfig is the configuration disseminated through the smart contract.

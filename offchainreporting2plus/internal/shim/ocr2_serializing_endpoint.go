@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr2/protocol"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr2/serialization"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/subprocesses"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/serialization"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 type OCR2SerializingEndpoint struct {

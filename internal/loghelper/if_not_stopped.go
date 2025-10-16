@@ -3,7 +3,7 @@ package loghelper
 import (
 	"time"
 
-	"github.com/smartcontractkit/libocr/subprocesses"
+	"github.com/RoSpaceDev/libocr/subprocesses"
 )
 
 type IfNotStopped struct {

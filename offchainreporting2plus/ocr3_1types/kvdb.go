@@ -1,7 +1,7 @@
 package ocr3_1types
 
 import (
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 // Deprecated: Use KeyValueDatabaseReadWriteTransaction instead.

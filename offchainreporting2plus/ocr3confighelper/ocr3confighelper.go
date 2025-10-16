@@ -4,10 +4,10 @@ import (
 	"crypto/rand"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/confighelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/confighelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"golang.org/x/crypto/curve25519"
 )
 

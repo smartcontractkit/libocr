@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/crypto/curve25519"
 
-	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/commontypes"
 )
 
 type ConfigDigest [16]byte

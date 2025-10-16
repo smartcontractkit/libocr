@@ -3,9 +3,9 @@ package protocol
 import (
 	"time"
 
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
 	"github.com/google/btree"
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
 )
 
 const (

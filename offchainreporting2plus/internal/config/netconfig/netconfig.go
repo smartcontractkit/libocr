@@ -3,10 +3,10 @@ package netconfig
 import (
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr2config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type NetConfig struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3_1types"
 )
 
 type BlobEndpointWrapper struct {

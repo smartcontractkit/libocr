@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/RoSpaceDev/libocr/offchainreporting/types"
 	"github.com/leanovate/gopter"
 	"github.com/leanovate/gopter/gen"
 	"github.com/pkg/errors"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 type Observation struct{ v *big.Int }

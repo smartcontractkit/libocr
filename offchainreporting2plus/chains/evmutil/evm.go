@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/RoSpaceDev/libocr/gethwrappers2/ocr2aggregator"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/smartcontractkit/libocr/gethwrappers2/ocr2aggregator"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 func SplitSignature(sig []byte) (r, s [32]byte, v byte, err error) {

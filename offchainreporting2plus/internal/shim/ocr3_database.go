@@ -3,10 +3,10 @@ package shim
 import (
 	"context"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/serialization"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3/protocol"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3/serialization"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type SerializingOCR3Database struct {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/networking/ragep2pwrapper"
+	ocr2types "github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 func peerGroupStreamNamePrefix(configDigest ocr2types.ConfigDigest) (streamNamePrefix string, err error) {

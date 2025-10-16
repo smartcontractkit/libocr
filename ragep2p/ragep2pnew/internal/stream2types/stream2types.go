@@ -3,9 +3,9 @@ package stream2types
 import (
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/internaltypes"
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/responselimit"
-	"github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/internaltypes"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/responselimit"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 type StreamPriority byte

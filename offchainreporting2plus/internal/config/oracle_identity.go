@@ -1,6 +1,6 @@
 package config
 
-import "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+import "github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 
 type OracleIdentity struct {
 	OffchainPublicKey types.OffchainPublicKey

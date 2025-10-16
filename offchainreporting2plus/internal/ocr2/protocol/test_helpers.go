@@ -1,8 +1,8 @@
 package protocol
 
 import (
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 // Used only for testing

@@ -3,10 +3,10 @@ package shim
 import (
 	"time"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/serialization"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr2/serialization"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type OCR2TelemetrySender struct {

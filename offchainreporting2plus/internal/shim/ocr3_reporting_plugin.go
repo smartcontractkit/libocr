@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 // LimitCheckOCR3ReportingPlugin wraps another plugin and checks that its outputs respect

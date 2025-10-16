@@ -1,6 +1,6 @@
 package protocol
 
-import "github.com/smartcontractkit/libocr/commontypes"
+import "github.com/RoSpaceDev/libocr/commontypes"
 
 // Used only for testing
 type XXXUnknownMessageType struct{}

@@ -3,7 +3,7 @@
 package ragep2pwrapper
 
 import (
-	"github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 type Host interface {

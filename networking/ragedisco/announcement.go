@@ -7,9 +7,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
 
-	"github.com/smartcontractkit/libocr/networking/ragedisco/serialization"
+	"github.com/RoSpaceDev/libocr/networking/ragedisco/serialization"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/binary"
 
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting/types"
 )
 
 // DomainSeparationTag consists of:

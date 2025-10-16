@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"hash"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/byzquorum"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/byzquorum"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3_1types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 // Returns a byte slice whose first six bytes are the string "ocr3.1" and the rest

@@ -1,9 +1,9 @@
 package protocol
 
 import (
-	"github.com/smartcontractkit/libocr/internal/jmt"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/internal/jmt"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type KeyValuePair = jmt.KeyValue

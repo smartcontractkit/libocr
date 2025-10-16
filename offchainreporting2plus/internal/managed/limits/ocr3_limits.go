@@ -7,9 +7,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type serializedLengthLimits struct {

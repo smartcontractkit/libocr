@@ -3,7 +3,7 @@ package ocr3_1types
 import (
 	"context"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
 )
 
 type BlobHandle = blobtypes.BlobHandle

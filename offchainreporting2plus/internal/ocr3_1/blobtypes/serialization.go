@@ -5,8 +5,8 @@ import (
 	"encoding"
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes/serialization"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes/serialization"
 	"google.golang.org/protobuf/proto"
 )
 

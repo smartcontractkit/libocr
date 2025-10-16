@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	ocr1types "github.com/smartcontractkit/libocr/offchainreporting/types"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	ocr1types "github.com/RoSpaceDev/libocr/offchainreporting/types"
+	ocr2types "github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 func OCR1ToOCR2(configDigest ocr1types.ConfigDigest) ocr2types.ConfigDigest {

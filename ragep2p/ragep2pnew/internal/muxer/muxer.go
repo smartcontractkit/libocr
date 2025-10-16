@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/internal/randmap"
-	"github.com/smartcontractkit/libocr/internal/ringbuffer"
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/internaltypes"
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/stream2types"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/internal/randmap"
+	"github.com/RoSpaceDev/libocr/internal/ringbuffer"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/internaltypes"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/stream2types"
 )
 
 const invertPrioritiesEvery = 8

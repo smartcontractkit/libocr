@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting/internal/managed"
+	"github.com/RoSpaceDev/libocr/offchainreporting/types"
+	"github.com/RoSpaceDev/libocr/subprocesses"
 	"github.com/pkg/errors"
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/internal/managed"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
-	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
 // OracleArgs contains the configuration and services a caller must provide, in

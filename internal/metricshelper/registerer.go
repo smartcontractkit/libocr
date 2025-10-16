@@ -3,8 +3,8 @@ package metricshelper
 import (
 	"fmt"
 
+	"github.com/RoSpaceDev/libocr/commontypes"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/smartcontractkit/libocr/commontypes"
 )
 
 type PrometheusRegistererWrapper struct {

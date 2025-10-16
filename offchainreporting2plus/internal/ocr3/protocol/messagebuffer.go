@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/ringbuffer"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/common/ringbuffer"
 )
 
 // We have this wrapper to deal with what appears to be a bug in the Go compiler

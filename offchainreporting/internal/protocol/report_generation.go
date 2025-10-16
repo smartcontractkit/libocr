@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting/internal/config"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
-	"github.com/smartcontractkit/libocr/subprocesses"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting/internal/config"
+	"github.com/RoSpaceDev/libocr/offchainreporting/types"
+	"github.com/RoSpaceDev/libocr/subprocesses"
 )
 
 // Report Generation protocol corresponding to alg. 2 & 3.

@@ -6,13 +6,13 @@ import (
 	"io"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/commontypes"
-	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
-	"github.com/smartcontractkit/libocr/subprocesses"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	ocr2types "github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/subprocesses"
 
-	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
 )
 
 var (

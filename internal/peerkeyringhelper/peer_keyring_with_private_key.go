@@ -4,7 +4,7 @@ import (
 	"crypto/ed25519"
 	"fmt"
 
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 type PeerKeyringWithPrivateKey struct {

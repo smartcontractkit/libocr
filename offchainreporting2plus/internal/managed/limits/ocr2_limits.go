@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr2config"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 func OCR2Limits(cfg ocr2config.PublicConfig, reportingPluginLimits types.ReportingPluginLimits, maxSigLen int) (types.BinaryNetworkEndpointLimits, error) {

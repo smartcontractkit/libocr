@@ -3,7 +3,7 @@ package loghelper
 import (
 	"io"
 
-	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/commontypes"
 )
 
 // Closes closer. If an error occurs, it is logged at WARN level together with

@@ -3,7 +3,7 @@ package ocr3types
 import (
 	"context"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type Database interface {

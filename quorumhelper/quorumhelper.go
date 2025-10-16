@@ -1,8 +1,8 @@
 package quorumhelper
 
 import (
-	"github.com/smartcontractkit/libocr/internal/byzquorum"
-	"github.com/smartcontractkit/libocr/offchainreporting2/types"
+	"github.com/RoSpaceDev/libocr/internal/byzquorum"
+	"github.com/RoSpaceDev/libocr/offchainreporting2/types"
 )
 
 type Quorum int

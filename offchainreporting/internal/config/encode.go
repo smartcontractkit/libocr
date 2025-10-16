@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RoSpaceDev/libocr/offchainreporting/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
-	"github.com/smartcontractkit/libocr/offchainreporting/types"
 )
 
 const EncodedConfigVersion = 1

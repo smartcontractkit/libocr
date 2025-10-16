@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 const (

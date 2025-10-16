@@ -1,7 +1,7 @@
 package ragedisco
 
 import (
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 type group struct {

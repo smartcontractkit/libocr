@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/internaltypes"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/internaltypes"
 )
 
 type ResponseCheckResult byte

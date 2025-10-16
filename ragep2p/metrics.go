@@ -1,10 +1,10 @@
 package ragep2p
 
 import (
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/metricshelper"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/metricshelper"
-	"github.com/smartcontractkit/libocr/ragep2p/types"
 )
 
 type hostMetrics struct {

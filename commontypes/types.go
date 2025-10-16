@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	// TODO: is there a way to remove this dependency?
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 // OracleID is an index over the oracles, used as a succinct attribution to an

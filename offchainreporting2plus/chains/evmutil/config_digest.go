@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/smartcontractkit/libocr/gethwrappers2/exposedocr2aggregator"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/gethwrappers2/exposedocr2aggregator"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 func makeConfigDigestArgs() abi.Arguments {

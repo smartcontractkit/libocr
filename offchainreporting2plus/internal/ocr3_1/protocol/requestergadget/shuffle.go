@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/commontypes"
 )
 
 func shuffle(ranks []commontypes.OracleID) []commontypes.OracleID {

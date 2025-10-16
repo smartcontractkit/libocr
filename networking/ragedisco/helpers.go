@@ -1,8 +1,8 @@
 package ragedisco
 
 import (
-	"github.com/smartcontractkit/libocr/commontypes"
-	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/commontypes"
+	ragetypes "github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 func equalAddrs(a []ragetypes.Address, b []ragetypes.Address) bool {

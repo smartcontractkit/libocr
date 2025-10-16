@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/loghelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/pkg/errors"
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 func reportContextHash(query types.Query, aos []types.AttributedObservation) [32]byte {

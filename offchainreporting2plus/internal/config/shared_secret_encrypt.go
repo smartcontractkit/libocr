@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"golang.org/x/crypto/curve25519"
 )
 

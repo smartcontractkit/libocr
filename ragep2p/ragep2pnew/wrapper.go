@@ -1,8 +1,8 @@
 package ragep2pnew
 
 import (
-	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
-	"github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/networking/ragep2pwrapper"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 func Wrapped(host *Host) ragep2pwrapper.Host {

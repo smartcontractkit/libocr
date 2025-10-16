@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/commontypes"
 )
 
 type BinaryMessageOutboundPriority byte

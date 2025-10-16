@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/internaltypes"
-	"github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/internaltypes"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 const (

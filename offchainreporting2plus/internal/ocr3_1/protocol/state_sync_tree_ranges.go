@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/smartcontractkit/libocr/internal/jmt"
+	"github.com/RoSpaceDev/libocr/internal/jmt"
 )
 
 // KeyDigestRange represents a contiguous range [StartIndex, EndInclIndex] in

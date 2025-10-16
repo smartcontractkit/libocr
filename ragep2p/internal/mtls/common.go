@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/smartcontractkit/libocr/ragep2p/types"
+	"github.com/RoSpaceDev/libocr/ragep2p/types"
 )
 
 // Generates a minimal certificate (that wouldn't be considered valid outside this telemetry networking protocol)

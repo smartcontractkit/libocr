@@ -3,7 +3,7 @@ package responselimit
 import (
 	"time"
 
-	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew/internal/internaltypes"
+	"github.com/RoSpaceDev/libocr/ragep2p/ragep2pnew/internal/internaltypes"
 )
 
 //go-sumtype:decl ResponsePolicy

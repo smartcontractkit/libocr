@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/commontypes"
 )
 
 type RequestInfo struct {

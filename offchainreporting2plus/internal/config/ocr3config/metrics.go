@@ -1,9 +1,9 @@
 package ocr3config
 
 import (
+	"github.com/RoSpaceDev/libocr/commontypes"
+	"github.com/RoSpaceDev/libocr/internal/metricshelper"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/smartcontractkit/libocr/commontypes"
-	"github.com/smartcontractkit/libocr/internal/metricshelper"
 )
 
 type PublicConfigMetrics struct {
@@ -38,63 +38,63 @@ func NewPublicConfigMetrics(
 
 	deltaProgress := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_progress_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaProgress.Set(publicConfig.DeltaProgress.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaProgress, "ocr3_config_delta_progress_seconds")
 
 	deltaResend := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_resend_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaResend.Set(publicConfig.DeltaResend.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaResend, "ocr3_config_delta_resend_seconds")
 
 	deltaInitial := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_initial_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaInitial.Set(publicConfig.DeltaInitial.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaInitial, "ocr3_config_delta_initial_seconds")
 
 	deltaRound := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_round_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaRound.Set(publicConfig.DeltaRound.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaRound, "ocr3_config_delta_round_seconds")
 
 	deltaGrace := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_grace_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaGrace.Set(publicConfig.DeltaGrace.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaGrace, "ocr3_config_delta_grace_seconds")
 
 	deltaCertifiedCommitRequest := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_certified_commit_request_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaCertifiedCommitRequest.Set(publicConfig.DeltaCertifiedCommitRequest.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaCertifiedCommitRequest, "ocr3_config_delta_certified_commit_request_seconds")
 
 	deltaStage := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_delta_stage_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	deltaStage.Set(publicConfig.DeltaStage.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, deltaStage, "ocr3_config_delta_stage_seconds")
 
 	rMax := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_r_max",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	rMax.Set(float64(publicConfig.RMax))
 	metricshelper.RegisterOrLogError(logger, registerer, rMax, "ocr3_config_r_max")
 
 	maxDurationInitialization := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_max_duration_initialization_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	maxDurationInitialization.Set(0)
 	if publicConfig.MaxDurationInitialization != nil {
@@ -104,28 +104,28 @@ func NewPublicConfigMetrics(
 
 	maxDurationQuery := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_max_duration_query_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	maxDurationQuery.Set(publicConfig.MaxDurationQuery.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, maxDurationQuery, "ocr3_config_max_duration_query_seconds")
 
 	maxDurationObservation := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_max_duration_observation_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	maxDurationObservation.Set(publicConfig.MaxDurationObservation.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, maxDurationObservation, "ocr3_config_max_duration_observation_seconds")
 
 	maxDurationShouldAcceptAttestedReport := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_max_duration_should_accept_attested_report_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	maxDurationShouldAcceptAttestedReport.Set(publicConfig.MaxDurationShouldAcceptAttestedReport.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, maxDurationShouldAcceptAttestedReport, "ocr3_config_max_duration_should_accept_attested_report_seconds")
 
 	maxDurationShouldTransmitAcceptedReport := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_max_duration_should_transmit_accepted_report_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	maxDurationShouldTransmitAcceptedReport.Set(publicConfig.MaxDurationShouldTransmitAcceptedReport.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, maxDurationShouldTransmitAcceptedReport, "ocr3_config_max_duration_should_transmit_accepted_report_seconds")
@@ -146,7 +146,7 @@ func NewPublicConfigMetrics(
 
 	minRoundInterval := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_config_min_round_interval_seconds",
-		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
+		Help: "See https://pkg.go.dev/github.com/RoSpaceDev/libocr/offchainreporting2plus/internal/config/ocr3config#PublicConfig for details",
 	})
 	minRoundInterval.Set(publicConfig.MinRoundInterval().Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, minRoundInterval, "ocr3_config_min_round_interval_seconds")

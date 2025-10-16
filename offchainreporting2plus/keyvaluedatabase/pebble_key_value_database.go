@@ -9,9 +9,9 @@ import (
 
 	"github.com/cockroachdb/pebble"
 
-	"github.com/smartcontractkit/libocr/internal/util"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/internal/util"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3_1types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 var ErrPebbleReadWriteTransactionAlreadyOpen = errors.New("a read-write transaction is already open")

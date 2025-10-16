@@ -1,9 +1,9 @@
 package protocol
 
 import (
-	"github.com/smartcontractkit/libocr/internal/jmt"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/internal/jmt"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/ocr3_1types"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 type KeyValueDatabaseReadTransaction interface {
