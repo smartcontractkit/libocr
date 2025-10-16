@@ -26,7 +26,7 @@ func RunReportAttestation[RI any](
 
 	chNetToReportAttestation <-chan MessageToReportAttestationWithSender[RI],
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI],
-	chReportAttestationToStatePersistence chan<- EventToStatePersistence[RI],
+	chReportAttestationToStateSync chan<- EventToStateSync[RI],
 	chReportAttestationToTransmission chan<- EventToTransmission[RI],
 	config ocr3config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
@@ -40,7 +40,7 @@ func RunReportAttestation[RI any](
 
 	newReportAttestationState(ctx, chNetToReportAttestation,
 		chOutcomeGenerationToReportAttestation,
-		chReportAttestationToStatePersistence, chReportAttestationToTransmission,
+		chReportAttestationToStateSync, chReportAttestationToTransmission,
 		config, contractTransmitter, logger, netSender, onchainKeyring,
 		reportingPlugin, sched).run()
 }
@@ -59,7 +59,7 @@ type reportAttestationState[RI any] struct {
 
 	chNetToReportAttestation               <-chan MessageToReportAttestationWithSender[RI]
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI]
-	chReportAttestationToStatePersistence  chan<- EventToStatePersistence[RI]
+	chReportAttestationToStateSync         chan<- EventToStateSync[RI]
 	chReportAttestationToTransmission      chan<- EventToTransmission[RI]
 	config                                 ocr3config.SharedConfig
 	contractTransmitter                    ocr3types.ContractTransmitter[RI]
@@ -372,7 +372,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 			repatt.rounds[seqNr].startedFetch = true
 			repatt.scheduler.ScheduleDelay(EventMissingOutcome[RI]{seqNr}, repatt.config.DeltaCertifiedCommitRequest)
 			select {
-			case repatt.chReportAttestationToStatePersistence <- EventStateSyncRequest[RI]{seqNr}:
+			case repatt.chReportAttestationToStateSync <- EventStateSyncRequest[RI]{seqNr}:
 			case <-repatt.ctx.Done():
 			}
 		}
@@ -709,7 +709,7 @@ func newReportAttestationState[RI any](
 
 	chNetToReportAttestation <-chan MessageToReportAttestationWithSender[RI],
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI],
-	chReportAttestationToStatePersistence chan<- EventToStatePersistence[RI],
+	chReportAttestationToStateSync chan<- EventToStateSync[RI],
 	chReportAttestationToTransmission chan<- EventToTransmission[RI],
 	config ocr3config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
@@ -725,7 +725,7 @@ func newReportAttestationState[RI any](
 
 		chNetToReportAttestation,
 		chOutcomeGenerationToReportAttestation,
-		chReportAttestationToStatePersistence,
+		chReportAttestationToStateSync,
 		chReportAttestationToTransmission,
 		config,
 		contractTransmitter,

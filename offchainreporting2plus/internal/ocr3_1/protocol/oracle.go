@@ -29,7 +29,8 @@ func RunOracle[RI any](
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	database Database,
 	id commontypes.OracleID,
-	kvStore KeyValueStore,
+	kvDb KeyValueDatabase,
+	limits ocr3_1types.ReportingPluginLimits,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	metricsRegisterer prometheus.Registerer,
@@ -47,7 +48,8 @@ func RunOracle[RI any](
 		contractTransmitter: contractTransmitter,
 		database:            database,
 		id:                  id,
-		kvStore:             kvStore,
+		kvDb:                kvDb,
+		limits:              limits,
 		localConfig:         localConfig,
 		logger:              logger,
 		metricsRegisterer:   metricsRegisterer,
@@ -68,7 +70,8 @@ type oracleState[RI any] struct {
 	contractTransmitter ocr3types.ContractTransmitter[RI]
 	database            Database
 	id                  commontypes.OracleID
-	kvStore             KeyValueStore
+	kvDb                KeyValueDatabase
+	limits              ocr3_1types.ReportingPluginLimits
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
 	metricsRegisterer   prometheus.Registerer
@@ -81,7 +84,7 @@ type oracleState[RI any] struct {
 	chNetToPacemaker         chan<- MessageToPacemakerWithSender[RI]
 	chNetToOutcomeGeneration chan<- MessageToOutcomeGenerationWithSender[RI]
 	chNetToReportAttestation chan<- MessageToReportAttestationWithSender[RI]
-	chNetToStatePersistence  chan<- MessageToStatePersistenceWithSender[RI]
+	chNetToStateSync         chan<- MessageToStateSyncWithSender[RI]
 	chNetToBlobExchange      chan<- MessageToBlobExchangeWithSender[RI]
 	childCancel              context.CancelFunc
 	childCtx                 context.Context
@@ -110,7 +113,7 @@ type oracleState[RI any] struct {
 //		   │              request│   │                             │
 //		   ▼                     │   ▼                             ▼
 //		┌──────┐              ┌──┴───────────────┐              ┌─────────────────┐
-//		│Oracle│◄────────────►│Outcome Generation│◄────────────►│State Persistence│
+//		│Oracle│◄────────────►│Outcome Generation│◄────────────►│State Sync       │
 //		└──────┘  out.gen.    └──────┬───────────┘              └─────────────────┘
 //		   ▲      message            │                             ▲
 //		   │                         │certified                    │
@@ -164,11 +167,11 @@ func (o *oracleState[RI]) run() {
 
 	chReportAttestationToTransmission := make(chan EventToTransmission[RI])
 
-	chNetToStatePersistence := make(chan MessageToStatePersistenceWithSender[RI])
-	o.chNetToStatePersistence = chNetToStatePersistence
+	chNetToStateSync := make(chan MessageToStateSyncWithSender[RI])
+	o.chNetToStateSync = chNetToStateSync
 
-	chOutcomeGenerationToStatePersistence := make(chan EventToStatePersistence[RI])
-	chReportAttestationToStatePersistence := make(chan EventToStatePersistence[RI])
+	chOutcomeGenerationToStateSync := make(chan EventToStateSync[RI])
+	chReportAttestationToStateSync := make(chan EventToStateSync[RI])
 
 	chNetToBlobExchange := make(chan MessageToBlobExchangeWithSender[RI])
 	o.chNetToBlobExchange = chNetToBlobExchange
@@ -177,31 +180,20 @@ func (o *oracleState[RI]) run() {
 
 	// communication between blob exchange and blob endpoint
 	chBlobBroadcastRequest := make(chan blobBroadcastRequest)
-	chBlobBroadcastResponse := make(chan blobBroadcastResponse)
-
 	chBlobFetchRequest := make(chan blobFetchRequest)
-	chBlobFetchResponse := make(chan blobFetchResponse)
 
 	// be careful if you want to change anything here.
 	// chNetTo* sends in message.go assume that their recipients are running.
 	o.childCtx, o.childCancel = context.WithCancel(context.Background())
 	defer o.childCancel()
 
-	defer o.kvStore.Close()
+	defer o.kvDb.Close()
 
-	paceState, cert, statePersistenceState, err := o.restoreFromDatabase()
+	paceState, cert, err := o.restoreFromDatabase()
 	if err != nil {
 		o.logger.Error("restoreFromDatabase returned an error, exiting oracle", commontypes.LogFields{
 			"error": err,
 		})
-		return
-	}
-	highestCommittedToKVdSeqNr, err := o.kvStore.HighestCommittedSeqNr()
-	if err != nil {
-		o.logger.Error("cannot read highest committed seqNr from key value store, exiting oracle",
-			commontypes.LogFields{
-				"error": err,
-			})
 		return
 	}
 
@@ -209,10 +201,7 @@ func (o *oracleState[RI]) run() {
 		o.childCtx,
 
 		chBlobBroadcastRequest,
-		chBlobBroadcastResponse,
-
 		chBlobFetchRequest,
-		chBlobFetchResponse,
 	}
 	o.blobEndpointWrapper.setBlobEndpoint(&blobEndpoint) // pass through to plugin
 
@@ -244,12 +233,12 @@ func (o *oracleState[RI]) run() {
 			chPacemakerToOutcomeGeneration,
 			chOutcomeGenerationToPacemaker,
 			chOutcomeGenerationToReportAttestation,
-			chOutcomeGenerationToStatePersistence,
+			chOutcomeGenerationToStateSync,
 			&blobEndpoint,
 			o.config,
 			o.database,
 			o.id,
-			o.kvStore,
+			o.kvDb,
 			o.localConfig,
 			o.logger,
 			o.metricsRegisterer,
@@ -268,7 +257,7 @@ func (o *oracleState[RI]) run() {
 
 			chNetToReportAttestation,
 			chOutcomeGenerationToReportAttestation,
-			chReportAttestationToStatePersistence,
+			chReportAttestationToStateSync,
 			chReportAttestationToTransmission,
 			o.config,
 			o.contractTransmitter,
@@ -280,21 +269,19 @@ func (o *oracleState[RI]) run() {
 	})
 
 	o.subprocesses.Go(func() {
-		RunStatePersistence[RI](
+		RunStateSync[RI](
 			o.childCtx,
 
-			chNetToStatePersistence,
-			chOutcomeGenerationToStatePersistence,
-			chReportAttestationToStatePersistence,
+			chNetToStateSync,
+			chOutcomeGenerationToStateSync,
+			chReportAttestationToStateSync,
 			o.config,
 			o.database,
 			o.id,
-			o.kvStore,
+			o.kvDb,
 			o.logger,
 			o.netEndpoint,
 			o.reportingPlugin,
-			statePersistenceState,
-			highestCommittedToKVdSeqNr,
 		)
 	})
 
@@ -320,14 +307,12 @@ func (o *oracleState[RI]) run() {
 			chOutcomeGenerationToBlobExchange,
 
 			chBlobBroadcastRequest,
-			chBlobBroadcastResponse,
-
 			chBlobFetchRequest,
-			chBlobFetchResponse,
 
 			o.config,
-			o.kvStore,
+			o.kvDb,
 			o.id,
+			o.limits,
 			o.localConfig,
 			o.logger,
 			o.metricsRegisterer,
@@ -399,7 +384,7 @@ func tryUntilSuccess[T any](ctx context.Context, logger commontypes.Logger, retr
 	}
 }
 
-func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepareOrCommit, StatePersistenceState, error) {
+func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepareOrCommit, error) {
 	const retryPeriod = 5 * time.Second
 
 	paceState, err := tryUntilSuccess[PacemakerState](
@@ -413,7 +398,7 @@ func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepar
 		},
 	)
 	if err != nil {
-		return PacemakerState{}, nil, StatePersistenceState{}, err
+		return PacemakerState{}, nil, err
 	}
 
 	o.logger.Info("restoreFromDatabase: successfully restored pacemaker state", commontypes.LogFields{
@@ -431,7 +416,7 @@ func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepar
 		},
 	)
 	if err != nil {
-		return PacemakerState{}, nil, StatePersistenceState{}, err
+		return PacemakerState{}, nil, err
 	}
 
 	if cert != nil {
@@ -443,23 +428,5 @@ func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepar
 		cert = &CertifiedCommit{}
 	}
 
-	statePersistenceState, err := tryUntilSuccess[StatePersistenceState](
-		o.ctx,
-		o.logger,
-		retryPeriod,
-		o.localConfig.DatabaseTimeout,
-		"Database.ReadStatePersistenceState",
-		func(ctx context.Context) (StatePersistenceState, error) {
-			return o.database.ReadStatePersistenceState(ctx, o.config.ConfigDigest)
-		},
-	)
-	if err != nil {
-		return PacemakerState{}, nil, StatePersistenceState{}, err
-	}
-
-	o.logger.Info("restoreFromDatabase: successfully restored state persistence state", commontypes.LogFields{
-		"state": statePersistenceState,
-	})
-
-	return paceState, cert, statePersistenceState, nil
+	return paceState, cert, nil
 }

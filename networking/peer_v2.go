@@ -13,12 +13,16 @@ import (
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
 	"github.com/smartcontractkit/libocr/internal/peerkeyringhelper"
 	"github.com/smartcontractkit/libocr/networking/ragedisco"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	"github.com/smartcontractkit/libocr/networking/rageping"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
+	"github.com/smartcontractkit/libocr/ragep2p/ragep2pnew"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 )
+
+var DangerDangerEnableExperimentalRageP2P = "I promise I know what I'm doing, give me the experimental ragep2p"
 
 // Exactly one of PrivKey (deprecated) or PeerKeyring must be provided.
 type PeerConfig struct {
@@ -54,6 +58,12 @@ type PeerConfig struct {
 	MetricsRegisterer prometheus.Registerer
 
 	LatencyMetricsServiceConfigs []*rageping.LatencyMetricsServiceConfig
+
+	// Set this to DangerDangerEnableExperimentalRageP2P to use the experimental ragep2p stack.
+	// If set to any other value, the default production ragep2p stack is used.
+	// Note that the experimental ragep2p stack is not yet ready for production use, but should
+	// in principle be backwards compatible with the current ragep2p stack.
+	EnableExperimentalRageP2P string
 }
 
 func (c *PeerConfig) keyring() (ragetypes.PeerKeyring, error) {
@@ -70,7 +80,7 @@ func (c *PeerConfig) keyring() (ragetypes.PeerKeyring, error) {
 // concretePeerV2 represents a ragep2p peer with one peer ID listening on one port
 type concretePeerV2 struct {
 	peerID                ragetypes.PeerID
-	host                  *ragep2p.Host
+	host                  ragep2pwrapper.Host
 	discoverer            *ragedisco.Ragep2pDiscoverer
 	metricsRegisterer     prometheus.Registerer
 	logger                loghelper.LoggerWithContext
@@ -93,6 +103,12 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 		"peerID": peerID.String(),
 	})
 
+	if c.EnableExperimentalRageP2P == DangerDangerEnableExperimentalRageP2P {
+		logger = logger.MakeChild(commontypes.LogFields{
+			"ragep2p": "experimental",
+		})
+	}
+
 	announceAddresses := c.V2AnnounceAddresses
 	if len(c.V2AnnounceAddresses) == 0 {
 		announceAddresses = c.V2ListenAddresses
@@ -101,16 +117,33 @@ func NewPeer(c PeerConfig) (*concretePeerV2, error) {
 	metricsRegistererWrapper := metricshelper.NewPrometheusRegistererWrapper(c.MetricsRegisterer, c.Logger)
 
 	discoverer := ragedisco.NewRagep2pDiscoverer(c.V2DeltaReconcile, announceAddresses, c.V2DiscovererDatabase, metricsRegistererWrapper)
-	host, err := ragep2p.NewHost(
-		ragep2p.HostConfig{c.V2DeltaDial},
-		keyring,
-		c.V2ListenAddresses,
-		discoverer,
-		c.Logger,
-		metricsRegistererWrapper,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct ragep2p host: %w", err)
+	var host ragep2pwrapper.Host
+	if c.EnableExperimentalRageP2P == DangerDangerEnableExperimentalRageP2P {
+		h, err := ragep2pnew.NewHost(
+			ragep2pnew.HostConfig{c.V2DeltaDial},
+			keyring,
+			c.V2ListenAddresses,
+			discoverer,
+			c.Logger,
+			metricsRegistererWrapper,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct ragep2pnew host: %w", err)
+		}
+		host = ragep2pnew.Wrapped(h)
+	} else {
+		h, err := ragep2p.NewHost(
+			ragep2p.HostConfig{c.V2DeltaDial},
+			keyring,
+			c.V2ListenAddresses,
+			discoverer,
+			c.Logger,
+			metricsRegistererWrapper,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct ragep2pnew host: %w", err)
+		}
+		host = ragep2p.Wrapped(h)
 	}
 	err = host.Start()
 	if err != nil {

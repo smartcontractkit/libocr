@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	ocr2types "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"github.com/smartcontractkit/libocr/ragep2p"
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 
@@ -50,14 +50,14 @@ type ocrEndpointV2 struct {
 	peerIDs             []ragetypes.PeerID
 	peerMapping         map[commontypes.OracleID]ragetypes.PeerID
 	reversedPeerMapping map[ragetypes.PeerID]commontypes.OracleID
-	host                *ragep2p.Host
+	host                ragep2pwrapper.Host
 	configDigest        ocr2types.ConfigDigest
 	ownOracleID         commontypes.OracleID
 
 	// internal and state management
 	chSendToSelf chan commontypes.BinaryMessageWithSender
 	chClose      chan struct{}
-	streams      map[commontypes.OracleID]*ragep2p.Stream
+	streams      map[commontypes.OracleID]ragep2pwrapper.Stream
 	registration io.Closer
 	state        ocrEndpointState
 
@@ -131,7 +131,7 @@ func newOCREndpointV2(
 		ownOracleID,
 		chSendToSelf,
 		make(chan struct{}),
-		make(map[commontypes.OracleID]*ragep2p.Stream),
+		make(map[commontypes.OracleID]ragep2pwrapper.Stream),
 		registration,
 		ocrEndpointUnstarted,
 		sync.RWMutex{},
@@ -174,11 +174,11 @@ func (o *ocrEndpointV2) Start() error {
 			o.config.OutgoingMessageBufferSize,
 			o.config.IncomingMessageBufferSize,
 			o.limits.MaxMessageLength,
-			ragep2p.TokenBucketParams{
+			ragetypes.TokenBucketParams{
 				o.limits.MessagesRatePerOracle,
 				uint32(o.limits.MessagesCapacityPerOracle),
 			},
-			ragep2p.TokenBucketParams{
+			ragetypes.TokenBucketParams{
 				o.limits.BytesRatePerOracle,
 				uint32(o.limits.BytesCapacityPerOracle),
 			},

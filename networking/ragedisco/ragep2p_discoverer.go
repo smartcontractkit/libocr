@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/networking/ragep2pwrapper"
 	nettypes "github.com/smartcontractkit/libocr/networking/types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/ragep2p"
@@ -33,14 +34,14 @@ type Ragep2pDiscoverer struct {
 	deltaReconcile    time.Duration
 	announceAddresses []string
 	db                nettypes.DiscovererDatabase
-	host              *ragep2p.Host
+	host              ragep2pwrapper.Host
 	proto             *discoveryProtocol
 
 	stateMu sync.Mutex
 	state   ragep2pDiscovererState
 
 	streamsMu sync.Mutex
-	streams   map[ragetypes.PeerID]*ragep2p.Stream
+	streams   map[ragetypes.PeerID]ragep2pwrapper.Stream
 
 	chIncomingMessages chan incomingMessage
 	chOutgoingMessages chan outgoingMessage
@@ -69,7 +70,7 @@ func NewRagep2pDiscoverer(
 		sync.Mutex{},
 		ragep2pDiscovererUnstarted,
 		sync.Mutex{},
-		make(map[ragetypes.PeerID]*ragep2p.Stream),
+		make(map[ragetypes.PeerID]ragep2pwrapper.Stream),
 		make(chan incomingMessage),
 		make(chan outgoingMessage),
 		make(chan connectivityMsg),
@@ -77,7 +78,7 @@ func NewRagep2pDiscoverer(
 	}
 }
 
-func (r *Ragep2pDiscoverer) Start(host *ragep2p.Host, keyring ragetypes.PeerKeyring, logger loghelper.LoggerWithContext) error {
+func (r *Ragep2pDiscoverer) Start(host ragep2pwrapper.Host, keyring ragetypes.PeerKeyring, logger loghelper.LoggerWithContext) error {
 	succeeded := false
 	defer func() {
 		if !succeeded {
@@ -144,7 +145,7 @@ func (r *Ragep2pDiscoverer) connectivityLoop() {
 				// no point in keeping very large buffers, since only
 				// the latest messages matter anyways.
 				bufferSize := 2
-				messagesLimit := ragep2p.TokenBucketParams{
+				messagesLimit := ragetypes.TokenBucketParams{
 					// we expect one message every deltaReconcile seconds, let's double it
 					// for good measure
 					2 / r.deltaReconcile.Seconds(),
@@ -152,7 +153,7 @@ func (r *Ragep2pDiscoverer) connectivityLoop() {
 					2 * uint32(bufferSize),
 				}
 				// bytesLimit is messagesLimit * maxMessageLength
-				bytesLimit := ragep2p.TokenBucketParams{
+				bytesLimit := ragetypes.TokenBucketParams{
 					messagesLimit.Rate * maxMessageLength,
 					messagesLimit.Capacity * maxMessageLength,
 				}

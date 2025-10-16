@@ -8,7 +8,6 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
-	"google.golang.org/protobuf/proto"
 )
 
 type SerializingOCR3_1Database struct {
@@ -16,8 +15,6 @@ type SerializingOCR3_1Database struct {
 }
 
 var _ protocol.Database = (*SerializingOCR3_1Database)(nil)
-
-const statePersistenceKey = "state"
 
 func (db *SerializingOCR3_1Database) ReadConfig(ctx context.Context) (*types.ContractConfig, error) {
 	return db.BinaryDb.ReadConfig(ctx)
@@ -75,55 +72,4 @@ func (db *SerializingOCR3_1Database) WriteCert(ctx context.Context, configDigest
 	}
 
 	return db.BinaryDb.WriteProtocolState(ctx, configDigest, certKey, raw)
-}
-
-func (db *SerializingOCR3_1Database) ReadStatePersistenceState(ctx context.Context, configDigest types.ConfigDigest) (protocol.StatePersistenceState, error) {
-	raw, err := db.BinaryDb.ReadProtocolState(ctx, configDigest, statePersistenceKey)
-	if err != nil {
-		return protocol.StatePersistenceState{}, err
-	}
-
-	if len(raw) == 0 {
-		return protocol.StatePersistenceState{}, nil
-	}
-
-	return serialization.DeserializeStatePersistenceState(raw)
-}
-
-// Writing with an empty value is the same as deleting.
-func (db *SerializingOCR3_1Database) WriteStatePersistenceState(ctx context.Context, configDigest types.ConfigDigest, state protocol.StatePersistenceState) error {
-	raw, err := serialization.SerializeStatePersistenceState(state)
-	if err != nil {
-		return err
-	}
-
-	return db.BinaryDb.WriteProtocolState(ctx, configDigest, statePersistenceKey, raw)
-}
-
-func (db *SerializingOCR3_1Database) ReadAttestedStateTransitionBlock(ctx context.Context, configDigest types.ConfigDigest, seqNr uint64) (protocol.AttestedStateTransitionBlock, error) {
-	raw, err := db.BinaryDb.ReadBlock(ctx, configDigest, seqNr)
-	if err != nil {
-		return protocol.AttestedStateTransitionBlock{}, err
-	}
-
-	if len(raw) == 0 {
-		return protocol.AttestedStateTransitionBlock{}, nil
-	}
-
-	astb := serialization.AttestedStateTransitionBlock{}
-	if err := proto.Unmarshal(raw, &astb); err != nil {
-		return protocol.AttestedStateTransitionBlock{}, err
-	}
-
-	return serialization.DeserializeAttestedStateTransitionBlock(raw)
-}
-
-// Writing with an empty value is the same as deleting.
-func (db *SerializingOCR3_1Database) WriteAttestedStateTransitionBlock(ctx context.Context, configDigest types.ConfigDigest, seqNr uint64, astb protocol.AttestedStateTransitionBlock) error {
-	raw, err := serialization.SerializeAttestedStateTransitionBlock(astb)
-	if err != nil {
-		return err
-	}
-
-	return db.BinaryDb.WriteBlock(ctx, configDigest, seqNr, raw)
 }

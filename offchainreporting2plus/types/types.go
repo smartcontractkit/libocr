@@ -424,6 +424,12 @@ type ConfigEncryptionPublicKey [curve25519.PointSize]byte // X25519
 type OffchainKeyring interface {
 	// OffchainSign returns an EdDSA-Ed25519 signature on msg produced using the
 	// standard library's ed25519.Sign function.
+	//
+	// For domain separation between different applications, the recommended pattern is to
+	// format msg as: <application-specific domain separator> || <32 byte hash of application-specific data>
+	// For example, OCR3 uses "ocr3" || sha256(<protocol message>).
+	// OCR2 confirms to the pattern if you squint: it uses a zero-length application-specific domain separator. ;-)
+
 	OffchainSign(msg []byte) (signature []byte, err error)
 
 	// ConfigDiffieHellman multiplies point with the secret key (i.e. scalar)

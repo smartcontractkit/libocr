@@ -76,10 +76,10 @@ func (ev EventComputedObservationQuorumSuccess[RI]) processOutcomeGeneration(out
 }
 
 type EventComputedObservation[RI any] struct {
-	Epoch       uint64
-	SeqNr       uint64
-	Query       types.Query
-	Observation types.Observation
+	Epoch           uint64
+	SeqNr           uint64
+	AttributedQuery types.AttributedQuery
+	Observation     types.Observation
 }
 
 var _ EventToOutcomeGeneration[struct{}] = EventComputedObservation[struct{}]{}
@@ -89,10 +89,10 @@ func (ev EventComputedObservation[RI]) processOutcomeGeneration(outgen *outcomeG
 }
 
 type EventComputedProposalStateTransition[RI any] struct {
-	Epoch                             uint64
-	SeqNr                             uint64
-	KeyValueStoreReadWriteTransaction KeyValueStoreReadWriteTransaction
-	stateTransitionInfo               stateTransitionInfo
+	Epoch                                uint64
+	SeqNr                                uint64
+	KeyValueDatabaseReadWriteTransaction KeyValueDatabaseReadWriteTransaction
+	stateTransitionInfo                  stateTransitionInfo
 }
 
 var _ EventToOutcomeGeneration[struct{}] = EventComputedProposalStateTransition[struct{}]{}
@@ -101,12 +101,23 @@ func (ev EventComputedProposalStateTransition[RI]) processOutcomeGeneration(outg
 	outgen.eventComputedProposalStateTransition(ev)
 }
 
+type EventComputedCommitted[RI any] struct {
+	Epoch uint64
+	SeqNr uint64
+}
+
+var _ EventToOutcomeGeneration[struct{}] = EventComputedCommitted[struct{}]{}
+
+func (ev EventComputedCommitted[RI]) processOutcomeGeneration(outgen *outcomeGenerationState[RI]) {
+	outgen.eventComputedCommitted(ev)
+}
+
 type EventToReportAttestation[RI any] interface {
 	processReportAttestation(repatt *reportAttestationState[RI])
 }
 
-type EventToStatePersistence[RI any] interface {
-	processStatePersistence(state *statePersistenceState[RI])
+type EventToStateSync[RI any] interface {
+	processStateSync(stasy *stateSyncState[RI])
 }
 
 type EventToBlobExchange[RI any] interface {
@@ -165,77 +176,60 @@ type EventStateSyncRequest[RI any] struct {
 	SeqNr uint64
 }
 
-var _ EventToStatePersistence[struct{}] = EventStateSyncRequest[struct{}]{} // implements EventToStatePersistence
+var _ EventToStateSync[struct{}] = EventStateSyncRequest[struct{}]{} // implements EventToStateSync
 
-func (ev EventStateSyncRequest[RI]) processStatePersistence(state *statePersistenceState[RI]) {
-	state.eventStateSyncRequest(ev)
+func (ev EventStateSyncRequest[RI]) processStateSync(stasy *stateSyncState[RI]) {
+	stasy.eventStateSyncRequest(ev)
 }
 
-type EventBlockSyncSummaryHeartbeat[RI any] struct{}
-
-var _ EventToStatePersistence[struct{}] = EventBlockSyncSummaryHeartbeat[struct{}]{} // implements EventToStatePersistence
-
-func (ev EventBlockSyncSummaryHeartbeat[RI]) processStatePersistence(state *statePersistenceState[RI]) {
-	state.eventEventBlockSyncSummaryHeartbeat(ev)
+type EventBlobBroadcastRequestRespond[RI any] struct {
+	BlobDigest BlobDigest
+	Request    blobBroadcastRequest
 }
 
-type EventExpiredBlockSyncRequest[RI any] struct {
-	RequestedFrom commontypes.OracleID
-	Nonce         uint64
+var _ EventToBlobExchange[struct{}] = EventBlobBroadcastRequestRespond[struct{}]{} // implements EventToBlobExchange
+
+func (ev EventBlobBroadcastRequestRespond[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
+	bex.eventBlobBroadcastRequestRespond(ev)
 }
 
-var _ EventToStatePersistence[struct{}] = EventExpiredBlockSyncRequest[struct{}]{} // implements EventToStatePersistence
-
-func (ev EventExpiredBlockSyncRequest[RI]) processStatePersistence(state *statePersistenceState[RI]) {
-	state.eventExpiredBlockSyncRequest(ev)
-}
-
-type EventReadyToSendNextBlockSyncRequest[RI any] struct{}
-
-var _ EventToStatePersistence[struct{}] = EventReadyToSendNextBlockSyncRequest[struct{}]{} // implements EventToStatePersistence
-
-func (ev EventReadyToSendNextBlockSyncRequest[RI]) processStatePersistence(state *statePersistenceState[RI]) {
-	state.eventReadyToSendNextBlockSyncRequest(ev)
-}
-
-type EventMissingBlobChunk[RI any] struct {
+type EventBlobBroadcastRequestDone[RI any] struct {
 	BlobDigest BlobDigest
 }
 
-var _ EventToBlobExchange[struct{}] = EventMissingBlobChunk[struct{}]{} // implements EventToBlobExchange
+var _ EventToBlobExchange[struct{}] = EventBlobBroadcastRequestDone[struct{}]{} // implements EventToBlobExchange
 
-func (ev EventMissingBlobChunk[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
-	bex.eventMissingChunk(ev)
+func (ev EventBlobBroadcastRequestDone[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
+	bex.eventBlobBroadcastRequestDone(ev)
 }
 
-type EventMissingBlobCert[RI any] struct {
+type EventBlobFetchRequestRespond[RI any] struct {
+	BlobDigest BlobDigest
+	Request    blobFetchRequest
+}
+
+var _ EventToBlobExchange[struct{}] = EventBlobFetchRequestRespond[struct{}]{} // implements EventToBlobExchange
+
+func (ev EventBlobFetchRequestRespond[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
+	bex.eventBlobFetchRequestRespond(ev)
+}
+
+type EventBlobFetchRequestDone[RI any] struct {
 	BlobDigest BlobDigest
 }
 
-var _ EventToBlobExchange[struct{}] = EventMissingBlobCert[struct{}]{} // implements EventToBlobExchange
+var _ EventToBlobExchange[struct{}] = EventBlobFetchRequestDone[struct{}]{} // implements EventToBlobExchange
 
-func (ev EventMissingBlobCert[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
-	bex.eventMissingCert(ev)
+func (ev EventBlobFetchRequestDone[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
+	bex.eventBlobFetchRequestDone(ev)
 }
 
-type EventRespondWithBlobCert[RI any] struct {
+type EventBlobBroadcastGraceTimeout[RI any] struct {
 	BlobDigest BlobDigest
-	Channel    chan<- LightCertifiedBlob
 }
 
-var _ EventToBlobExchange[struct{}] = EventRespondWithBlobCert[struct{}]{} // implements EventToBlobExchange
+var _ EventToBlobExchange[struct{}] = EventBlobBroadcastGraceTimeout[struct{}]{} // implements EventToBlobExchange
 
-func (ev EventRespondWithBlobCert[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
-	bex.eventRespondWithBlobCert(ev)
-}
-
-type EventRespondWithBlobPayload[RI any] struct {
-	BlobDigest BlobDigest
-	Channel    chan<- []byte
-}
-
-var _ EventToBlobExchange[struct{}] = EventRespondWithBlobPayload[struct{}]{} // implements EventToBlobExchange
-
-func (ev EventRespondWithBlobPayload[RI]) processBlobExchange(blobex *blobExchangeState[RI]) {
-	blobex.eventRespondWithBlobPayload(ev)
+func (ev EventBlobBroadcastGraceTimeout[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
+	bex.eventBlobBroadcastGraceTimeout(ev)
 }

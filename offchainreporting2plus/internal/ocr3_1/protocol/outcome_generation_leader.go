@@ -1,7 +1,9 @@
 package protocol
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -185,7 +187,14 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else if commitQC, ok := epochStartProof.HighestCertified.(*CertifiedCommit); ok {
-		outgen.commit(*commitQC)
+
+		if commitQC.SeqNr() != outgen.sharedState.committedSeqNr {
+			outgen.logger.Critical("assumption violation, we should have already committed the seqNr of the commitQC", commontypes.LogFields{
+				"seqNr":       outgen.sharedState.seqNr,
+				"commitSeqNr": commitQC.SeqNr(),
+			})
+			panic("")
+		}
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else {
@@ -231,7 +240,7 @@ func (outgen *outcomeGenerationState[RI]) startSubsequentLeaderRound() {
 		ctx := outgen.epochCtx
 		logger := outgen.logger
 		roundCtx := outgen.RoundCtx(outgen.sharedState.committedSeqNr + 1)
-		kvReadTxn, err := outgen.kvStore.NewReadTransaction(roundCtx.SeqNr)
+		kvReadTxn, err := outgen.kvDb.NewReadTransaction(roundCtx.SeqNr)
 		if err != nil {
 			outgen.logger.Warn("failed to create new transaction, aborting startSubsequentLeaderRound", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
@@ -249,7 +258,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundQuery(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	roundCtx RoundContext,
-	kvReadTxn KeyValueStoreReadTransaction,
+	kvReadTxn KeyValueDatabaseReadTransaction,
 ) {
 	query, ok := callPluginFromOutcomeGenerationBackground[types.Query](
 		ctx,
@@ -258,7 +267,15 @@ func (outgen *outcomeGenerationState[RI]) backgroundQuery(
 		outgen.config.MaxDurationQuery,
 		roundCtx,
 		func(ctx context.Context, outctx RoundContext) (types.Query, error) {
-			return outgen.reportingPlugin.Query(ctx, roundCtx.SeqNr, kvReadTxn, outgen.blobBroadcastFetcher)
+			return outgen.reportingPlugin.Query(
+				ctx,
+				roundCtx.SeqNr,
+				kvReadTxn,
+				NewRoundBlobBroadcastFetcher(
+					roundCtx.SeqNr,
+					outgen.blobBroadcastFetcher,
+				),
+			)
 		},
 	)
 	kvReadTxn.Discard()
@@ -369,7 +386,7 @@ func (outgen *outcomeGenerationState[RI]) messageObservation(msg MessageObservat
 			outgen.leaderState.query,
 			outgen.sharedState.l,
 		}
-		kvReadTxn, err := outgen.kvStore.NewReadTransaction(roundCtx.SeqNr)
+		kvReadTxn, err := outgen.kvDb.NewReadTransaction(roundCtx.SeqNr)
 		if err != nil {
 			outgen.logger.Warn("failed to create new transaction, aborting messageObservation", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
@@ -391,12 +408,12 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 	sender commontypes.OracleID,
 	signedObservation SignedObservation,
 	aq types.AttributedQuery,
-	kvReadTxn KeyValueStoreReadTransaction,
+	kvReadTxn KeyValueDatabaseReadTransaction,
 ) {
 	if err := signedObservation.Verify(
 		ogid,
 		roundCtx.SeqNr,
-		aq.Query,
+		aq,
 		outgen.config.OracleIdentities[sender].OffchainPublicKey,
 	); err != nil {
 		logger.Warn("dropping MessageObservation carrying invalid SignedObservation", commontypes.LogFields{
@@ -417,9 +434,15 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 			return outgen.reportingPlugin.ValidateObservation(ctx,
 				roundCtx.SeqNr,
 				aq,
-				types.AttributedObservation{signedObservation.Observation, sender},
+				types.AttributedObservation{
+					signedObservation.Observation,
+					sender,
+				},
 				kvReadTxn,
-				outgen.blobBroadcastFetcher,
+				NewRoundBlobBroadcastFetcher(
+					roundCtx.SeqNr,
+					outgen.blobBroadcastFetcher,
+				),
 			), nil
 		},
 	)
@@ -491,7 +514,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedValidateVerifyObservation
 			}
 			aos = append(aos, types.AttributedObservation{observationPoolEntry.Item.Observation, sender})
 		}
-		kvReadTxn, err := outgen.kvStore.NewReadTransaction(outctx.SeqNr)
+		kvReadTxn, err := outgen.kvDb.NewReadTransaction(outctx.SeqNr)
 		if err != nil {
 			outgen.logger.Warn("failed to create new transaction, aborting eventComputedValidateVerifyObservation", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
@@ -519,7 +542,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 	roundCtx RoundContext,
 	aq types.AttributedQuery,
 	aos []types.AttributedObservation,
-	kvReadTxn KeyValueStoreReadTransaction,
+	kvReadTxn KeyValueDatabaseReadTransaction,
 ) {
 	observationQuorum, ok := callPluginFromOutcomeGenerationBackground[bool](
 		ctx,
@@ -528,7 +551,17 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 		0, // ObservationQuorum is a pure function and should finish "instantly"
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (bool, error) {
-			return outgen.reportingPlugin.ObservationQuorum(ctx, roundCtx.SeqNr, aq, aos, kvReadTxn, outgen.blobBroadcastFetcher)
+			return outgen.reportingPlugin.ObservationQuorum(
+				ctx,
+				roundCtx.SeqNr,
+				aq,
+				aos,
+				kvReadTxn,
+				NewRoundBlobBroadcastFetcher(
+					roundCtx.SeqNr,
+					outgen.blobBroadcastFetcher,
+				),
+			)
 		},
 	)
 	kvReadTxn.Discard()
@@ -591,14 +624,21 @@ func (outgen *outcomeGenerationState[RI]) eventTGraceTimeout() {
 		})
 		return
 	}
+
 	asos := make([]AttributedSignedObservation, 0, outgen.config.N())
-	contributors := make([]commontypes.OracleID, 0, outgen.config.N())
 	for sender, observationPoolEntry := range outgen.leaderState.observationPool.Entries(outgen.sharedState.seqNr) {
 		if observationPoolEntry.Verified == nil || !*observationPoolEntry.Verified {
 			continue
 		}
 		asos = append(asos, AttributedSignedObservation{SignedObservation: observationPoolEntry.Item, Observer: sender})
-		contributors = append(contributors, sender)
+	}
+	slices.SortFunc(asos, func(aso1, aso2 AttributedSignedObservation) int {
+		return cmp.Compare(aso1.Observer, aso2.Observer)
+	})
+
+	contributors := make([]commontypes.OracleID, 0, len(asos))
+	for _, aso := range asos {
+		contributors = append(contributors, aso.Observer)
 	}
 
 	outgen.leaderState.phase = outgenLeaderPhaseSentProposal

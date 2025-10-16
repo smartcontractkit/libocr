@@ -1,28 +1,46 @@
 package protocol
 
 import (
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
+	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
+
+type KeyValuePair = jmt.KeyValue
+
+type StateRootDigest = jmt.Digest
 
 type AttestedReportMany[RI any] struct {
 	ReportWithInfo       ocr3types.ReportWithInfo[RI]
 	AttributedSignatures []types.AttributedOnchainSignature
 }
 
-type StateTransitionBlock struct {
-	Epoch                       uint64
-	BlockSeqNr                  uint64
-	StateTransitionInputsDigest StateTransitionInputsDigest
-	StateTransitionOutputs      StateTransitionOutputs
-	ReportsPlusPrecursor        ocr3_1types.ReportsPlusPrecursor
-}
-
-func (stb *StateTransitionBlock) SeqNr() uint64 {
-	return stb.BlockSeqNr
+type KeyValuePairWithDeletions struct {
+	Key     []byte
+	Value   []byte
+	Deleted bool
 }
 
 type StateTransitionOutputs struct {
-	WriteSet []KeyValuePair
+	WriteSet []KeyValuePairWithDeletions
+}
+
+type TreeSyncPhase int
+
+const (
+	// Tree sync was never started, or was completed. Regardless, it's not
+	// happening right now.
+	TreeSyncPhaseInactive TreeSyncPhase = iota
+	// Tree sync is waiting for the necessary parts of the key-value store to be
+	// cleaned up before it can start.
+	TreeSyncPhaseWaiting
+	// Tree sync is actively progressing now.
+	TreeSyncPhaseActive
+)
+
+type TreeSyncStatus struct {
+	Phase                  TreeSyncPhase
+	TargetSeqNr            uint64
+	TargetStateRootDigest  StateRootDigest
+	PendingKeyDigestRanges PendingKeyDigestRanges
 }
