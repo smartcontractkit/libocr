@@ -4,9 +4,9 @@ package confighelper
 import (
 	"time"
 
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/confighelper"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/confighelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 type OracleIdentity = confighelper.OracleIdentity

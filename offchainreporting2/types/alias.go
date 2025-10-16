@@ -1,7 +1,7 @@
 // alias for offchainreporting2plus/types
 package types
 
-import "github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+import "github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 
 type ConfigDigestPrefix = types.ConfigDigestPrefix
 

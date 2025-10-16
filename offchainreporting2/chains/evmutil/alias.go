@@ -2,9 +2,9 @@
 package evmutil
 
 import (
-	"github.com/smartcontractkit/libocr/gethwrappers2/ocr2aggregator"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/chains/evmutil"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+	"github.com/RoSpaceDev/libocr/gethwrappers2/ocr2aggregator"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/chains/evmutil"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 )
 
 func SplitSignature(sig []byte) (r, s [32]byte, v byte, err error) {

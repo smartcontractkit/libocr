@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/RoSpaceDev/libocr/offchainreporting2/reportingplugin/median"
+	"github.com/RoSpaceDev/libocr/offchainreporting2plus/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/smartcontractkit/libocr/offchainreporting2/reportingplugin/median"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 var reportTypes = getReportTypes()

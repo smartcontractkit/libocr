@@ -1,4 +1,4 @@
-module github.com/smartcontractkit/libocr
+module github.com/RoSpaceDev/libocr
 
 go 1.24
 
