@@ -5,6 +5,7 @@ package ocr2abstract
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -99,6 +100,8 @@ type OCR2AbstractTransactorRaw struct {
 
 // NewOCR2Abstract creates a new instance of OCR2Abstract, bound to a specific deployed contract.
 func NewOCR2Abstract(address common.Address, backend bind.ContractBackend) (*OCR2Abstract, error) {
+	fmt.Printf("OCRDEBUG: NewOCR2Abstract: Creating new OCR2Abstract instance at address %s", address.Hex())
+
 	contract, err := bindOCR2Abstract(address, backend, backend, backend)
 	if err != nil {
 		return nil, err
@@ -108,6 +111,7 @@ func NewOCR2Abstract(address common.Address, backend bind.ContractBackend) (*OCR
 
 // NewOCR2AbstractCaller creates a new read-only instance of OCR2Abstract, bound to a specific deployed contract.
 func NewOCR2AbstractCaller(address common.Address, caller bind.ContractCaller) (*OCR2AbstractCaller, error) {
+	fmt.Printf("OCRDEBUG: NewOCR2AbstractCaller: Creating new OCR2AbstractCaller instance at address %s", address.Hex())
 	contract, err := bindOCR2Abstract(address, caller, nil, nil)
 	if err != nil {
 		return nil, err
@@ -117,6 +121,7 @@ func NewOCR2AbstractCaller(address common.Address, caller bind.ContractCaller) (
 
 // NewOCR2AbstractTransactor creates a new write-only instance of OCR2Abstract, bound to a specific deployed contract.
 func NewOCR2AbstractTransactor(address common.Address, transactor bind.ContractTransactor) (*OCR2AbstractTransactor, error) {
+	fmt.Printf("OCRDEBUG: NewOCR2AbstractTransactor: Creating new OCR2AbstractTransactor instance at address %s", address.Hex())
 	contract, err := bindOCR2Abstract(address, nil, transactor, nil)
 	if err != nil {
 		return nil, err
@@ -126,7 +131,9 @@ func NewOCR2AbstractTransactor(address common.Address, transactor bind.ContractT
 
 // NewOCR2AbstractFilterer creates a new log filterer instance of OCR2Abstract, bound to a specific deployed contract.
 func NewOCR2AbstractFilterer(address common.Address, filterer bind.ContractFilterer) (*OCR2AbstractFilterer, error) {
+	fmt.Printf("OCRDEBUG: NewOCR2AbstractFilterer: Creating new OCR2AbstractFilterer instance at address %s", address.Hex())
 	contract, err := bindOCR2Abstract(address, nil, nil, filterer)
+
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +197,7 @@ func (_OCR2Abstract *OCR2AbstractCaller) LatestConfigDetails(opts *bind.CallOpts
 }, error) {
 	var out []interface{}
 	err := _OCR2Abstract.contract.Call(opts, &out, "latestConfigDetails")
+
 
 	outstruct := new(struct {
 		ConfigCount  uint32

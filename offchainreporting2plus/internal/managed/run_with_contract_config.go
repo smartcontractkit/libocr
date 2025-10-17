@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -83,6 +84,8 @@ type runWithContractConfigState struct {
 }
 
 func (rwcc *runWithContractConfigState) run() {
+	fmt.Println("OCRDEBUG: runWithContractConfig: run called")
+
 	// Restore config from database, so that we can run even if the ethereum node
 	// isn't working.
 	rwcc.restoreFromDatabase()
