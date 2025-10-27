@@ -25,7 +25,6 @@ const (
 )
 
 func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEpochStartRequest[RI], sender commontypes.OracleID) {
-
 	outgen.logger.Debug("received MessageEpochStartRequest", commontypes.LogFields{
 		"sender":                       sender,
 		"msgHighestCertifiedTimestamp": msg.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp,
@@ -153,13 +152,6 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		highestCertifiedProof,
 	}
 
-	outgen.refreshCommittedSeqNrAndCert()
-	if !outgen.ensureHighestCertifiedIsCompatible(maxRequest.message.HighestCertified, "potential broadcast of EpochStartProof") {
-		outgen.leaderState.phase = outgenLeaderPhaseAbdicate
-
-		return
-	}
-
 	// This is a sanity check to ensure that we only construct epochStartProofs that are actually valid.
 	// This should never fail.
 	if err := epochStartProof.Verify(outgen.ID(), outgen.config.OracleIdentities, outgen.config.ByzQuorumSize()); err != nil {
@@ -170,30 +162,50 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
+	outgen.sendStateSyncRequestFromCertifiedPrepareOrCommit(epochStartProof.HighestCertified)
+
+	abdicate := !outgen.couldLeaderCreateProposalInEpoch(epochStartProof.HighestCertified)
+	outgen.refreshCommittedSeqNrAndCert() // call in case stasy has made progress in the meanwhile
+
 	outgen.leaderState.phase = outgenLeaderPhaseSentEpochStart
 
 	outgen.logger.Info("broadcasting MessageEpochStart", commontypes.LogFields{
 		"contributors":              contributors,
 		"highestCertifiedTimestamp": epochStartProof.HighestCertified.Timestamp(),
 		"highestCertifiedQCSeqNr":   epochStartProof.HighestCertified.SeqNr(),
+		"abdicate":                  abdicate,
 	})
 
 	outgen.netSender.Broadcast(MessageEpochStart[RI]{
 		outgen.sharedState.e,
 		epochStartProof,
+		abdicate,
 	})
+
+	if abdicate {
+		outgen.leaderState.phase = outgenLeaderPhaseAbdicate
+		// Receipt of our own MessageEpochStart will cause the follower logic to
+		// handle HighestCertified despite this early return.
+		return
+	}
 
 	if epochStartProof.HighestCertified.IsGenesis() {
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
 	} else if commitQC, ok := epochStartProof.HighestCertified.(*CertifiedCommit); ok {
+		// Try to commit the block corresponding to the commitQC if (1) we have
+		// not done so and (2) if we have all available information present,
+		// i.e. the StateTransitionBlock corresponding to the commitQC is
+		// available.
+		outgen.tryToMoveCertAndKVStateToCommitQC(commitQC)
+		if outgen.sharedState.committedSeqNr != commitQC.CommitSeqNr {
 
-		if commitQC.SeqNr() != outgen.sharedState.committedSeqNr {
-			outgen.logger.Critical("assumption violation, we should have already committed the seqNr of the commitQC", commontypes.LogFields{
-				"seqNr":       outgen.sharedState.seqNr,
-				"commitSeqNr": commitQC.SeqNr(),
+			outgen.logger.Warn("cannot process MessageEpochStartRequest, mismatching committedSeqNr, silently abdicating for this epoch", commontypes.LogFields{
+				"commitSeqNr":    commitQC.CommitSeqNr,
+				"committedSeqNr": outgen.sharedState.committedSeqNr,
 			})
-			panic("")
+			outgen.leaderState.phase = outgenLeaderPhaseAbdicate
+			return
 		}
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
@@ -203,11 +215,76 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStartRequest", nil)
 			return
 		}
+
+		if prepareQc.SeqNr() < outgen.sharedState.committedSeqNr {
+
+			outgen.logger.Warn("cannot process MessageEpochStartRequest, prepareQC seqNr is less than committedSeqNr, silently abdicating for this epoch", commontypes.LogFields{
+				"prepareQCSeqNr": prepareQc.SeqNr(),
+				"committedSeqNr": outgen.sharedState.committedSeqNr,
+			})
+			outgen.leaderState.phase = outgenLeaderPhaseAbdicate
+			return
+		}
+
 		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr() + 1
 		// We're dealing with a re-proposal from a failed epoch based on a
 		// prepare qc.
 		// We don't want to send MessageRoundStart.
 	}
+}
+
+func (outgen *outcomeGenerationState[RI]) couldLeaderCreateProposalInEpoch(highestCertified CertifiedPrepareOrCommit) bool {
+	var (
+		highestCertifiedSeqNr                       uint64
+		highestCertifiedStateTransitionInputsDigest StateTransitionInputsDigest
+	)
+
+	switch cpoc := highestCertified.(type) {
+	case *CertifiedCommit:
+		highestCertifiedSeqNr = cpoc.CommitSeqNr
+		highestCertifiedStateTransitionInputsDigest = cpoc.StateTransitionInputsDigest
+	case *CertifiedPrepare:
+		highestCertifiedSeqNr = cpoc.PrepareSeqNr
+		highestCertifiedStateTransitionInputsDigest = cpoc.StateTransitionInputsDigest
+	}
+
+	tx, err := outgen.kvDb.NewReadTransactionUnchecked()
+	if err != nil {
+		outgen.logger.Error("failed to create read transaction, can't drive epoch", commontypes.LogFields{
+			"highestCertifiedSeqNr": highestCertifiedSeqNr,
+			"error":                 err,
+		})
+		return false
+	}
+	defer tx.Discard()
+
+	committedKVSeqNr, err := tx.ReadHighestCommittedSeqNr()
+	if err != nil {
+		outgen.logger.Error("failed to read highest committed kv seq nr, can't drive epoch", commontypes.LogFields{
+			"highestCertifiedSeqNr": highestCertifiedSeqNr,
+			"error":                 err,
+		})
+		return false
+	}
+
+	if committedKVSeqNr == highestCertifiedSeqNr {
+		return true
+	}
+	if committedKVSeqNr+1 != highestCertifiedSeqNr {
+		return false
+	}
+	unattestedExists, err := tx.ExistsUnattestedStateTransitionBlock(highestCertifiedSeqNr, highestCertifiedStateTransitionInputsDigest)
+	if err != nil {
+		outgen.logger.Error("failed to check if unattested state transition block exists, can't drive epoch", commontypes.LogFields{
+			"highestCertifiedSeqNr": highestCertifiedSeqNr,
+			"error":                 err,
+		})
+		return false
+	}
+	if unattestedExists {
+		return true
+	}
+	return false
 }
 
 func (outgen *outcomeGenerationState[RI]) eventTRoundTimeout() {
@@ -246,6 +323,7 @@ func (outgen *outcomeGenerationState[RI]) startSubsequentLeaderRound() {
 				"seqNr": outgen.sharedState.seqNr,
 				"error": err,
 			})
+
 			return
 		}
 		outgen.subs.Go(func() {
@@ -264,7 +342,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundQuery(
 		ctx,
 		logger,
 		"Query",
-		outgen.config.MaxDurationQuery,
+		outgen.config.WarnDurationQuery,
 		roundCtx,
 		func(ctx context.Context, outctx RoundContext) (types.Query, error) {
 			return outgen.reportingPlugin.Query(
@@ -428,7 +506,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundVerifyValidateObservation(
 		ctx,
 		logger,
 		"ValidateObservation",
-		0, // ValidateObservation is a pure function and should finish "instantly"
+		outgen.config.WarnDurationValidateObservation,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (error, error) {
 			return outgen.reportingPlugin.ValidateObservation(ctx,
@@ -548,7 +626,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservationQuorum(
 		ctx,
 		logger,
 		"ObservationQuorum",
-		0, // ObservationQuorum is a pure function and should finish "instantly"
+		outgen.config.WarnDurationObservationQuorum,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (bool, error) {
 			return outgen.reportingPlugin.ObservationQuorum(

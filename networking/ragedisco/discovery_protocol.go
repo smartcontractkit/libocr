@@ -20,6 +20,7 @@ import (
 // Maximum number of distinct oracles that we can have across groups.
 // The exact number is chosen arbitrarily. Better to have an arbitrary limit
 // than no limit.
+// See also [ragetypes.MaxPeersPerHost].
 const MaxOracles = 165
 
 type incomingMessage struct {

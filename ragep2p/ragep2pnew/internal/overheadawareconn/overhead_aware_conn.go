@@ -99,7 +99,7 @@ func (r *OverheadAwareConn) AddDeliveredApplicationDataBytes(bytes int) error {
 
 	readPostSetupRawBytesAttributableToDeliveredApplicationData := r.readPostSetupRawBytes - GenerouslyOverstimatedTLSReadAhead
 
-	if r.deliveredApplicationDataBytes*2 < readPostSetupRawBytesAttributableToDeliveredApplicationData {
+	if r.deliveredApplicationDataBytes*MaximumAllowedApplicationDataToRawFactor < readPostSetupRawBytesAttributableToDeliveredApplicationData {
 		return fmt.Errorf("inbound read overhead on underlying TCP connection is too large, suspecting shenanigans: deliveredApplicationDataBytes=%d, readPostSetupRawBytes=%d, generouslyOverstimatedTLSReadAhead=%d",
 			r.deliveredApplicationDataBytes,
 			r.readPostSetupRawBytes,

@@ -2,16 +2,17 @@ package protocol
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/pool"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -35,7 +36,7 @@ func RunOutcomeGeneration[RI any](
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI],
 	chOutcomeGenerationToStateSync chan<- EventToStateSync[RI],
 	blobBroadcastFetcher ocr3_1types.BlobBroadcastFetcher,
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
 	kvDb KeyValueDatabase,
@@ -87,7 +88,7 @@ type outcomeGenerationState[RI any] struct {
 	chOutcomeGenerationToReportAttestation chan<- EventToReportAttestation[RI]
 	chOutcomeGenerationToStateSync         chan<- EventToStateSync[RI]
 	blobBroadcastFetcher                   ocr3_1types.BlobBroadcastFetcher
-	config                                 ocr3config.SharedConfig
+	config                                 ocr3_1config.SharedConfig
 	database                               Database
 	id                                     commontypes.OracleID
 	kvDb                                   KeyValueDatabase
@@ -130,6 +131,8 @@ type followerState[RI any] struct {
 
 	tInitial <-chan time.Time
 
+	leaderAbdicated bool
+
 	roundStartPool *pool.Pool[MessageRoundStart[RI]]
 
 	query *types.Query
@@ -148,13 +151,36 @@ type followerState[RI any] struct {
 	commitPool  *pool.Pool[CommitSignature]
 }
 
-type stateTransitionInfo struct {
+//go-sumtype:decl stateTransitionInfo
+
+type stateTransitionInfo interface {
+	isStateTransitionInfo()
+	digests() stateTransitionInfoDigests
+}
+
+type stateTransitionInfoDigests struct {
 	InputsDigest               StateTransitionInputsDigest
-	Outputs                    StateTransitionOutputs
 	OutputDigest               StateTransitionOutputDigest
 	StateRootDigest            StateRootDigest
-	ReportsPlusPrecursor       ocr3_1types.ReportsPlusPrecursor
 	ReportsPlusPrecursorDigest ReportsPlusPrecursorDigest
+}
+
+func (stateTransitionInfoDigests) isStateTransitionInfo() {}
+
+func (stid stateTransitionInfoDigests) digests() stateTransitionInfoDigests {
+	return stid
+}
+
+type stateTransitionInfoDigestsAndPreimages struct {
+	stateTransitionInfoDigests
+	Outputs              StateTransitionOutputs
+	ReportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor
+}
+
+func (stateTransitionInfoDigestsAndPreimages) isStateTransitionInfo() {}
+
+func (stid stateTransitionInfoDigestsAndPreimages) digests() stateTransitionInfoDigests {
+	return stid.stateTransitionInfoDigests
 }
 
 type sharedState struct {
@@ -204,10 +230,11 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 	outgen.followerState = followerState[RI]{
 		outgenFollowerPhaseUnknown,
 		nil,
+		false,
 		nil,
 		nil,
 		nil,
-		stateTransitionInfo{},
+		stateTransitionInfoDigests{},
 		nil,
 		restoredCert,
 		nil,
@@ -223,6 +250,10 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		nil,
 		restoredCommitedSeqNr,
 	}
+
+	outgen.subs.Go(func() {
+		RunOutcomeGenerationReap(outgen.ctx, outgen.logger, outgen.kvDb)
+	})
 
 	// Event Loop
 	chDone := outgen.ctx.Done()
@@ -333,8 +364,9 @@ func (outgen *outcomeGenerationState[RI]) eventNewEpochStart(ev EventNewEpochSta
 	outgen.sharedState.seqNr = 0
 
 	outgen.followerState.phase = outgenFollowerPhaseNewEpoch
-	outgen.followerState.tInitial = time.After(outgen.config.DeltaInitial)
-	outgen.followerState.stateTransitionInfo = stateTransitionInfo{}
+	outgen.followerState.tInitial = time.After(outgen.config.GetDeltaInitial())
+	outgen.followerState.leaderAbdicated = false
+	outgen.followerState.stateTransitionInfo = stateTransitionInfoDigests{}
 
 	outgen.followerState.roundStartPool = pool.NewPool[MessageRoundStart[RI]](poolSize)
 	outgen.followerState.proposalPool = pool.NewPool[MessageProposal[RI]](poolSize)
@@ -348,6 +380,7 @@ func (outgen *outcomeGenerationState[RI]) eventNewEpochStart(ev EventNewEpochSta
 	outgen.leaderState.tGrace = nil
 
 	outgen.refreshCommittedSeqNrAndCert()
+	outgen.sendStateSyncRequestFromCertifiedPrepareOrCommit(outgen.followerState.cert)
 
 	var highestCertified CertifiedPrepareOrCommit
 	var highestCertifiedTimestamp HighestCertifiedTimestamp
@@ -422,4 +455,212 @@ func callPluginFromOutcomeGenerationBackground[T any](
 			return f(ctx, roundCtx)
 		},
 	)
+}
+
+func (outgen *outcomeGenerationState[RI]) sendStateSyncRequestFromCertifiedPrepareOrCommit(cert CertifiedPrepareOrCommit) {
+	var seqNr uint64
+	switch cert := cert.(type) {
+	case *CertifiedPrepare:
+		seqNr = cert.PrepareSeqNr - 1
+	case *CertifiedCommit:
+		seqNr = cert.CommitSeqNr
+	}
+
+	select {
+	case outgen.chOutcomeGenerationToStateSync <- EventStateSyncRequest[RI]{
+		seqNr,
+	}:
+	case <-outgen.ctx.Done():
+	}
+}
+
+func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(commitQC *CertifiedCommit) {
+	ok := outgen.commit(*commitQC)
+	if !ok {
+		outgen.logger.Error("commit() failed", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+		})
+		// We intentionally fall through to give a chance to advance the KV
+		// state regardless of the cert persistence failure.
+	}
+
+	// Early return to avoid unnecessary error logs
+	{
+		committedKVSeqNr, err := outgen.committedKVSeqNr()
+		if err != nil {
+			outgen.logger.Error("failed to read highest committed kv seq nr", commontypes.LogFields{
+				"error": err,
+			})
+			return
+		}
+		if committedKVSeqNr == commitQC.CommitSeqNr {
+			// already where we want to be
+			return
+		}
+		if committedKVSeqNr+1 != commitQC.CommitSeqNr {
+			outgen.logger.Debug("commit qc seq nr quite ahead from committed kv seq nr, can't do anything", commontypes.LogFields{
+				"committedKVSeqNr": committedKVSeqNr,
+				"commitQCSeqNr":    commitQC.CommitSeqNr,
+			})
+			return
+		}
+	}
+
+	tx, err := outgen.kvDb.NewSerializedReadWriteTransaction(commitQC.CommitSeqNr)
+	if err != nil {
+
+		outgen.logger.Error("failed to create serialized transaction", commontypes.LogFields{
+			"error": err,
+		})
+		return
+	}
+	defer tx.Discard()
+
+	committedKVSeqNr, err := tx.ReadHighestCommittedSeqNr()
+	if err != nil {
+		outgen.logger.Error("failed to read highest committed kv seq nr", commontypes.LogFields{
+			"error": err,
+		})
+		return
+	}
+
+	if commitQC.CommitSeqNr == committedKVSeqNr {
+		outgen.logger.Debug("kv state already at commit qc seq nr, nothing to do", commontypes.LogFields{
+			"committedKVSeqNr": committedKVSeqNr,
+			"commitQCSeqNr":    commitQC.CommitSeqNr,
+		})
+		return
+	}
+
+	if commitQC.CommitSeqNr != committedKVSeqNr+1 {
+		outgen.logger.Debug("commit qc seq nr quite ahead from committed kv seq nr, can't do anything", commontypes.LogFields{
+			"committedKVSeqNr": committedKVSeqNr,
+			"commitQCSeqNr":    commitQC.CommitSeqNr,
+		})
+		return
+	}
+
+	stb, err := tx.ReadUnattestedStateTransitionBlock(commitQC.CommitSeqNr, commitQC.StateTransitionInputsDigest)
+	if err != nil {
+		outgen.logger.Error("error during ReadUnattestedStateTransitionBlock", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+			"error":         err,
+		})
+		return
+	}
+	if stb == nil {
+		outgen.logger.Debug("unattested state transition block not found, can't move kv state", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+		})
+		return
+	}
+	if err := outgen.isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC, *stb); err != nil {
+		outgen.logger.Critical("sanity check of unattested state transition block failed, very surprising!", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+			"error":         err,
+		})
+		return
+	}
+
+	astb := AttestedStateTransitionBlock{
+		*stb,
+		commitQC.CommitQuorumCertificate,
+	}
+
+	// write astb
+	err = tx.WriteAttestedStateTransitionBlock(commitQC.CommitSeqNr, astb)
+	if err != nil {
+		outgen.logger.Error("error writing attested state transition block", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+			"error":         err,
+		})
+		return
+	}
+
+	// apply write set
+	stateRootDigest, err := tx.ApplyWriteSet(stb.StateTransitionOutputs.WriteSet)
+	if err != nil {
+		outgen.logger.Error("error applying write set", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+			"error":         err,
+		})
+		return
+	}
+
+	if stateRootDigest != stb.StateRootDigest {
+		outgen.logger.Error("state root digest mismatch from write set application", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+			"expected":      stb.StateRootDigest,
+			"actual":        stateRootDigest,
+		})
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		outgen.logger.Error("error committing transaction", commontypes.LogFields{
+			"commitQCSeqNr": commitQC.CommitSeqNr,
+			"error":         err,
+		})
+		return
+	}
+
+	outgen.logger.Debug("successfully moved kv state to commit qc", commontypes.LogFields{
+		"oldCommittedKVSeqNr": committedKVSeqNr,
+		"newCommittedKVSeqNr": commitQC.CommitSeqNr,
+	})
+}
+
+func (outgen *outcomeGenerationState[RI]) persistUnattestedStateTransitionBlockAndReportsPlusPrecursor(stb StateTransitionBlock, stateTransitionInputsDigest StateTransitionInputsDigest, reportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor) error {
+	kvTxn, err := outgen.kvDb.NewUnserializedReadWriteTransactionUnchecked()
+	if err != nil {
+		return err
+	}
+	defer kvTxn.Discard()
+	seqNr := stb.BlockSeqNr
+	err = kvTxn.WriteUnattestedStateTransitionBlock(seqNr, stateTransitionInputsDigest, stb)
+	if err != nil {
+		return fmt.Errorf("failed to write unattested state transition block: %w", err)
+	}
+	err = kvTxn.WriteReportsPlusPrecursor(seqNr, stb.ReportsPlusPrecursorDigest, reportsPlusPrecursor)
+	if err != nil {
+		return fmt.Errorf("failed to write reports plus precursor: %w", err)
+	}
+	err = kvTxn.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+	return nil
+}
+
+func (outgen *outcomeGenerationState[RI]) isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC *CertifiedCommit, stb StateTransitionBlock) error {
+	stbStateTransitionOutputsDigest := MakeStateTransitionOutputDigest(
+		outgen.config.ConfigDigest,
+		stb.BlockSeqNr,
+		stb.StateTransitionOutputs.WriteSet,
+	)
+
+	if stbStateTransitionOutputsDigest != commitQC.StateTransitionOutputsDigest {
+		return fmt.Errorf("local state transition block outputs digest does not match commitQC: expected %s but got %s", commitQC.StateTransitionOutputsDigest, stbStateTransitionOutputsDigest)
+	}
+	if stb.StateRootDigest != commitQC.StateRootDigest {
+		return fmt.Errorf("local state transition block state root digest does not match commitQC: expected %s but got %s", commitQC.StateRootDigest, stb.StateRootDigest)
+	}
+	if stb.ReportsPlusPrecursorDigest != commitQC.ReportsPlusPrecursorDigest {
+		return fmt.Errorf("local state transition block reportsPlusPrecursor digest does not match commitQC: expected %s but got %s", commitQC.ReportsPlusPrecursorDigest, stb.ReportsPlusPrecursorDigest)
+	}
+	return nil
+}
+
+func (outgen *outcomeGenerationState[RI]) committedKVSeqNr() (uint64, error) {
+	return committedKVSeqNr(outgen.kvDb)
+}
+
+func committedKVSeqNr(kvDb KeyValueDatabase) (uint64, error) {
+	tx, err := kvDb.NewReadTransactionUnchecked()
+	if err != nil {
+		return 0, fmt.Errorf("failed to create read transaction: %w", err)
+	}
+	defer tx.Discard()
+	return tx.ReadHighestCommittedSeqNr()
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/mt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes/serialization"
 	"google.golang.org/protobuf/proto"
 )
@@ -15,11 +16,6 @@ var _ encoding.BinaryAppender = LightCertifiedBlob{}
 var _ encoding.BinaryUnmarshaler = &LightCertifiedBlob{}
 
 func (lc LightCertifiedBlob) AppendBinary(b []byte) ([]byte, error) {
-	pbChunkDigests := make([][]byte, 0, len(lc.ChunkDigests))
-	for _, digest := range lc.ChunkDigests {
-		pbChunkDigests = append(pbChunkDigests, digest[:])
-	}
-
 	pbSignatures := make([]*serialization.AttributedBlobAvailabilitySignature, 0, len(lc.AttributedBlobAvailabilitySignatures))
 	for _, sig := range lc.AttributedBlobAvailabilitySignatures {
 		pbSignatures = append(pbSignatures, serialization.NewAttributedBlobAvailabilitySignature(
@@ -29,7 +25,7 @@ func (lc LightCertifiedBlob) AppendBinary(b []byte) ([]byte, error) {
 	}
 
 	pbLightCertifiedBlob := serialization.NewLightCertifiedBlob(
-		pbChunkDigests,
+		lc.ChunkDigestsRoot[:],
 		lc.PayloadLength,
 		lc.ExpirySeqNr,
 		uint32(lc.Submitter),
@@ -54,15 +50,11 @@ func (lc *LightCertifiedBlob) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("failed to unmarshal LightCertifiedBlob protobuf: %w", err)
 	}
 
-	chunkDigests := make([]BlobChunkDigest, 0, len(pbLightCertifiedBlob.ChunkDigests))
-	for _, digest := range pbLightCertifiedBlob.ChunkDigests {
-		if len(digest) != len(BlobChunkDigest{}) {
-			return fmt.Errorf("invalid chunk digest length: expected %d bytes, got %d", len(BlobChunkDigest{}), len(digest))
-		}
-		var chunkDigest BlobChunkDigest
-		copy(chunkDigest[:], digest)
-		chunkDigests = append(chunkDigests, chunkDigest)
+	var chunkDigestsRoot mt.Digest
+	if len(pbLightCertifiedBlob.ChunkDigestsRoot) != len(mt.Digest{}) {
+		return fmt.Errorf("invalid chunk digests root length: expected %d bytes, got %d", len(mt.Digest{}), len(pbLightCertifiedBlob.ChunkDigestsRoot))
 	}
+	copy(chunkDigestsRoot[:], pbLightCertifiedBlob.ChunkDigestsRoot)
 
 	signatures := make([]AttributedBlobAvailabilitySignature, 0, len(pbLightCertifiedBlob.AttributedBlobAvailabilitySignatures))
 	for _, sig := range pbLightCertifiedBlob.AttributedBlobAvailabilitySignatures {
@@ -76,7 +68,7 @@ func (lc *LightCertifiedBlob) UnmarshalBinary(data []byte) error {
 	}
 
 	*lc = LightCertifiedBlob{
-		chunkDigests,
+		chunkDigestsRoot,
 		pbLightCertifiedBlob.PayloadLength,
 		pbLightCertifiedBlob.ExpirySeqNr,
 		commontypes.OracleID(pbLightCertifiedBlob.Submitter),

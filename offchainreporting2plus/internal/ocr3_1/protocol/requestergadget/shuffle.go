@@ -2,7 +2,7 @@ package requestergadget
 
 import (
 	"math"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 )

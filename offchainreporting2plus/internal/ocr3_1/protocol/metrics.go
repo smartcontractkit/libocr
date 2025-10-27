@@ -98,3 +98,27 @@ func (om *outcomeGenerationMetrics) Close() {
 	om.registerer.Unregister(om.includedObservationsTotal)
 	om.registerer.Unregister(om.ledCommittedRoundsTotal)
 }
+
+type blobExchangeMetrics struct {
+	registerer      prometheus.Registerer
+	blobsInProgress prometheus.Gauge
+}
+
+func newBlobExchangeMetrics(registerer prometheus.Registerer,
+	logger commontypes.Logger) *blobExchangeMetrics {
+
+	blobsInProgress := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "ocr3_1_experimental_blobs_in_progress",
+		Help: "The number of blobs that are actively being broadcast or fetched",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, blobsInProgress, "ocr3_1_experimental_blobs_in_progress")
+
+	return &blobExchangeMetrics{
+		registerer,
+		blobsInProgress,
+	}
+}
+
+func (bm *blobExchangeMetrics) Close() {
+	bm.registerer.Unregister(bm.blobsInProgress)
+}

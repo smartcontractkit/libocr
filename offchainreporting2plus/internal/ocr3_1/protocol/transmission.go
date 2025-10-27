@@ -5,14 +5,15 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/binary"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 	"slices"
 	"time"
+
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/scheduler"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -26,7 +27,7 @@ func RunTransmission[RI any](
 	ctx context.Context,
 
 	chReportAttestationToTransmission <-chan EventToTransmission[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
@@ -58,7 +59,7 @@ type transmissionState[RI any] struct {
 	subs subprocesses.Subprocesses
 
 	chReportAttestationToTransmission <-chan EventToTransmission[RI]
-	config                            ocr3config.SharedConfig
+	config                            ocr3_1config.SharedConfig
 	contractTransmitter               ocr3types.ContractTransmitter[RI]
 	id                                commontypes.OracleID
 	localConfig                       types.LocalConfig

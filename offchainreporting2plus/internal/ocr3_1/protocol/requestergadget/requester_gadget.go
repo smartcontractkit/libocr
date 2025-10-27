@@ -7,12 +7,10 @@ import (
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
-type RequestInfo struct {
-	// If no response is received by this time, the request is considered timed out.
-	ExpiryTimestamp time.Time
-}
+type RequestInfo = types.RequestInfo
 
 func NewRequesterGadget[Item comparable](
 	n int,
@@ -42,7 +40,7 @@ func NewRequesterGadget[Item comparable](
 // PleaseRecheckPendingItems must be called by the protocol when the output of
 // getPendingItemsFn or getSeedersFn has changed.
 func (rg *RequesterGadget[Item]) PleaseRecheckPendingItems() {
-	rg.chTick = time.After(0)
+	rg.chTick = time.After(minNextTickInterval)
 }
 
 // CheckAndMarkResponse must be called by the protocol when a response is
@@ -107,6 +105,9 @@ func (rg *RequesterGadget[Item]) rankedSeeders(seeders map[commontypes.OracleID]
 	}
 	scoredSeeders := make([]scoredSeeder, 0, len(seeders))
 	for seeder := range seeders {
+		if _, ok := rg.oracles[seeder]; !ok {
+			continue
+		}
 		if _, ok := excluded[seeder]; ok {
 			continue
 		}
@@ -131,7 +132,10 @@ func (rg *RequesterGadget[Item]) Ticker() <-chan time.Time {
 	return rg.chTick
 }
 
-const maxNextTickInterval = 15 * time.Second
+const (
+	minNextTickInterval = 500 * time.Microsecond
+	maxNextTickInterval = 15 * time.Second
+)
 
 func (rg *RequesterGadget[Item]) Tick() {
 
@@ -162,7 +166,15 @@ func (rg *RequesterGadget[Item]) Tick() {
 			if pendingRequest.expiryTimestamp.Before(now) {
 				// Previous request timed out.
 				rg.markTimedOutResponse(item, pendingRequest.seeder)
+				pendingItemState.pendingRequestOrNil = nil
 				shouldRequestNow = true
+			} else {
+				// Previous request is still unexpired, wait for it.
+				nextTickForThisRequest := pendingItemState.pendingRequestOrNil.expiryTimestamp
+				if nextTickForThisRequest.Before(nextTick) {
+					nextTick = nextTickForThisRequest
+				}
+				shouldRequestNow = false
 			}
 		} else {
 			shouldRequestNow = true
@@ -183,44 +195,42 @@ func (rg *RequesterGadget[Item]) Tick() {
 			rankedNonExcludedSeeders = rg.rankedSeeders(seeders, pendingItemState.temporarilyExcludedSeeders)
 		}
 
+		nextTickForThisRequest := now.Add(maxNextTickInterval)
+
 		for _, seeder := range rankedNonExcludedSeeders {
 			if rg.oracles[seeder].nextPossibleSendTimestamp.After(now) {
+				nextTickForThisRequest = minTime(nextTickForThisRequest, rg.oracles[seeder].nextPossibleSendTimestamp)
 				continue
 			}
 
 			// try sending to this oracle
 			requestInfo, ok := rg.sendRequestFn(item, seeder)
 			if !ok {
+
+				nextTickForThisRequest = now.Add(rg.requestInterval)
 				continue
 			}
 
-			rg.oracles[seeder].nextPossibleSendTimestamp = now.Add(rg.requestInterval)
+			rg.oracles[seeder].nextPossibleSendTimestamp = time.Now().Add(rg.requestInterval)
 			pendingItemState.pendingRequestOrNil = &pendingRequest{
 				seeder,
 				requestInfo.ExpiryTimestamp,
 			}
+			nextTickForThisRequest = requestInfo.ExpiryTimestamp
 			break
 		}
 
-		var nextTickForThisRequest time.Time
-		if pendingItemState.pendingRequestOrNil != nil {
-			// We sent a request in this tick, but want to recheck in case of
-			// timeout.
-			nextTickForThisRequest = pendingItemState.pendingRequestOrNil.expiryTimestamp
-		} else if len(rankedNonExcludedSeeders) > 0 {
-			// We didn't manage to send a request in this tick, so want to send
-			// a request in the next tick, preferably to the best ranked seeder.
-			// No guarantee we'll be able to get to them first though, prior
-			// pending requests in the list will have priority.
-			nextTickForThisRequest = rg.oracles[rankedNonExcludedSeeders[0]].nextPossibleSendTimestamp // <= now.Add(rg.requestInterval)
-		}
-
-		if nextTickForThisRequest.Before(nextTick) {
-			nextTick = nextTickForThisRequest
-		}
+		nextTick = minTime(nextTick, nextTickForThisRequest)
 	}
 
-	rg.chTick = time.After(time.Until(nextTick))
+	rg.chTick = time.After(max(minNextTickInterval, time.Until(nextTick)))
+}
+
+func minTime(a time.Time, b time.Time) time.Time {
+	if a.Before(b) {
+		return a
+	}
+	return b
 }
 
 // A RequesterGadget helps us track and send requests for some data

@@ -6,20 +6,7 @@ import (
 	"github.com/google/btree"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
-)
-
-const (
-	MaxBlocksPerBlockSyncResponse int = 10
-
-	// Minimum delay between two consecutive BLOCK-SYNC-REQ requests
-	DeltaMinBlockSyncRequest = 10 * time.Millisecond
-	// Maximum delay between a BLOCK-SYNC-REQ and a BLOCK-SYNC response. We'll try
-	// with another oracle if we don't get a response in this time.
-	DeltaMaxBlockSyncRequest time.Duration = 1 * time.Second
-
-	// We are looking to pipeline fetches of a range of at most
-	// BlockSyncLookahead blocks at any given time
-	BlockSyncLookahead = 10_000
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 // Half-open range, i.e. [StartSeqNr, EndExclSeqNr)
@@ -81,13 +68,15 @@ func (stasy *stateSyncState[RI]) getPendingBlocksToRequest() []seqNrRange {
 	stasy.reapBlockBuffer()
 
 	lastSeqNr := stasy.highestPersistedStateTransitionBlockSeqNr
+	cfgMaxBlocksPerBlockSyncResponse := uint64(stasy.config.GetMaxBlocksPerBlockSyncResponse())
+	cfgBlockSyncLookahead := stasy.config.GetMaxParallelRequestedBlocks()
 	stasy.blockSyncState.sortedBlockBuffer.Ascend(func(astb AttestedStateTransitionBlock) bool {
 		seqNr := astb.StateTransitionBlock.SeqNr()
 		if lastSeqNr+1 < seqNr {
 			// [lastSeqNr+1..seqNr) (exclusive) is a gap to fill
 
-			for rangeStartSeqNr := lastSeqNr + 1; rangeStartSeqNr < seqNr; rangeStartSeqNr += uint64(MaxBlocksPerBlockSyncResponse) {
-				rangeEndExclSeqNr := rangeStartSeqNr + uint64(MaxBlocksPerBlockSyncResponse)
+			for rangeStartSeqNr := lastSeqNr + 1; rangeStartSeqNr < seqNr; rangeStartSeqNr += cfgMaxBlocksPerBlockSyncResponse {
+				rangeEndExclSeqNr := rangeStartSeqNr + cfgMaxBlocksPerBlockSyncResponse
 				if rangeEndExclSeqNr > seqNr {
 					rangeEndExclSeqNr = seqNr
 				}
@@ -98,10 +87,10 @@ func (stasy *stateSyncState[RI]) getPendingBlocksToRequest() []seqNrRange {
 		return true
 	})
 
-	for rangeStartSeqNr := lastSeqNr + 1; rangeStartSeqNr <= stasy.highestPersistedStateTransitionBlockSeqNr+BlockSyncLookahead && rangeStartSeqNr <= stasy.highestHeardSeqNr; rangeStartSeqNr += uint64(MaxBlocksPerBlockSyncResponse) {
-		rangeEndExclSeqNr := rangeStartSeqNr + uint64(MaxBlocksPerBlockSyncResponse)
-		if rangeEndExclSeqNr > stasy.highestPersistedStateTransitionBlockSeqNr+BlockSyncLookahead {
-			rangeEndExclSeqNr = stasy.highestPersistedStateTransitionBlockSeqNr + BlockSyncLookahead
+	for rangeStartSeqNr := lastSeqNr + 1; rangeStartSeqNr <= stasy.highestPersistedStateTransitionBlockSeqNr+cfgBlockSyncLookahead && rangeStartSeqNr <= stasy.highestHeardSeqNr; rangeStartSeqNr += cfgMaxBlocksPerBlockSyncResponse {
+		rangeEndExclSeqNr := rangeStartSeqNr + cfgMaxBlocksPerBlockSyncResponse
+		if rangeEndExclSeqNr > stasy.highestPersistedStateTransitionBlockSeqNr+cfgBlockSyncLookahead {
+			rangeEndExclSeqNr = stasy.highestPersistedStateTransitionBlockSeqNr + cfgBlockSyncLookahead
 		}
 		// no check for rangeEndExclSeqNr > stasy.highestHeardSeqNr, because there is no harm in asking for more than exists
 		pending = append(pending, seqNrRange{rangeStartSeqNr, rangeEndExclSeqNr})
@@ -127,15 +116,18 @@ func (stasy *stateSyncState[RI]) sendBlockSyncRequest(seqNrRange seqNrRange, tar
 		"seqNrRange": seqNrRange,
 		"target":     target,
 	})
+
+	requestInfo := &types.RequestInfo{
+		time.Now().Add(stasy.config.GetDeltaBlockSyncResponseTimeout()),
+	}
 	msg := MessageBlockSyncRequest[RI]{
-		nil, // TODO: consider using a sentinel value here, e.g. "EmptyRequestHandleForInboundResponse"
+		types.EmptyRequestHandleForOutboundRequest,
+		requestInfo,
 		seqNrRange.StartSeqNr,
 		seqNrRange.EndExclSeqNr,
 	}
 	stasy.netSender.SendTo(msg, target)
-	return &requestergadget.RequestInfo{
-		time.Now().Add(DeltaMaxBlockSyncRequest),
-	}, true
+	return requestInfo, true
 }
 
 func (stasy *stateSyncState[RI]) messageBlockSyncRequest(msg MessageBlockSyncRequest[RI], sender commontypes.OracleID) {
@@ -156,9 +148,10 @@ func (stasy *stateSyncState[RI]) messageBlockSyncRequest(msg MessageBlockSyncReq
 
 	var maxBlocksInResponse int
 	{
+		cfgMaxBlocksPerBlockSyncResponse := uint64(stasy.config.GetMaxBlocksPerBlockSyncResponse())
 		maxBlocksInResponseU64 := msg.EndExclSeqNr - msg.StartSeqNr
-		if maxBlocksInResponseU64 > uint64(MaxBlocksPerBlockSyncResponse) {
-			maxBlocksInResponseU64 = uint64(MaxBlocksPerBlockSyncResponse)
+		if maxBlocksInResponseU64 > cfgMaxBlocksPerBlockSyncResponse {
+			maxBlocksInResponseU64 = cfgMaxBlocksPerBlockSyncResponse
 		}
 		// now we are sure that maxBlocksInResponseU64 will fit an int
 		maxBlocksInResponse = int(maxBlocksInResponseU64)

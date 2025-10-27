@@ -270,8 +270,12 @@ func remotePeerIDField(other types.PeerID) commontypes.LogFields {
 }
 
 // Caller should hold peersMu.
-func (ho *Host) findOrCreatePeer(other types.PeerID) *peer {
+func (ho *Host) findOrCreatePeer(other types.PeerID) (*peer, error) {
 	if _, ok := ho.peers[other]; !ok {
+		if len(ho.peers) >= types.MaxPeersPerHost {
+			return nil, fmt.Errorf("cannot add peer %s because maximum number of peers %d has been reached", other, types.MaxPeersPerHost)
+		}
+
 		logger := ho.logger.MakeChild(remotePeerIDField(other))
 
 		metrics := newPeerMetrics(ho.metricsRegisterer, logger, ho.id, other)
@@ -364,7 +368,7 @@ func (ho *Host) findOrCreatePeer(other types.PeerID) *peer {
 			)
 		})
 	}
-	return ho.peers[other]
+	return ho.peers[other], nil
 }
 
 func peerLoop(
@@ -461,6 +465,11 @@ func peerLoop(
 			logger.Trace("Connection terminated, paused all streams", nil)
 
 		case notification := <-chOtherStreamStateNotification:
+			if chConnTerminated == nil {
+				// connection is dead, ignore stale notification
+				break
+			}
+
 			logger.Trace("Received stream state notification", commontypes.LogFields{
 				"notification": notification,
 			})
@@ -1027,7 +1036,10 @@ func (ho *Host) NewStream2(
 
 	ho.peersMu.Lock()
 	defer ho.peersMu.Unlock()
-	p := ho.findOrCreatePeer(other)
+	p, err := ho.findOrCreatePeer(other)
+	if err != nil {
+		return nil, err
+	}
 
 	sid := internaltypes.MakeStreamID(ho.id, other, streamName)
 
@@ -1110,12 +1122,12 @@ func authenticatedConnectionLoop(
 	chSelfStreamStateNotification <-chan streamStateNotification,
 	mux *muxer.Muxer,
 	demux *demuxer.Demuxer,
-	chTerminated chan<- struct{},
+	chConnTerminated chan<- struct{},
 	logger loghelper.LoggerWithContext,
 	metrics *peerMetrics,
 ) {
 	defer func() {
-		close(chTerminated)
+		close(chConnTerminated)
 		logger.Info("authenticatedConnectionLoop: exited", nil)
 	}()
 
@@ -1595,5 +1607,6 @@ func incomingConnsRateLimit(durationBetweenDials time.Duration) ratelimit.Millit
 type Discoverer interface {
 	Start(host ragep2pwrapper.Host, keyring types.PeerKeyring, logger loghelper.LoggerWithContext) error
 	Close() error
+	// The order of the returned addresses matters because the addresses are tried in order.
 	FindPeer(peer types.PeerID) ([]types.Address, error)
 }

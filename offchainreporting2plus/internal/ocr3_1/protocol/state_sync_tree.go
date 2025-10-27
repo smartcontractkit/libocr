@@ -7,28 +7,13 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/jmt"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
-)
-
-const (
-	// Maximum delay between a TREE-SYNC-REQ and TREE-SYNC-CHUNK response. We'll try
-	// with another oracle if we don't get a response in this time.
-	DeltaMaxTreeSyncRequest time.Duration = 1 * time.Second
-	// Minimum delay between two consecutive BLOCK-SYNC-REQ requests
-	DeltaMinTreeSyncRequest = 10 * time.Millisecond
-
-	// The maximum number of key-value pairs that an oracle will send in a single tree-sync chunk
-	MaxTreeSyncChunkKeys = 128
-	// Maximum number of bytes in of the combined keys and values length in a chunk.
-
-	MaxTreeSyncChunkKeysPlusValuesLength = 2 * (ocr3_1types.MaxMaxKeyValueKeyLength + ocr3_1types.MaxMaxKeyValueValueLength)
-
-	MaxMaxParallelTreeSyncChunkFetches = 8
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 func (stasy *stateSyncState[RI]) maxParallelTreeSyncChunkFetches() int {
-	return max(1, min(MaxMaxParallelTreeSyncChunkFetches, stasy.config.N()-1))
+	return max(1, min(stasy.config.GetMaxParallelTreeSyncChunkFetches(), stasy.config.N()-1))
 }
 
 func (stasy *stateSyncState[RI]) newPendingKeyDigestRanges() PendingKeyDigestRanges {
@@ -69,16 +54,19 @@ func (stasy *stateSyncState[RI]) sendTreeSyncChunkRequest(item treeSyncChunkRequ
 		"keyDigestRange": item.keyDigestRange,
 		"target":         target,
 	})
+
+	requestInfo := &types.RequestInfo{
+		ExpiryTimestamp: time.Now().Add(stasy.config.GetDeltaTreeSyncResponseTimeout()),
+	}
 	msg := MessageTreeSyncChunkRequest[RI]{
-		nil,
+		types.EmptyRequestHandleForOutboundRequest,
+		requestInfo,
 		item.targetSeqNr,
 		item.keyDigestRange.StartIndex,
 		item.keyDigestRange.EndInclIndex,
 	}
 	stasy.netSender.SendTo(msg, target)
-	return &requestergadget.RequestInfo{
-		time.Now().Add(DeltaMaxTreeSyncRequest),
-	}, true
+	return requestInfo, true
 }
 
 func (stasy *stateSyncState[RI]) getPendingTreeSyncChunksToRequest() []treeSyncChunkRequestItem {
@@ -277,7 +265,7 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkRequest(msg MessageTreeSync
 		"startIndex": msg.StartIndex,
 	})
 
-	if !mustTakeSnapshot(msg.ToSeqNr) {
+	if !mustTakeSnapshot(msg.ToSeqNr, stasy.config.PublicConfig) {
 		stasy.treeSyncState.logger.Warn("dropping MessageTreeSyncChunkRequest with invalid SeqNr", commontypes.LogFields{
 			"toSeqNr": msg.ToSeqNr,
 		})
@@ -584,6 +572,6 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkResponse(msg MessageTreeSyn
 	panic("unreachable")
 }
 
-func mustTakeSnapshot(seqNr uint64) bool {
-	return seqNr%SnapshotInterval == 0
+func mustTakeSnapshot(seqNr uint64, config ocr3_1config.PublicConfig) bool {
+	return seqNr%config.GetSnapshotInterval() == 0
 }

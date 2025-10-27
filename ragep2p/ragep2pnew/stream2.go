@@ -133,8 +133,7 @@ func (st *stream2) UpdateLimits(limits Stream2Limits) error {
 		}
 		return nil
 	case <-st.ctx.Done():
-
-		return fmt.Errorf("UpdateLimts: called after Stream internal context already expired")
+		return fmt.Errorf("stream already shut down, likely due to stream.Close() or host.Close()")
 	}
 }
 
@@ -180,6 +179,7 @@ func (st *stream2) Close() error {
 				delete(host.peers, st.other)
 			}
 		case <-st.ctx.Done():
+			return fmt.Errorf("stream already shut down, likely due to host.Close()")
 		}
 		return nil
 	}()

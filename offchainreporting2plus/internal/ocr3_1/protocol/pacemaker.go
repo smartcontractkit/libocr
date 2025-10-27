@@ -12,7 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/permutation"
 )
@@ -23,7 +23,7 @@ func RunPacemaker[RI any](
 	chNetToPacemaker <-chan MessageToPacemakerWithSender[RI],
 	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI],
 	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
 	localConfig types.LocalConfig,
@@ -50,7 +50,7 @@ func makePacemakerState[RI any](
 	chNetToPacemaker <-chan MessageToPacemakerWithSender[RI],
 	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI],
 	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	database Database, id commontypes.OracleID,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
@@ -85,7 +85,7 @@ type pacemakerState[RI any] struct {
 	chNetToPacemaker               <-chan MessageToPacemakerWithSender[RI]
 	chPacemakerToOutcomeGeneration chan<- EventToOutcomeGeneration[RI]
 	chOutcomeGenerationToPacemaker <-chan EventToPacemaker[RI]
-	config                         ocr3config.SharedConfig
+	config                         ocr3_1config.SharedConfig
 	database                       Database
 	id                             commontypes.OracleID
 	localConfig                    types.LocalConfig
@@ -194,7 +194,7 @@ func (pace *pacemakerState[RI]) eventProgress() {
 
 func (pace *pacemakerState[RI]) sendNewEpochWish() {
 	pace.netSender.Broadcast(MessageNewEpochWish[RI]{pace.ne})
-	pace.tResend = time.After(pace.config.DeltaResend)
+	pace.tResend = time.After(pace.config.GetDeltaResend())
 }
 
 func (pace *pacemakerState[RI]) eventTResendTimeout() {

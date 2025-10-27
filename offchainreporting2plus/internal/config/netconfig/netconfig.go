@@ -5,6 +5,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr2config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -29,6 +30,16 @@ func NetConfigFromContractConfig(contractConfig types.ContractConfig) (NetConfig
 		}, nil
 	case config.OCR3OffchainConfigVersion:
 		publicConfig, err := ocr3config.PublicConfigFromContractConfig(true, contractConfig)
+		if err != nil {
+			return NetConfig{}, err
+		}
+		return NetConfig{
+			publicConfig.ConfigDigest,
+			publicConfig.F,
+			peerIDs(publicConfig.OracleIdentities),
+		}, nil
+	case config.OCR3_1OffchainConfigVersion:
+		publicConfig, err := ocr3_1config.PublicConfigFromContractConfig(true, contractConfig)
 		if err != nil {
 			return NetConfig{}, err
 		}

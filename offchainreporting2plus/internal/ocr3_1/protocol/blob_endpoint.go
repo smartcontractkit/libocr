@@ -9,6 +9,14 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 )
 
+// BlobEndpointWrapper enables deferred initialization of a BlobEndpoint. The
+// plugin expects a BlobBroadcastFetcher instance as argument to
+// NewReportingPlugin, which is called in managed_ocr3_1_oracle.go. The actual
+// BlobEndpoint is only constructed later in RunOracle, where the blob exchange
+// protocol is started. RunOracle then initializes the wrapper with the
+// BlobEndpoint using setBlobEndpoint. All BlobBroadcastFetcher methods of
+// BlobEndpointWrapper will error until proper initialization through
+// setBlobEndpoint.
 type BlobEndpointWrapper struct {
 	mu      sync.Mutex
 	wrapped *BlobEndpoint

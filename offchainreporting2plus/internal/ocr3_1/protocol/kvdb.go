@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -22,6 +23,9 @@ type KeyValueDatabaseSemanticRead interface {
 
 	ReadAttestedStateTransitionBlock(seqNr uint64) (AttestedStateTransitionBlock, error)
 	ReadAttestedStateTransitionBlocks(minSeqNr uint64, maxItems int) (blocks []AttestedStateTransitionBlock, more bool, err error)
+
+	ExistsUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest) (bool, error)
+	ReadUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest) (*StateTransitionBlock, error)
 
 	ReadTreeSyncStatus() (TreeSyncStatus, error)
 	// ReadTreeSyncChunk retrieves a chunk of undigested key-value pairs in the
@@ -48,8 +52,11 @@ type KeyValueDatabaseSemanticRead interface {
 	// If only some chunks are present, it returns an error.
 	ReadBlobPayload(BlobDigest) ([]byte, error)
 	ReadBlobMeta(BlobDigest) (*BlobMeta, error)
+	ReadBlobQuotaStats(blobQuotaStatsType BlobQuotaStatsType, submitter commontypes.OracleID) (BlobQuotaStats, error)
 	ReadBlobChunk(BlobDigest, uint64) ([]byte, error)
 	ReadStaleBlobIndex(maxStaleSinceSeqNr uint64, limit int) ([]StaleBlob, error)
+
+	ReadReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursorDigest ReportsPlusPrecursorDigest) (*ocr3_1types.ReportsPlusPrecursor, error)
 
 	jmt.RootReader
 	jmt.NodeReader
@@ -97,6 +104,9 @@ type KeyValueDatabaseSemanticWrite interface {
 	WriteAttestedStateTransitionBlock(seqNr uint64, block AttestedStateTransitionBlock) error
 	DeleteAttestedStateTransitionBlocks(maxSeqNrToDelete uint64, maxItems int) (done bool, err error)
 
+	WriteUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest, stb StateTransitionBlock) error
+	DeleteUnattestedStateTransitionBlocks(maxSeqNrToDelete uint64, maxItems int) (done bool, err error)
+
 	// WriteHighestCommittedSeqNr writes the given sequence number to the magic
 	// key. It is called before Commit on checked transactions.
 	WriteHighestCommittedSeqNr(seqNr uint64) error
@@ -117,10 +127,14 @@ type KeyValueDatabaseSemanticWrite interface {
 	WriteTreeSyncStatus(state TreeSyncStatus) error
 	WriteBlobMeta(BlobDigest, BlobMeta) error
 	DeleteBlobMeta(BlobDigest) error
+	WriteBlobQuotaStats(blobQuotaStatsType BlobQuotaStatsType, submitter commontypes.OracleID, blobQuotaStats BlobQuotaStats) error
 	WriteBlobChunk(BlobDigest, uint64, []byte) error
 	DeleteBlobChunk(BlobDigest, uint64) error
 	WriteStaleBlobIndex(StaleBlob) error
 	DeleteStaleBlobIndex(StaleBlob) error
+
+	WriteReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursorDigest ReportsPlusPrecursorDigest, reportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor) error
+	DeleteReportsPlusPrecursors(minSeqNrToKeep uint64, maxItems int) (done bool, err error)
 
 	jmt.RootWriter
 	DeleteRoots(minVersionToKeep jmt.Version, maxItems int) (done bool, err error)
@@ -134,8 +148,52 @@ type KeyValueDatabaseSemanticWrite interface {
 
 type BlobMeta struct {
 	PayloadLength uint64
-	ChunksHave    []bool
+	ChunkHaves    []bool
+	ChunkDigests  []BlobChunkDigest
 	ExpirySeqNr   uint64
+	Submitter     commontypes.OracleID
+}
+
+type BlobQuotaStatsType string
+
+const (
+	BlobQuotaStatsTypeReaped   BlobQuotaStatsType = "reaped"
+	BlobQuotaStatsTypeAppended BlobQuotaStatsType = "appended"
+)
+
+type BlobQuotaStats struct {
+	Count                   uint64
+	CumulativePayloadLength uint64
+}
+
+func (b BlobQuotaStats) Add(other BlobQuotaStats) (BlobQuotaStats, bool) {
+	sumCount := b.Count + other.Count
+	if sumCount < b.Count {
+		return BlobQuotaStats{}, false
+	}
+	sumCumulativePayloadLength := b.CumulativePayloadLength + other.CumulativePayloadLength
+	if sumCumulativePayloadLength < b.CumulativePayloadLength {
+		return BlobQuotaStats{}, false
+	}
+	return BlobQuotaStats{
+		sumCount,
+		sumCumulativePayloadLength,
+	}, true
+}
+
+func (b BlobQuotaStats) Sub(other BlobQuotaStats) (BlobQuotaStats, bool) {
+	diffCount := b.Count - other.Count
+	if diffCount > b.Count {
+		return BlobQuotaStats{}, false
+	}
+	diffCumulativePayloadLength := b.CumulativePayloadLength - other.CumulativePayloadLength
+	if diffCumulativePayloadLength > b.CumulativePayloadLength {
+		return BlobQuotaStats{}, false
+	}
+	return BlobQuotaStats{
+		diffCount,
+		diffCumulativePayloadLength,
+	}, true
 }
 
 type StaleBlob struct {

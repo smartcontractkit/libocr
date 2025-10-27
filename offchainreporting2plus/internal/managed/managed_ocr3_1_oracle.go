@@ -11,8 +11,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/internal/metricshelper"
-	"github.com/smartcontractkit/libocr/internal/util"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/serialization"
@@ -72,15 +71,15 @@ func RunManagedOCR3_1Oracle[RI any](
 		configTracker,
 		database,
 		func(ctx context.Context, logger loghelper.LoggerWithContext, contractConfig types.ContractConfig) (err error, retry bool) {
-			skipResourceExhaustionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
+			skipInsaneForProductionChecks := localConfig.DevelopmentMode == types.EnableDangerousDevelopmentMode
 
 			fromAccount, err := contractTransmitter.FromAccount(ctx)
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3_1Oracle: error getting FromAccount: %w", err), true
 			}
 
-			sharedConfig, oid, err := ocr3config.SharedConfigFromContractConfig(
-				skipResourceExhaustionChecks,
+			sharedConfig, oid, err := ocr3_1config.SharedConfigFromContractConfig(
+				skipInsaneForProductionChecks,
 				contractConfig,
 				offchainKeyring,
 				onchainKeyring,
@@ -113,7 +112,7 @@ func RunManagedOCR3_1Oracle[RI any](
 
 			blobEndpointWrapper := protocol.BlobEndpointWrapper{}
 
-			maxDurationInitialization := util.NilCoalesce(sharedConfig.MaxDurationInitialization, localConfig.DefaultMaxDurationInitialization)
+			maxDurationInitialization := sharedConfig.MaxDurationInitialization
 			initCtx, initCancel := context.WithTimeout(ctx, maxDurationInitialization)
 			defer initCancel()
 
@@ -126,7 +125,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				},
 			)
 
-			reportingPlugin, reportingPluginInfo, err := reportingPluginFactory.NewReportingPlugin(initCtx, ocr3types.ReportingPluginConfig{
+			reportingPlugin, reportingPluginInfo_, err := reportingPluginFactory.NewReportingPlugin(initCtx, ocr3types.ReportingPluginConfig{
 				sharedConfig.ConfigDigest,
 				oid,
 				sharedConfig.N(),
@@ -134,8 +133,8 @@ func RunManagedOCR3_1Oracle[RI any](
 				sharedConfig.OnchainConfig,
 				sharedConfig.ReportingPluginConfig,
 				sharedConfig.DeltaRound,
-				sharedConfig.MaxDurationQuery,
-				sharedConfig.MaxDurationObservation,
+				sharedConfig.WarnDurationQuery,
+				sharedConfig.WarnDurationObservation,
 				sharedConfig.MaxDurationShouldAcceptAttestedReport,
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
 			}, &blobEndpointWrapper)
@@ -150,6 +149,12 @@ func RunManagedOCR3_1Oracle[RI any](
 				logger,
 				"ManagedOCR3_1Oracle: error during reportingPlugin.Close()",
 			)
+
+			var reportingPluginInfo ocr3_1types.ReportingPluginInfo1
+			switch rpi := reportingPluginInfo_.(type) {
+			case ocr3_1types.ReportingPluginInfo1:
+				reportingPluginInfo = rpi
+			}
 
 			if err := validateOCR3_1ReportingPluginLimits(reportingPluginInfo.Limits); err != nil {
 				logger.Error("ManagedOCR3_1Oracle: invalid ReportingPluginInfo", commontypes.LogFields{
@@ -232,7 +237,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				logger,
 				"ManagedOCR3_1Oracle: error during keyValueDatabase.Close()",
 			)
-			semanticOCR3_1KeyValueDatabase := shim.NewSemanticOCR3_1KeyValueDatabase(keyValueDatabase, reportingPluginInfo.Limits, logger, metricsRegisterer)
+			semanticOCR3_1KeyValueDatabase := shim.NewSemanticOCR3_1KeyValueDatabase(keyValueDatabase, reportingPluginInfo.Limits, sharedConfig.PublicConfig, logger, metricsRegisterer)
 
 			protocol.RunOracle[RI](
 				ctx,
@@ -264,27 +269,30 @@ func RunManagedOCR3_1Oracle[RI any](
 
 func validateOCR3_1ReportingPluginLimits(limits ocr3_1types.ReportingPluginLimits) error {
 	var err error
-	if !(0 <= limits.MaxQueryLength && limits.MaxQueryLength <= ocr3_1types.MaxMaxQueryLength) {
-		err = errors.Join(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, ocr3_1types.MaxMaxQueryLength))
+	if !(0 <= limits.MaxQueryBytes && limits.MaxQueryBytes <= ocr3_1types.MaxMaxQueryBytes) {
+		err = errors.Join(err, fmt.Errorf("MaxQueryBytes (%v) out of range. Should be between 0 and %v", limits.MaxQueryBytes, ocr3_1types.MaxMaxQueryBytes))
 	}
-	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= ocr3_1types.MaxMaxObservationLength) {
-		err = errors.Join(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3_1types.MaxMaxObservationLength))
+	if !(0 <= limits.MaxObservationBytes && limits.MaxObservationBytes <= ocr3_1types.MaxMaxObservationBytes) {
+		err = errors.Join(err, fmt.Errorf("MaxObservationBytes (%v) out of range. Should be between 0 and %v", limits.MaxObservationBytes, ocr3_1types.MaxMaxObservationBytes))
 	}
-	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= ocr3_1types.MaxMaxReportLength) {
-		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3_1types.MaxMaxReportLength))
+	if !(0 <= limits.MaxReportBytes && limits.MaxReportBytes <= ocr3_1types.MaxMaxReportBytes) {
+		err = errors.Join(err, fmt.Errorf("MaxReportBytes (%v) out of range. Should be between 0 and %v", limits.MaxReportBytes, ocr3_1types.MaxMaxReportBytes))
 	}
-	if !(0 <= limits.MaxReportsPlusPrecursorLength && limits.MaxReportsPlusPrecursorLength <= ocr3_1types.MaxMaxReportsPlusPrecursorLength) {
-		err = errors.Join(err, fmt.Errorf("MaxReportInfoLength (%v) out of range. Should be between 0 and %v", limits.MaxReportsPlusPrecursorLength, ocr3_1types.MaxMaxReportsPlusPrecursorLength))
+	if !(0 <= limits.MaxReportsPlusPrecursorBytes && limits.MaxReportsPlusPrecursorBytes <= ocr3_1types.MaxMaxReportsPlusPrecursorBytes) {
+		err = errors.Join(err, fmt.Errorf("MaxReportsPlusPrecursorBytes (%v) out of range. Should be between 0 and %v", limits.MaxReportsPlusPrecursorBytes, ocr3_1types.MaxMaxReportsPlusPrecursorBytes))
 	}
 	if !(0 <= limits.MaxReportCount && limits.MaxReportCount <= ocr3_1types.MaxMaxReportCount) {
 		err = errors.Join(err, fmt.Errorf("MaxReportCount (%v) out of range. Should be between 0 and %v", limits.MaxReportCount, ocr3_1types.MaxMaxReportCount))
 	}
 
-	if !(0 <= limits.MaxKeyValueModifiedKeysPlusValuesLength && limits.MaxKeyValueModifiedKeysPlusValuesLength <= ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesLength) {
-		err = errors.Join(err, fmt.Errorf("MaxKeyValueModifiedKeysPlusValuesLength (%v) out of range. Should be between 0 and %v", limits.MaxKeyValueModifiedKeysPlusValuesLength, ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesLength))
+	if !(0 <= limits.MaxKeyValueModifiedKeys && limits.MaxKeyValueModifiedKeys <= ocr3_1types.MaxMaxKeyValueModifiedKeys) {
+		err = errors.Join(err, fmt.Errorf("MaxKeyValueModifiedKeys (%v) out of range. Should be between 0 and %v", limits.MaxKeyValueModifiedKeys, ocr3_1types.MaxMaxKeyValueModifiedKeys))
 	}
-	if !(0 <= limits.MaxBlobPayloadLength && limits.MaxBlobPayloadLength <= ocr3_1types.MaxMaxBlobPayloadLength) {
-		err = errors.Join(err, fmt.Errorf("MaxBlobPayloadLength (%v) out of range. Should be between 0 and %v", limits.MaxBlobPayloadLength, ocr3_1types.MaxMaxBlobPayloadLength))
+	if !(0 <= limits.MaxKeyValueModifiedKeysPlusValuesBytes && limits.MaxKeyValueModifiedKeysPlusValuesBytes <= ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesBytes) {
+		err = errors.Join(err, fmt.Errorf("MaxKeyValueModifiedKeysPlusValuesBytes (%v) out of range. Should be between 0 and %v", limits.MaxKeyValueModifiedKeysPlusValuesBytes, ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesBytes))
+	}
+	if !(0 <= limits.MaxBlobPayloadBytes && limits.MaxBlobPayloadBytes <= ocr3_1types.MaxMaxBlobPayloadBytes) {
+		err = errors.Join(err, fmt.Errorf("MaxBlobPayloadBytes (%v) out of range. Should be between 0 and %v", limits.MaxBlobPayloadBytes, ocr3_1types.MaxMaxBlobPayloadBytes))
 	}
 	return err
 }

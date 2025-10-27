@@ -26,8 +26,8 @@ func (rp LimitCheckOCR3_1ReportingPlugin[RI]) Query(ctx context.Context, seqNr u
 	if err != nil {
 		return nil, err
 	}
-	if !(len(query) <= rp.Limits.MaxQueryLength) {
-		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize query (%v vs %v)", len(query), rp.Limits.MaxQueryLength)
+	if !(len(query) <= rp.Limits.MaxQueryBytes) {
+		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize query (%v vs %v)", len(query), rp.Limits.MaxQueryBytes)
 	}
 	return query, nil
 }
@@ -41,8 +41,8 @@ func (rp LimitCheckOCR3_1ReportingPlugin[RI]) Observation(ctx context.Context, s
 	if err != nil {
 		return nil, err
 	}
-	if !(len(observation) <= rp.Limits.MaxObservationLength) {
-		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize observation (%v vs %v)", len(observation), rp.Limits.MaxObservationLength)
+	if !(len(observation) <= rp.Limits.MaxObservationBytes) {
+		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize observation (%v vs %v)", len(observation), rp.Limits.MaxObservationBytes)
 	}
 	return observation, nil
 }
@@ -57,8 +57,8 @@ func (rp LimitCheckOCR3_1ReportingPlugin[RI]) StateTransition(ctx context.Contex
 		return nil, err
 	}
 
-	if !(len(reportsPlusPrecursor) <= rp.Limits.MaxReportsPlusPrecursorLength) {
-		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize reports precursor (%v vs %v)", len(reportsPlusPrecursor), rp.Limits.MaxReportsPlusPrecursorLength)
+	if !(len(reportsPlusPrecursor) <= rp.Limits.MaxReportsPlusPrecursorBytes) {
+		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize reports precursor (%v vs %v)", len(reportsPlusPrecursor), rp.Limits.MaxReportsPlusPrecursorBytes)
 	}
 	return reportsPlusPrecursor, nil
 }
@@ -76,8 +76,8 @@ func (rp LimitCheckOCR3_1ReportingPlugin[RI]) Reports(ctx context.Context, seqNr
 		return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned too many reports (%v vs %v)", len(reports), rp.Limits.MaxReportCount)
 	}
 	for i, reportPlus := range reports {
-		if !(len(reportPlus.ReportWithInfo.Report) <= rp.Limits.MaxReportLength) {
-			return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize report at index %v (%v vs %v)", i, len(reportPlus.ReportWithInfo.Report), rp.Limits.MaxReportLength)
+		if !(len(reportPlus.ReportWithInfo.Report) <= rp.Limits.MaxReportBytes) {
+			return nil, fmt.Errorf("LimitCheckOCR3_1Plugin: underlying plugin returned oversize report at index %v (%v vs %v)", i, len(reportPlus.ReportWithInfo.Report), rp.Limits.MaxReportBytes)
 		}
 	}
 	return reports, nil

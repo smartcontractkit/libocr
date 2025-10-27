@@ -2,42 +2,45 @@ package limits
 
 import (
 	"crypto/ed25519"
+	"crypto/sha256"
 	"fmt"
 	"math"
 	"math/big"
+	"math/bits"
 	"time"
 
 	"github.com/smartcontractkit/libocr/internal/jmt"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/internal/mt"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
 type OCR3_1SerializedLengthLimits struct {
-	MaxLenMsgNewEpoch               int
-	MaxLenMsgEpochStartRequest      int
-	MaxLenMsgEpochStart             int
-	MaxLenMsgRoundStart             int
-	MaxLenMsgObservation            int
-	MaxLenMsgProposal               int
-	MaxLenMsgPrepare                int
-	MaxLenMsgCommit                 int
-	MaxLenMsgReportSignatures       int
-	MaxLenMsgCertifiedCommitRequest int
-	MaxLenMsgCertifiedCommit        int
-	MaxLenMsgStateSyncSummary       int
-	MaxLenMsgBlockSyncRequest       int
-	MaxLenMsgBlockSyncResponse      int
-	MaxLenMsgTreeSyncChunkRequest   int
-	MaxLenMsgTreeSyncChunkResponse  int
-	MaxLenMsgBlobOffer              int
-	MaxLenMsgBlobOfferResponse      int
-	MaxLenMsgBlobChunkRequest       int
-	MaxLenMsgBlobChunkResponse      int
+	MaxLenMsgNewEpoch                    int
+	MaxLenMsgEpochStartRequest           int
+	MaxLenMsgEpochStart                  int
+	MaxLenMsgRoundStart                  int
+	MaxLenMsgObservation                 int
+	MaxLenMsgProposal                    int
+	MaxLenMsgPrepare                     int
+	MaxLenMsgCommit                      int
+	MaxLenMsgReportSignatures            int
+	MaxLenMsgReportsPlusPrecursorRequest int
+	MaxLenMsgReportsPlusPrecursor        int
+	MaxLenMsgStateSyncSummary            int
+	MaxLenMsgBlockSyncRequest            int
+	MaxLenMsgBlockSyncResponse           int
+	MaxLenMsgTreeSyncChunkRequest        int
+	MaxLenMsgTreeSyncChunkResponse       int
+	MaxLenMsgBlobOffer                   int
+	MaxLenMsgBlobOfferResponse           int
+	MaxLenMsgBlobChunkRequest            int
+	MaxLenMsgBlobChunkResponse           int
 }
 
-func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.ReportingPluginLimits, maxSigLen int) (types.BinaryNetworkEndpointLimits, types.BinaryNetworkEndpointLimits, OCR3_1SerializedLengthLimits, error) {
+func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.ReportingPluginLimits, maxSigLen int) (types.BinaryNetworkEndpointLimits, types.BinaryNetworkEndpointLimits, OCR3_1SerializedLengthLimits, error) {
 	overflow := false
 
 	// These two helper functions add/multiply together a bunch of numbers and set overflow to true if the result
@@ -68,30 +71,27 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 	const sigOverhead = 10
 	const overhead = 256
 
-	maxLenStateTransitionOutputs := add(mul(2, pluginLimits.MaxKeyValueModifiedKeysPlusValuesLength), overhead)
+	maxLenStateTransitionOutputs := add(
+		pluginLimits.MaxKeyValueModifiedKeysPlusValuesBytes,
+		mul(
+			pluginLimits.MaxKeyValueModifiedKeys,
+			repeatedOverhead,
+		),
+	)
 	maxLenCertifiedPrepareOrCommit := add(mul(ed25519.SignatureSize+sigOverhead, cfg.ByzQuorumSize()),
-		len(protocol.StateTransitionInputsDigest{}),
-		maxLenStateTransitionOutputs,
-		len(protocol.StateRootDigest{}),
-		pluginLimits.MaxReportsPlusPrecursorLength,
-		overhead)
-	maxLenCertifiedCommittedReports := add(mul(ed25519.SignatureSize+sigOverhead, cfg.ByzQuorumSize()),
-		len(protocol.StateTransitionInputsDigest{}),
-		len(protocol.StateTransitionOutputDigest{}),
-		len(protocol.StateRootDigest{}),
-		pluginLimits.MaxReportsPlusPrecursorLength,
+		sha256.Size*3,
 		overhead)
 	maxLenMsgNewEpoch := overhead
 	maxLenMsgEpochStartRequest := add(maxLenCertifiedPrepareOrCommit, overhead)
 	maxLenMsgEpochStart := add(maxLenCertifiedPrepareOrCommit, mul(ed25519.SignatureSize+sigOverhead, cfg.ByzQuorumSize()), overhead)
-	maxLenMsgRoundStart := add(pluginLimits.MaxQueryLength, overhead)
-	maxLenMsgObservation := add(pluginLimits.MaxObservationLength, overhead)
-	maxLenMsgProposal := add(mul(add(pluginLimits.MaxObservationLength, ed25519.SignatureSize+sigOverhead), cfg.N()), overhead)
+	maxLenMsgRoundStart := add(pluginLimits.MaxQueryBytes, overhead)
+	maxLenMsgObservation := add(pluginLimits.MaxObservationBytes, overhead)
+	maxLenMsgProposal := add(mul(add(pluginLimits.MaxObservationBytes, ed25519.SignatureSize+sigOverhead), cfg.N()), overhead)
 	maxLenMsgPrepare := overhead
 	maxLenMsgCommit := overhead
 	maxLenMsgReportSignatures := add(mul(add(maxSigLen, sigOverhead), pluginLimits.MaxReportCount), overhead)
-	maxLenMsgCertifiedCommitRequest := overhead
-	maxLenMsgCertifiedCommit := add(maxLenCertifiedCommittedReports, overhead)
+	maxLenMsgReportsPlusPrecursorRequest := overhead
+	maxLenMsgReportsPlusPrecursor := add(pluginLimits.MaxReportsPlusPrecursorBytes, overhead)
 	maxLenMsgStateSyncSummary := overhead
 
 	// tree sync messages
@@ -108,9 +108,9 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 		),
 	)
 	maxLenMsgTreeSyncChunkResponseKeyValues := add(
-		protocol.MaxTreeSyncChunkKeysPlusValuesLength,
+		cfg.GetMaxTreeSyncChunkKeysPlusValuesBytes(),
 		mul( // repeated overheads
-			protocol.MaxTreeSyncChunkKeys,
+			cfg.GetMaxTreeSyncChunkKeys(),
 			repeatedOverhead, // key-value
 			add(
 				repeatedOverhead, // key
@@ -132,16 +132,19 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 
 	// block sync messages
 	maxLenMsgBlockSyncRequest := overhead
-	maxLenAttestedStateTransitionBlock := maxLenCertifiedPrepareOrCommit
-	maxLenMsgBlockSyncResponse := add(mul(protocol.MaxBlocksPerBlockSyncResponse, maxLenAttestedStateTransitionBlock), overhead)
+	maxLenAttestedStateTransitionBlock := add(maxLenCertifiedPrepareOrCommit, maxLenStateTransitionOutputs)
+	maxLenMsgBlockSyncResponse := add(mul(cfg.GetMaxBlocksPerBlockSyncResponse(), maxLenAttestedStateTransitionBlock), overhead)
 
 	// blob exchange messages
-	const blobChunkDigestSize = len(protocol.BlobChunkDigest{})
-	maxNumBlobChunks := (pluginLimits.MaxBlobPayloadLength + protocol.BlobChunkSize - 1) / protocol.BlobChunkSize
-	maxLenMsgBlobOffer := add(mul(blobChunkDigestSize, maxNumBlobChunks), overhead)
-	maxLenMsgBlobChunkRequest := add(blobChunkDigestSize, overhead)
-	maxLenMsgBlobChunkResponse := add(blobChunkDigestSize, protocol.BlobChunkSize, overhead)
-	maxLenMsgBlobOfferResponse := add(blobChunkDigestSize, ed25519.SignatureSize+sigOverhead, overhead)
+	const blobDigestSize = len(protocol.BlobDigest{})
+	cfgBlobChunkSize := cfg.GetBlobChunkBytes()
+	maxNumBlobChunks := (pluginLimits.MaxBlobPayloadBytes + cfgBlobChunkSize - 1) / cfgBlobChunkSize
+	maxBlobChunksDigestProofElements := bits.Len(uint(maxNumBlobChunks)) + 1
+	maxLenMsgBlobOffer := add(blobDigestSize, overhead)
+	maxLenMsgBlobChunkRequest := add(blobDigestSize, overhead)
+	maxLenMsgBlobChunkResponse := add(blobDigestSize, cfgBlobChunkSize,
+		mul(maxBlobChunksDigestProofElements, add(repeatedOverhead, len(mt.Digest{}))), overhead)
+	maxLenMsgBlobOfferResponse := add(blobDigestSize, ed25519.SignatureSize+sigOverhead, overhead)
 
 	maxDefaultPriorityMessageSize := max(
 		maxLenMsgNewEpoch,
@@ -153,8 +156,8 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 		maxLenMsgPrepare,
 		maxLenMsgCommit,
 		maxLenMsgReportSignatures,
-		maxLenMsgCertifiedCommitRequest,
-		maxLenMsgCertifiedCommit,
+		maxLenMsgReportsPlusPrecursorRequest,
+		maxLenMsgReportsPlusPrecursor,
 		maxLenMsgBlobOffer,
 		maxLenMsgBlobChunkRequest,
 	)
@@ -167,24 +170,24 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 
 	minRoundInterval := math.Max(float64(cfg.DeltaRound), float64(cfg.DeltaGrace))
 
-	minEpochInterval := math.Min(float64(cfg.DeltaProgress), math.Min(float64(cfg.DeltaInitial), float64(cfg.RMax)*float64(minRoundInterval)))
+	minEpochInterval := math.Min(float64(cfg.DeltaProgress), math.Min(float64(cfg.GetDeltaInitial()), float64(cfg.RMax)*float64(minRoundInterval)))
 
-	defaultPriorityMessagesRate := (1.0*float64(time.Second)/float64(cfg.DeltaResend) +
+	defaultPriorityMessagesRate := (1.0*float64(time.Second)/float64(cfg.GetDeltaResend()) +
 		3.0*float64(time.Second)/minEpochInterval +
 		8.0*float64(time.Second)/float64(minRoundInterval) +
-		2.0*float64(time.Second)/float64(protocol.DeltaBlobOfferBroadcast) +
-		1.0*float64(time.Second)/float64(protocol.DeltaBlobChunkRequest)) * 1.2
+		2.0*float64(time.Second)/float64(cfg.GetDeltaBlobOfferMinRequestToSameOracleInterval()) +
+		1.0*float64(time.Second)/float64(cfg.GetDeltaBlobChunkMinRequestToSameOracleInterval())) * 1.2
 
-	lowPriorityMessagesRate := (1.0*float64(time.Second)/float64(protocol.DeltaMinBlockSyncRequest) +
-		1.0*float64(time.Second)/float64(protocol.DeltaMinTreeSyncRequest) +
-		1.0*float64(time.Second)/float64(protocol.DeltaStateSyncHeartbeat)) * 1.2
+	lowPriorityMessagesRate := (1.0*float64(time.Second)/float64(cfg.GetDeltaBlockSyncMinRequestToSameOracleInterval()) +
+		1.0*float64(time.Second)/float64(cfg.GetDeltaTreeSyncMinRequestToSameOracleInterval()) +
+		1.0*float64(time.Second)/float64(cfg.GetDeltaStateSyncSummaryInterval())) * 1.2
 
 	defaultPriorityMessagesCapacity := mul(15, 3)
 	lowPriorityMessagesCapacity := mul(3, 3)
 
 	// we don't multiply bytesRate by a safetyMargin since we already have a generous overhead on each message
 
-	defaultPriorityBytesRate := float64(time.Second)/float64(cfg.DeltaResend)*float64(maxLenMsgNewEpoch) +
+	defaultPriorityBytesRate := float64(time.Second)/float64(cfg.GetDeltaResend())*float64(maxLenMsgNewEpoch) +
 		float64(time.Second)/float64(minEpochInterval)*float64(maxLenMsgNewEpoch) +
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgPrepare) +
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgCommit) +
@@ -194,14 +197,14 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgProposal) +
 		float64(time.Second)/float64(minEpochInterval)*float64(maxLenMsgEpochStartRequest) +
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgObservation) +
-		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgCertifiedCommitRequest) +
-		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgCertifiedCommit) +
-		float64(time.Second)/float64(protocol.DeltaBlobOfferBroadcast)*float64(maxLenMsgBlobOffer) + // blob-related messages
-		float64(time.Second)/float64(protocol.DeltaBlobChunkRequest)*float64(maxLenMsgBlobChunkRequest)
+		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgReportsPlusPrecursorRequest) +
+		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgReportsPlusPrecursor) +
+		float64(time.Second)/float64(cfg.GetDeltaBlobOfferMinRequestToSameOracleInterval())*float64(maxLenMsgBlobOffer) + // blob-related messages
+		float64(time.Second)/float64(cfg.GetDeltaBlobChunkMinRequestToSameOracleInterval())*float64(maxLenMsgBlobChunkRequest)
 
-	lowPriorityBytesRate := float64(time.Second)/float64(protocol.DeltaStateSyncHeartbeat)*float64(maxLenMsgStateSyncSummary) +
-		float64(time.Second)/float64(protocol.DeltaMinBlockSyncRequest)*float64(maxLenMsgBlockSyncRequest) +
-		float64(time.Second)/float64(protocol.DeltaMinTreeSyncRequest)*float64(maxLenMsgTreeSyncChunkRequest)
+	lowPriorityBytesRate := float64(time.Second)/float64(cfg.GetDeltaStateSyncSummaryInterval())*float64(maxLenMsgStateSyncSummary) +
+		float64(time.Second)/float64(cfg.GetDeltaBlockSyncMinRequestToSameOracleInterval())*float64(maxLenMsgBlockSyncRequest) +
+		float64(time.Second)/float64(cfg.GetDeltaTreeSyncMinRequestToSameOracleInterval())*float64(maxLenMsgTreeSyncChunkRequest)
 
 	defaultPriorityBytesCapacity := mul(add(
 		maxLenMsgNewEpoch,
@@ -214,8 +217,8 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 		maxLenMsgPrepare,
 		maxLenMsgCommit,
 		maxLenMsgReportSignatures,
-		maxLenMsgCertifiedCommitRequest,
-		maxLenMsgCertifiedCommit,
+		maxLenMsgReportsPlusPrecursorRequest,
+		maxLenMsgReportsPlusPrecursor,
 		maxLenMsgBlobOffer,
 		maxLenMsgBlobChunkRequest,
 		maxLenMsgBlobOfferResponse,
@@ -256,8 +259,8 @@ func OCR3_1Limits(cfg ocr3config.PublicConfig, pluginLimits ocr3_1types.Reportin
 			maxLenMsgPrepare,
 			maxLenMsgCommit,
 			maxLenMsgReportSignatures,
-			maxLenMsgCertifiedCommitRequest,
-			maxLenMsgCertifiedCommit,
+			maxLenMsgReportsPlusPrecursorRequest,
+			maxLenMsgReportsPlusPrecursor,
 			maxLenMsgStateSyncSummary,
 			maxLenMsgBlockSyncRequest,
 			maxLenMsgBlockSyncResponse,

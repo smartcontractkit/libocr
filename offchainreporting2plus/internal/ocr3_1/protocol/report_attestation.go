@@ -3,6 +3,7 @@ package protocol
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"math"
 	"math/big"
 	"runtime"
@@ -14,7 +15,7 @@ import (
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common/scheduler"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -28,20 +29,21 @@ func RunReportAttestation[RI any](
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI],
 	chReportAttestationToStateSync chan<- EventToStateSync[RI],
 	chReportAttestationToTransmission chan<- EventToTransmission[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
+	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
 	onchainKeyring ocr3types.OnchainKeyring[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 ) {
-	sched := scheduler.NewScheduler[EventMissingOutcome[RI]]()
+	sched := scheduler.NewScheduler[EventMissingReportsPlusPrecursor[RI]]()
 	defer sched.Close()
 
 	newReportAttestationState(ctx, chNetToReportAttestation,
 		chOutcomeGenerationToReportAttestation,
 		chReportAttestationToStateSync, chReportAttestationToTransmission,
-		config, contractTransmitter, logger, netSender, onchainKeyring,
+		config, contractTransmitter, kvDb, logger, netSender, onchainKeyring,
 		reportingPlugin, sched).run()
 }
 
@@ -53,6 +55,8 @@ const lookaheadMinRounds int = 4
 const lookaheadDuration = 30 * time.Second
 const lookaheadMaxRounds int = 10
 
+const maxReportsPlusPrecursorsToReapInOneGo = 100_000
+
 type reportAttestationState[RI any] struct {
 	ctx  context.Context
 	subs subprocesses.Subprocesses
@@ -61,14 +65,15 @@ type reportAttestationState[RI any] struct {
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI]
 	chReportAttestationToStateSync         chan<- EventToStateSync[RI]
 	chReportAttestationToTransmission      chan<- EventToTransmission[RI]
-	config                                 ocr3config.SharedConfig
+	config                                 ocr3_1config.SharedConfig
 	contractTransmitter                    ocr3types.ContractTransmitter[RI]
+	kvDb                                   KeyValueDatabase
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender[RI]
 	onchainKeyring                         ocr3types.OnchainKeyring[RI]
 	reportingPlugin                        ocr3_1types.ReportingPlugin[RI]
 
-	scheduler    *scheduler.Scheduler[EventMissingOutcome[RI]]
+	scheduler    *scheduler.Scheduler[EventMissingReportsPlusPrecursor[RI]]
 	chLocalEvent chan EventComputedReports[RI]
 	// reap() is used to prevent unbounded state growth of rounds.
 
@@ -82,23 +87,26 @@ type reportAttestationState[RI any] struct {
 }
 
 type round[RI any] struct {
-	ctx                     context.Context                // should always be initialized when a round[RI] is initiated
-	ctxCancel               context.CancelFunc             // should always be initialized when a round[RI] is initiated
-	verifiedCertifiedCommit *CertifiedCommittedReports[RI] // only stores certifiedCommit whose qc has been verified
-	reportsPlus             *[]ocr3types.ReportPlus[RI]    // cache result of ReportingPlugin.Reports(certifiedCommit.SeqNr, certifiedCommit.Outcome)
-	oracles                 []oracle                       // always initialized to be of length n
-	startedFetch            bool
-	complete                bool
+	ctx                                 context.Context                   // should always be initialized when a round[RI] is initiated
+	ctxCancel                           context.CancelFunc                // should always be initialized when a round[RI] is initiated
+	certifiedReportsPlusPrecursorDigest *ReportsPlusPrecursorDigest       // only stores ReportsPlusPrecursorDigest when supplied as committed by outgen, or from f+1 matching MessageReportSignatures
+	certifiedReportsPlusPrecursor       *ocr3_1types.ReportsPlusPrecursor // only stores ReportsPlusPrecursor when it is the valid preimage of certifiedReportsPlusPrecursorDigest
+	reportsPlus                         *[]ocr3types.ReportPlus[RI]       // cache result of ReportingPlugin.Reports(seqNr, certifiedReportsPlusPrecursor)
+	oracles                             []oracle                          // always initialized to be of length n
+	startedFetch                        bool
+	successfullyCheckedKV               bool
+	complete                            bool
 }
 
 // oracle contains information about interactions with oracles (self & others)
 type oracle struct {
-	signatures      [][]byte
-	sentSignatures  bool
-	validSignatures *bool
-	weRequested     bool
-	theyServiced    bool
-	weServiced      bool
+	signatures                 [][]byte
+	reportsPlusPrecursorDigest *ReportsPlusPrecursorDigest
+	sentSignatures             bool
+	validSignatures            *bool
+	weRequested                bool
+	theyServiced               bool
+	weServiced                 bool
 }
 
 func (repatt *reportAttestationState[RI]) run() {
@@ -128,6 +136,38 @@ func (repatt *reportAttestationState[RI]) run() {
 		default:
 		}
 	}
+}
+
+func (repatt *reportAttestationState[RI]) eventNewCertifiedCommit(ev EventNewCertifiedCommit[RI]) {
+	repatt.receivedCertifiedReportsPlusPrecursorDigest(ev.SeqNr, ev.ReportsPlusPrecursorDigest)
+}
+
+func (repatt *reportAttestationState[RI]) receivedCertifiedReportsPlusPrecursorDigest(seqNr uint64, reportsPlusPrecursorDigest ReportsPlusPrecursorDigest) {
+	if repatt.rounds[seqNr] != nil && repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest != nil {
+		repatt.logger.Debug("dropping redundant ReportsPlusPrecursorDigest", commontypes.LogFields{
+			"seqNr": seqNr,
+		})
+		return
+	}
+
+	if _, ok := repatt.rounds[seqNr]; !ok {
+		ctx, cancel := context.WithCancel(repatt.ctx)
+		repatt.rounds[seqNr] = &round[RI]{
+			ctx,
+			cancel,
+			nil,
+			nil,
+			nil,
+			make([]oracle, repatt.config.N()),
+			false,
+			false,
+			false,
+		}
+	}
+
+	repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest = &reportsPlusPrecursorDigest
+
+	repatt.tryComplete(seqNr)
 }
 
 func (repatt *reportAttestationState[RI]) messageReportSignatures(
@@ -164,7 +204,9 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 			cancel,
 			nil,
 			nil,
+			nil,
 			make([]oracle, repatt.config.N()),
+			false,
 			false,
 			false,
 		}
@@ -179,18 +221,19 @@ func (repatt *reportAttestationState[RI]) messageReportSignatures(
 	}
 
 	repatt.rounds[msg.SeqNr].oracles[sender].signatures = msg.ReportSignatures
+	repatt.rounds[msg.SeqNr].oracles[sender].reportsPlusPrecursorDigest = &msg.ReportsPlusPrecursorDigest
 	repatt.rounds[msg.SeqNr].oracles[sender].sentSignatures = true
 
 	repatt.tryComplete(msg.SeqNr)
 }
 
-func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOutcome[RI]) {
-	repatt.logger.Debug("received EventMissingOutcome", commontypes.LogFields{
+func (repatt *reportAttestationState[RI]) eventMissingReportsPlusPrecursor(ev EventMissingReportsPlusPrecursor[RI]) {
+	repatt.logger.Debug("received EventMissingReportsPlusPrecursor", commontypes.LogFields{
 		"msgSeqNr": ev.SeqNr,
 	})
 
 	if repatt.rounds[ev.SeqNr] == nil {
-		repatt.logger.Debug("dropping EventMissingOutcome for unknown seqNr", commontypes.LogFields{
+		repatt.logger.Debug("dropping EventMissingReportsPlusPrecursor for unknown seqNr", commontypes.LogFields{
 			"evSeqNr":       ev.SeqNr,
 			"highWaterMark": repatt.highWaterMark,
 			"expiryRounds":  repatt.expiryRounds(),
@@ -198,24 +241,28 @@ func (repatt *reportAttestationState[RI]) eventMissingOutcome(ev EventMissingOut
 		return
 	}
 
-	if repatt.rounds[ev.SeqNr].verifiedCertifiedCommit != nil {
-		repatt.logger.Debug("dropping EventMissingOutcome, already have Outcome", commontypes.LogFields{
+	if repatt.rounds[ev.SeqNr].certifiedReportsPlusPrecursor != nil {
+		repatt.logger.Debug("dropping EventMissingReportsPlusPrecursor, already have ReportsPlusPrecursor", commontypes.LogFields{
 			"evSeqNr": ev.SeqNr,
 		})
 		return
 	}
 
-	repatt.tryRequestCertifiedCommit(ev.SeqNr)
+	if repatt.tryReadReportsPlusPrecursor(ev.SeqNr) {
+		return
+	}
+
+	repatt.tryRequestReportsPlusPrecursor(ev.SeqNr)
 }
 
-func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg MessageCertifiedCommitRequest[RI], sender commontypes.OracleID) {
-	repatt.logger.Debug("received MessageCertifiedCommitRequest", commontypes.LogFields{
+func (repatt *reportAttestationState[RI]) messageReportsPlusPrecursorRequest(msg MessageReportsPlusPrecursorRequest[RI], sender commontypes.OracleID) {
+	repatt.logger.Debug("received MessageReportsPlusPrecursorRequest", commontypes.LogFields{
 		"sender":   sender,
 		"msgSeqNr": msg.SeqNr,
 	})
 
 	if repatt.rounds[msg.SeqNr] == nil {
-		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for unknown seqNr", commontypes.LogFields{
+		repatt.logger.Debug("dropping MessageReportsPlusPrecursorRequest for unknown seqNr", commontypes.LogFields{
 			"msgSeqNr":      msg.SeqNr,
 			"sender":        sender,
 			"highWaterMark": repatt.highWaterMark,
@@ -224,8 +271,8 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 		return
 	}
 
-	if repatt.rounds[msg.SeqNr].verifiedCertifiedCommit == nil {
-		repatt.logger.Debug("dropping MessageCertifiedCommitRequest for outcome with unknown certified commit", commontypes.LogFields{
+	if repatt.rounds[msg.SeqNr].certifiedReportsPlusPrecursor == nil {
+		repatt.logger.Debug("dropping MessageReportsPlusPrecursorRequest for seqNr with unknown certified reports plus precursor", commontypes.LogFields{
 			"msgSeqNr": msg.SeqNr,
 			"sender":   sender,
 		})
@@ -233,7 +280,7 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 	}
 
 	if repatt.rounds[msg.SeqNr].oracles[sender].weServiced {
-		repatt.logger.Warn("dropping duplicate MessageCertifiedCommitRequest", commontypes.LogFields{
+		repatt.logger.Warn("dropping duplicate MessageReportsPlusPrecursorRequest", commontypes.LogFields{
 			"msgSeqNr": msg.SeqNr,
 			"sender":   sender,
 		})
@@ -242,21 +289,24 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommitRequest(msg Mess
 
 	repatt.rounds[msg.SeqNr].oracles[sender].weServiced = true
 
-	repatt.logger.Debug("sending MessageCertifiedCommit", commontypes.LogFields{
+	repatt.logger.Debug("sending MessageReportsPlusPrecursor", commontypes.LogFields{
 		"msgSeqNr": msg.SeqNr,
 		"to":       sender,
 	})
-	repatt.netSender.SendTo(MessageCertifiedCommit[RI]{*repatt.rounds[msg.SeqNr].verifiedCertifiedCommit}, sender)
+	repatt.netSender.SendTo(MessageReportsPlusPrecursor[RI]{
+		msg.SeqNr,
+		*repatt.rounds[msg.SeqNr].certifiedReportsPlusPrecursor,
+	}, sender)
 }
 
-func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCertifiedCommit[RI], sender commontypes.OracleID) {
-	repatt.logger.Debug("received MessageCertifiedCommit", commontypes.LogFields{
+func (repatt *reportAttestationState[RI]) messageReportsPlusPrecursor(msg MessageReportsPlusPrecursor[RI], sender commontypes.OracleID) {
+	repatt.logger.Debug("received MessageReportsPlusPrecursor", commontypes.LogFields{
 		"sender":   sender,
-		"msgSeqNr": msg.CertifiedCommittedReports.SeqNr,
+		"msgSeqNr": msg.SeqNr,
 	})
-	if repatt.rounds[msg.CertifiedCommittedReports.SeqNr] == nil {
-		repatt.logger.Warn("dropping MessageCertifiedCommit for unknown seqNr", commontypes.LogFields{
-			"msgSeqNr":      msg.CertifiedCommittedReports.SeqNr,
+	if repatt.rounds[msg.SeqNr] == nil {
+		repatt.logger.Warn("dropping MessageReportsPlusPrecursor for unknown seqNr", commontypes.LogFields{
+			"msgSeqNr":      msg.SeqNr,
 			"sender":        sender,
 			"highWaterMark": repatt.highWaterMark,
 			"expiryRounds":  repatt.expiryRounds(),
@@ -264,10 +314,10 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 		return
 	}
 
-	oracle := &repatt.rounds[msg.CertifiedCommittedReports.SeqNr].oracles[sender]
+	oracle := &repatt.rounds[msg.SeqNr].oracles[sender]
 	if !(oracle.weRequested && !oracle.theyServiced) {
-		repatt.logger.Warn("dropping unexpected MessageCertifiedCommit", commontypes.LogFields{
-			"msgSeqNr":     msg.CertifiedCommittedReports.SeqNr,
+		repatt.logger.Warn("dropping unexpected MessageReportsPlusPrecursor", commontypes.LogFields{
+			"msgSeqNr":     msg.SeqNr,
 			"sender":       sender,
 			"weRequested":  oracle.weRequested,
 			"theyServiced": oracle.theyServiced,
@@ -277,36 +327,40 @@ func (repatt *reportAttestationState[RI]) messageCertifiedCommit(msg MessageCert
 
 	oracle.theyServiced = true
 
-	if repatt.rounds[msg.CertifiedCommittedReports.SeqNr].verifiedCertifiedCommit != nil {
-		repatt.logger.Debug("dropping redundant MessageCertifiedCommit", commontypes.LogFields{
-			"msgSeqNr": msg.CertifiedCommittedReports.SeqNr,
+	if repatt.rounds[msg.SeqNr].certifiedReportsPlusPrecursor != nil {
+		repatt.logger.Debug("dropping redundant MessageReportsPlusPrecursor", commontypes.LogFields{
+			"msgSeqNr": msg.SeqNr,
 			"sender":   sender,
 		})
 		return
 	}
 
-	if err := msg.CertifiedCommittedReports.Verify(repatt.config.ConfigDigest, repatt.config.OracleIdentities, repatt.config.ByzQuorumSize()); err != nil {
-		repatt.logger.Warn("dropping MessageCertifiedCommit with invalid certified commit", commontypes.LogFields{
-			"msgSeqNr": msg.CertifiedCommittedReports.SeqNr,
-			"sender":   sender,
+	expectedReportsPlusPrecursorDigest := *repatt.rounds[msg.SeqNr].certifiedReportsPlusPrecursorDigest
+	actualReportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(
+		repatt.config.ConfigDigest,
+		msg.SeqNr,
+		msg.ReportsPlusPrecursor,
+	)
+
+	if expectedReportsPlusPrecursorDigest != actualReportsPlusPrecursorDigest {
+		repatt.logger.Warn("dropping MessageReportsPlusPrecursor with mismatching digest", commontypes.LogFields{
+			"msgSeqNr":                           msg.SeqNr,
+			"sender":                             sender,
+			"expectedReportsPlusPrecursorDigest": expectedReportsPlusPrecursorDigest,
+			"actualReportsPlusPrecursorDigest":   actualReportsPlusPrecursorDigest,
 		})
 		return
 	}
 
-	repatt.logger.Debug("received valid MessageCertifiedCommit", commontypes.LogFields{
-		"msgSeqNr": msg.CertifiedCommittedReports.SeqNr,
+	repatt.logger.Debug("received valid MessageReportsPlusPrecursor", commontypes.LogFields{
+		"msgSeqNr": msg.SeqNr,
 		"sender":   sender,
 	})
 
-	repatt.receivedVerifiedCertifiedCommit(msg.CertifiedCommittedReports)
-
-	//select {
-	//case repatt.chReportAttestationToOutcomeGeneration <- EventCertifiedCommit[RI]{msg.CertifiedCommit}:
-	//case <-repatt.ctx.Done():
-	//}
+	repatt.receivedCertifiedReportsPlusPrecursor(msg.SeqNr, msg.ReportsPlusPrecursor)
 }
 
-func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64) {
+func (repatt *reportAttestationState[RI]) tryRequestReportsPlusPrecursor(seqNr uint64) {
 	candidates := make([]commontypes.OracleID, 0, repatt.config.N())
 	for oracleID, oracle := range repatt.rounds[seqNr].oracles {
 		// avoid duplicate requests
@@ -314,7 +368,7 @@ func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64
 			continue
 		}
 		// avoid requesting from oracles that haven't sent MessageReportSignatures
-		if len(oracle.signatures) == 0 {
+		if !oracle.sentSignatures {
 			continue
 		}
 		candidates = append(candidates, commontypes.OracleID(oracleID))
@@ -334,12 +388,12 @@ func (repatt *reportAttestationState[RI]) tryRequestCertifiedCommit(seqNr uint64
 	}
 	randomCandidate := candidates[int(randomIndex.Int64())]
 	repatt.rounds[seqNr].oracles[randomCandidate].weRequested = true
-	repatt.logger.Debug("sending MessageCertifiedCommitRequest", commontypes.LogFields{
+	repatt.logger.Debug("sending MessageReportsPlusPrecursorRequest", commontypes.LogFields{
 		"seqNr": seqNr,
 		"to":    randomCandidate,
 	})
-	repatt.netSender.SendTo(MessageCertifiedCommitRequest[RI]{seqNr}, randomCandidate)
-	repatt.scheduler.ScheduleDelay(EventMissingOutcome[RI]{seqNr}, repatt.config.DeltaCertifiedCommitRequest)
+	repatt.netSender.SendTo(MessageReportsPlusPrecursorRequest[RI]{seqNr}, randomCandidate)
+	repatt.scheduler.ScheduleDelay(EventMissingReportsPlusPrecursor[RI]{seqNr}, repatt.config.GetDeltaReportsPlusPrecursorRequest())
 }
 
 func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
@@ -350,31 +404,56 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 		return
 	}
 
-	if repatt.rounds[seqNr].verifiedCertifiedCommit == nil {
-		oraclesThatSentSignatures := 0
+	if repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest == nil {
+		// check if we received sufficient MessageReportSignatures of which f+1 have matching ReportsPlusPrecursorDigest
+
+		oraclesThatSentReportsPlusPrecursorDigest := make(map[ReportsPlusPrecursorDigest]int)
+		maxOraclesThatSentReportsPlusPrecursorDigest := 0
 		for _, oracle := range repatt.rounds[seqNr].oracles {
 			if !oracle.sentSignatures {
 				continue
 			}
-			oraclesThatSentSignatures++
+			rppd := *oracle.reportsPlusPrecursorDigest
+			oraclesThatSentReportsPlusPrecursorDigest[rppd]++
+			maxOraclesThatSentReportsPlusPrecursorDigest = max(
+				maxOraclesThatSentReportsPlusPrecursorDigest,
+				oraclesThatSentReportsPlusPrecursorDigest[rppd],
+			)
+			if oraclesThatSentReportsPlusPrecursorDigest[rppd] > repatt.config.F {
+				repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest = &rppd
+				break
+			}
 		}
 
-		if oraclesThatSentSignatures <= repatt.config.F {
-			repatt.logger.Debug("cannot complete, missing CertifiedCommit and signatures", commontypes.LogFields{
-				"oraclesThatSentSignatures": oraclesThatSentSignatures,
-				"seqNr":                     seqNr,
-				"threshold":                 repatt.config.F + 1,
+		if maxOraclesThatSentReportsPlusPrecursorDigest <= repatt.config.F {
+			repatt.logger.Debug("cannot complete, missing certified ReportsPlusPrecursorDigest and signatures", commontypes.LogFields{
+				"maxOraclesThatSentReportsPlusPrecursorDigest": maxOraclesThatSentReportsPlusPrecursorDigest,
+				"seqNr":     seqNr,
+				"threshold": repatt.config.F + 1,
 			})
-		} else if !repatt.rounds[seqNr].startedFetch {
-			repatt.logger.Debug("we have received f+1 MessageReportSignatures messages but we are still missing CertifiedCommit", commontypes.LogFields{
-				"seqNr": seqNr,
-			})
-			repatt.rounds[seqNr].startedFetch = true
-			repatt.scheduler.ScheduleDelay(EventMissingOutcome[RI]{seqNr}, repatt.config.DeltaCertifiedCommitRequest)
+			return
+		} else {
+			// We found the certified ReportsPlusPrecursorDigest through f+1
+			// MessageReportSignatures, which means that we did not find out
+			// through EventNewCertifiedCommit of outcome generation
 			select {
 			case repatt.chReportAttestationToStateSync <- EventStateSyncRequest[RI]{seqNr}:
 			case <-repatt.ctx.Done():
 			}
+		}
+	}
+
+	if repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest != nil && repatt.rounds[seqNr].certifiedReportsPlusPrecursor == nil {
+		if repatt.tryReadReportsPlusPrecursor(seqNr) {
+			return
+		}
+
+		if !repatt.rounds[seqNr].startedFetch {
+			repatt.logger.Debug("we have received the certified ReportsPlusPrecursorDigest but we are still missing ReportsPlusPrecursor", commontypes.LogFields{
+				"seqNr": seqNr,
+			})
+			repatt.rounds[seqNr].startedFetch = true
+			repatt.scheduler.ScheduleDelay(EventMissingReportsPlusPrecursor[RI]{seqNr}, repatt.config.GetDeltaReportsPlusPrecursorRequest())
 		}
 		return
 	}
@@ -392,7 +471,7 @@ func (repatt *reportAttestationState[RI]) tryComplete(seqNr uint64) {
 	var aossPerReport [][]types.AttributedOnchainSignature = make([][]types.AttributedOnchainSignature, len(reportsPlus))
 	for oracleID := range repatt.rounds[seqNr].oracles {
 		oracle := &repatt.rounds[seqNr].oracles[oracleID]
-		if len(oracle.signatures) == 0 {
+		if !oracle.sentSignatures {
 			continue
 		}
 		if oracle.validSignatures == nil {
@@ -503,50 +582,48 @@ func (repatt *reportAttestationState[RI]) verifySignatures(publicKey types.Oncha
 	return allValid
 }
 
-func (repatt *reportAttestationState[RI]) eventCertifiedCommit(ev EventCertifiedCommit[RI]) {
-	repatt.receivedVerifiedCertifiedCommit(ev.CertifiedCommittedReports)
-}
-
-func (repatt *reportAttestationState[RI]) receivedVerifiedCertifiedCommit(certifiedCommit CertifiedCommittedReports[RI]) {
-	if repatt.rounds[certifiedCommit.SeqNr] != nil && repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit != nil {
-		repatt.logger.Debug("dropping redundant CertifiedCommit", commontypes.LogFields{
-			"seqNr": certifiedCommit.SeqNr,
+func (repatt *reportAttestationState[RI]) receivedCertifiedReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor) {
+	if repatt.rounds[seqNr] != nil && repatt.rounds[seqNr].certifiedReportsPlusPrecursor != nil {
+		repatt.logger.Debug("dropping redundant certified ReportsPlusPrecursor", commontypes.LogFields{
+			"seqNr": seqNr,
 		})
 		return
 	}
 
-	if _, ok := repatt.rounds[certifiedCommit.SeqNr]; !ok {
+	if _, ok := repatt.rounds[seqNr]; !ok {
 		ctx, cancel := context.WithCancel(repatt.ctx)
-		repatt.rounds[certifiedCommit.SeqNr] = &round[RI]{
+		repatt.rounds[seqNr] = &round[RI]{
 			ctx,
 			cancel,
+			nil,
 			nil,
 			nil,
 			make([]oracle, repatt.config.N()),
 			false,
 			false,
+			false,
 		}
 	}
 
-	repatt.rounds[certifiedCommit.SeqNr].verifiedCertifiedCommit = &certifiedCommit
+	repatt.rounds[seqNr].certifiedReportsPlusPrecursor = &reportsPlusPrecursor
 
 	{
-		ctx := repatt.rounds[certifiedCommit.SeqNr].ctx
+		ctx := repatt.rounds[seqNr].ctx
 		repatt.subs.Go(func() {
-			repatt.backgroundComputeReports(ctx, certifiedCommit)
+			repatt.backgroundComputeReports(ctx, seqNr, reportsPlusPrecursor)
 		})
 	}
 }
 
-func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.Context, verifiedCertifiedCommit CertifiedCommittedReports[RI]) {
+func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.Context, seqNr uint64, certifiedReportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor) {
 	reportsPlus, ok := common.CallPluginFromBackground(
 		ctx,
 		repatt.logger,
-		commontypes.LogFields{"seqNr": verifiedCertifiedCommit.SeqNr},
+		commontypes.LogFields{"seqNr": seqNr},
 		"Reports",
 		0, // Reports is a pure function and should finish "instantly"
 		func(ctx context.Context) ([]ocr3types.ReportPlus[RI], error) {
-			return repatt.reportingPlugin.Reports(ctx, verifiedCertifiedCommit.SeqNr, verifiedCertifiedCommit.ReportsPlusPrecursor)
+			return repatt.reportingPlugin.Reports(ctx, seqNr, certifiedReportsPlusPrecursor)
 		},
 	)
 	if !ok {
@@ -554,12 +631,12 @@ func (repatt *reportAttestationState[RI]) backgroundComputeReports(ctx context.C
 	}
 
 	repatt.logger.Debug("successfully invoked ReportingPlugin.Reports", commontypes.LogFields{
-		"seqNr":   verifiedCertifiedCommit.SeqNr,
+		"seqNr":   seqNr,
 		"reports": len(reportsPlus),
 	})
 
 	select {
-	case repatt.chLocalEvent <- EventComputedReports[RI]{verifiedCertifiedCommit.SeqNr, reportsPlus}:
+	case repatt.chLocalEvent <- EventComputedReports[RI]{seqNr, reportsPlus}:
 	case <-ctx.Done():
 		return
 	}
@@ -601,12 +678,57 @@ func (repatt *reportAttestationState[RI]) eventComputedReports(ev EventComputedR
 		"evSeqNr": ev.SeqNr,
 	})
 
+	reportsPlusPrecursorDigest := *repatt.rounds[ev.SeqNr].certifiedReportsPlusPrecursorDigest
+
 	repatt.netSender.Broadcast(MessageReportSignatures[RI]{
 		ev.SeqNr,
 		sigs,
+		reportsPlusPrecursorDigest,
 	})
 
 	// no need to call tryComplete since receipt of our own MessageReportSignatures will do so
+}
+
+func (repatt *reportAttestationState[RI]) tryReadReportsPlusPrecursor(seqNr uint64) bool {
+	if repatt.rounds[seqNr] == nil || repatt.rounds[seqNr].certifiedReportsPlusPrecursor != nil {
+		return false
+	}
+
+	if !repatt.rounds[seqNr].successfullyCheckedKV {
+		reportsPlusPrecursor, err := repatt.readReportsPlusPrecursor(seqNr, *repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest)
+		if err != nil {
+			repatt.logger.Warn("error reading ReportsPlusPrecursor from kv", commontypes.LogFields{
+				"seqNr": seqNr,
+				"error": err,
+			})
+			return false
+		}
+
+		repatt.rounds[seqNr].successfullyCheckedKV = true
+		if reportsPlusPrecursor != nil {
+			repatt.receivedCertifiedReportsPlusPrecursor(seqNr, *reportsPlusPrecursor)
+			return true
+		} else {
+			repatt.logger.Warn("did not find ReportsPlusPrecursor in kv", commontypes.LogFields{
+				"seqNr":                      seqNr,
+				"reportsPlusPrecursorDigest": *repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest,
+			})
+		}
+	}
+	return false
+}
+
+func (repatt *reportAttestationState[RI]) readReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursorDigest ReportsPlusPrecursorDigest) (*ocr3_1types.ReportsPlusPrecursor, error) {
+	tx, err := repatt.kvDb.NewReadTransactionUnchecked()
+	if err != nil {
+		return nil, fmt.Errorf("error creating read transaction: %w", err)
+	}
+	defer tx.Discard()
+	reportsPlusPrecursor, err := tx.ReadReportsPlusPrecursor(seqNr, reportsPlusPrecursorDigest)
+	if err != nil {
+		return nil, fmt.Errorf("error reading reports plus precursor: %w", err)
+	}
+	return reportsPlusPrecursor, nil
 }
 
 // reap expired rounds if there is a new high water mark
@@ -634,12 +756,16 @@ func (repatt *reportAttestationState[RI]) tryReap(seqNr uint64, sender commontyp
 	repatt.reap()
 }
 
-func (repatt *reportAttestationState[RI]) isBeyondExpiry(seqNr uint64) bool {
+func (repatt *reportAttestationState[RI]) minUnexpiredSeqNr() uint64 {
 	expiry := uint64(repatt.expiryRounds())
 	if repatt.highWaterMark <= expiry {
-		return false
+		return 0
 	}
-	return seqNr < repatt.highWaterMark-expiry
+	return repatt.highWaterMark - expiry
+}
+
+func (repatt *reportAttestationState[RI]) isBeyondExpiry(seqNr uint64) bool {
+	return seqNr < repatt.minUnexpiredSeqNr()
 }
 
 func (repatt *reportAttestationState[RI]) isBeyondLookahead(seqNr uint64) bool {
@@ -671,11 +797,54 @@ func (repatt *reportAttestationState[RI]) reap() {
 		}
 	}
 
+	{
+		minUnexpiredSeqNr := repatt.minUnexpiredSeqNr()
+		repatt.subs.Go(func() {
+			repatt.backgroundReapReportsPlusPrecursors(minUnexpiredSeqNr)
+		})
+	}
+
 	repatt.logger.Debug("reaped expired rounds", commontypes.LogFields{
 		"before":        beforeRounds,
 		"after":         len(repatt.rounds),
 		"highWaterMark": repatt.highWaterMark,
 	})
+}
+
+func (repatt *reportAttestationState[RI]) backgroundReapReportsPlusPrecursors(minUnexpiredSeqNr uint64) {
+	done := false
+	for !done {
+		var err error
+		done, err = repatt.reapReportsPlusPrecursors(minUnexpiredSeqNr)
+		if err != nil {
+			repatt.logger.Warn("failed to reap reportsPlusPrecursors", commontypes.LogFields{
+				"error": err,
+			})
+			return
+		}
+	}
+	repatt.logger.Debug("successfully reaped reportsPlusPrecursors", commontypes.LogFields{
+		"minUnexpiredSeqNr": minUnexpiredSeqNr,
+	})
+}
+
+func (repatt *reportAttestationState[RI]) reapReportsPlusPrecursors(minUnexpiredSeqNr uint64) (done bool, err error) {
+	tx, err := repatt.kvDb.NewUnserializedReadWriteTransactionUnchecked()
+	if err != nil {
+		return false, fmt.Errorf("failed to create transaction: %w", err)
+	}
+	defer tx.Discard()
+
+	done, err = tx.DeleteReportsPlusPrecursors(minUnexpiredSeqNr, maxReportsPlusPrecursorsToReapInOneGo)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, fmt.Errorf("failed to commit: %w", err)
+	}
+	return done, err
 }
 
 // The age (denoted in rounds) after which a report is considered expired and
@@ -711,13 +880,14 @@ func newReportAttestationState[RI any](
 	chOutcomeGenerationToReportAttestation <-chan EventToReportAttestation[RI],
 	chReportAttestationToStateSync chan<- EventToStateSync[RI],
 	chReportAttestationToTransmission chan<- EventToTransmission[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
+	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
 	onchainKeyring ocr3types.OnchainKeyring[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
-	sched *scheduler.Scheduler[EventMissingOutcome[RI]],
+	sched *scheduler.Scheduler[EventMissingReportsPlusPrecursor[RI]],
 ) *reportAttestationState[RI] {
 	return &reportAttestationState[RI]{
 		ctx,
@@ -729,6 +899,7 @@ func newReportAttestationState[RI any](
 		chReportAttestationToTransmission,
 		config,
 		contractTransmitter,
+		kvDb,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "repatt"}),
 		netSender,
 		onchainKeyring,

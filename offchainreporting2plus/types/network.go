@@ -25,8 +25,20 @@ type SingleUseSizedLimitedResponsePolicy struct {
 
 func (SingleUseSizedLimitedResponsePolicy) isResponsePolicy() {}
 
+var (
+	EmptyRequestHandleForOutboundRequest RequestHandle
+	EmptyRequestHandleForInboundResponse RequestHandle
+)
+
 type RequestHandle interface {
 	MakeResponse(payload []byte) OutboundBinaryMessageResponse
+}
+
+var EmptyRequestInfoForInboundRequest *RequestInfo
+
+type RequestInfo struct {
+	// If no response is received by this time, the request is considered timed out.
+	ExpiryTimestamp time.Time
 }
 
 type OutboundBinaryMessage interface {

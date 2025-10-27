@@ -20,7 +20,7 @@ func NewAttributedBlobAvailabilitySignature(
 }
 
 func NewLightCertifiedBlob(
-	chunkDigests [][]byte,
+	chunkDigestsRoot []byte,
 	payloadLength uint64,
 	expirySeqNr uint64,
 	submitter uint32,
@@ -32,7 +32,7 @@ func NewLightCertifiedBlob(
 		0,
 		nil,
 		// fields
-		chunkDigests,
+		chunkDigestsRoot,
 		payloadLength,
 		expirySeqNr,
 		submitter,
