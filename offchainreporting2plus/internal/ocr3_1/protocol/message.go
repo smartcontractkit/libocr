@@ -2,11 +2,12 @@ package protocol
 
 import (
 	"crypto/ed25519"
-	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/byzquorum"
 	"github.com/smartcontractkit/libocr/internal/jmt"
+	"github.com/smartcontractkit/libocr/internal/mt"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -18,7 +19,7 @@ import (
 type Message[RI any] interface {
 	// CheckSize checks whether the given message conforms to the limits imposed by
 	// reportingPluginLimits
-	CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool
+	CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, config ocr3_1config.PublicConfig) bool
 
 	// process passes this Message instance to the oracle o, as a message from
 	// oracle with the given sender index
@@ -94,7 +95,7 @@ type MessageNewEpochWish[RI any] struct {
 
 var _ MessageToPacemaker[struct{}] = (*MessageNewEpochWish[struct{}])(nil)
 
-func (msg MessageNewEpochWish[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageNewEpochWish[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, _ ocr3_1config.PublicConfig) bool {
 	return true
 }
 
@@ -114,7 +115,7 @@ type MessageEpochStartRequest[RI any] struct {
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageEpochStartRequest[struct{}])(nil)
 
-func (msg MessageEpochStartRequest[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageEpochStartRequest[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	if !msg.HighestCertified.CheckSize(n, f, limits, maxReportSigLen) {
 		return false
 	}
@@ -142,11 +143,12 @@ func (msg MessageEpochStartRequest[RI]) epoch() uint64 {
 type MessageEpochStart[RI any] struct {
 	Epoch           uint64
 	EpochStartProof EpochStartProof
+	Abdicate        bool
 }
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageEpochStart[struct{}])(nil)
 
-func (msg MessageEpochStart[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageEpochStart[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	if !msg.EpochStartProof.HighestCertified.CheckSize(n, f, limits, maxReportSigLen) {
 		return false
 	}
@@ -184,8 +186,8 @@ type MessageRoundStart[RI any] struct {
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageRoundStart[struct{}])(nil)
 
-func (msg MessageRoundStart[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
-	return len(msg.Query) <= limits.MaxQueryLength
+func (msg MessageRoundStart[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
+	return len(msg.Query) <= limits.MaxQueryBytes
 }
 
 func (msg MessageRoundStart[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
@@ -211,8 +213,8 @@ type MessageObservation[RI any] struct {
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageObservation[struct{}])(nil)
 
-func (msg MessageObservation[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
-	return len(msg.SignedObservation.Observation) <= limits.MaxObservationLength && len(msg.SignedObservation.Signature) == ed25519.SignatureSize
+func (msg MessageObservation[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
+	return len(msg.SignedObservation.Observation) <= limits.MaxObservationBytes && len(msg.SignedObservation.Signature) == ed25519.SignatureSize
 }
 
 func (msg MessageObservation[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
@@ -238,12 +240,12 @@ type MessageProposal[RI any] struct {
 
 var _ MessageToOutcomeGeneration[struct{}] = MessageProposal[struct{}]{}
 
-func (msg MessageProposal[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageProposal[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	if len(msg.AttributedSignedObservations) > n {
 		return false
 	}
 	for _, aso := range msg.AttributedSignedObservations {
-		if len(aso.SignedObservation.Observation) > limits.MaxObservationLength {
+		if len(aso.SignedObservation.Observation) > limits.MaxObservationBytes {
 			return false
 		}
 		if len(aso.SignedObservation.Signature) != ed25519.SignatureSize {
@@ -276,7 +278,7 @@ type MessagePrepare[RI any] struct {
 
 var _ MessageToOutcomeGeneration[struct{}] = MessagePrepare[struct{}]{}
 
-func (msg MessagePrepare[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessagePrepare[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	return len(msg.Signature) == ed25519.SignatureSize
 }
 
@@ -303,7 +305,7 @@ type MessageCommit[RI any] struct {
 
 var _ MessageToOutcomeGeneration[struct{}] = MessageCommit[struct{}]{}
 
-func (msg MessageCommit[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageCommit[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	return len(msg.Signature) == ed25519.SignatureSize
 }
 
@@ -323,13 +325,14 @@ func (msg MessageCommit[RI]) epoch() uint64 {
 }
 
 type MessageReportSignatures[RI any] struct {
-	SeqNr            uint64
-	ReportSignatures [][]byte
+	SeqNr                      uint64
+	ReportSignatures           [][]byte
+	ReportsPlusPrecursorDigest ReportsPlusPrecursorDigest
 }
 
 var _ MessageToReportAttestation[struct{}] = MessageReportSignatures[struct{}]{}
 
-func (msg MessageReportSignatures[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageReportSignatures[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	if len(msg.ReportSignatures) > limits.MaxReportCount {
 		return false
 	}
@@ -350,51 +353,56 @@ func (msg MessageReportSignatures[RI]) processReportAttestation(repatt *reportAt
 	repatt.messageReportSignatures(msg, sender)
 }
 
-type MessageCertifiedCommitRequest[RI any] struct {
+type MessageReportsPlusPrecursorRequest[RI any] struct {
 	SeqNr uint64
 }
 
-var _ MessageToReportAttestation[struct{}] = MessageCertifiedCommitRequest[struct{}]{}
+var _ MessageToReportAttestation[struct{}] = MessageReportsPlusPrecursorRequest[struct{}]{}
 
-func (msg MessageCertifiedCommitRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageReportsPlusPrecursorRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	return true
 }
 
-func (msg MessageCertifiedCommitRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+func (msg MessageReportsPlusPrecursorRequest[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
 	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageCertifiedCommitRequest[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
-	repatt.messageCertifiedCommitRequest(msg, sender)
+func (msg MessageReportsPlusPrecursorRequest[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
+	repatt.messageReportsPlusPrecursorRequest(msg, sender)
 }
 
-type MessageCertifiedCommit[RI any] struct {
-	CertifiedCommittedReports CertifiedCommittedReports[RI]
+type MessageReportsPlusPrecursor[RI any] struct {
+	SeqNr                uint64
+	ReportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor
 }
 
-var _ MessageToReportAttestation[struct{}] = MessageCertifiedCommit[struct{}]{}
+var _ MessageToReportAttestation[struct{}] = MessageReportsPlusPrecursor[struct{}]{}
 
-func (msg MessageCertifiedCommit[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
-	return msg.CertifiedCommittedReports.CheckSize(n, f, limits, maxReportSigLen)
+func (msg MessageReportsPlusPrecursor[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
+	if len(msg.ReportsPlusPrecursor) > limits.MaxReportsPlusPrecursorBytes {
+		return false
+	}
+	return true
 }
 
-func (msg MessageCertifiedCommit[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
+func (msg MessageReportsPlusPrecursor[RI]) process(o *oracleState[RI], sender commontypes.OracleID) {
 	o.chNetToReportAttestation <- MessageToReportAttestationWithSender[RI]{msg, sender}
 }
 
-func (msg MessageCertifiedCommit[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
-	repatt.messageCertifiedCommit(msg, sender)
+func (msg MessageReportsPlusPrecursor[RI]) processReportAttestation(repatt *reportAttestationState[RI], sender commontypes.OracleID) {
+	repatt.messageReportsPlusPrecursor(msg, sender)
 }
 
 type MessageBlockSyncRequest[RI any] struct {
 	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
-	StartSeqNr    uint64              // a successful response must contain at least the block with this sequence number
-	EndExclSeqNr  uint64              // the response may only contain sequence numbers less than this
+	RequestInfo   *types.RequestInfo
+	StartSeqNr    uint64 // a successful response must contain at least the block with this sequence number
+	EndExclSeqNr  uint64 // the response may only contain sequence numbers less than this
 }
 
 var _ MessageToStateSync[struct{}] = MessageBlockSyncRequest[struct{}]{}
 
-func (msg MessageBlockSyncRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageBlockSyncRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, _ ocr3_1config.PublicConfig) bool {
 	return true
 }
 
@@ -413,7 +421,7 @@ type MessageStateSyncSummary[RI any] struct {
 
 var _ MessageToStateSync[struct{}] = MessageStateSyncSummary[struct{}]{}
 
-func (msg MessageStateSyncSummary[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageStateSyncSummary[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, _ ocr3_1config.PublicConfig) bool {
 	return true
 }
 
@@ -434,8 +442,8 @@ type MessageBlockSyncResponse[RI any] struct {
 
 var _ MessageToStateSync[struct{}] = MessageBlockSyncResponse[struct{}]{}
 
-func (msg MessageBlockSyncResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
-	if len(msg.AttestedStateTransitionBlocks) > MaxBlocksPerBlockSyncResponse {
+func (msg MessageBlockSyncResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, config ocr3_1config.PublicConfig) bool {
+	if len(msg.AttestedStateTransitionBlocks) > config.GetMaxBlocksPerBlockSyncResponse() {
 		return false
 	}
 	for _, astb := range msg.AttestedStateTransitionBlocks {
@@ -456,6 +464,7 @@ func (msg MessageBlockSyncResponse[RI]) processStateSync(stasy *stateSyncState[R
 
 type MessageTreeSyncChunkRequest[RI any] struct {
 	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	RequestInfo   *types.RequestInfo
 	ToSeqNr       uint64
 	StartIndex    jmt.Digest
 	EndInclIndex  jmt.Digest
@@ -463,7 +472,7 @@ type MessageTreeSyncChunkRequest[RI any] struct {
 
 var _ MessageToStateSync[struct{}] = MessageTreeSyncChunkRequest[struct{}]{}
 
-func (msg MessageTreeSyncChunkRequest[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageTreeSyncChunkRequest[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, _ ocr3_1config.PublicConfig) bool {
 	return true
 }
 
@@ -488,7 +497,7 @@ type MessageTreeSyncChunkResponse[RI any] struct {
 
 var _ MessageToStateSync[struct{}] = MessageTreeSyncChunkResponse[struct{}]{}
 
-func (msg MessageTreeSyncChunkResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
+func (msg MessageTreeSyncChunkResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int, config ocr3_1config.PublicConfig) bool {
 	if len(msg.BoundingLeaves) > jmt.MaxBoundingLeaves {
 		return false
 	}
@@ -497,20 +506,20 @@ func (msg MessageTreeSyncChunkResponse[RI]) CheckSize(n int, f int, limits ocr3_
 			return false
 		}
 	}
-	if len(msg.KeyValues) > MaxTreeSyncChunkKeys {
+	if len(msg.KeyValues) > config.GetMaxTreeSyncChunkKeys() {
 		return false
 	}
 	treeSyncChunkLeavesSize := 0
 	for _, kv := range msg.KeyValues {
-		if len(kv.Key) > ocr3_1types.MaxMaxKeyValueKeyLength {
+		if len(kv.Key) > ocr3_1types.MaxMaxKeyValueKeyBytes {
 			return false
 		}
-		if len(kv.Value) > ocr3_1types.MaxMaxKeyValueValueLength {
+		if len(kv.Value) > ocr3_1types.MaxMaxKeyValueValueBytes {
 			return false
 		}
 		treeSyncChunkLeavesSize += len(kv.Key) + len(kv.Value)
 	}
-	if treeSyncChunkLeavesSize > MaxTreeSyncChunkKeysPlusValuesLength {
+	if treeSyncChunkLeavesSize > config.GetMaxTreeSyncChunkKeysPlusValuesBytes() {
 		return false
 	}
 	return true
@@ -524,27 +533,17 @@ func (msg MessageTreeSyncChunkResponse[RI]) processStateSync(stasy *stateSyncSta
 	stasy.messageTreeSyncChunkResponse(msg, sender)
 }
 
-type MessageBlobOfferRequestInfo struct {
-	ExpiryTimestamp time.Time
-}
-
 type MessageBlobOffer[RI any] struct {
-	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
-	RequestInfo   *MessageBlobOfferRequestInfo
-	ChunkDigests  []BlobChunkDigest
-	PayloadLength uint64
-	ExpirySeqNr   uint64
+	RequestHandle    types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	RequestInfo      *types.RequestInfo
+	ChunkDigestsRoot mt.Digest
+	PayloadLength    uint64
+	ExpirySeqNr      uint64
 }
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobOffer[struct{}]{}
 
-func (msg MessageBlobOffer[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, _ int) bool {
-	if msg.PayloadLength > uint64(limits.MaxBlobPayloadLength) {
-		return false
-	}
-	if uint64(len(msg.ChunkDigests)) != numChunks(msg.PayloadLength) {
-		return false
-	}
+func (msg MessageBlobOffer[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, _ int, config ocr3_1config.PublicConfig) bool {
 	return true
 }
 
@@ -565,7 +564,7 @@ type MessageBlobOfferResponse[RI any] struct {
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobOfferResponse[struct{}]{}
 
-func (msg MessageBlobOfferResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageBlobOfferResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, _ ocr3_1config.PublicConfig) bool {
 	if msg.RejectOffer {
 		return len(msg.Signature) == 0
 	} else {
@@ -581,22 +580,16 @@ func (msg MessageBlobOfferResponse[RI]) processBlobExchange(bex *blobExchangeSta
 	bex.messageBlobOfferResponse(msg, sender)
 }
 
-type MessageBlobChunkRequestInfo struct {
-	ExpiryTimestamp time.Time
-}
-
 type MessageBlobChunkRequest[RI any] struct {
 	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
-
-	RequestInfo *MessageBlobChunkRequestInfo
-
-	BlobDigest BlobDigest
-	ChunkIndex uint64
+	RequestInfo   *types.RequestInfo
+	BlobDigest    BlobDigest
+	ChunkIndex    uint64
 }
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobChunkRequest[struct{}]{}
 
-func (msg MessageBlobChunkRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+func (msg MessageBlobChunkRequest[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, _ ocr3_1config.PublicConfig) bool {
 	return true
 }
 
@@ -615,12 +608,13 @@ type MessageBlobChunkResponse[RI any] struct {
 	ChunkIndex uint64
 	GoAway     bool
 	Chunk      []byte
+	Proof      []mt.Digest
 }
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobChunkResponse[struct{}]{}
 
-func (msg MessageBlobChunkResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
-	if len(msg.Chunk) > BlobChunkSize {
+func (msg MessageBlobChunkResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, config ocr3_1config.PublicConfig) bool {
+	if len(msg.Chunk) > config.GetBlobChunkBytes() {
 		return false
 	}
 	return true

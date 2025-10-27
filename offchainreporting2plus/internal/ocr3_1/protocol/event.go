@@ -128,24 +128,25 @@ type EventToTransmission[RI any] interface {
 	processTransmission(t *transmissionState[RI])
 }
 
-type EventMissingOutcome[RI any] struct {
+type EventNewCertifiedCommit[RI any] struct {
+	SeqNr                      uint64
+	ReportsPlusPrecursorDigest ReportsPlusPrecursorDigest
+}
+
+var _ EventToReportAttestation[struct{}] = EventNewCertifiedCommit[struct{}]{} // implements EventToReportAttestation
+
+func (ev EventNewCertifiedCommit[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
+	repatt.eventNewCertifiedCommit(ev)
+}
+
+type EventMissingReportsPlusPrecursor[RI any] struct {
 	SeqNr uint64
 }
 
-var _ EventToReportAttestation[struct{}] = EventMissingOutcome[struct{}]{} // implements EventToReportAttestation
+var _ EventToReportAttestation[struct{}] = EventMissingReportsPlusPrecursor[struct{}]{} // implements EventToReportAttestation
 
-func (ev EventMissingOutcome[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
-	repatt.eventMissingOutcome(ev)
-}
-
-type EventCertifiedCommit[RI any] struct {
-	CertifiedCommittedReports CertifiedCommittedReports[RI]
-}
-
-var _ EventToReportAttestation[struct{}] = EventCertifiedCommit[struct{}]{} // implements EventToReportAttestation
-
-func (ev EventCertifiedCommit[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
-	repatt.eventCertifiedCommit(ev)
+func (ev EventMissingReportsPlusPrecursor[RI]) processReportAttestation(repatt *reportAttestationState[RI]) {
+	repatt.eventMissingReportsPlusPrecursor(ev)
 }
 
 type EventComputedReports[RI any] struct {

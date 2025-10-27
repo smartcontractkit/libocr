@@ -140,6 +140,13 @@ type TokenBucketParams struct {
 	Capacity uint32
 }
 
+// The maximum number of peers we can have across all concurrent streams on a host.
+// The exact number is chosen arbitrarily. Better to have an arbitrary limit
+// than no limit.
+// If you are using ragedisco for peer discovery, also note the separate limit in
+// ragedisco.MaxOracles.
+const MaxPeersPerHost = 256
+
 const MaxStreamsPerPeer = 2_000
 
 const MaxMessageLength = 1024 * 1024 * 1024 // 1 GiB. This must be smaller than INT32_MAX

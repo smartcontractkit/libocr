@@ -1,6 +1,16 @@
 package util
 
+import "golang.org/x/exp/constraints"
+
 func PointerTo[T any](v T) *T {
+	return &v
+}
+
+func PointerIntegerCast[U constraints.Integer, T constraints.Integer](p *T) *U {
+	if p == nil {
+		return nil
+	}
+	v := U(*p)
 	return &v
 }
 

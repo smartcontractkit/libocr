@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"bytes"
 	"context"
 	"sync"
 
@@ -18,6 +17,7 @@ type outgenFollowerPhase string
 const (
 	outgenFollowerPhaseUnknown                           outgenFollowerPhase = "unknown"
 	outgenFollowerPhaseNewEpoch                          outgenFollowerPhase = "newEpoch"
+	outgenFollowerPhaseEpochStartReceived                outgenFollowerPhase = "epochStartReceived"
 	outgenFollowerPhaseNewRound                          outgenFollowerPhase = "newRound"
 	outgenFollowerPhaseBackgroundObservation             outgenFollowerPhase = "backgroundObservation"
 	outgenFollowerPhaseSentObservation                   outgenFollowerPhase = "sentObservation"
@@ -30,7 +30,7 @@ const (
 func (outgen *outcomeGenerationState[RI]) eventTInitialTimeout() {
 	outgen.logger.Debug("TInitial fired", commontypes.LogFields{
 		"seqNr":        outgen.sharedState.seqNr,
-		"deltaInitial": outgen.config.DeltaInitial.String(),
+		"deltaInitial": outgen.config.GetDeltaInitial().String(),
 	})
 	select {
 	case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{}:
@@ -44,6 +44,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		"sender":                       sender,
 		"msgEpoch":                     msg.Epoch,
 		"msgHighestCertifiedTimestamp": msg.EpochStartProof.HighestCertified.Timestamp(),
+		"msgAbdicate":                  msg.Abdicate,
 	})
 
 	if msg.Epoch != outgen.sharedState.e {
@@ -68,6 +69,8 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		return
 	}
 
+	outgen.followerState.phase = outgenFollowerPhaseEpochStartReceived
+
 	{
 		err := msg.EpochStartProof.Verify(
 			outgen.ID(),
@@ -83,29 +86,31 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	}
 
 	outgen.followerState.tInitial = nil
+	outgen.followerState.leaderAbdicated = msg.Abdicate
 
-	outgen.refreshCommittedSeqNrAndCert()
-	if !outgen.ensureHighestCertifiedIsCompatible(msg.EpochStartProof.HighestCertified, "MessageEpochStart") {
-		select {
-		case outgen.chOutcomeGenerationToStateSync <- EventStateSyncRequest[RI]{
-			msg.EpochStartProof.HighestCertified.SeqNr(),
-		}:
-		case <-outgen.ctx.Done():
-		}
-		return
-	}
+	outgen.refreshCommittedSeqNrAndCert() // call in case stasy has made progress in the meanwhile
+	outgen.sendStateSyncRequestFromCertifiedPrepareOrCommit(msg.EpochStartProof.HighestCertified)
 
 	if msg.EpochStartProof.HighestCertified.IsGenesis() {
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentFollowerRound()
 	} else if commitQC, ok := msg.EpochStartProof.HighestCertified.(*CertifiedCommit); ok {
-		outgen.commit(*commitQC)
-
+		outgen.tryToMoveCertAndKVStateToCommitQC(commitQC)
+		if outgen.sharedState.committedSeqNr != commitQC.CommitSeqNr {
+			outgen.logger.Warn("cannot process MessageEpochStart, mismatching committedSeqNr, will not be able to participate in epoch", commontypes.LogFields{
+				"commitSeqNr":    commitQC.CommitSeqNr,
+				"committedSeqNr": outgen.sharedState.committedSeqNr,
+			})
+			return
+		}
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
+		if msg.Abdicate {
+			outgen.sendNewEpochRequestToPacemakerDueToLeaderAbdication()
+			return
+		}
 		outgen.startSubsequentFollowerRound()
 	} else {
 		// We're dealing with a re-proposal from a failed epoch
-
 		prepareQc, ok := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
 		if !ok {
 			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStart", commontypes.LogFields{
@@ -114,117 +119,29 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 			return
 		}
 
-		prepareQcSeqNr := prepareQc.SeqNr()
+		if prepareQc.SeqNr() < outgen.sharedState.committedSeqNr {
+			outgen.logger.Warn("cannot process MessageEpochStart, prepareQC seqNr is less than committedSeqNr, will not be able to participate in epoch", commontypes.LogFields{
+				"prepareQCSeqNr": prepareQc.SeqNr(),
+				"committedSeqNr": outgen.sharedState.committedSeqNr,
+			})
+			return
+		}
 
-		outgen.sharedState.firstSeqNrOfEpoch = prepareQcSeqNr + 1
-		outgen.sharedState.seqNr = prepareQcSeqNr
+		outgen.followerState.stateTransitionInfo = stateTransitionInfoDigests{
+			prepareQc.StateTransitionInputsDigest,
+			prepareQc.StateTransitionOutputsDigest,
+			prepareQc.StateRootDigest,
+			prepareQc.ReportsPlusPrecursorDigest,
+		}
+
+		outgen.sharedState.firstSeqNrOfEpoch = prepareQc.SeqNr() + 1
+		outgen.sharedState.seqNr = prepareQc.SeqNr()
 		outgen.sharedState.observationQuorum = nil
 
 		outgen.followerState.query = nil
 		outgen.ensureOpenKVTransactionDiscarded()
 
-		if prepareQcSeqNr == outgen.sharedState.committedSeqNr {
-
-			stateTransitionInputsDigest := prepareQc.StateTransitionInputsDigest
-			stateRootDigest := prepareQc.StateRootDigest
-
-			stateTransitionOutputDigest := MakeStateTransitionOutputDigest(
-				outgen.ID(),
-				prepareQcSeqNr,
-				prepareQc.StateTransitionOutputs.WriteSet,
-			)
-
-			reportPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(
-				outgen.ID(),
-				prepareQcSeqNr,
-				prepareQc.ReportsPlusPrecursor,
-			)
-
-			prepareSignature, err := MakePrepareSignature(
-				outgen.ID(),
-				prepareQcSeqNr,
-				stateTransitionInputsDigest,
-				stateTransitionOutputDigest,
-				stateRootDigest,
-				reportPlusPrecursorDigest,
-				outgen.offchainKeyring.OffchainSign,
-			)
-			if err != nil {
-				outgen.logger.Critical("failed to sign Prepare", commontypes.LogFields{
-					"seqNr": outgen.sharedState.seqNr,
-					"error": err,
-				})
-				return
-			}
-
-			outgen.followerState.phase = outgenFollowerPhaseSentPrepare
-			outgen.followerState.stateTransitionInfo = stateTransitionInfo{
-				stateTransitionInputsDigest,
-				prepareQc.StateTransitionOutputs,
-				stateTransitionOutputDigest,
-				stateRootDigest,
-				prepareQc.ReportsPlusPrecursor,
-				reportPlusPrecursorDigest,
-			}
-
-			outgen.logger.Debug("broadcasting MessagePrepare (reproposal where prepareQcSeqNr == committedSeqNr)", commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-			})
-			outgen.netSender.Broadcast(MessagePrepare[RI]{
-				outgen.sharedState.e,
-				prepareQcSeqNr,
-				prepareSignature,
-			})
-			return
-		}
-
-		outgen.followerState.phase = outgenFollowerPhaseBackgroundProposalStateTransition
-		outgen.followerState.stateTransitionInfo = stateTransitionInfo{}
-		outgen.ensureOpenKVTransactionDiscarded()
-
-		outgen.logger.Debug("re-executing StateTransition from MessagePrepare (reproposal where prepareQcSeqNr == committedSeqNr+1)", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-		})
-
-		kvReadWriteTxn, err := outgen.kvDb.NewSerializedReadWriteTransaction(prepareQcSeqNr)
-		if err != nil {
-			outgen.logger.Warn("could not create kv read/write transaction", commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-				"err":   err,
-			})
-			return
-		}
-
-		{
-			ctx := outgen.ctx
-			logger := outgen.logger
-			ogid := outgen.ID()
-			roundCtx := outgen.RoundCtx(prepareQcSeqNr)
-
-			inputsDigest := prepareQc.StateTransitionInputsDigest
-			writeSet := prepareQc.StateTransitionOutputs.WriteSet
-			reportsPlusPrecursor := prepareQc.ReportsPlusPrecursor
-			stateRootDigest := prepareQc.StateRootDigest
-
-			outgen.subs.Go(func() {
-				outgen.backgroundProposalStateTransition(
-					ctx,
-					logger,
-					ogid,
-					roundCtx,
-
-					inputsDigest,
-					writeSet,
-					stateRootDigest,
-					reportsPlusPrecursor,
-
-					types.AttributedQuery{},
-					nil,
-
-					kvReadWriteTxn,
-				)
-			})
-		}
+		outgen.broadcastMessagePrepare()
 	}
 }
 
@@ -234,7 +151,7 @@ func (outgen *outcomeGenerationState[RI]) startSubsequentFollowerRound() {
 
 	outgen.followerState.phase = outgenFollowerPhaseNewRound
 	outgen.followerState.query = nil
-	outgen.followerState.stateTransitionInfo = stateTransitionInfo{}
+	outgen.followerState.stateTransitionInfo = stateTransitionInfoDigests{}
 	outgen.ensureOpenKVTransactionDiscarded()
 	outgen.logger.Debug("starting new follower round", commontypes.LogFields{
 		"seqNr": outgen.sharedState.seqNr,
@@ -333,6 +250,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 			outgen.sharedState.l,
 		}
 		kvReadTxn, err := outgen.kvDb.NewReadTransaction(roundCtx.SeqNr)
+
 		if err != nil {
 			outgen.logger.Warn("failed to create new transaction, aborting tryProcessRoundStartPool", commontypes.LogFields{
 				"seqNr": roundCtx.SeqNr,
@@ -357,7 +275,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 		ctx,
 		logger,
 		"Observation",
-		outgen.config.MaxDurationObservation,
+		outgen.config.WarnDurationObservation,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (types.Observation, error) {
 			return outgen.reportingPlugin.Observation(ctx,
@@ -513,6 +431,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 			"err":   err,
 		})
 		return
+
 	}
 
 	{
@@ -533,12 +452,6 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 				logger,
 				ogid,
 				roundCtx,
-
-				StateTransitionInputsDigest{},
-				nil,
-				StateRootDigest{},
-				nil,
-
 				aq,
 				asos,
 				kvReadWriteTxn,
@@ -552,12 +465,6 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 	logger loghelper.LoggerWithContext,
 	ogid OutcomeGenerationID,
 	roundCtx RoundContext,
-
-	stateTransitionInputsDigest StateTransitionInputsDigest,
-	writeSet []KeyValuePairWithDeletions,
-	stateRootDigest StateRootDigest,
-	reportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor,
-
 	aq types.AttributedQuery,
 	asos []AttributedSignedObservation,
 	kvReadWriteTxn KeyValueDatabaseReadWriteTransaction,
@@ -569,82 +476,60 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 		}
 	}()
 
-	if asos != nil {
-
-		aos, ok := outgen.backgroundCheckAttributedSignedObservations(ctx, logger, ogid, roundCtx, aq, asos, kvReadWriteTxn)
-		if !ok {
-			return
-		}
-		reportsPlusPrecursor, ok = callPluginFromOutcomeGenerationBackground[ocr3_1types.ReportsPlusPrecursor](
-			ctx,
-			logger,
-			"StateTransition",
-			0, // StateTransition is a pure function and should finish "instantly"
-			roundCtx,
-			func(ctx context.Context, roundCtx RoundContext) (ocr3_1types.ReportsPlusPrecursor, error) {
-				return outgen.reportingPlugin.StateTransition(
-					ctx,
+	aos, ok := outgen.backgroundCheckAttributedSignedObservations(ctx, logger, ogid, roundCtx, aq, asos, kvReadWriteTxn)
+	if !ok {
+		return
+	}
+	reportsPlusPrecursor, ok := callPluginFromOutcomeGenerationBackground[ocr3_1types.ReportsPlusPrecursor](
+		ctx,
+		logger,
+		"StateTransition",
+		outgen.config.WarnDurationStateTransition,
+		roundCtx,
+		func(ctx context.Context, roundCtx RoundContext) (ocr3_1types.ReportsPlusPrecursor, error) {
+			return outgen.reportingPlugin.StateTransition(
+				ctx,
+				roundCtx.SeqNr,
+				aq,
+				aos,
+				kvReadWriteTxn,
+				NewRoundBlobBroadcastFetcher(
 					roundCtx.SeqNr,
-					aq,
-					aos,
-					kvReadWriteTxn,
-					NewRoundBlobBroadcastFetcher(
-						roundCtx.SeqNr,
-						outgen.blobBroadcastFetcher,
-					),
-				)
-			},
-		)
-		if !ok {
-			return
-		}
-
-		stateTransitionInputsDigest = MakeStateTransitionInputsDigest(
-			ogid,
-			roundCtx.SeqNr,
-			aq,
-			aos,
-		)
-
-		var err error
-		writeSet, err = kvReadWriteTxn.GetWriteSet()
-		if err != nil {
-			outgen.logger.Warn("failed to get write set from kv read/write transaction", commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-				"error": err,
-			})
-			return
-		}
-		stateRootDigest, err = kvReadWriteTxn.CloseWriteSet()
-		if err != nil {
-			outgen.logger.Warn("failed to close the transaction WriteSet", commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-				"error": err,
-			})
-			return
-		}
-	} else {
-
-		// apply write set instead of executing StateTransition
-		localStateRootDigest, err := kvReadWriteTxn.ApplyWriteSet(writeSet)
-		if err != nil {
-			outgen.logger.Warn("failed to apply write set to kv read/write transaction", commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-				"error": err,
-			})
-			return
-		}
-		if localStateRootDigest != stateRootDigest {
-			logger.Error("StateRootDigest mismatch", commontypes.LogFields{
-				"localStateRootDigest":    localStateRootDigest,
-				"receivedStateRootDigest": stateRootDigest,
-			})
-			return
-		}
+					outgen.blobBroadcastFetcher,
+				),
+			)
+		},
+	)
+	if !ok {
+		return
 	}
 
-	stateTransitionOutputDigest := MakeStateTransitionOutputDigest(ogid, roundCtx.SeqNr, writeSet)
-	reportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(ogid, roundCtx.SeqNr, reportsPlusPrecursor)
+	stateTransitionInputsDigest := MakeStateTransitionInputsDigest(
+		outgen.config.ConfigDigest,
+		roundCtx.SeqNr,
+		aq,
+		aos,
+	)
+
+	writeSet, err := kvReadWriteTxn.GetWriteSet()
+	if err != nil {
+		outgen.logger.Warn("failed to get write set from kv read/write transaction", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"error": err,
+		})
+		return
+	}
+	stateRootDigest, err := kvReadWriteTxn.CloseWriteSet()
+	if err != nil {
+		outgen.logger.Warn("failed to close the transaction WriteSet", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+			"error": err,
+		})
+		return
+	}
+
+	stateTransitionOutputDigest := MakeStateTransitionOutputDigest(outgen.config.ConfigDigest, roundCtx.SeqNr, writeSet)
+	reportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(outgen.config.ConfigDigest, roundCtx.SeqNr, reportsPlusPrecursor)
 
 	stateTransitionOutputs := StateTransitionOutputs{writeSet}
 
@@ -653,13 +538,15 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 		roundCtx.Epoch,
 		roundCtx.SeqNr,
 		kvReadWriteTxn,
-		stateTransitionInfo{
-			stateTransitionInputsDigest,
+		stateTransitionInfoDigestsAndPreimages{
+			stateTransitionInfoDigests{
+				stateTransitionInputsDigest,
+				stateTransitionOutputDigest,
+				stateRootDigest,
+				reportsPlusPrecursorDigest,
+			},
 			stateTransitionOutputs,
-			stateTransitionOutputDigest,
-			stateRootDigest,
 			reportsPlusPrecursor,
-			reportsPlusPrecursorDigest,
 		},
 	}:
 		shouldDiscardKVTxn = false
@@ -687,32 +574,74 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(e
 
 	outgen.followerState.openKVTxn = ev.KeyValueDatabaseReadWriteTransaction
 
-	prepareSignature, err := MakePrepareSignature(
-		outgen.ID(),
-		outgen.sharedState.seqNr,
-		ev.stateTransitionInfo.InputsDigest,
-		ev.stateTransitionInfo.OutputDigest,
-		ev.stateTransitionInfo.StateRootDigest,
-		ev.stateTransitionInfo.ReportsPlusPrecursorDigest,
-		outgen.offchainKeyring.OffchainSign,
+	var stidap stateTransitionInfoDigestsAndPreimages
+	switch sti := ev.stateTransitionInfo.(type) {
+	case stateTransitionInfoDigestsAndPreimages:
+		stidap = sti
+	case stateTransitionInfoDigests:
+		outgen.logger.Critical("assumption violation, EventComputedProposalStateTransition state transition info contains only digests and no preimages", commontypes.LogFields{
+			"seqNr": outgen.sharedState.seqNr,
+		})
+		return
+	}
+
+	outgen.followerState.stateTransitionInfo = stidap
+
+	err := outgen.persistUnattestedStateTransitionBlockAndReportsPlusPrecursor(
+		StateTransitionBlock{
+			ev.Epoch,
+			ev.SeqNr,
+			stidap.InputsDigest,
+			stidap.Outputs,
+			stidap.StateRootDigest,
+			stidap.ReportsPlusPrecursorDigest,
+		},
+		stidap.InputsDigest,
+		stidap.ReportsPlusPrecursor,
 	)
 	if err != nil {
-		outgen.logger.Critical("failed to sign Prepare", commontypes.LogFields{
+		outgen.logger.Error("failed to persist unattested state transition block and reports plus precursor", commontypes.LogFields{
 			"seqNr": outgen.sharedState.seqNr,
 			"error": err,
 		})
 		return
 	}
 
+	outgen.broadcastMessagePrepare()
+}
+
+// broadcasts MessagePrepare for outgen.sharedState.e, outgen.sharedState.seqNr
+// and outgen.followerState.stateTransitionInfo
+func (outgen *outcomeGenerationState[RI]) broadcastMessagePrepare() {
+	ogid := outgen.ID()
+	seqNr := outgen.sharedState.seqNr
+	stid := outgen.followerState.stateTransitionInfo.digests()
+	prepareSignature, err := MakePrepareSignature(
+		ogid,
+		seqNr,
+		stid.InputsDigest,
+		stid.OutputDigest,
+		stid.StateRootDigest,
+		stid.ReportsPlusPrecursorDigest,
+		outgen.offchainKeyring.OffchainSign,
+	)
+	if err != nil {
+		outgen.logger.Critical("failed to sign Prepare", commontypes.LogFields{
+			"seqNr": seqNr,
+			"error": err,
+		})
+		return
+	}
+
 	outgen.followerState.phase = outgenFollowerPhaseSentPrepare
-	outgen.followerState.stateTransitionInfo = ev.stateTransitionInfo
 
 	outgen.logger.Debug("broadcasting MessagePrepare", commontypes.LogFields{
-		"seqNr": outgen.sharedState.seqNr,
+		"seqNr": seqNr,
+		"phase": outgen.followerState.phase,
 	})
 	outgen.netSender.Broadcast(MessagePrepare[RI]{
 		outgen.sharedState.e,
-		outgen.sharedState.seqNr,
+		seqNr,
 		prepareSignature,
 	})
 }
@@ -768,6 +697,8 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		return
 	}
 
+	stid := outgen.followerState.stateTransitionInfo.digests()
+
 	for sender, preparePoolEntry := range poolEntries {
 		if preparePoolEntry.Verified != nil {
 			continue
@@ -775,10 +706,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		err := preparePoolEntry.Item.Verify(
 			outgen.ID(),
 			outgen.sharedState.seqNr,
-			outgen.followerState.stateTransitionInfo.InputsDigest,
-			outgen.followerState.stateTransitionInfo.OutputDigest,
-			outgen.followerState.stateTransitionInfo.StateRootDigest,
-			outgen.followerState.stateTransitionInfo.ReportsPlusPrecursorDigest,
+			stid.InputsDigest,
+			stid.OutputDigest,
+			stid.StateRootDigest,
+			stid.ReportsPlusPrecursorDigest,
 			outgen.config.OracleIdentities[sender].OffchainPublicKey,
 		)
 		ok := err == nil
@@ -812,10 +743,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 	commitSignature, err := MakeCommitSignature(
 		outgen.ID(),
 		outgen.sharedState.seqNr,
-		outgen.followerState.stateTransitionInfo.InputsDigest,
-		outgen.followerState.stateTransitionInfo.OutputDigest,
-		outgen.followerState.stateTransitionInfo.StateRootDigest,
-		outgen.followerState.stateTransitionInfo.ReportsPlusPrecursorDigest,
+		stid.InputsDigest,
+		stid.OutputDigest,
+		stid.StateRootDigest,
+		stid.ReportsPlusPrecursorDigest,
 		outgen.offchainKeyring.OffchainSign,
 	)
 	if err != nil {
@@ -829,10 +760,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 	if !outgen.persistAndUpdateCertIfGreater(&CertifiedPrepare{
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
-		outgen.followerState.stateTransitionInfo.InputsDigest,
-		outgen.followerState.stateTransitionInfo.Outputs,
-		outgen.followerState.stateTransitionInfo.StateRootDigest,
-		outgen.followerState.stateTransitionInfo.ReportsPlusPrecursor,
+		stid.InputsDigest,
+		stid.OutputDigest,
+		stid.StateRootDigest,
+		stid.ReportsPlusPrecursorDigest,
 		prepareQuorumCertificate,
 	}) {
 		return
@@ -901,6 +832,8 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		return
 	}
 
+	stid := outgen.followerState.stateTransitionInfo.digests()
+
 	for sender, commitPoolEntry := range poolEntries {
 		if commitPoolEntry.Verified != nil {
 			continue
@@ -908,10 +841,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		err := commitPoolEntry.Item.Verify(
 			outgen.ID(),
 			outgen.sharedState.seqNr,
-			outgen.followerState.stateTransitionInfo.InputsDigest,
-			outgen.followerState.stateTransitionInfo.OutputDigest,
-			outgen.followerState.stateTransitionInfo.StateRootDigest,
-			outgen.followerState.stateTransitionInfo.ReportsPlusPrecursorDigest,
+			stid.InputsDigest,
+			stid.OutputDigest,
+			stid.StateRootDigest,
+			stid.ReportsPlusPrecursorDigest,
 			outgen.config.OracleIdentities[sender].OffchainPublicKey,
 		)
 		ok := err == nil
@@ -946,25 +879,63 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		outgen.metrics.ledCommittedRoundsTotal.Inc()
 	}
 
-	persistedBlockAndCert := outgen.commit(CertifiedCommit{
+	commitQC := &CertifiedCommit{
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
-		outgen.followerState.stateTransitionInfo.InputsDigest,
-		outgen.followerState.stateTransitionInfo.Outputs,
-		outgen.followerState.stateTransitionInfo.StateRootDigest,
-		outgen.followerState.stateTransitionInfo.ReportsPlusPrecursor,
+		stid.InputsDigest,
+		stid.OutputDigest,
+		stid.StateRootDigest,
+		stid.ReportsPlusPrecursorDigest,
 		commitQuorumCertificate,
-	})
-
-	if !persistedBlockAndCert {
-		outgen.logger.Error("failed to persist block/cert, stopping to not advance kv further than persisted blocks", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
-		})
-
-		return
 	}
 
-	if outgen.followerState.openKVTxn != nil {
+	switch sti := outgen.followerState.stateTransitionInfo.(type) {
+	case stateTransitionInfoDigests:
+		// We re-prepared
+		outgen.tryToMoveCertAndKVStateToCommitQC(commitQC)
+	case stateTransitionInfoDigestsAndPreimages:
+		// Regular round progression, we already should have an open transaction
+		persistedCert := outgen.commit(*commitQC)
+		if !persistedCert {
+			outgen.logger.Error("commit() failed to persist cert", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+			})
+			return
+		}
+
+		if outgen.followerState.openKVTxn == nil {
+			outgen.logger.Error("no open kv transaction, unexpected", commontypes.LogFields{
+				"seqNr": outgen.sharedState.seqNr,
+				"phase": outgen.followerState.phase,
+			})
+			return
+		}
+
+		// Write attested state transition block
+		{
+			stb := StateTransitionBlock{
+				commitQC.CommitEpoch,
+				commitQC.CommitSeqNr,
+				sti.InputsDigest,
+				sti.Outputs,
+				sti.StateRootDigest,
+				sti.ReportsPlusPrecursorDigest,
+			}
+			astb := AttestedStateTransitionBlock{
+				stb,
+				commitQC.CommitQuorumCertificate,
+			}
+
+			err := outgen.followerState.openKVTxn.WriteAttestedStateTransitionBlock(commitQC.CommitSeqNr, astb)
+			if err != nil {
+				outgen.logger.Error("error writing attested state transition block", commontypes.LogFields{
+					"seqNr": commitQC.CommitSeqNr,
+					"error": err,
+				})
+				return
+			}
+		}
+
 		err := outgen.followerState.openKVTxn.Commit()
 		outgen.followerState.openKVTxn.Discard()
 		outgen.followerState.openKVTxn = nil
@@ -993,6 +964,14 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 				}
 			}
 		}
+	}
+
+	if outgen.sharedState.committedSeqNr != commitQC.CommitSeqNr {
+		outgen.logger.Warn("could not move committed seq nr to commit qc, abandoning epoch", commontypes.LogFields{
+			"commitSeqNr":    commitQC.CommitSeqNr,
+			"committedSeqNr": outgen.sharedState.committedSeqNr,
+		})
+		return
 	}
 
 	kvReadTxn, err := outgen.kvDb.NewReadTransaction(outgen.sharedState.seqNr + 1)
@@ -1037,7 +1016,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundCommitted(
 		ctx,
 		logger,
 		"Committed",
-		0, // Committed is a pure function and should finish "instantly"
+		outgen.config.WarnDurationCommitted,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (error, error) {
 			return outgen.reportingPlugin.Committed(ctx, roundCtx.SeqNr, kvReadTxn), nil
@@ -1083,9 +1062,8 @@ func (outgen *outcomeGenerationState[RI]) eventComputedCommitted(ev EventCompute
 }
 
 func (outgen *outcomeGenerationState[RI]) completeRound() {
-
 	if uint64(outgen.config.RMax) <= outgen.sharedState.seqNr-outgen.sharedState.firstSeqNrOfEpoch+1 {
-		outgen.logger.Debug("epoch has been going on for too long, sending EventChangeLeader to Pacemaker", commontypes.LogFields{
+		outgen.logger.Debug("epoch has been going on for too long, sending EventNewEpochRequest to Pacemaker", commontypes.LogFields{
 			"firstSeqNrOfEpoch": outgen.sharedState.firstSeqNrOfEpoch,
 			"seqNr":             outgen.sharedState.seqNr,
 			"rMax":              outgen.config.RMax,
@@ -1095,6 +1073,9 @@ func (outgen *outcomeGenerationState[RI]) completeRound() {
 		case <-outgen.ctx.Done():
 			return
 		}
+		return
+	} else if outgen.followerState.leaderAbdicated {
+		outgen.sendNewEpochRequestToPacemakerDueToLeaderAbdication()
 		return
 	} else {
 		outgen.logger.Debug("sending EventProgress to Pacemaker", commontypes.LogFields{
@@ -1115,34 +1096,30 @@ func (outgen *outcomeGenerationState[RI]) completeRound() {
 	outgen.tryProcessRoundStartPool()
 }
 
-func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) (persistedBlockAndCert bool) {
-	if commit.SeqNr() < outgen.sharedState.committedSeqNr {
-		outgen.logger.Critical("assumption violation, commitSeqNr is less than committedSeqNr", commontypes.LogFields{
-			"commitSeqNr":    commit.SeqNr,
-			"committedSeqNr": outgen.sharedState.committedSeqNr,
-		})
-		panic("")
+func (outgen *outcomeGenerationState[RI]) sendNewEpochRequestToPacemakerDueToLeaderAbdication() {
+	outgen.logger.Debug("leader abdicated in MessageEpochStart, sending EventNewEpochRequest to Pacemaker", commontypes.LogFields{
+		"firstSeqNrOfEpoch": outgen.sharedState.firstSeqNrOfEpoch,
+		"seqNr":             outgen.sharedState.seqNr,
+	})
+	select {
+	case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{}:
+	case <-outgen.ctx.Done():
+		return
 	}
+}
 
+func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) bool {
 	if commit.SeqNr() <= outgen.sharedState.committedSeqNr {
 
 		outgen.logger.Debug("skipping commit of already committed seqNr", commontypes.LogFields{
 			"commitSeqNr":    commit.SeqNr(),
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
-		persistedBlockAndCert = true
-		goto ReapCompleted
 	} else { // commit.SeqNr >= outgen.sharedState.committedSeqNr + 1
 
-		if !outgen.persistCommitAsBlock(&commit) {
-			return
-		}
-
 		if !outgen.persistAndUpdateCertIfGreater(&commit) {
-			return
+			return false
 		}
-
-		persistedBlockAndCert = true
 
 		outgen.sharedState.committedSeqNr = commit.SeqNr()
 		outgen.metrics.committedSeqNr.Set(float64(commit.SeqNr()))
@@ -1151,56 +1128,20 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) (persis
 			"seqNr": commit.SeqNr(),
 		})
 
-		if outgen.followerState.phase != outgenFollowerPhaseSentCommit {
-			outgen.logger.Debug("skipping notification of report attestation, we don't have the reports plus precursor locally", commontypes.LogFields{
-				"committedSeqNr": outgen.sharedState.committedSeqNr,
-				"phase":          outgen.followerState.phase,
-			})
-			goto ReapCompleted
-		}
-
-		reportsPlusPrecursor := outgen.followerState.stateTransitionInfo.ReportsPlusPrecursor
-
-		if !bytes.Equal(reportsPlusPrecursor[:], commit.ReportsPlusPrecursor) {
-			outgen.logger.Critical("assumption violation, local reports plus precursor must match what is included in commit", commontypes.LogFields{
-				"committedSeqNr":             outgen.sharedState.committedSeqNr,
-				"reportsPlusPrecursorLocal":  reportsPlusPrecursor,
-				"reportsPlusPrecursorCommit": commit.ReportsPlusPrecursor,
-			})
-			panic("")
-		}
-
 		select {
-		case outgen.chOutcomeGenerationToReportAttestation <- EventCertifiedCommit[RI]{
-
-			CertifiedCommittedReports[RI]{
-				commit.Epoch(),
-				commit.SeqNr(),
-				commit.StateTransitionInputsDigest,
-				MakeStateTransitionOutputDigest(
-					OutcomeGenerationID{
-						outgen.config.ConfigDigest,
-						commit.Epoch(),
-					},
-					commit.SeqNr(),
-					commit.StateTransitionOutputs.WriteSet,
-				),
-				commit.StateRootDigest,
-				reportsPlusPrecursor,
-				commit.CommitQuorumCertificate,
-			},
+		case outgen.chOutcomeGenerationToReportAttestation <- EventNewCertifiedCommit[RI]{
+			commit.SeqNr(),
+			commit.ReportsPlusPrecursorDigest,
 		}:
 		case <-outgen.ctx.Done():
-			return
 		}
 	}
 
-ReapCompleted:
 	outgen.followerState.roundStartPool.ReapCompleted(outgen.sharedState.committedSeqNr)
 	outgen.followerState.proposalPool.ReapCompleted(outgen.sharedState.committedSeqNr)
 	outgen.followerState.preparePool.ReapCompleted(outgen.sharedState.committedSeqNr)
 	outgen.followerState.commitPool.ReapCompleted(outgen.sharedState.committedSeqNr)
-	return
+	return true
 }
 
 // Updates and persists cert if it is greater than the current cert.
@@ -1245,8 +1186,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObserva
 		ctx,
 		logger,
 		"ValidateObservation",
-
-		0, // ValidateObservation is a pure function and should finish "instantly"
+		outgen.config.WarnDurationValidateObservation,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (error, error) {
 			return outgen.reportingPlugin.ValidateObservation(
@@ -1349,7 +1289,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObserva
 		ctx,
 		logger,
 		"ObservationQuorum",
-		0, // ObservationQuorum is a pure function and should finish "instantly"
+		outgen.config.WarnDurationObservationQuorum,
 		roundCtx,
 		func(ctx context.Context, roundCtx RoundContext) (bool, error) {
 			return outgen.reportingPlugin.ObservationQuorum(
@@ -1384,58 +1324,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObserva
 	return attributedObservations, true
 }
 
-func (outgen *outcomeGenerationState[RI]) persistCommitAsBlock(commit *CertifiedCommit) bool {
-
-	seqNr := commit.SeqNr()
-	astb := AttestedStateTransitionBlock{
-		StateTransitionBlock{
-			commit.Epoch(),
-			seqNr,
-			commit.StateTransitionInputsDigest,
-			commit.StateTransitionOutputs,
-			commit.StateRootDigest,
-			commit.ReportsPlusPrecursor,
-		},
-		commit.CommitQuorumCertificate,
-	}
-
-	tx, err := outgen.kvDb.NewUnserializedReadWriteTransactionUnchecked()
-	if err != nil {
-		outgen.logger.Error("error creating read transaction", commontypes.LogFields{
-			"error": err,
-		})
-		return false
-	}
-	defer tx.Discard()
-
-	err = tx.WriteAttestedStateTransitionBlock(seqNr, astb)
-	if err != nil {
-		outgen.logger.Error("error writing attested state transition block", commontypes.LogFields{
-			"seqNr": seqNr,
-			"error": err,
-		})
-		return false
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		outgen.logger.Error("error committing transaction", commontypes.LogFields{
-			"error": err,
-		})
-		return false
-	}
-
-	// persited now
-	outgen.logger.Trace("persisted block", commontypes.LogFields{
-		"seqNr": seqNr,
-	})
-	return true
-}
-
 func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
-
-	preRefreshCommittedSeqNr := outgen.sharedState.committedSeqNr
-
 	tx, err := outgen.kvDb.NewReadTransactionUnchecked()
 	if err != nil {
 		outgen.logger.Error("error creating read transaction", commontypes.LogFields{
@@ -1445,39 +1334,27 @@ func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 	}
 	defer tx.Discard()
 
-	postRefreshCommittedSeqNr, err := tx.ReadHighestCommittedSeqNr()
+	committedKVSeqNr, err := tx.ReadHighestCommittedSeqNr()
 	if err != nil {
-		outgen.logger.Error("kvDb.HighestCommittedSeqNr() failed during refresh", commontypes.LogFields{
-			"preRefreshCommittedSeqNr": preRefreshCommittedSeqNr,
-			"error":                    err,
+		outgen.logger.Error("tx.ReadHighestCommittedSeqNr() failed during refresh", commontypes.LogFields{
+			"committedSeqNr": outgen.sharedState.committedSeqNr,
+			"error":          err,
 		})
 		return
 	}
 
 	logger := outgen.logger.MakeChild(commontypes.LogFields{
-		"preRefreshCommittedSeqNr":  preRefreshCommittedSeqNr,
-		"postRefreshCommittedSeqNr": postRefreshCommittedSeqNr,
+		"committedKVSeqNr": committedKVSeqNr,
+		"committedSeqNr":   outgen.sharedState.committedSeqNr,
 	})
 
-	if postRefreshCommittedSeqNr == preRefreshCommittedSeqNr {
-		return
-	} else if postRefreshCommittedSeqNr+1 == preRefreshCommittedSeqNr {
-
-		logger.Warn("last kv transaction commit failed, requesting state sync", nil)
-		select {
-		case outgen.chOutcomeGenerationToStateSync <- EventStateSyncRequest[RI]{
-			preRefreshCommittedSeqNr,
-		}:
-		case <-outgen.ctx.Done():
-		}
+	if committedKVSeqNr <= outgen.sharedState.committedSeqNr {
+		logger.Info("refresh: committedKVSeqNr <= outgen.sharedState.committedSeqNr, nothing to do", nil)
 
 		return
-	} else if postRefreshCommittedSeqNr < preRefreshCommittedSeqNr {
-		logger.Critical("assumption violation, kv is way behind what outgen knows as committed", nil)
-		panic("")
 	}
 
-	astb, err := tx.ReadAttestedStateTransitionBlock(postRefreshCommittedSeqNr)
+	astb, err := tx.ReadAttestedStateTransitionBlock(committedKVSeqNr)
 	if err != nil {
 		logger.Error("error reading attested state transition block during refresh", commontypes.LogFields{
 			"error": err,
@@ -1488,102 +1365,30 @@ func (outgen *outcomeGenerationState[RI]) refreshCommittedSeqNrAndCert() {
 		logger.Critical("assumption violation, attested state transition block for kv committed seq nr does not exist", nil)
 		panic("")
 	}
-	if astb.StateTransitionBlock.SeqNr() != postRefreshCommittedSeqNr {
+	if astb.StateTransitionBlock.SeqNr() != committedKVSeqNr {
 		logger.Critical("assumption violation, attested state transition block has unexpected seq nr", commontypes.LogFields{
-			"expectedSeqNr": postRefreshCommittedSeqNr,
+			"expectedSeqNr": committedKVSeqNr,
 			"actualSeqNr":   astb.StateTransitionBlock.SeqNr(),
 		})
 		panic("")
 	}
-	stb := astb.StateTransitionBlock
 
-	persistedBlockAndCert := outgen.commit(CertifiedCommit{
-		stb.Epoch,
-		stb.SeqNr(),
-		stb.StateTransitionInputsDigest,
-		stb.StateTransitionOutputs,
-		stb.StateRootDigest,
-		stb.ReportsPlusPrecursor,
-		astb.AttributedCommitSignatures,
-	})
+	persistedCert := outgen.commit(astb.ToCertifiedCommit(outgen.config.ConfigDigest))
 
-	if !persistedBlockAndCert {
+	if !persistedCert {
 		logger.Warn("outgen.commit() failed, aborting refresh", nil)
 		return
 	}
 
-	if outgen.sharedState.committedSeqNr != postRefreshCommittedSeqNr {
-		logger.Critical("assumption violation, outgen local committed seq nr did not progress even though we persisted block and cert", commontypes.LogFields{
-			"expectedCommittedSeqNr": postRefreshCommittedSeqNr,
+	if outgen.sharedState.committedSeqNr != committedKVSeqNr {
+		logger.Critical("assumption violation, outgen local committed seq nr did not progress even though commit() succeeded", commontypes.LogFields{
+			"expectedCommittedSeqNr": committedKVSeqNr,
 			"actualCommittedSeqNr":   outgen.sharedState.committedSeqNr,
 		})
 		panic("")
 	}
 
-	logger.Debug("refreshed cert", nil)
-}
-
-func (outgen *outcomeGenerationState[RI]) ensureHighestCertifiedIsCompatible(highestCertified CertifiedPrepareOrCommit, name string) bool {
-	logger := outgen.logger
-	committedSeqNr := outgen.sharedState.committedSeqNr
-
-	if highestCertified.IsGenesis() {
-		return true
-	} else if commitQC, ok := highestCertified.(*CertifiedCommit); ok {
-		commitQcSeqNr := commitQC.SeqNr()
-		if commitQcSeqNr == committedSeqNr {
-
-		} else if commitQcSeqNr > committedSeqNr {
-
-			logger.Warn("dropping "+name+" because we are behind (commitQc)", commontypes.LogFields{
-				"commitQcSeqNr":  commitQcSeqNr,
-				"committedSeqNr": committedSeqNr,
-			})
-
-			return false
-		} else {
-
-			logger.Warn("dropping "+name+" because we are ahead (commitQc)", commontypes.LogFields{
-				"commitQcSeqNr":  commitQcSeqNr,
-				"committedSeqNr": committedSeqNr,
-			})
-			return false
-		}
-	} else {
-		// We're dealing with a re-proposal from a failed epoch
-
-		prepareQc, ok := highestCertified.(*CertifiedPrepare)
-		if !ok {
-			logger.Critical("cast to CertifiedPrepare failed while processing "+name, commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-			})
-			return false
-		}
-
-		committedSeqNr := outgen.sharedState.committedSeqNr
-		prepareQcSeqNr := prepareQc.SeqNr()
-
-		if prepareQcSeqNr == committedSeqNr+1 {
-
-		} else if prepareQcSeqNr == committedSeqNr {
-
-		} else if prepareQcSeqNr > committedSeqNr+1 {
-
-			logger.Warn("dropping "+name+" because we are behind (prepareQc)", commontypes.LogFields{
-				"prepareQcSeqNr": prepareQcSeqNr,
-				"committedSeqNr": committedSeqNr,
-			})
-			return false
-		} else {
-
-			logger.Warn("dropping "+name+" because we are ahead (prepareQc)", commontypes.LogFields{
-				"prepareQcSeqNr": prepareQcSeqNr,
-				"committedSeqNr": committedSeqNr,
-			})
-			return false
-		}
-	}
-	return true
+	logger.Debug("refreshed committed seq nr and cert", nil)
 }
 
 func (outgen *outcomeGenerationState[RI]) ensureOpenKVTransactionDiscarded() {

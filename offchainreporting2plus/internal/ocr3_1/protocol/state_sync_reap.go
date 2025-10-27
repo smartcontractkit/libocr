@@ -7,7 +7,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 	maxTreeRootsToReapInOneGo = 100_000
 )
 
-func reapState(ctx context.Context, kvDb KeyValueDatabase, logger commontypes.Logger) (done bool, err error) {
+func reapState(ctx context.Context, kvDb KeyValueDatabase, logger commontypes.Logger, config ocr3_1config.PublicConfig) (done bool, err error) {
 
 	tx, err := kvDb.NewUnserializedReadWriteTransactionUnchecked()
 	if err != nil {
@@ -44,7 +44,7 @@ func reapState(ctx context.Context, kvDb KeyValueDatabase, logger commontypes.Lo
 		return false, fmt.Errorf("failed to read lowest persisted seq nr: %w", err)
 	}
 
-	desiredLowestPersistedSeqNr := desiredLowestPersistedSeqNr(highestCommittedSeqNr)
+	desiredLowestPersistedSeqNr := desiredLowestPersistedSeqNr(highestCommittedSeqNr, config)
 	if desiredLowestPersistedSeqNr > lowestPersistedSeqNr {
 		logger.Info("RunStateSyncReap: new lowest persisted seq nr", commontypes.LogFields{
 			"desiredLowestPersistedSeqNr": desiredLowestPersistedSeqNr,
@@ -89,7 +89,7 @@ func reapState(ctx context.Context, kvDb KeyValueDatabase, logger commontypes.Lo
 	})
 
 	for {
-		done, err := reapTreeNodes(kvDb, desiredLowestPersistedSeqNr)
+		done, err := reapTreeNodes(kvDb, desiredLowestPersistedSeqNr, config)
 		if err != nil {
 			return false, fmt.Errorf("failed to reap tree nodes: %w", err)
 		}
@@ -106,7 +106,7 @@ func reapState(ctx context.Context, kvDb KeyValueDatabase, logger commontypes.Lo
 	})
 
 	for {
-		done, err := reapTreeRoots(kvDb, desiredLowestPersistedSeqNr)
+		done, err := reapTreeRoots(kvDb, desiredLowestPersistedSeqNr, config)
 		if err != nil {
 			return false, fmt.Errorf("failed to reap tree roots: %w", err)
 		}
@@ -144,14 +144,14 @@ func reapBlocks(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64) (done
 	return done, nil
 }
 
-func reapTreeNodes(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64) (done bool, err error) {
+func reapTreeNodes(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64, config ocr3_1config.PublicConfig) (done bool, err error) {
 	tx, err := kvDb.NewUnserializedReadWriteTransactionUnchecked()
 	if err != nil {
 		return false, fmt.Errorf("failed to create read/write transaction: %w", err)
 	}
 	defer tx.Discard()
 
-	done, err = tx.DeleteStaleNodes(RootVersion(desiredLowestPersistedSeqNr), maxTreeNodesToReapInOneGo)
+	done, err = tx.DeleteStaleNodes(RootVersion(desiredLowestPersistedSeqNr, config), maxTreeNodesToReapInOneGo)
 	if err != nil {
 		return false, fmt.Errorf("failed to delete stale nodes: %w", err)
 	}
@@ -163,14 +163,14 @@ func reapTreeNodes(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64) (d
 	return done, nil
 }
 
-func reapTreeRoots(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64) (done bool, err error) {
+func reapTreeRoots(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64, config ocr3_1config.PublicConfig) (done bool, err error) {
 	tx, err := kvDb.NewUnserializedReadWriteTransactionUnchecked()
 	if err != nil {
 		return false, fmt.Errorf("failed to create read/write transaction: %w", err)
 	}
 	defer tx.Discard()
 
-	done, err = tx.DeleteRoots(RootVersion(desiredLowestPersistedSeqNr), maxTreeRootsToReapInOneGo)
+	done, err = tx.DeleteRoots(RootVersion(desiredLowestPersistedSeqNr, config), maxTreeRootsToReapInOneGo)
 	if err != nil {
 		return false, fmt.Errorf("failed to delete roots: %w", err)
 	}
@@ -184,7 +184,7 @@ func reapTreeRoots(kvDb KeyValueDatabase, desiredLowestPersistedSeqNr uint64) (d
 
 func RunStateSyncReap(
 	ctx context.Context,
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	logger loghelper.LoggerWithContext,
 	database Database,
 	kvDb KeyValueDatabase,
@@ -200,7 +200,7 @@ func RunStateSyncReap(
 		}
 
 		logger.Info("RunStateSyncReap: calling reapState", nil)
-		done, err := reapState(ctx, kvDb, logger)
+		done, err := reapState(ctx, kvDb, logger, config.PublicConfig)
 		if err != nil {
 			logger.Warn("RunStateSyncReap: failed to reap state. Will retry soon.", commontypes.LogFields{
 				"error":           err,

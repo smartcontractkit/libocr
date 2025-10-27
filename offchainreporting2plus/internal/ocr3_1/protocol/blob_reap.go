@@ -71,7 +71,7 @@ func reapSingleBlob(tx KeyValueDatabaseReadWriteTransaction, staleBlob StaleBlob
 		return fmt.Errorf("blob meta is nil")
 	}
 
-	for chunkIndex, chunkHave := range meta.ChunksHave {
+	for chunkIndex, chunkHave := range meta.ChunkHaves {
 		if !chunkHave {
 			continue
 		}
@@ -86,6 +86,24 @@ func reapSingleBlob(tx KeyValueDatabaseReadWriteTransaction, staleBlob StaleBlob
 	}
 	if err := tx.DeleteStaleBlobIndex(staleBlob); err != nil {
 		return fmt.Errorf("failed to delete stale blob index: %w", err)
+	}
+
+	// increase reaped quota stats
+
+	existingQuotaStats, err := tx.ReadBlobQuotaStats(BlobQuotaStatsTypeReaped, meta.Submitter)
+	if err != nil {
+		return fmt.Errorf("failed to read blob quota stats: %w", err)
+	}
+	updatedQuotaStats, ok := existingQuotaStats.Add(BlobQuotaStats{
+		1,
+		meta.PayloadLength,
+	})
+	if !ok {
+		return fmt.Errorf("quotaStats overflow")
+	}
+	err = tx.WriteBlobQuotaStats(BlobQuotaStatsTypeReaped, meta.Submitter, updatedQuotaStats)
+	if err != nil {
+		return fmt.Errorf("failed to write blob quota stats: %w", err)
 	}
 
 	return nil

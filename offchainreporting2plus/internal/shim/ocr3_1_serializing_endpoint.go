@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/managed/limits"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/serialization"
@@ -26,7 +26,7 @@ type OCR3_1SerializingEndpoint[RI any] struct {
 	logger                 commontypes.Logger
 	metrics                *serializingEndpointMetrics
 	pluginLimits           ocr3_1types.ReportingPluginLimits
-	publicConfig           ocr3config.PublicConfig
+	publicConfig           ocr3_1config.PublicConfig
 	serializedLengthLimits limits.OCR3_1SerializedLengthLimits
 
 	mutex        sync.Mutex
@@ -49,7 +49,7 @@ func NewOCR3_1SerializingEndpoint[RI any](
 	logger commontypes.Logger,
 	metricsRegisterer prometheus.Registerer,
 	pluginLimits ocr3_1types.ReportingPluginLimits,
-	publicConfig ocr3config.PublicConfig,
+	publicConfig ocr3_1config.PublicConfig,
 	serializedLengthLimits limits.OCR3_1SerializedLengthLimits,
 ) *OCR3_1SerializingEndpoint[RI] {
 	return &OCR3_1SerializingEndpoint[RI]{
@@ -94,7 +94,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) sendTelemetry(t *serialization.Telemetry
 }
 
 func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Message[RI]) (types.OutboundBinaryMessage, *serialization.MessageWrapper) {
-	if !msg.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen) {
+	if !msg.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen, n.publicConfig) {
 		n.logger.Error("OCR3_1SerializingEndpoint: Dropping outgoing message because it fails size check", commontypes.LogFields{
 			"limits": n.pluginLimits,
 		})
@@ -130,9 +130,9 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
 	case protocol.MessageReportSignatures[RI]:
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
-	case protocol.MessageCertifiedCommitRequest[RI]:
+	case protocol.MessageReportsPlusPrecursorRequest[RI]:
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
-	case protocol.MessageCertifiedCommit[RI]:
+	case protocol.MessageReportsPlusPrecursor[RI]:
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
 	case protocol.MessageStateSyncSummary[RI]:
 		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityLow}, pbm
@@ -140,7 +140,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
 				n.serializedLengthLimits.MaxLenMsgBlockSyncResponse,
-				time.Now().Add(protocol.DeltaMaxBlockSyncRequest),
+				msg.RequestInfo.ExpiryTimestamp,
 			},
 			payload,
 			types.BinaryMessagePriorityLow,
@@ -151,7 +151,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
 				n.serializedLengthLimits.MaxLenMsgTreeSyncChunkResponse,
-				time.Now().Add(protocol.DeltaMaxTreeSyncRequest),
+				msg.RequestInfo.ExpiryTimestamp,
 			},
 			payload,
 			types.BinaryMessagePriorityLow,
@@ -243,13 +243,13 @@ func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMe
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
 			return protocol.MessageReportSignatures[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageReportSignatures")
 		}
-	case protocol.MessageCertifiedCommitRequest[RI]:
+	case protocol.MessageReportsPlusPrecursorRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageCertifiedCommitRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageCertifiedCommitRequest")
+			return protocol.MessageReportsPlusPrecursorRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageReportsPlusPrecursorRequest")
 		}
-	case protocol.MessageCertifiedCommit[RI]:
+	case protocol.MessageReportsPlusPrecursor[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageCertifiedCommit[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageCertifiedCommit")
+			return protocol.MessageReportsPlusPrecursor[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageReportsPlusPrecursor")
 		}
 	case protocol.MessageBlockSyncRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
@@ -289,7 +289,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMe
 		}
 	}
 
-	if !m.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen) {
+	if !m.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen, n.publicConfig) {
 		return nil, nil, fmt.Errorf("message failed size check")
 	}
 

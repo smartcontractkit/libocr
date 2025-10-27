@@ -102,15 +102,14 @@ type AttributedSignedObservation struct {
 type StateTransitionInputsDigest [32]byte
 
 func MakeStateTransitionInputsDigest(
-	ogid OutcomeGenerationID,
+	configDigest types.ConfigDigest,
 	seqNr uint64,
 	attributedQuery types.AttributedQuery,
 	attributedObservations []types.AttributedObservation,
 ) StateTransitionInputsDigest {
 	h := sha256.New()
 
-	_, _ = h.Write(ogid.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+	_, _ = h.Write(configDigest[:])
 
 	_ = binary.Write(h, binary.BigEndian, seqNr)
 
@@ -135,11 +134,10 @@ func MakeStateTransitionInputsDigest(
 
 type StateTransitionOutputDigest [32]byte
 
-func MakeStateTransitionOutputDigest(ogid OutcomeGenerationID, seqNr uint64, output []KeyValuePairWithDeletions) StateTransitionOutputDigest {
+func MakeStateTransitionOutputDigest(configDigest types.ConfigDigest, seqNr uint64, output []KeyValuePairWithDeletions) StateTransitionOutputDigest {
 	h := sha256.New()
 
-	_, _ = h.Write(ogid.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+	_, _ = h.Write(configDigest[:])
 
 	_ = binary.Write(h, binary.BigEndian, seqNr)
 
@@ -160,11 +158,10 @@ func MakeStateTransitionOutputDigest(ogid OutcomeGenerationID, seqNr uint64, out
 
 type ReportsPlusPrecursorDigest [32]byte
 
-func MakeReportsPlusPrecursorDigest(ogid OutcomeGenerationID, seqNr uint64, precursor ocr3_1types.ReportsPlusPrecursor) ReportsPlusPrecursorDigest {
+func MakeReportsPlusPrecursorDigest(configDigest types.ConfigDigest, seqNr uint64, precursor ocr3_1types.ReportsPlusPrecursor) ReportsPlusPrecursorDigest {
 	h := sha256.New()
 
-	_, _ = h.Write(ogid.ConfigDigest[:])
-	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
+	_, _ = h.Write(configDigest[:])
 
 	_ = binary.Write(h, binary.BigEndian, seqNr)
 
@@ -466,13 +463,13 @@ type CertifiedPrepareOrCommit interface {
 var _ CertifiedPrepareOrCommit = &CertifiedPrepare{}
 
 type CertifiedPrepare struct {
-	PrepareEpoch                uint64
-	PrepareSeqNr                uint64
-	StateTransitionInputsDigest StateTransitionInputsDigest
-	StateTransitionOutputs      StateTransitionOutputs
-	StateRootDigest             StateRootDigest
-	ReportsPlusPrecursor        ocr3_1types.ReportsPlusPrecursor
-	PrepareQuorumCertificate    []AttributedPrepareSignature
+	PrepareEpoch                 uint64
+	PrepareSeqNr                 uint64
+	StateTransitionInputsDigest  StateTransitionInputsDigest
+	StateTransitionOutputsDigest StateTransitionOutputDigest
+	StateRootDigest              StateRootDigest
+	ReportsPlusPrecursorDigest   ReportsPlusPrecursorDigest
+	PrepareQuorumCertificate     []AttributedPrepareSignature
 }
 
 func (hc *CertifiedPrepare) isCertifiedPrepareOrCommit() {}
@@ -520,19 +517,9 @@ func (hc *CertifiedPrepare) Verify(
 		if !(0 <= int(aps.Signer) && int(aps.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", aps.Signer)
 		}
-		outputDigest := MakeStateTransitionOutputDigest(
-			ogid,
-			hc.SeqNr(),
-			hc.StateTransitionOutputs.WriteSet,
-		)
-		reportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(
-			ogid,
-			hc.SeqNr(),
-			hc.ReportsPlusPrecursor,
-		)
 		if err := aps.Signature.Verify(
-			ogid, hc.SeqNr(), hc.StateTransitionInputsDigest, outputDigest, hc.StateRootDigest,
-			reportsPlusPrecursorDigest, oracleIdentities[aps.Signer].OffchainPublicKey); err != nil {
+			ogid, hc.SeqNr(), hc.StateTransitionInputsDigest, hc.StateTransitionOutputsDigest, hc.StateRootDigest,
+			hc.ReportsPlusPrecursorDigest, oracleIdentities[aps.Signer].OffchainPublicKey); err != nil {
 			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify: %w", i, aps.Signer, oracleIdentities[aps.Signer].OffchainPublicKey, err)
 		}
 	}
@@ -547,12 +534,6 @@ func (hc *CertifiedPrepare) CheckSize(n int, f int, limits ocr3_1types.Reporting
 			return false
 		}
 	}
-	if !checkWriteSetSize(hc.StateTransitionOutputs.WriteSet, limits) {
-		return false
-	}
-	if len(hc.ReportsPlusPrecursor) > limits.MaxReportsPlusPrecursorLength {
-		return false
-	}
 	return true
 }
 
@@ -560,13 +541,13 @@ var _ CertifiedPrepareOrCommit = &CertifiedCommit{}
 
 // The empty CertifiedCommit{} is the genesis value
 type CertifiedCommit struct {
-	CommitEpoch                 uint64
-	CommitSeqNr                 uint64
-	StateTransitionInputsDigest StateTransitionInputsDigest
-	StateTransitionOutputs      StateTransitionOutputs
-	StateRootDigest             StateRootDigest
-	ReportsPlusPrecursor        ocr3_1types.ReportsPlusPrecursor
-	CommitQuorumCertificate     []AttributedCommitSignature
+	CommitEpoch                  uint64
+	CommitSeqNr                  uint64
+	StateTransitionInputsDigest  StateTransitionInputsDigest
+	StateTransitionOutputsDigest StateTransitionOutputDigest
+	StateRootDigest              StateRootDigest
+	ReportsPlusPrecursorDigest   ReportsPlusPrecursorDigest
+	CommitQuorumCertificate      []AttributedCommitSignature
 }
 
 func (hc *CertifiedCommit) isCertifiedPrepareOrCommit() {}
@@ -590,11 +571,12 @@ func (hc *CertifiedCommit) Timestamp() HighestCertifiedTimestamp {
 func (hc *CertifiedCommit) IsGenesis() bool {
 	// We intentionally don't just compare with CertifiedCommit{}, because after
 	// protobuf deserialization, we might end up with hc.Outcome = []byte{}
-	return hc.Epoch() == uint64(0) &&
-		hc.SeqNr() == uint64(0) &&
+	return hc.CommitEpoch == uint64(0) &&
+		hc.CommitSeqNr == uint64(0) &&
 		hc.StateTransitionInputsDigest == StateTransitionInputsDigest{} &&
+		hc.StateTransitionOutputsDigest == StateTransitionOutputDigest{} &&
 		hc.StateRootDigest == StateRootDigest{} &&
-		len(hc.ReportsPlusPrecursor) == 0 &&
+		hc.ReportsPlusPrecursorDigest == ReportsPlusPrecursorDigest{} &&
 		len(hc.CommitQuorumCertificate) == 0
 }
 
@@ -625,22 +607,12 @@ func (hc *CertifiedCommit) Verify(
 		if !(0 <= int(acs.Signer) && int(acs.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", acs.Signer)
 		}
-		outputDigest := MakeStateTransitionOutputDigest(
-			ogid,
-			hc.SeqNr(),
-			hc.StateTransitionOutputs.WriteSet,
-		)
-		reportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(
-			ogid,
-			hc.SeqNr(),
-			hc.ReportsPlusPrecursor,
-		)
 		if err := acs.Signature.Verify(ogid,
 			hc.SeqNr(),
 			hc.StateTransitionInputsDigest,
-			outputDigest,
+			hc.StateTransitionOutputsDigest,
 			hc.StateRootDigest,
-			reportsPlusPrecursorDigest,
+			hc.ReportsPlusPrecursorDigest,
 			oracleIdentities[acs.Signer].OffchainPublicKey); err != nil {
 			return fmt.Errorf("%v-th signature by %v-th oracle does not verify: %w", i, acs.Signer, err)
 		}
@@ -661,12 +633,6 @@ func (hc *CertifiedCommit) CheckSize(n int, f int, limits ocr3_1types.ReportingP
 			return false
 		}
 	}
-	if !checkWriteSetSize(hc.StateTransitionOutputs.WriteSet, limits) {
-		return false
-	}
-	if len(hc.ReportsPlusPrecursor) > limits.MaxReportsPlusPrecursorLength {
-		return false
-	}
 	return true
 }
 
@@ -676,7 +642,7 @@ type StateTransitionBlock struct {
 	StateTransitionInputsDigest StateTransitionInputsDigest
 	StateTransitionOutputs      StateTransitionOutputs
 	StateRootDigest             StateRootDigest
-	ReportsPlusPrecursor        ocr3_1types.ReportsPlusPrecursor
+	ReportsPlusPrecursorDigest  ReportsPlusPrecursorDigest
 }
 
 func (stb *StateTransitionBlock) SeqNr() uint64 {
@@ -684,20 +650,24 @@ func (stb *StateTransitionBlock) SeqNr() uint64 {
 }
 
 func checkWriteSetSize(writeSet []KeyValuePairWithDeletions, limits ocr3_1types.ReportingPluginLimits) bool {
+	if len(writeSet) > limits.MaxKeyValueModifiedKeys {
+		return false
+	}
+
 	modifiedKeysPlusValuesLength := 0
 	for _, kvPair := range writeSet {
-		if len(kvPair.Key) > ocr3_1types.MaxMaxKeyValueKeyLength {
+		if len(kvPair.Key) > ocr3_1types.MaxMaxKeyValueKeyBytes {
 			return false
 		}
 		if kvPair.Deleted && len(kvPair.Value) > 0 {
 			return false
 		}
-		if len(kvPair.Value) > ocr3_1types.MaxMaxKeyValueValueLength {
+		if len(kvPair.Value) > ocr3_1types.MaxMaxKeyValueValueBytes {
 			return false
 		}
 		modifiedKeysPlusValuesLength += len(kvPair.Key) + len(kvPair.Value)
 	}
-	if modifiedKeysPlusValuesLength > limits.MaxKeyValueModifiedKeysPlusValuesLength {
+	if modifiedKeysPlusValuesLength > limits.MaxKeyValueModifiedKeysPlusValuesBytes {
 		return false
 	}
 	return true
@@ -705,9 +675,6 @@ func checkWriteSetSize(writeSet []KeyValuePairWithDeletions, limits ocr3_1types.
 
 func (stb *StateTransitionBlock) CheckSize(limits ocr3_1types.ReportingPluginLimits) bool {
 	if !checkWriteSetSize(stb.StateTransitionOutputs.WriteSet, limits) {
-		return false
-	}
-	if len(stb.ReportsPlusPrecursor) > limits.MaxReportsPlusPrecursorLength {
 		return false
 	}
 	return true
@@ -735,127 +702,31 @@ func (astb *AttestedStateTransitionBlock) Verify(
 	oracleIdentities []config.OracleIdentity,
 	byzQuorumSize int,
 ) error {
-	if byzQuorumSize != len(astb.AttributedCommitSignatures) {
-		return fmt.Errorf("wrong number of signatures, expected %d for byz. quorum but got %d", byzQuorumSize, len(astb.AttributedCommitSignatures))
-	}
+	certifiedCommit := astb.ToCertifiedCommit(configDigest)
+	return certifiedCommit.Verify(configDigest, oracleIdentities, byzQuorumSize)
+}
 
-	ogid := OutcomeGenerationID{
+func (astb *AttestedStateTransitionBlock) ToCertifiedCommit(configDigest types.ConfigDigest) CertifiedCommit {
+	stb := astb.StateTransitionBlock
+	stateTransitionOutputsDigest := MakeStateTransitionOutputDigest(
 		configDigest,
-		astb.StateTransitionBlock.Epoch,
+		stb.SeqNr(),
+		stb.StateTransitionOutputs.WriteSet,
+	)
+	return CertifiedCommit{
+		stb.Epoch,
+		stb.SeqNr(),
+		stb.StateTransitionInputsDigest,
+		stateTransitionOutputsDigest,
+		stb.StateRootDigest,
+		stb.ReportsPlusPrecursorDigest,
+		astb.AttributedCommitSignatures,
 	}
-	seqNr := astb.StateTransitionBlock.SeqNr()
-
-	seen := make(map[commontypes.OracleID]bool)
-	for i, sig := range astb.AttributedCommitSignatures {
-		if seen[sig.Signer] {
-			return fmt.Errorf("duplicate signature by %v", sig.Signer)
-		}
-		seen[sig.Signer] = true
-		if !(0 <= int(sig.Signer) && int(sig.Signer) < len(oracleIdentities)) {
-			return fmt.Errorf("signer out of bounds: %v", sig.Signer)
-		}
-		if err := sig.Signature.Verify(
-			ogid,
-			seqNr,
-			astb.StateTransitionBlock.StateTransitionInputsDigest,
-			MakeStateTransitionOutputDigest(
-				ogid,
-				seqNr,
-				astb.StateTransitionBlock.StateTransitionOutputs.WriteSet,
-			),
-			astb.StateTransitionBlock.StateRootDigest,
-			MakeReportsPlusPrecursorDigest(
-				ogid,
-				seqNr,
-				astb.StateTransitionBlock.ReportsPlusPrecursor,
-			),
-			oracleIdentities[sig.Signer].OffchainPublicKey,
-		); err != nil {
-			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify: %w",
-				i, sig.Signer, oracleIdentities[sig.Signer].OffchainPublicKey, err)
-		}
-	}
-	return nil
-}
-
-type CertifiedCommittedReports[RI any] struct {
-	CommitEpoch                 uint64
-	SeqNr                       uint64
-	StateTransitionInputsDigest StateTransitionInputsDigest
-	StateTransitionOutputDigest StateTransitionOutputDigest
-	StateRootDigest             StateRootDigest
-	ReportsPlusPrecursor        ocr3_1types.ReportsPlusPrecursor
-	CommitQuorumCertificate     []AttributedCommitSignature
-}
-
-func (ccrs *CertifiedCommittedReports[RI]) isGenesis() bool {
-	return ccrs.CommitEpoch == uint64(0) && ccrs.SeqNr == uint64(0) &&
-		ccrs.StateTransitionInputsDigest == StateTransitionInputsDigest{} &&
-		ccrs.StateTransitionOutputDigest == StateTransitionOutputDigest{} &&
-		len(ccrs.ReportsPlusPrecursor) == 0 &&
-		len(ccrs.CommitQuorumCertificate) == 0
-}
-
-func (ccrs *CertifiedCommittedReports[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
-	// Check if we this is a genesis certificate
-	if ccrs.isGenesis() {
-		return true
-	}
-
-	if len(ccrs.ReportsPlusPrecursor) > limits.MaxReportsPlusPrecursorLength {
-		return false
-	}
-
-	if len(ccrs.CommitQuorumCertificate) != byzquorum.Size(n, f) {
-		return false
-	}
-	for _, acs := range ccrs.CommitQuorumCertificate {
-		if len(acs.Signature) != ed25519.SignatureSize {
-			return false
-		}
-	}
-	return true
-}
-
-func (ccrs *CertifiedCommittedReports[RI]) Verify(
-	configDigest types.ConfigDigest,
-	oracleIdentities []config.OracleIdentity,
-	byzQuorumSize int,
-) error {
-	if byzQuorumSize != len(ccrs.CommitQuorumCertificate) {
-		return fmt.Errorf("wrong number of signatures, expected %d for byz. quorum but got %d", byzQuorumSize, len(ccrs.CommitQuorumCertificate))
-	}
-
-	ogid := OutcomeGenerationID{
-		configDigest,
-		ccrs.CommitEpoch,
-	}
-
-	seen := make(map[commontypes.OracleID]bool)
-	for i, acs := range ccrs.CommitQuorumCertificate {
-		if seen[acs.Signer] {
-			return fmt.Errorf("duplicate signature by %v", acs.Signer)
-		}
-		seen[acs.Signer] = true
-		if !(0 <= int(acs.Signer) && int(acs.Signer) < len(oracleIdentities)) {
-			return fmt.Errorf("signer out of bounds: %v", acs.Signer)
-		}
-		reportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(ogid, ccrs.SeqNr, ccrs.ReportsPlusPrecursor)
-		if err := acs.Signature.Verify(ogid,
-			ccrs.SeqNr,
-			ccrs.StateTransitionInputsDigest,
-			ccrs.StateTransitionOutputDigest,
-			ccrs.StateRootDigest,
-			reportsPlusPrecursorDigest,
-			oracleIdentities[acs.Signer].OffchainPublicKey); err != nil {
-			return fmt.Errorf("%v-th signature by %v-th oracle does not verify: %w", i, acs.Signer, err)
-		}
-	}
-	return nil
 }
 
 type BlobDigest = blobtypes.BlobDigest
 type BlobChunkDigest = blobtypes.BlobChunkDigest
+type BlobChunkDigestsRoot = blobtypes.BlobChunkDigestsRoot
 type BlobAvailabilitySignature = blobtypes.BlobAvailabilitySignature
 type AttributedBlobAvailabilitySignature = blobtypes.AttributedBlobAvailabilitySignature
 type LightCertifiedBlob = blobtypes.LightCertifiedBlob

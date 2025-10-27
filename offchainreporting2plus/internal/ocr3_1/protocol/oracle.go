@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -25,7 +25,7 @@ func RunOracle[RI any](
 	ctx context.Context,
 
 	blobEndpointWrapper *BlobEndpointWrapper,
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	database Database,
 	id commontypes.OracleID,
@@ -66,7 +66,7 @@ type oracleState[RI any] struct {
 	ctx context.Context
 
 	blobEndpointWrapper *BlobEndpointWrapper
-	config              ocr3config.SharedConfig
+	config              ocr3_1config.SharedConfig
 	contractTransmitter ocr3types.ContractTransmitter[RI]
 	database            Database
 	id                  commontypes.OracleID
@@ -261,6 +261,7 @@ func (o *oracleState[RI]) run() {
 			chReportAttestationToTransmission,
 			o.config,
 			o.contractTransmitter,
+			o.kvDb,
 			o.logger,
 			o.netEndpoint,
 			o.onchainKeyring,
@@ -322,7 +323,7 @@ func (o *oracleState[RI]) run() {
 		)
 	})
 
-	publicConfigMetrics := ocr3config.NewPublicConfigMetrics(o.metricsRegisterer, o.logger, o.config.PublicConfig)
+	publicConfigMetrics := ocr3_1config.NewPublicConfigMetrics(o.metricsRegisterer, o.logger, o.config.PublicConfig)
 	defer publicConfigMetrics.Close()
 
 	chNet := o.netEndpoint.Receive()

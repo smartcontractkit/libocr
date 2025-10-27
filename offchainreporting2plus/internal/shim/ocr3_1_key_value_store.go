@@ -15,6 +15,7 @@ import (
 	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/internal/singlewriter"
 	"github.com/smartcontractkit/libocr/internal/util"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/serialization"
@@ -25,6 +26,7 @@ type SemanticOCR3_1KeyValueDatabase struct {
 	conflictTracker  *singlewriter.ConflictTracker
 	KeyValueDatabase ocr3_1types.KeyValueDatabase
 	Limits           ocr3_1types.ReportingPluginLimits
+	config           ocr3_1config.PublicConfig
 	logger           commontypes.Logger
 	metrics          *keyValueMetrics
 }
@@ -34,6 +36,7 @@ var _ protocol.KeyValueDatabase = &SemanticOCR3_1KeyValueDatabase{}
 func NewSemanticOCR3_1KeyValueDatabase(
 	keyValueDatabase ocr3_1types.KeyValueDatabase,
 	limits ocr3_1types.ReportingPluginLimits,
+	config ocr3_1config.PublicConfig,
 	logger commontypes.Logger,
 	metricsRegisterer prometheus.Registerer,
 ) *SemanticOCR3_1KeyValueDatabase {
@@ -41,8 +44,24 @@ func NewSemanticOCR3_1KeyValueDatabase(
 		singlewriter.NewConflictTracker(),
 		keyValueDatabase,
 		limits,
+		config,
 		logger,
 		newKeyValueMetrics(metricsRegisterer, logger),
+	}
+}
+
+func (s *SemanticOCR3_1KeyValueDatabase) newReadWriteTransaction(tx ocr3_1types.KeyValueDatabaseReadWriteTransaction, nilOrSeqNr *uint64) *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction {
+	return &SemanticOCR3_1KeyValueDatabaseReadWriteTransaction{
+		SemanticOCR3_1KeyValueDatabaseReadTransaction{
+			tx,
+			s.config,
+		},
+		tx,
+		s.metrics,
+		sync.Mutex{},
+		newLimitCheckWriteSet(s.Limits),
+		nilOrSeqNr,
+		false,
 	}
 }
 
@@ -62,19 +81,11 @@ func (s *SemanticOCR3_1KeyValueDatabase) HighestCommittedSeqNr() (uint64, error)
 }
 
 func (s *SemanticOCR3_1KeyValueDatabase) NewSerializedReadWriteTransaction(postSeqNr uint64) (protocol.KeyValueDatabaseReadWriteTransaction, error) {
-	fakeTx, err := singlewriter.NewSerializedTransaction(s.KeyValueDatabase, s.conflictTracker)
+	rawTx, err := singlewriter.NewSerializedTransaction(s.KeyValueDatabase, s.conflictTracker)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create read write transaction: %w", err)
 	}
-	tx := &SemanticOCR3_1KeyValueDatabaseReadWriteTransaction{
-		&SemanticOCR3_1KeyValueDatabaseReadTransaction{fakeTx, s.Limits},
-		fakeTx,
-		s.metrics,
-		sync.Mutex{},
-		newLimitCheckWriteSet(s.Limits.MaxKeyValueModifiedKeysPlusValuesLength),
-		&postSeqNr,
-		false,
-	}
+	tx := s.newReadWriteTransaction(rawTx, &postSeqNr)
 	highestCommittedSeqNr, err := tx.ReadHighestCommittedSeqNr()
 	if err != nil {
 		tx.Discard()
@@ -100,36 +111,19 @@ func (s *SemanticOCR3_1KeyValueDatabase) NewSerializedReadWriteTransaction(postS
 }
 
 func (s *SemanticOCR3_1KeyValueDatabase) NewSerializedReadWriteTransactionUnchecked() (protocol.KeyValueDatabaseReadWriteTransaction, error) {
-	fakeTx, err := singlewriter.NewSerializedTransaction(s.KeyValueDatabase, s.conflictTracker)
+	rawTx, err := singlewriter.NewSerializedTransaction(s.KeyValueDatabase, s.conflictTracker)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create read write transaction: %w", err)
 	}
-	tx := &SemanticOCR3_1KeyValueDatabaseReadWriteTransaction{
-		&SemanticOCR3_1KeyValueDatabaseReadTransaction{fakeTx, s.Limits},
-		fakeTx,
-		s.metrics,
-		sync.Mutex{},
-		newLimitCheckWriteSet(s.Limits.MaxKeyValueModifiedKeysPlusValuesLength),
-		nil,
-		false,
-	}
-	return tx, nil
+	return s.newReadWriteTransaction(rawTx, nil), nil
 }
 
 func (s *SemanticOCR3_1KeyValueDatabase) NewUnserializedReadWriteTransactionUnchecked() (protocol.KeyValueDatabaseReadWriteTransaction, error) {
-	fakeTx, err := singlewriter.NewUnserializedTransaction(s.KeyValueDatabase)
+	rawTx, err := singlewriter.NewUnserializedTransaction(s.KeyValueDatabase)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create read write transaction: %w", err)
 	}
-	return &SemanticOCR3_1KeyValueDatabaseReadWriteTransaction{
-		&SemanticOCR3_1KeyValueDatabaseReadTransaction{fakeTx, s.Limits},
-		fakeTx,
-		s.metrics,
-		sync.Mutex{},
-		newLimitCheckWriteSet(s.Limits.MaxKeyValueModifiedKeysPlusValuesLength),
-		nil,
-		false,
-	}, nil
+	return s.newReadWriteTransaction(rawTx, nil), nil
 }
 
 func (s *SemanticOCR3_1KeyValueDatabase) NewReadTransaction(postSeqNr uint64) (protocol.KeyValueDatabaseReadTransaction, error) {
@@ -169,17 +163,17 @@ func (s *SemanticOCR3_1KeyValueDatabase) NewReadTransactionUnchecked() (protocol
 	if err != nil {
 		return nil, fmt.Errorf("failed to create read transaction: %w", err)
 	}
-	return &SemanticOCR3_1KeyValueDatabaseReadTransaction{tx, s.Limits}, nil
+	return &SemanticOCR3_1KeyValueDatabaseReadTransaction{tx, s.config}, nil
 }
 
 type SemanticOCR3_1KeyValueDatabaseReadWriteTransaction struct {
-	protocol.KeyValueDatabaseReadTransaction // inherit all read implementations
-	rawTransaction                           ocr3_1types.KeyValueDatabaseReadWriteTransaction
-	metrics                                  *keyValueMetrics
-	mu                                       sync.Mutex
-	nilOrWriteSet                            *limitCheckWriteSet
-	nilOrSeqNr                               *uint64
-	closedForWriting                         bool
+	SemanticOCR3_1KeyValueDatabaseReadTransaction // inherit all read implementations
+	rawTransaction                                ocr3_1types.KeyValueDatabaseReadWriteTransaction
+	metrics                                       *keyValueMetrics
+	mu                                            sync.Mutex
+	nilOrWriteSet                                 *limitCheckWriteSet
+	nilOrSeqNr                                    *uint64
+	closedForWriting                              bool
 }
 
 var _ protocol.KeyValueDatabaseReadWriteTransaction = &SemanticOCR3_1KeyValueDatabaseReadWriteTransaction{}
@@ -213,8 +207,8 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Commit() error {
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Delete(key []byte) error {
-	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyLength) {
-		return fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyLength)
+	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyBytes) {
+		return fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyBytes)
 	}
 
 	s.mu.Lock()
@@ -380,15 +374,15 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) CloseWriteSet() (pr
 		s,
 		s,
 		s,
-		protocol.PrevRootVersion(*s.nilOrSeqNr),
-		protocol.RootVersion(*s.nilOrSeqNr),
+		protocol.PrevRootVersion(*s.nilOrSeqNr, s.config),
+		protocol.RootVersion(*s.nilOrSeqNr, s.config),
 		keyValueUpdates,
 	)
 	if err != nil {
 		return protocol.StateRootDigest{}, fmt.Errorf("failed to batch update: %w", err)
 	}
 
-	stateRootDigest, err := jmt.ReadRootDigest(s, s, protocol.RootVersion(*s.nilOrSeqNr))
+	stateRootDigest, err := jmt.ReadRootDigest(s, s, protocol.RootVersion(*s.nilOrSeqNr, s.config))
 	if err != nil {
 		return protocol.StateRootDigest{}, fmt.Errorf("failed to read root digest: %w", err)
 	}
@@ -425,11 +419,11 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, v
 		s.metrics.txWriteDurationNanoseconds.Observe(float64(time.Since(start).Nanoseconds()))
 	}()
 
-	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyLength) {
-		return fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyLength)
+	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyBytes) {
+		return fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyBytes)
 	}
-	if !(len(value) <= ocr3_1types.MaxMaxKeyValueValueLength) {
-		return fmt.Errorf("value length %d exceeds maximum %d", len(value), ocr3_1types.MaxMaxKeyValueValueLength)
+	if !(len(value) <= ocr3_1types.MaxMaxKeyValueValueBytes) {
+		return fmt.Errorf("value length %d exceeds maximum %d", len(value), ocr3_1types.MaxMaxKeyValueValueBytes)
 	}
 
 	value = util.NilCoalesceSlice(value)
@@ -458,7 +452,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, v
 
 type SemanticOCR3_1KeyValueDatabaseReadTransaction struct {
 	rawTransaction ocr3_1types.KeyValueDatabaseReadTransaction
-	limits         ocr3_1types.ReportingPluginLimits
+	config         ocr3_1config.PublicConfig
 }
 
 var _ protocol.KeyValueDatabaseReadTransaction = &SemanticOCR3_1KeyValueDatabaseReadTransaction{}
@@ -468,8 +462,8 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) Discard() {
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) Read(key []byte) ([]byte, error) {
-	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyLength) {
-		return nil, fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyLength)
+	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyBytes) {
+		return nil, fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyBytes)
 	}
 	return s.rawTransaction.Read(pluginPrefixedUnhashedKey(key))
 }
@@ -598,11 +592,11 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadTreeSyncChunk(
 	keyValues, truncated, err := jmt.ReadRange(
 		s,
 		s,
-		protocol.RootVersion(toSeqNr),
+		protocol.RootVersion(toSeqNr, s.config),
 		startIndex,
 		requestEndInclIndex,
-		protocol.MaxTreeSyncChunkKeysPlusValuesLength,
-		protocol.MaxTreeSyncChunkKeys,
+		s.config.GetMaxTreeSyncChunkKeysPlusValuesBytes(),
+		s.config.GetMaxTreeSyncChunkKeys(),
 	)
 	if err != nil {
 		return jmt.Digest{}, nil, nil, fmt.Errorf("failed to read range: %w", err)
@@ -620,7 +614,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadTreeSyncChunk(
 	boundingLeaves, err = jmt.ProveSubrange(
 		s,
 		s,
-		protocol.RootVersion(toSeqNr),
+		protocol.RootVersion(toSeqNr, s.config),
 		startIndex,
 		endInclIndex,
 	)
@@ -669,17 +663,17 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 	boundingLeaves []jmt.BoundingLeaf,
 	keyValues []protocol.KeyValuePair,
 ) (protocol.VerifyAndWriteTreeSyncChunkResult, error) {
-	if len(keyValues) > protocol.MaxTreeSyncChunkKeys {
+	if len(keyValues) > s.config.GetMaxTreeSyncChunkKeys() {
 		return protocol.VerifyAndWriteTreeSyncChunkResultByzantine, fmt.Errorf("too many leaves: %d > %d",
-			len(keyValues), protocol.MaxTreeSyncChunkKeys)
+			len(keyValues), s.config.GetMaxTreeSyncChunkKeys())
 	}
 	var byteBudget int
 	for _, kv := range keyValues {
 		byteBudget += len(kv.Key) + len(kv.Value)
 	}
-	if byteBudget > protocol.MaxTreeSyncChunkKeysPlusValuesLength {
+	if byteBudget > s.config.GetMaxTreeSyncChunkKeysPlusValuesBytes() {
 		return protocol.VerifyAndWriteTreeSyncChunkResultByzantine, fmt.Errorf("chunk exceeds byte limit: %d > %d",
-			byteBudget, protocol.MaxTreeSyncChunkKeysPlusValuesLength)
+			byteBudget, s.config.GetMaxTreeSyncChunkKeysPlusValuesBytes())
 	}
 
 	prevIdx := startIndex
@@ -720,8 +714,8 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 			s,
 			s,
 			s,
-			protocol.RootVersion(targetSeqNr),
-			protocol.RootVersion(targetSeqNr),
+			protocol.RootVersion(targetSeqNr, s.config),
+			protocol.RootVersion(targetSeqNr, s.config),
 			keyValues,
 		)
 		if err != nil {
@@ -741,7 +735,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 	rootDigest, err := jmt.ReadRootDigest(
 		s,
 		s,
-		protocol.RootVersion(targetSeqNr),
+		protocol.RootVersion(targetSeqNr, s.config),
 	)
 	if err != nil {
 		return protocol.VerifyAndWriteTreeSyncChunkResultUnrelatedError, fmt.Errorf("failed to read root digest: %w", err)
@@ -761,7 +755,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobPayload(blobDige
 	if blobMeta == nil {
 		return nil, nil
 	}
-	if slices.Contains(blobMeta.ChunksHave, false) {
+	if slices.Contains(blobMeta.ChunkHaves, false) {
 		return nil, fmt.Errorf("blob has missing chunks")
 	}
 
@@ -790,7 +784,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobPayload(blobDige
 			return nil, fmt.Errorf("error reading value for key %s: %w", key, err)
 		}
 
-		expectedChunkSize := min(protocol.BlobChunkSize, residualLength)
+		expectedChunkSize := min(uint64(s.config.GetBlobChunkBytes()), residualLength)
 		actualChunkSize := uint64(len(value))
 		if actualChunkSize != expectedChunkSize {
 			return nil, fmt.Errorf("actual chunk size %v != expected chunk size %v", actualChunkSize, expectedChunkSize)
@@ -873,7 +867,15 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteStaleNode(stal
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteStaleNodes(maxStaleSinceVersion jmt.Version, maxItems int) (done bool, err error) {
-	staleIndexNodeKeys, more, err := s.partialInclusiveRangeKeys(staleKeyWithStaleSinceVersionBase(0), staleKeyWithStaleSinceVersionBase(maxStaleSinceVersion), maxItems)
+	if maxStaleSinceVersion+1 < maxStaleSinceVersion {
+		return false, fmt.Errorf("maxStaleSinceVersion overflow")
+	}
+
+	staleIndexNodeKeys, more, err := s.partialExclusiveRangeKeys(
+		staleKeyWithStaleSinceVersionBase(0),
+		staleKeyWithStaleSinceVersionBase(maxStaleSinceVersion+1),
+		maxItems,
+	)
 	if err != nil {
 		return false, fmt.Errorf("failed to range: %w", err)
 	}
@@ -937,6 +939,29 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteBlobMeta(blob
 	return s.rawTransaction.Delete(blobMetaPrefixKey(blobDigest))
 }
 
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobQuotaStats(blobQuotaStatsType protocol.BlobQuotaStatsType, submitter commontypes.OracleID) (protocol.BlobQuotaStats, error) {
+	statsBytes, err := s.rawTransaction.Read(blobQuotaStatsPrefixKey(blobQuotaStatsType, submitter))
+	if err != nil {
+		return protocol.BlobQuotaStats{}, fmt.Errorf("error reading blob quota stats for %s/%d: %w", blobQuotaStatsType, submitter, err)
+	}
+	if statsBytes == nil {
+		return protocol.BlobQuotaStats{}, nil
+	}
+	blobQuotaStats, err := serialization.DeserializeBlobQuotaStats(statsBytes)
+	if err != nil {
+		return protocol.BlobQuotaStats{}, fmt.Errorf("error unmarshaling blob quota stats for %s/%d: %w", blobQuotaStatsType, submitter, err)
+	}
+	return blobQuotaStats, nil
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteBlobQuotaStats(blobQuotaStatsType protocol.BlobQuotaStatsType, submitter commontypes.OracleID, blobQuotaStats protocol.BlobQuotaStats) error {
+	statsBytes, err := serialization.SerializeBlobQuotaStats(blobQuotaStats)
+	if err != nil {
+		return fmt.Errorf("error marshaling blob quota stats for %s/%d: %w", blobQuotaStatsType, submitter, err)
+	}
+	return s.rawTransaction.Write(blobQuotaStatsPrefixKey(blobQuotaStatsType, submitter), statsBytes)
+}
+
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadStaleBlobIndex(maxStaleSinceSeqNr uint64, limit int) ([]protocol.StaleBlob, error) {
 	it := s.rawTransaction.Range(staleBlobIndexPrefixKey(protocol.StaleBlob{0, blobtypes.BlobDigest{}}), staleBlobIndexPrefixKey(protocol.StaleBlob{maxStaleSinceSeqNr + 1, blobtypes.BlobDigest{}}))
 	defer it.Close()
@@ -967,15 +992,96 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteStaleBlobInde
 	return s.rawTransaction.Delete(staleBlobIndexPrefixKey(staleBlob))
 }
 
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest) (*ocr3_1types.ReportsPlusPrecursor, error) {
+	reportsPlusPrecursor, err := s.rawTransaction.Read(reportsPlusPrecursorKey(seqNr, reportsPlusPrecursorDigest))
+	if err != nil {
+		return nil, fmt.Errorf("error reading reports plus precursor: %w", err)
+	}
+	if reportsPlusPrecursor == nil {
+		return nil, nil
+	}
+	return util.PointerTo(ocr3_1types.ReportsPlusPrecursor(reportsPlusPrecursor)), nil
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest, reportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor) error {
+	return s.rawTransaction.Write(reportsPlusPrecursorKey(seqNr, reportsPlusPrecursorDigest), reportsPlusPrecursor)
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteReportsPlusPrecursors(minSeqNrToKeep uint64, maxItems int) (done bool, err error) {
+	keys, more, err := s.partialExclusiveRangeKeys(reportsPlusPrecursorKey(0, protocol.ReportsPlusPrecursorDigest{}), reportsPlusPrecursorKey(minSeqNrToKeep, protocol.ReportsPlusPrecursorDigest{}), maxItems)
+	if err != nil {
+		return false, fmt.Errorf("failed to range: %w", err)
+	}
+	for _, key := range keys {
+		if err := s.rawTransaction.Delete(key); err != nil {
+			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+		}
+	}
+	return !more, nil
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest protocol.StateTransitionInputsDigest) (*protocol.StateTransitionBlock, error) {
+	unattestedStateTransitionBlockRaw, err := s.rawTransaction.Read(unattestedBlockKey(seqNr, stateTransitionInputsDigest))
+	if err != nil {
+		return nil, fmt.Errorf("error reading unattested state transition block: %w", err)
+	}
+	if unattestedStateTransitionBlockRaw == nil {
+		return nil, nil
+	}
+	ret, err := serialization.DeserializeStateTransitionBlock(unattestedStateTransitionBlockRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize unattested state transition block: %w", err)
+	}
+	return &ret, nil
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ExistsUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest protocol.StateTransitionInputsDigest) (bool, error) {
+	keys, _, err := s.partialInclusiveRangeKeys(
+		unattestedBlockKey(seqNr, stateTransitionInputsDigest),
+		unattestedBlockKey(seqNr, stateTransitionInputsDigest),
+		1,
+	)
+	return len(keys) == 1, err
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest protocol.StateTransitionInputsDigest, stb protocol.StateTransitionBlock) error {
+	unattestedStateTransitionBlockRaw, err := serialization.SerializeStateTransitionBlock(stb)
+	if err != nil {
+		return fmt.Errorf("failed to serialize unattested state transition block: %w", err)
+	}
+	return s.rawTransaction.Write(unattestedBlockKey(seqNr, stateTransitionInputsDigest), unattestedStateTransitionBlockRaw)
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteUnattestedStateTransitionBlocks(maxSeqNrToDelete uint64, maxItems int) (done bool, err error) {
+	if maxSeqNrToDelete+1 < maxSeqNrToDelete {
+		return false, fmt.Errorf("maxSeqNrToDelete overflow")
+	}
+
+	keys, more, err := s.partialExclusiveRangeKeys(
+		unattestedBlockKey(0, protocol.StateTransitionInputsDigest{}),
+		unattestedBlockKey(maxSeqNrToDelete+1, protocol.StateTransitionInputsDigest{}),
+		maxItems,
+	)
+	for _, key := range keys {
+		if err := s.rawTransaction.Delete(key); err != nil {
+			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+		}
+	}
+	return !more, err
+}
+
 const (
-	blockPrefix          = "B|"
-	pluginPrefix         = "P|"
-	blobChunkPrefix      = "BC|"
-	blobMetaPrefix       = "BM|"
-	staleBlobIndexPrefix = "BI|"
-	treeNodePrefix       = "TN|"
-	treeRootPrefix       = "TR|"
-	treeStaleNodePrefix  = "TSN|"
+	blockPrefix                = "B|"
+	pluginPrefix               = "P|"
+	blobChunkPrefix            = "BC|"
+	blobMetaPrefix             = "BM|"
+	blobQuotaStatsPrefix       = "BQS|"
+	staleBlobIndexPrefix       = "BI|"
+	treeNodePrefix             = "TN|"
+	treeRootPrefix             = "TR|"
+	treeStaleNodePrefix        = "TSN|"
+	reportsPlusPrecursorPrefix = "RP|"
+	unattestedBlockPrefix      = "UB|"
 
 	treeSyncStatusKey        = "TSS"
 	highestCommittedSeqNrKey = "HCS"
@@ -1027,6 +1133,11 @@ func blobChunkKey(blobDigest protocol.BlobDigest, chunkIndex uint64) []byte {
 
 func blobMetaPrefixKey(blobDigest protocol.BlobDigest) []byte {
 	return append([]byte(blobMetaPrefix), blobDigest[:]...)
+}
+
+func blobQuotaStatsPrefixKey(blobQuotaStatsType protocol.BlobQuotaStatsType, submitter commontypes.OracleID) []byte {
+	base := append([]byte(blobQuotaStatsPrefix), []byte(blobQuotaStatsType)...)
+	return append(base, []byte(fmt.Sprintf("%d", submitter))...)
 }
 
 // ───────────────────────── meta ────────────────────────────
@@ -1093,17 +1204,39 @@ func deserializeStaleBlobIndexKey(enc []byte) (protocol.StaleBlob, error) {
 	return protocol.StaleBlob{staleSinceSeqNr, blobDigest}, nil
 }
 
+// ────────────────────────── reports plus precursor ───────────────────────────
+
+func reportsPlusPrecursorKey(seqNr uint64, reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest) []byte {
+	base := []byte(reportsPlusPrecursorPrefix)
+	base = append(base, encodeBigEndianUint64(seqNr)...)
+	base = append(base, reportsPlusPrecursorDigest[:]...)
+	return base
+}
+
+// ────────────────────────── unattested blocks ───────────────────────────
+
+func unattestedBlockKey(seqNr uint64, stateTransitionInputsDigest protocol.StateTransitionInputsDigest) []byte {
+	base := []byte(unattestedBlockPrefix)
+	base = append(base, encodeBigEndianUint64(seqNr)...)
+	base = append(base, stateTransitionInputsDigest[:]...)
+	return base
+}
+
 type limitCheckWriteSet struct {
 	m                         map[string][]byte
+	keys                      int
+	keysLimit                 int
 	keysPlusValuesLength      int
 	keysPlusValuesLengthLimit int
 }
 
-func newLimitCheckWriteSet(keysPlusValuesLengthLimit int) *limitCheckWriteSet {
+func newLimitCheckWriteSet(limits ocr3_1types.ReportingPluginLimits) *limitCheckWriteSet {
 	return &limitCheckWriteSet{
 		make(map[string][]byte),
 		0,
-		keysPlusValuesLengthLimit,
+		limits.MaxKeyValueModifiedKeys,
+		0,
+		limits.MaxKeyValueModifiedKeysPlusValuesBytes,
 	}
 }
 
@@ -1113,11 +1246,22 @@ func (l *limitCheckWriteSet) modify(key []byte, value []byte) error {
 	if prevValue, ok := l.m[string(key)]; ok {
 		add = len(value)
 		sub = len(prevValue)
+
+		// key already in write set, no change to l.keys
 	} else {
 		if len(key)+len(value) < len(key) {
 			return fmt.Errorf("key + value length overflow")
 		}
 		add = len(key) + len(value)
+
+		// new key being added
+		if l.keys+1 < l.keys {
+			return fmt.Errorf("keys overflow")
+		}
+		if l.keys+1 > l.keysLimit {
+			return fmt.Errorf("keys %d exceed limit %d", l.keys+1, l.keysLimit)
+		}
+		l.keys++
 	}
 
 	keysPlusValuesLengthMinusExistingValue := l.keysPlusValuesLength - sub

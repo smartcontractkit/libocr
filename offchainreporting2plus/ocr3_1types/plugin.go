@@ -92,7 +92,7 @@ type KeyValueStateReadWriter interface {
 // expiration may occur for a number of reasons, including (1) shutdown of the
 // protocol instance, (2) the protocol's progression through epochs (whether
 // they're abandoned or completed successfully), and (3) timeout parameters. See
-// the documentation on ocr3config.PublicConfig for more information on how
+// the documentation on ocr3_1config.PublicConfig for more information on how
 // to configure timeouts.
 //
 // Many functions on the ReportingPlugin are marked as pure‡. This is because they may be
@@ -220,6 +220,8 @@ type ReportingPlugin[RI any] interface {
 	// it returns true for aos, it must also return true for any
 	// superset of aos.
 	//
+	// The AttributedObservations are guaranteed to be from distinct oracles.
+	//
 	// The keyValueStateReader gives read access to the replicated KeyValueState
 	// at the point after seqNr - 1 is committed. It must not be used outside the execution
 	// of this function. (It's okay to use it anywhere in the call tree rooted at this function
@@ -250,8 +252,9 @@ type ReportingPlugin[RI any] interface {
 	// across the lifetime of a protocol instance.
 	//
 	// You may assume that the provided list of attributed observations has been
-	// (1) validated by ValidateObservation on each element, and (2) checked
-	// by ObservationQuorum to have reached quorum.
+	// (1) validated by ValidateObservation on each element, (2) checked
+	// by ObservationQuorum to have reached quorum, and (3) all observations are
+	// from distinct oracles.
 	//
 	// The keyValueStateReadWriter gives read and write access to the replicated KeyValueState
 	// from the point after seqNr - 1 is committed. Writing to the keyValueStateReadWriter allows
@@ -347,18 +350,19 @@ type ReportingPlugin[RI any] interface {
 const (
 	mib = 1024 * 1024
 
-	MaxMaxQueryLength                = mib / 2
-	MaxMaxObservationLength          = mib / 2
-	MaxMaxReportsPlusPrecursorLength = 5 * mib
-	MaxMaxReportLength               = 5 * mib
-	MaxMaxReportCount                = 2000
+	MaxMaxQueryBytes                = mib / 2
+	MaxMaxObservationBytes          = mib / 2
+	MaxMaxReportsPlusPrecursorBytes = 5 * mib
+	MaxMaxReportBytes               = 5 * mib
+	MaxMaxReportCount               = 2000
 
-	MaxMaxKeyValueKeyLength   = 1 * mib
-	MaxMaxKeyValueValueLength = 2 * mib
+	MaxMaxKeyValueKeyBytes   = 1 * mib
+	MaxMaxKeyValueValueBytes = 2 * mib
 
-	MaxMaxKeyValueModifiedKeysPlusValuesLength = 10 * mib
+	MaxMaxKeyValueModifiedKeys                = 10_000
+	MaxMaxKeyValueModifiedKeysPlusValuesBytes = 10 * mib
 
-	MaxMaxBlobPayloadLength = 5 * mib
+	MaxMaxBlobPayloadBytes = 5 * mib
 )
 
 // Limits for data returned by the ReportingPlugin.
@@ -367,26 +371,38 @@ const (
 // careful when changing these values, they could lead to different versions
 // of a ReportingPlugin being unable to communicate with each other.
 type ReportingPluginLimits struct {
-	MaxQueryLength                int
-	MaxObservationLength          int
-	MaxReportsPlusPrecursorLength int
-	MaxReportLength               int
-	MaxReportCount                int
+	MaxQueryBytes                int
+	MaxObservationBytes          int
+	MaxReportsPlusPrecursorBytes int
+	MaxReportBytes               int
+	MaxReportCount               int
 
-	// This limit concerns modifications to key-values inside the
+	// These limits concern modifications to key-values inside the
 	// StateTransition method. Write(k, v) and Delete(k) count as modifications.
 	// A modification that resets the value of a key to its original value at
 	// the start of StateTransition will still count towards the limit.
-	MaxKeyValueModifiedKeysPlusValuesLength int
 
-	MaxBlobPayloadLength int
+	MaxKeyValueModifiedKeys                int
+	MaxKeyValueModifiedKeysPlusValuesBytes int
 
-	// Mandatory blob rate limits will be introduced in a future release.
+	MaxBlobPayloadBytes                             int
+	MaxPerOracleUnexpiredBlobCumulativePayloadBytes int
+	MaxPerOracleUnexpiredBlobCount                  int
 }
 
-type ReportingPluginInfo struct {
+//go-sumtype:decl ReportingPluginInfo
+
+type ReportingPluginInfo interface {
+	isReportingPluginInfo()
+}
+
+type ReportingPluginInfo1 struct {
 	// Used for debugging purposes.
 	Name string
 
 	Limits ReportingPluginLimits
 }
+
+var _ ReportingPluginInfo = ReportingPluginInfo1{}
+
+func (ReportingPluginInfo1) isReportingPluginInfo() {}

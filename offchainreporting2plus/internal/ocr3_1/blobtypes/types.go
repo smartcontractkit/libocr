@@ -9,6 +9,7 @@ import (
 	"hash"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/mt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -40,6 +41,28 @@ func MakeBlobChunkDigest(chunk []byte) BlobChunkDigest {
 	return result
 }
 
+type BlobChunkDigestsRoot = mt.Digest
+
+func chunkDigestsToLeafPreimages(chunkDigests []BlobChunkDigest) [][]byte {
+	chunkDigestsLeafPreimages := make([][]byte, 0, len(chunkDigests))
+	for _, chunkDigest := range chunkDigests {
+		chunkDigestsLeafPreimages = append(chunkDigestsLeafPreimages, chunkDigest[:])
+	}
+	return chunkDigestsLeafPreimages
+}
+
+func MakeBlobChunkDigestsRoot(chunkDigests []BlobChunkDigest) BlobChunkDigestsRoot {
+	return mt.Root(chunkDigestsToLeafPreimages(chunkDigests))
+}
+
+func ProveBlobChunkDigest(chunkDigests []BlobChunkDigest, index uint64) ([]mt.Digest, error) {
+	return mt.Prove(chunkDigestsToLeafPreimages(chunkDigests), index)
+}
+
+func VerifyBlobChunkDigest(chunkDigestsRoot BlobChunkDigestsRoot, index uint64, chunkDigest BlobChunkDigest, proof []mt.Digest) error {
+	return mt.Verify(chunkDigestsRoot, index, chunkDigest[:], proof)
+}
+
 type BlobDigest [32]byte
 
 var _ fmt.Stringer = BlobDigest{}
@@ -50,7 +73,7 @@ func (bd BlobDigest) String() string {
 
 func MakeBlobDigest(
 	configDigest types.ConfigDigest,
-	chunkDigests []BlobChunkDigest,
+	chunkDigestsRoot mt.Digest,
 	payloadLength uint64,
 	expirySeqNr uint64,
 	submitter commontypes.OracleID,
@@ -59,11 +82,7 @@ func MakeBlobDigest(
 
 	_, _ = h.Write(configDigest[:])
 
-	_ = binary.Write(h, binary.BigEndian, uint64(len(chunkDigests)))
-	for _, chunkDigest := range chunkDigests {
-
-		_, _ = h.Write(chunkDigest[:])
-	}
+	_, _ = h.Write(chunkDigestsRoot[:])
 
 	_ = binary.Write(h, binary.BigEndian, payloadLength)
 
@@ -123,10 +142,10 @@ type AttributedBlobAvailabilitySignature struct {
 }
 
 type LightCertifiedBlob struct {
-	ChunkDigests  []BlobChunkDigest
-	PayloadLength uint64
-	ExpirySeqNr   uint64
-	Submitter     commontypes.OracleID
+	ChunkDigestsRoot mt.Digest
+	PayloadLength    uint64
+	ExpirySeqNr      uint64
+	Submitter        commontypes.OracleID
 
 	AttributedBlobAvailabilitySignatures []AttributedBlobAvailabilitySignature
 }
@@ -134,16 +153,16 @@ type LightCertifiedBlob struct {
 func (lc *LightCertifiedBlob) Verify(
 	configDigest types.ConfigDigest,
 	oracleIdentities []config.OracleIdentity,
-	fPlusOneSize int,
 	byzQuorumSize int,
+	n int,
 ) error {
-	if !(fPlusOneSize <= len(lc.AttributedBlobAvailabilitySignatures) && len(lc.AttributedBlobAvailabilitySignatures) <= byzQuorumSize) {
-		return fmt.Errorf("wrong number of signatures, expected in range [%d, %d] for quorum but got %d", fPlusOneSize, byzQuorumSize, len(lc.AttributedBlobAvailabilitySignatures))
+	if !(byzQuorumSize <= len(lc.AttributedBlobAvailabilitySignatures) && len(lc.AttributedBlobAvailabilitySignatures) <= n) {
+		return fmt.Errorf("wrong number of signatures, expected in range [%d, %d] for quorum but got %d", byzQuorumSize, n, len(lc.AttributedBlobAvailabilitySignatures))
 	}
 
 	blobDigest := MakeBlobDigest(
 		configDigest,
-		lc.ChunkDigests,
+		lc.ChunkDigestsRoot,
 		lc.PayloadLength,
 		lc.ExpirySeqNr,
 		lc.Submitter,

@@ -9,15 +9,10 @@ import (
 	"github.com/google/btree"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/subprocesses"
-)
-
-const (
-	// An oracle sends a STATE-SYNC-SUMMARY message every DeltaStateSyncHeartbeat
-	DeltaStateSyncHeartbeat time.Duration = 1 * time.Second
 )
 
 func RunStateSync[RI any](
@@ -26,7 +21,7 @@ func RunStateSync[RI any](
 	chNetToStateSync <-chan MessageToStateSyncWithSender[RI],
 	chOutcomeGenerationToStateSync <-chan EventToStateSync[RI],
 	chReportAttestationToStateSync <-chan EventToStateSync[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
 	kvDb KeyValueDatabase,
@@ -75,7 +70,7 @@ type stateSyncState[RI any] struct {
 	chNotificationToStateDestroyIfNeeded chan<- struct{}
 	chOutcomeGenerationToStateSync       <-chan EventToStateSync[RI]
 	chReportAttestationToStateSync       <-chan EventToStateSync[RI]
-	config                               ocr3config.SharedConfig
+	config                               ocr3_1config.SharedConfig
 	database                             Database
 	id                                   commontypes.OracleID
 	kvDb                                 KeyValueDatabase
@@ -225,7 +220,7 @@ func (stasy *stateSyncState[RI]) refreshStateSyncState() (ok bool) {
 
 func (stasy *stateSyncState[RI]) eventTSendSummaryTimeout() {
 	defer func() {
-		stasy.tSendSummary = time.After(DeltaStateSyncHeartbeat)
+		stasy.tSendSummary = time.After(stasy.config.GetDeltaStateSyncSummaryInterval())
 	}()
 	if !stasy.refreshStateSyncState() {
 		return
@@ -260,8 +255,9 @@ func (stasy *stateSyncState[RI]) messageStateSyncSummary(msg MessageStateSyncSum
 	stasy.tryToKickStartSync()
 }
 
+// max fresh summary age
 func (stasy *stateSyncState[RI]) summaryFreshnessCutoff() time.Duration {
-	return stasy.config.DeltaProgress / 4
+	return 4 * stasy.config.GetDeltaStateSyncSummaryInterval()
 }
 
 type honestOraclePruneStatus int
@@ -352,12 +348,12 @@ func (stasy *stateSyncState[RI]) decideBlockSyncOrTreeSyncBasedOnSummariesAndHig
 }
 
 func (stasy *stateSyncState[RI]) pickSomeTreeSyncTarget() (uint64, bool) {
-	if snapshotSeqNr(stasy.highestHeardSeqNr) == stasy.highestHeardSeqNr {
+	if snapshotSeqNr(stasy.highestHeardSeqNr, stasy.config.PublicConfig) == stasy.highestHeardSeqNr {
 		return stasy.highestHeardSeqNr, true
 	} else {
-		snapshotIndex := snapshotIndexFromSeqNr(stasy.highestHeardSeqNr)
+		snapshotIndex := snapshotIndexFromSeqNr(stasy.highestHeardSeqNr, stasy.config.PublicConfig)
 		if snapshotIndex > 0 {
-			return maxSeqNrWithSnapshotIndex(snapshotIndex - 1), true
+			return maxSeqNrWithSnapshotIndex(snapshotIndex-1, stasy.config.PublicConfig), true
 		} else {
 			return 0, false
 		}
@@ -447,7 +443,7 @@ func newStateSyncState[RI any](
 	chNotificationToStateDestroyIfNeeded chan<- struct{},
 	chOutcomeGenerationToStateSync <-chan EventToStateSync[RI],
 	chReportAttestationToStateSync <-chan EventToStateSync[RI],
-	config ocr3config.SharedConfig,
+	config ocr3_1config.SharedConfig,
 	database Database,
 	id commontypes.OracleID,
 	kvDb KeyValueDatabase,
@@ -500,19 +496,19 @@ func newStateSyncState[RI any](
 			PendingKeyDigestRanges{},
 		},
 		syncModeUnknown,
-		time.After(DeltaStateSyncHeartbeat),
+		time.After(config.GetDeltaStateSyncSummaryInterval()),
 	}
 
 	stasy.blockSyncState.blockRequesterGadget = requestergadget.NewRequesterGadget[seqNrRange](
 		config.N(),
-		DeltaMinBlockSyncRequest,
+		config.GetDeltaBlockSyncMinRequestToSameOracleInterval(),
 		stasy.sendBlockSyncRequest,
 		stasy.getPendingBlocksToRequest,
 		stasy.getBlockSyncSeeders,
 	)
 	stasy.treeSyncState.treeChunkRequesterGadget = requestergadget.NewRequesterGadget[treeSyncChunkRequestItem](
 		config.N(),
-		DeltaMinTreeSyncRequest,
+		config.GetDeltaTreeSyncMinRequestToSameOracleInterval(),
 		stasy.sendTreeSyncChunkRequest,
 		stasy.getPendingTreeSyncChunksToRequest,
 		stasy.getTreeSyncChunkSeeders,
