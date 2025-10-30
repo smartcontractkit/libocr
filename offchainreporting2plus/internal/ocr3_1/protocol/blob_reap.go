@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	blobReapInterval                  = 10 * time.Second
+	blobReapInterval                  = 3 * time.Second
 	maxBlobsToReapInSingleTransaction = 100
 )
 

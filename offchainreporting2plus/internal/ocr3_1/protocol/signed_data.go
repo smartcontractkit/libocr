@@ -132,17 +132,17 @@ func MakeStateTransitionInputsDigest(
 	return result
 }
 
-type StateTransitionOutputDigest [32]byte
+type StateWriteSetDigest [32]byte
 
-func MakeStateTransitionOutputDigest(configDigest types.ConfigDigest, seqNr uint64, output []KeyValuePairWithDeletions) StateTransitionOutputDigest {
+func MakeStateWriteSetDigest(configDigest types.ConfigDigest, seqNr uint64, writeSet []KeyValuePairWithDeletions) StateWriteSetDigest {
 	h := sha256.New()
 
 	_, _ = h.Write(configDigest[:])
 
 	_ = binary.Write(h, binary.BigEndian, seqNr)
 
-	_ = binary.Write(h, binary.BigEndian, uint64(len(output)))
-	for _, o := range output {
+	_ = binary.Write(h, binary.BigEndian, uint64(len(writeSet)))
+	for _, o := range writeSet {
 
 		_ = binary.Write(h, binary.BigEndian, uint64(len(o.Key)))
 		_, _ = h.Write(o.Key)
@@ -151,7 +151,7 @@ func MakeStateTransitionOutputDigest(configDigest types.ConfigDigest, seqNr uint
 		_, _ = h.Write(o.Value)
 	}
 
-	var result StateTransitionOutputDigest
+	var result StateWriteSetDigest
 	h.Sum(result[:0])
 	return result
 }
@@ -179,21 +179,23 @@ type PrepareSignature []byte
 
 func MakePrepareSignature(
 	ogid OutcomeGenerationID,
+	prevHistoryDigest HistoryDigest,
 	seqNr uint64,
 	inputsDigest StateTransitionInputsDigest,
-	outputDigest StateTransitionOutputDigest,
+	writeSetDigest StateWriteSetDigest,
 	rootDigest StateRootDigest,
 	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
 	signer func(msg []byte) ([]byte, error),
 ) (PrepareSignature, error) {
-	return signer(prepareSignatureMsg(ogid, seqNr, inputsDigest, outputDigest, rootDigest, reportsPlusPrecursorDigest))
+	return signer(prepareSignatureMsg(ogid, prevHistoryDigest, seqNr, inputsDigest, writeSetDigest, rootDigest, reportsPlusPrecursorDigest))
 }
 
 func (sig PrepareSignature) Verify(
 	ogid OutcomeGenerationID,
+	prevHistoryDigest HistoryDigest,
 	seqNr uint64,
 	inputsDigest StateTransitionInputsDigest,
-	outputDigest StateTransitionOutputDigest,
+	writeSetDigest StateWriteSetDigest,
 	rootDigest StateRootDigest,
 	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
 	publicKey types.OffchainPublicKey,
@@ -203,8 +205,8 @@ func (sig PrepareSignature) Verify(
 	if len(pk) != ed25519.PublicKeySize {
 		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
 	}
-	msg := prepareSignatureMsg(ogid, seqNr, inputsDigest, outputDigest, rootDigest, reportsPlusPrecursorDigest)
-	ok := ed25519.Verify(pk, prepareSignatureMsg(ogid, seqNr, inputsDigest, outputDigest, rootDigest, reportsPlusPrecursorDigest), sig)
+	msg := prepareSignatureMsg(ogid, prevHistoryDigest, seqNr, inputsDigest, writeSetDigest, rootDigest, reportsPlusPrecursorDigest)
+	ok := ed25519.Verify(pk, msg, sig)
 	if !ok {
 		// Other less common causes include leader equivocation or actually invalid signatures.
 		return fmt.Errorf("PrepareSignature failed to verify. This is commonly caused by non-determinism in the ReportingPlugin msg: %x, sig: %x", msg, sig)
@@ -215,9 +217,10 @@ func (sig PrepareSignature) Verify(
 
 func prepareSignatureMsg(
 	ogid OutcomeGenerationID,
+	prevHistoryDigest HistoryDigest,
 	seqNr uint64,
 	inputsDigest StateTransitionInputsDigest,
-	outputDigest StateTransitionOutputDigest,
+	writeSetDigest StateWriteSetDigest,
 	rootDigest StateRootDigest,
 	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
 ) []byte {
@@ -228,15 +231,16 @@ func prepareSignatureMsg(
 	_, _ = h.Write(ogid.ConfigDigest[:])
 	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
-	_ = binary.Write(h, binary.BigEndian, seqNr)
-
-	_, _ = h.Write(inputsDigest[:])
-
-	_, _ = h.Write(outputDigest[:])
-
-	_, _ = h.Write(rootDigest[:])
-
-	_, _ = h.Write(reportsPlusPrecursorDigest[:])
+	historyDigest := MakeHistoryDigest(
+		ogid.ConfigDigest,
+		prevHistoryDigest,
+		seqNr,
+		inputsDigest,
+		writeSetDigest,
+		rootDigest,
+		reportsPlusPrecursorDigest,
+	)
+	_, _ = h.Write(historyDigest[:])
 
 	return ocr3_1DomainSeparatedSum(h)
 }
@@ -252,21 +256,23 @@ type CommitSignature []byte
 
 func MakeCommitSignature(
 	ogid OutcomeGenerationID,
+	prevHistoryDigest HistoryDigest,
 	seqNr uint64,
 	inputsDigest StateTransitionInputsDigest,
-	outputDigest StateTransitionOutputDigest,
+	writeSetDigest StateWriteSetDigest,
 	rootDigest StateRootDigest,
 	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
 	signer func(msg []byte) ([]byte, error),
 ) (CommitSignature, error) {
-	return signer(commitSignatureMsg(ogid, seqNr, inputsDigest, outputDigest, rootDigest, reportsPlusPrecursorDigest))
+	return signer(commitSignatureMsg(ogid, prevHistoryDigest, seqNr, inputsDigest, writeSetDigest, rootDigest, reportsPlusPrecursorDigest))
 }
 
 func (sig CommitSignature) Verify(
 	ogid OutcomeGenerationID,
+	prevHistoryDigest HistoryDigest,
 	seqNr uint64,
 	inputsDigest StateTransitionInputsDigest,
-	outputDigest StateTransitionOutputDigest,
+	writeSetDigest StateWriteSetDigest,
 	rootDigest StateRootDigest,
 	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
 	publicKey types.OffchainPublicKey,
@@ -277,7 +283,7 @@ func (sig CommitSignature) Verify(
 		return fmt.Errorf("ed25519 public key size mismatch, expected %v but got %v", ed25519.PublicKeySize, len(pk))
 	}
 
-	ok := ed25519.Verify(pk, commitSignatureMsg(ogid, seqNr, inputsDigest, outputDigest, rootDigest, reportsPlusPrecursorDigest), sig)
+	ok := ed25519.Verify(pk, commitSignatureMsg(ogid, prevHistoryDigest, seqNr, inputsDigest, writeSetDigest, rootDigest, reportsPlusPrecursorDigest), sig)
 	if !ok {
 		return fmt.Errorf("CommitSignature failed to verify")
 	}
@@ -285,11 +291,48 @@ func (sig CommitSignature) Verify(
 	return nil
 }
 
-func commitSignatureMsg(
-	ogid OutcomeGenerationID,
+type HistoryDigest [32]byte
+
+const historyDigestDomainSeparator = "ocr3.1/HistoryDigest/"
+
+func MakeHistoryDigest(
+	configDigest types.ConfigDigest,
+	prevHistoryDigest HistoryDigest,
 	seqNr uint64,
 	inputsDigest StateTransitionInputsDigest,
-	outputDigest StateTransitionOutputDigest,
+	writeSetDigest StateWriteSetDigest,
+	rootDigest StateRootDigest,
+	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
+) HistoryDigest {
+	h := sha256.New()
+
+	_, _ = h.Write([]byte(historyDigestDomainSeparator))
+
+	_, _ = h.Write(configDigest[:])
+
+	_, _ = h.Write(prevHistoryDigest[:])
+
+	_ = binary.Write(h, binary.BigEndian, seqNr)
+
+	_, _ = h.Write(inputsDigest[:])
+
+	_, _ = h.Write(writeSetDigest[:])
+
+	_, _ = h.Write(rootDigest[:])
+
+	_, _ = h.Write(reportsPlusPrecursorDigest[:])
+
+	var result HistoryDigest
+	h.Sum(result[:0])
+	return result
+}
+
+func commitSignatureMsg(
+	ogid OutcomeGenerationID,
+	prevHistoryDigest HistoryDigest,
+	seqNr uint64,
+	inputsDigest StateTransitionInputsDigest,
+	writeSetDigest StateWriteSetDigest,
 	rootDigest StateRootDigest,
 	reportsPlusPrecursorDigest ReportsPlusPrecursorDigest,
 ) []byte {
@@ -300,15 +343,16 @@ func commitSignatureMsg(
 	_, _ = h.Write(ogid.ConfigDigest[:])
 	_ = binary.Write(h, binary.BigEndian, ogid.Epoch)
 
-	_ = binary.Write(h, binary.BigEndian, seqNr)
-
-	_, _ = h.Write(inputsDigest[:])
-
-	_, _ = h.Write(outputDigest[:])
-
-	_, _ = h.Write(rootDigest[:])
-
-	_, _ = h.Write(reportsPlusPrecursorDigest[:])
+	historyDigest := MakeHistoryDigest(
+		ogid.ConfigDigest,
+		prevHistoryDigest,
+		seqNr,
+		inputsDigest,
+		writeSetDigest,
+		rootDigest,
+		reportsPlusPrecursorDigest,
+	)
+	_, _ = h.Write(historyDigest[:])
 
 	return ocr3_1DomainSeparatedSum(h)
 }
@@ -463,13 +507,14 @@ type CertifiedPrepareOrCommit interface {
 var _ CertifiedPrepareOrCommit = &CertifiedPrepare{}
 
 type CertifiedPrepare struct {
-	PrepareEpoch                 uint64
-	PrepareSeqNr                 uint64
-	StateTransitionInputsDigest  StateTransitionInputsDigest
-	StateTransitionOutputsDigest StateTransitionOutputDigest
-	StateRootDigest              StateRootDigest
-	ReportsPlusPrecursorDigest   ReportsPlusPrecursorDigest
-	PrepareQuorumCertificate     []AttributedPrepareSignature
+	PrevHistoryDigest           HistoryDigest
+	PrepareEpoch                uint64
+	PrepareSeqNr                uint64
+	StateTransitionInputsDigest StateTransitionInputsDigest
+	StateWriteSetDigest         StateWriteSetDigest
+	StateRootDigest             StateRootDigest
+	ReportsPlusPrecursorDigest  ReportsPlusPrecursorDigest
+	PrepareQuorumCertificate    []AttributedPrepareSignature
 }
 
 func (hc *CertifiedPrepare) isCertifiedPrepareOrCommit() {}
@@ -518,7 +563,8 @@ func (hc *CertifiedPrepare) Verify(
 			return fmt.Errorf("signer out of bounds: %v", aps.Signer)
 		}
 		if err := aps.Signature.Verify(
-			ogid, hc.SeqNr(), hc.StateTransitionInputsDigest, hc.StateTransitionOutputsDigest, hc.StateRootDigest,
+			ogid, hc.PrevHistoryDigest,
+			hc.SeqNr(), hc.StateTransitionInputsDigest, hc.StateWriteSetDigest, hc.StateRootDigest,
 			hc.ReportsPlusPrecursorDigest, oracleIdentities[aps.Signer].OffchainPublicKey); err != nil {
 			return fmt.Errorf("%v-th signature by %v-th oracle with pubkey %x does not verify: %w", i, aps.Signer, oracleIdentities[aps.Signer].OffchainPublicKey, err)
 		}
@@ -541,13 +587,14 @@ var _ CertifiedPrepareOrCommit = &CertifiedCommit{}
 
 // The empty CertifiedCommit{} is the genesis value
 type CertifiedCommit struct {
-	CommitEpoch                  uint64
-	CommitSeqNr                  uint64
-	StateTransitionInputsDigest  StateTransitionInputsDigest
-	StateTransitionOutputsDigest StateTransitionOutputDigest
-	StateRootDigest              StateRootDigest
-	ReportsPlusPrecursorDigest   ReportsPlusPrecursorDigest
-	CommitQuorumCertificate      []AttributedCommitSignature
+	PrevHistoryDigest           HistoryDigest
+	CommitEpoch                 uint64
+	CommitSeqNr                 uint64
+	StateTransitionInputsDigest StateTransitionInputsDigest
+	StateWriteSetDigest         StateWriteSetDigest
+	StateRootDigest             StateRootDigest
+	ReportsPlusPrecursorDigest  ReportsPlusPrecursorDigest
+	CommitQuorumCertificate     []AttributedCommitSignature
 }
 
 func (hc *CertifiedCommit) isCertifiedPrepareOrCommit() {}
@@ -571,10 +618,11 @@ func (hc *CertifiedCommit) Timestamp() HighestCertifiedTimestamp {
 func (hc *CertifiedCommit) IsGenesis() bool {
 	// We intentionally don't just compare with CertifiedCommit{}, because after
 	// protobuf deserialization, we might end up with hc.Outcome = []byte{}
-	return hc.CommitEpoch == uint64(0) &&
+	return hc.PrevHistoryDigest == HistoryDigest{} &&
+		hc.CommitEpoch == uint64(0) &&
 		hc.CommitSeqNr == uint64(0) &&
 		hc.StateTransitionInputsDigest == StateTransitionInputsDigest{} &&
-		hc.StateTransitionOutputsDigest == StateTransitionOutputDigest{} &&
+		hc.StateWriteSetDigest == StateWriteSetDigest{} &&
 		hc.StateRootDigest == StateRootDigest{} &&
 		hc.ReportsPlusPrecursorDigest == ReportsPlusPrecursorDigest{} &&
 		len(hc.CommitQuorumCertificate) == 0
@@ -607,10 +655,12 @@ func (hc *CertifiedCommit) Verify(
 		if !(0 <= int(acs.Signer) && int(acs.Signer) < len(oracleIdentities)) {
 			return fmt.Errorf("signer out of bounds: %v", acs.Signer)
 		}
-		if err := acs.Signature.Verify(ogid,
+		if err := acs.Signature.Verify(
+			ogid,
+			hc.PrevHistoryDigest,
 			hc.SeqNr(),
 			hc.StateTransitionInputsDigest,
-			hc.StateTransitionOutputsDigest,
+			hc.StateWriteSetDigest,
 			hc.StateRootDigest,
 			hc.ReportsPlusPrecursorDigest,
 			oracleIdentities[acs.Signer].OffchainPublicKey); err != nil {
@@ -636,11 +686,24 @@ func (hc *CertifiedCommit) CheckSize(n int, f int, limits ocr3_1types.ReportingP
 	return true
 }
 
+func (hc *CertifiedCommit) HistoryDigest(configDigest types.ConfigDigest) HistoryDigest {
+	return MakeHistoryDigest(
+		configDigest,
+		hc.PrevHistoryDigest,
+		hc.SeqNr(),
+		hc.StateTransitionInputsDigest,
+		hc.StateWriteSetDigest,
+		hc.StateRootDigest,
+		hc.ReportsPlusPrecursorDigest,
+	)
+}
+
 type StateTransitionBlock struct {
+	PrevHistoryDigest           HistoryDigest
 	Epoch                       uint64
 	BlockSeqNr                  uint64
 	StateTransitionInputsDigest StateTransitionInputsDigest
-	StateTransitionOutputs      StateTransitionOutputs
+	StateWriteSet               StateWriteSet
 	StateRootDigest             StateRootDigest
 	ReportsPlusPrecursorDigest  ReportsPlusPrecursorDigest
 }
@@ -674,7 +737,7 @@ func checkWriteSetSize(writeSet []KeyValuePairWithDeletions, limits ocr3_1types.
 }
 
 func (stb *StateTransitionBlock) CheckSize(limits ocr3_1types.ReportingPluginLimits) bool {
-	if !checkWriteSetSize(stb.StateTransitionOutputs.WriteSet, limits) {
+	if !checkWriteSetSize(stb.StateWriteSet.Entries, limits) {
 		return false
 	}
 	return true
@@ -708,16 +771,17 @@ func (astb *AttestedStateTransitionBlock) Verify(
 
 func (astb *AttestedStateTransitionBlock) ToCertifiedCommit(configDigest types.ConfigDigest) CertifiedCommit {
 	stb := astb.StateTransitionBlock
-	stateTransitionOutputsDigest := MakeStateTransitionOutputDigest(
+	stateWriteSetDigest := MakeStateWriteSetDigest(
 		configDigest,
 		stb.SeqNr(),
-		stb.StateTransitionOutputs.WriteSet,
+		stb.StateWriteSet.Entries,
 	)
 	return CertifiedCommit{
+		stb.PrevHistoryDigest,
 		stb.Epoch,
 		stb.SeqNr(),
 		stb.StateTransitionInputsDigest,
-		stateTransitionOutputsDigest,
+		stateWriteSetDigest,
 		stb.StateRootDigest,
 		stb.ReportsPlusPrecursorDigest,
 		astb.AttributedCommitSignatures,

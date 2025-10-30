@@ -96,7 +96,7 @@ func replayVerifiedBlock(logger loghelper.LoggerWithContext, kvReadWriteTxn KeyV
 
 	logger.Trace("replaying state transition block", nil)
 
-	stateRootDigest, err := kvReadWriteTxn.ApplyWriteSet(stb.StateTransitionOutputs.WriteSet)
+	stateRootDigest, err := kvReadWriteTxn.ApplyWriteSet(stb.StateWriteSet.Entries)
 	if err != nil {
 		return fmt.Errorf("failed to apply write set for seq nr %d: %w", seqNr, err)
 	}

@@ -1815,9 +1815,9 @@ func (bex *blobExchangeState[RI]) verifyCert(cert *LightCertifiedBlob) error {
 }
 
 func staleBlob(expirySeqNr uint64, blobDigest BlobDigest) StaleBlob {
-	return StaleBlob{expirySeqNr + 1, blobDigest}
+	return StaleBlob{expirySeqNr, blobDigest}
 }
 
 func hasBlobExpired(expirySeqNr uint64, committedSeqNr uint64) bool {
-	return expirySeqNr < committedSeqNr
+	return expirySeqNr <= committedSeqNr
 }

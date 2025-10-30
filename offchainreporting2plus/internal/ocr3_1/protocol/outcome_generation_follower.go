@@ -128,8 +128,9 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 		}
 
 		outgen.followerState.stateTransitionInfo = stateTransitionInfoDigests{
+			prepareQc.PrevHistoryDigest,
 			prepareQc.StateTransitionInputsDigest,
-			prepareQc.StateTransitionOutputsDigest,
+			prepareQc.StateWriteSetDigest,
 			prepareQc.StateRootDigest,
 			prepareQc.ReportsPlusPrecursorDigest,
 		}
@@ -250,6 +251,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 			outgen.sharedState.l,
 		}
 		kvReadTxn, err := outgen.kvDb.NewReadTransaction(roundCtx.SeqNr)
+		requestHandle := msg.RequestHandle
 
 		if err != nil {
 			outgen.logger.Warn("failed to create new transaction, aborting tryProcessRoundStartPool", commontypes.LogFields{
@@ -259,7 +261,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessRoundStartPool() {
 			return
 		}
 		outgen.subs.Go(func() {
-			outgen.backgroundObservation(ctx, logger, roundCtx, aq, kvReadTxn)
+			outgen.backgroundObservation(ctx, logger, roundCtx, aq, kvReadTxn, requestHandle)
 		})
 	}
 }
@@ -270,6 +272,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 	roundCtx RoundContext,
 	aq types.AttributedQuery,
 	kvReadTxn KeyValueDatabaseReadTransaction,
+	requestHandle types.RequestHandle,
 ) {
 	observation, ok := callPluginFromOutcomeGenerationBackground[types.Observation](
 		ctx,
@@ -298,6 +301,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundObservation(
 	case outgen.chLocalEvent <- EventComputedObservation[RI]{
 		roundCtx.Epoch,
 		roundCtx.SeqNr,
+		requestHandle,
 		aq,
 		observation,
 	}:
@@ -346,6 +350,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedObservation(ev EventCompu
 		"seqNr": outgen.sharedState.seqNr,
 	})
 	outgen.netSender.SendTo(MessageObservation[RI]{
+		ev.RequestHandle,
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		so,
@@ -438,6 +443,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 		ctx := outgen.epochCtx
 		logger := outgen.logger
 		roundCtx := outgen.RoundCtx(outgen.sharedState.seqNr)
+		prevHistoryDigest := outgen.sharedState.committedHistoryDigest
 		ogid := outgen.ID()
 		aq := types.AttributedQuery{
 			*outgen.followerState.query,
@@ -450,6 +456,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 			outgen.backgroundProposalStateTransition(
 				ctx,
 				logger,
+				prevHistoryDigest,
 				ogid,
 				roundCtx,
 				aq,
@@ -463,6 +470,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessProposalPool() {
 func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
+	prevHistoryDigest HistoryDigest,
 	ogid OutcomeGenerationID,
 	roundCtx RoundContext,
 	aq types.AttributedQuery,
@@ -528,10 +536,10 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 		return
 	}
 
-	stateTransitionOutputDigest := MakeStateTransitionOutputDigest(outgen.config.ConfigDigest, roundCtx.SeqNr, writeSet)
+	stateWriteSetDigest := MakeStateWriteSetDigest(outgen.config.ConfigDigest, roundCtx.SeqNr, writeSet)
 	reportsPlusPrecursorDigest := MakeReportsPlusPrecursorDigest(outgen.config.ConfigDigest, roundCtx.SeqNr, reportsPlusPrecursor)
 
-	stateTransitionOutputs := StateTransitionOutputs{writeSet}
+	stateWriteSet := StateWriteSet{writeSet}
 
 	select {
 	case outgen.chLocalEvent <- EventComputedProposalStateTransition[RI]{
@@ -540,12 +548,13 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 		kvReadWriteTxn,
 		stateTransitionInfoDigestsAndPreimages{
 			stateTransitionInfoDigests{
+				prevHistoryDigest,
 				stateTransitionInputsDigest,
-				stateTransitionOutputDigest,
+				stateWriteSetDigest,
 				stateRootDigest,
 				reportsPlusPrecursorDigest,
 			},
-			stateTransitionOutputs,
+			stateWriteSet,
 			reportsPlusPrecursor,
 		},
 	}:
@@ -589,10 +598,11 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(e
 
 	err := outgen.persistUnattestedStateTransitionBlockAndReportsPlusPrecursor(
 		StateTransitionBlock{
+			stidap.PrevHistoryDigest,
 			ev.Epoch,
 			ev.SeqNr,
 			stidap.InputsDigest,
-			stidap.Outputs,
+			stidap.WriteSet,
 			stidap.StateRootDigest,
 			stidap.ReportsPlusPrecursorDigest,
 		},
@@ -618,9 +628,10 @@ func (outgen *outcomeGenerationState[RI]) broadcastMessagePrepare() {
 	stid := outgen.followerState.stateTransitionInfo.digests()
 	prepareSignature, err := MakePrepareSignature(
 		ogid,
+		stid.PrevHistoryDigest,
 		seqNr,
 		stid.InputsDigest,
-		stid.OutputDigest,
+		stid.WriteSetDigest,
 		stid.StateRootDigest,
 		stid.ReportsPlusPrecursorDigest,
 		outgen.offchainKeyring.OffchainSign,
@@ -705,9 +716,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 		}
 		err := preparePoolEntry.Item.Verify(
 			outgen.ID(),
+			stid.PrevHistoryDigest,
 			outgen.sharedState.seqNr,
 			stid.InputsDigest,
-			stid.OutputDigest,
+			stid.WriteSetDigest,
 			stid.StateRootDigest,
 			stid.ReportsPlusPrecursorDigest,
 			outgen.config.OracleIdentities[sender].OffchainPublicKey,
@@ -742,9 +754,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 
 	commitSignature, err := MakeCommitSignature(
 		outgen.ID(),
+		stid.PrevHistoryDigest,
 		outgen.sharedState.seqNr,
 		stid.InputsDigest,
-		stid.OutputDigest,
+		stid.WriteSetDigest,
 		stid.StateRootDigest,
 		stid.ReportsPlusPrecursorDigest,
 		outgen.offchainKeyring.OffchainSign,
@@ -758,10 +771,11 @@ func (outgen *outcomeGenerationState[RI]) tryProcessPreparePool() {
 	}
 
 	if !outgen.persistAndUpdateCertIfGreater(&CertifiedPrepare{
+		stid.PrevHistoryDigest,
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		stid.InputsDigest,
-		stid.OutputDigest,
+		stid.WriteSetDigest,
 		stid.StateRootDigest,
 		stid.ReportsPlusPrecursorDigest,
 		prepareQuorumCertificate,
@@ -840,9 +854,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		}
 		err := commitPoolEntry.Item.Verify(
 			outgen.ID(),
+			stid.PrevHistoryDigest,
 			outgen.sharedState.seqNr,
 			stid.InputsDigest,
-			stid.OutputDigest,
+			stid.WriteSetDigest,
 			stid.StateRootDigest,
 			stid.ReportsPlusPrecursorDigest,
 			outgen.config.OracleIdentities[sender].OffchainPublicKey,
@@ -880,10 +895,11 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 	}
 
 	commitQC := &CertifiedCommit{
+		stid.PrevHistoryDigest,
 		outgen.sharedState.e,
 		outgen.sharedState.seqNr,
 		stid.InputsDigest,
-		stid.OutputDigest,
+		stid.WriteSetDigest,
 		stid.StateRootDigest,
 		stid.ReportsPlusPrecursorDigest,
 		commitQuorumCertificate,
@@ -914,10 +930,11 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		// Write attested state transition block
 		{
 			stb := StateTransitionBlock{
+				stid.PrevHistoryDigest,
 				commitQC.CommitEpoch,
 				commitQC.CommitSeqNr,
 				sti.InputsDigest,
-				sti.Outputs,
+				sti.WriteSet,
 				sti.StateRootDigest,
 				sti.ReportsPlusPrecursorDigest,
 			}
@@ -1122,6 +1139,7 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) bool {
 		}
 
 		outgen.sharedState.committedSeqNr = commit.SeqNr()
+		outgen.sharedState.committedHistoryDigest = commit.HistoryDigest(outgen.config.ConfigDigest)
 		outgen.metrics.committedSeqNr.Set(float64(commit.SeqNr()))
 
 		outgen.logger.Debug("✅ committed", commontypes.LogFields{
@@ -1238,7 +1256,6 @@ func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObserva
 	asos []AttributedSignedObservation,
 	kvReader ocr3_1types.KeyValueStateReader, // we don't discard the kvReader in this function because it is managed further up the call stack
 ) ([]types.AttributedObservation, bool) {
-
 	attributedObservations := make([]types.AttributedObservation, 0, len(asos))
 
 	subs, allValidMutex, allValid := subprocesses.Subprocesses{}, sync.Mutex{}, true

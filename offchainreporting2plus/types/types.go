@@ -24,8 +24,8 @@ type BinaryNetworkEndpoint2Config struct {
 	BinaryNetworkEndpointLimits
 
 	// Buffer sizes specified below override the values set in PeerConfig.
-	OverrideIncomingMessageBufferSize int
-	OverrideOutgoingMessageBufferSize int
+	OverrideIncomingMessageBufferSize *int
+	OverrideOutgoingMessageBufferSize *int
 }
 
 // BinaryNetworkEndpointFactory creates permissioned BinaryNetworkEndpoint instances.

@@ -294,6 +294,7 @@ func (repatt *reportAttestationState[RI]) messageReportsPlusPrecursorRequest(msg
 		"to":       sender,
 	})
 	repatt.netSender.SendTo(MessageReportsPlusPrecursor[RI]{
+		msg.RequestHandle,
 		msg.SeqNr,
 		*repatt.rounds[msg.SeqNr].certifiedReportsPlusPrecursor,
 	}, sender)
@@ -392,7 +393,10 @@ func (repatt *reportAttestationState[RI]) tryRequestReportsPlusPrecursor(seqNr u
 		"seqNr": seqNr,
 		"to":    randomCandidate,
 	})
-	repatt.netSender.SendTo(MessageReportsPlusPrecursorRequest[RI]{seqNr}, randomCandidate)
+	repatt.netSender.SendTo(MessageReportsPlusPrecursorRequest[RI]{
+		types.EmptyRequestHandleForOutboundRequest,
+		seqNr,
+	}, randomCandidate)
 	repatt.scheduler.ScheduleDelay(EventMissingReportsPlusPrecursor[RI]{seqNr}, repatt.config.GetDeltaReportsPlusPrecursorRequest())
 }
 

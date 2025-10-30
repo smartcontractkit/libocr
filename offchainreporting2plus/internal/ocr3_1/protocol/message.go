@@ -179,9 +179,10 @@ func (msg MessageEpochStart[RI]) epoch() uint64 {
 }
 
 type MessageRoundStart[RI any] struct {
-	Epoch uint64
-	SeqNr uint64
-	Query types.Query
+	RequestHandle types.RequestHandle // actual handle for inbound message, sentinel for outbound
+	Epoch         uint64
+	SeqNr         uint64
+	Query         types.Query
 }
 
 var _ MessageToOutcomeGeneration[struct{}] = (*MessageRoundStart[struct{}])(nil)
@@ -206,6 +207,7 @@ func (msg MessageRoundStart[RI]) epoch() uint64 {
 }
 
 type MessageObservation[RI any] struct {
+	RequestHandle     types.RequestHandle // actual handle for outbound message, sentinel for inbound
 	Epoch             uint64
 	SeqNr             uint64
 	SignedObservation SignedObservation
@@ -354,7 +356,8 @@ func (msg MessageReportSignatures[RI]) processReportAttestation(repatt *reportAt
 }
 
 type MessageReportsPlusPrecursorRequest[RI any] struct {
-	SeqNr uint64
+	RequestHandle types.RequestHandle // actual handle for inbound message, sentinel for outbound
+	SeqNr         uint64
 }
 
 var _ MessageToReportAttestation[struct{}] = MessageReportsPlusPrecursorRequest[struct{}]{}
@@ -372,6 +375,7 @@ func (msg MessageReportsPlusPrecursorRequest[RI]) processReportAttestation(repat
 }
 
 type MessageReportsPlusPrecursor[RI any] struct {
+	RequestHandle        types.RequestHandle // actual handle for outbound message, sentinel for inbound
 	SeqNr                uint64
 	ReportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor
 }
@@ -394,10 +398,11 @@ func (msg MessageReportsPlusPrecursor[RI]) processReportAttestation(repatt *repo
 }
 
 type MessageBlockSyncRequest[RI any] struct {
-	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
-	RequestInfo   *types.RequestInfo
-	StartSeqNr    uint64 // a successful response must contain at least the block with this sequence number
-	EndExclSeqNr  uint64 // the response may only contain sequence numbers less than this
+	RequestHandle              types.RequestHandle // actual handle for inbound message, sentinel for outbound
+	RequestInfo                *types.RequestInfo
+	StartSeqNr                 uint64 // a successful response must contain at least the block with this sequence number
+	EndExclSeqNr               uint64 // the response may only contain sequence numbers less than this
+	MaxCumulativeWriteSetBytes int
 }
 
 var _ MessageToStateSync[struct{}] = MessageBlockSyncRequest[struct{}]{}
@@ -463,11 +468,13 @@ func (msg MessageBlockSyncResponse[RI]) processStateSync(stasy *stateSyncState[R
 }
 
 type MessageTreeSyncChunkRequest[RI any] struct {
-	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	RequestHandle types.RequestHandle // actual handle for inbound message, sentinel for outbound
 	RequestInfo   *types.RequestInfo
 	ToSeqNr       uint64
 	StartIndex    jmt.Digest
 	EndInclIndex  jmt.Digest
+
+	MaxCumulativeKeysPlusValuesBytes int
 }
 
 var _ MessageToStateSync[struct{}] = MessageTreeSyncChunkRequest[struct{}]{}
@@ -534,7 +541,7 @@ func (msg MessageTreeSyncChunkResponse[RI]) processStateSync(stasy *stateSyncSta
 }
 
 type MessageBlobOffer[RI any] struct {
-	RequestHandle    types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	RequestHandle    types.RequestHandle // actual handle for inbound message, sentinel for outbound
 	RequestInfo      *types.RequestInfo
 	ChunkDigestsRoot mt.Digest
 	PayloadLength    uint64
@@ -581,7 +588,7 @@ func (msg MessageBlobOfferResponse[RI]) processBlobExchange(bex *blobExchangeSta
 }
 
 type MessageBlobChunkRequest[RI any] struct {
-	RequestHandle types.RequestHandle // actual handle for outbound message, sentinel for inbound
+	RequestHandle types.RequestHandle // actual handle for inbound message, sentinel for outbound
 	RequestInfo   *types.RequestInfo
 	BlobDigest    BlobDigest
 	ChunkIndex    uint64

@@ -5,7 +5,7 @@ const (
 	MaxMaxEpochStartBytes                  = 4825
 	MaxMaxReportsPlusPrecursorRequestBytes = 18
 	MaxMaxReportsPlusPrecursorBytes        = 6815772
-	MaxMaxBlockSyncRequestBytes            = 32
+	MaxMaxBlockSyncRequestBytes            = 40
 	MaxMaxBlockSyncResponseBytes           = 27371305
 	MaxMaxTreeSyncChunkRequestBytes        = 106
 	MaxMaxTreeSyncChunkResponseBytes       = 65049225

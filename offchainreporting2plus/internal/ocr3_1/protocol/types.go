@@ -21,8 +21,8 @@ type KeyValuePairWithDeletions struct {
 	Deleted bool
 }
 
-type StateTransitionOutputs struct {
-	WriteSet []KeyValuePairWithDeletions
+type StateWriteSet struct {
+	Entries []KeyValuePairWithDeletions
 }
 
 type TreeSyncPhase int
