@@ -159,8 +159,9 @@ type stateTransitionInfo interface {
 }
 
 type stateTransitionInfoDigests struct {
+	PrevHistoryDigest          HistoryDigest
 	InputsDigest               StateTransitionInputsDigest
-	OutputDigest               StateTransitionOutputDigest
+	WriteSetDigest             StateWriteSetDigest
 	StateRootDigest            StateRootDigest
 	ReportsPlusPrecursorDigest ReportsPlusPrecursorDigest
 }
@@ -173,7 +174,7 @@ func (stid stateTransitionInfoDigests) digests() stateTransitionInfoDigests {
 
 type stateTransitionInfoDigestsAndPreimages struct {
 	stateTransitionInfoDigests
-	Outputs              StateTransitionOutputs
+	WriteSet             StateWriteSet
 	ReportsPlusPrecursor ocr3_1types.ReportsPlusPrecursor
 }
 
@@ -191,19 +192,25 @@ type sharedState struct {
 	seqNr             uint64
 	observationQuorum *int
 
-	committedSeqNr uint64
+	committedSeqNr         uint64
+	committedHistoryDigest HistoryDigest
 }
 
 func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCommit) {
 	var restoredCommitedSeqNr uint64
-	if restoredCert != nil {
-		if commitQC, ok := restoredCert.(*CertifiedCommit); ok {
-			restoredCommitedSeqNr = commitQC.SeqNr()
-		} else if prepareQc, ok := restoredCert.(*CertifiedPrepare); ok {
-			if prepareQc.SeqNr() > 1 {
-				restoredCommitedSeqNr = prepareQc.SeqNr() - 1
-			}
+	var restoredCommitedHistoryDigest HistoryDigest
+	if restoredCert == nil {
+		restoredCert = &CertifiedCommit{} // genesis
+	}
+	if commitQC, ok := restoredCert.(*CertifiedCommit); ok {
+		restoredCommitedSeqNr = commitQC.SeqNr()
+		restoredCommitedHistoryDigest = commitQC.HistoryDigest(outgen.config.ConfigDigest)
+	} else if prepareQc, ok := restoredCert.(*CertifiedPrepare); ok {
+		if prepareQc.SeqNr() >= 1 {
+			restoredCommitedSeqNr = prepareQc.SeqNr() - 1
+			restoredCommitedHistoryDigest = prepareQc.PrevHistoryDigest
 		}
+
 	}
 
 	outgen.logger.Info("OutcomeGeneration: running", commontypes.LogFields{
@@ -249,11 +256,17 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		restoredCommitedSeqNr,
 		nil,
 		restoredCommitedSeqNr,
+		restoredCommitedHistoryDigest,
 	}
 
-	outgen.subs.Go(func() {
-		RunOutcomeGenerationReap(outgen.ctx, outgen.logger, outgen.kvDb)
-	})
+	{
+		ctx := outgen.ctx
+		logger := outgen.logger
+		kvDb := outgen.kvDb
+		outgen.subs.Go(func() {
+			RunOutcomeGenerationReap(ctx, logger, kvDb)
+		})
+	}
 
 	// Event Loop
 	chDone := outgen.ctx.Done()
@@ -578,7 +591,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 	}
 
 	// apply write set
-	stateRootDigest, err := tx.ApplyWriteSet(stb.StateTransitionOutputs.WriteSet)
+	stateRootDigest, err := tx.ApplyWriteSet(stb.StateWriteSet.Entries)
 	if err != nil {
 		outgen.logger.Error("error applying write set", commontypes.LogFields{
 			"commitQCSeqNr": commitQC.CommitSeqNr,
@@ -634,14 +647,14 @@ func (outgen *outcomeGenerationState[RI]) persistUnattestedStateTransitionBlockA
 }
 
 func (outgen *outcomeGenerationState[RI]) isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC *CertifiedCommit, stb StateTransitionBlock) error {
-	stbStateTransitionOutputsDigest := MakeStateTransitionOutputDigest(
+	stbStateWriteSetDigest := MakeStateWriteSetDigest(
 		outgen.config.ConfigDigest,
 		stb.BlockSeqNr,
-		stb.StateTransitionOutputs.WriteSet,
+		stb.StateWriteSet.Entries,
 	)
 
-	if stbStateTransitionOutputsDigest != commitQC.StateTransitionOutputsDigest {
-		return fmt.Errorf("local state transition block outputs digest does not match commitQC: expected %s but got %s", commitQC.StateTransitionOutputsDigest, stbStateTransitionOutputsDigest)
+	if stbStateWriteSetDigest != commitQC.StateWriteSetDigest {
+		return fmt.Errorf("local state transition block write set digest does not match commitQC: expected %s but got %s", commitQC.StateWriteSetDigest, stbStateWriteSetDigest)
 	}
 	if stb.StateRootDigest != commitQC.StateRootDigest {
 		return fmt.Errorf("local state transition block state root digest does not match commitQC: expected %s but got %s", commitQC.StateRootDigest, stb.StateRootDigest)

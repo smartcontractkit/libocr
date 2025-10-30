@@ -78,6 +78,7 @@ func (ev EventComputedObservationQuorumSuccess[RI]) processOutcomeGeneration(out
 type EventComputedObservation[RI any] struct {
 	Epoch           uint64
 	SeqNr           uint64
+	RequestHandle   types.RequestHandle
 	AttributedQuery types.AttributedQuery
 	Observation     types.Observation
 }

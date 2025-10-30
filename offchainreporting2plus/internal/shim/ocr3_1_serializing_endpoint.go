@@ -93,14 +93,14 @@ func (n *OCR3_1SerializingEndpoint[RI]) sendTelemetry(t *serialization.Telemetry
 	}
 }
 
-func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Message[RI]) (types.OutboundBinaryMessage, *serialization.MessageWrapper) {
+func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Message[RI]) (outboundBinaryMessage types.OutboundBinaryMessage, pbMessageForTelemetry *serialization.MessageWrapper) {
 	if !msg.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen, n.publicConfig) {
 		n.logger.Error("OCR3_1SerializingEndpoint: Dropping outgoing message because it fails size check", commontypes.LogFields{
 			"limits": n.pluginLimits,
 		})
 		return nil, nil
 	}
-	payload, pbm, err := serialization.Serialize(msg)
+	payload, pbMessageForTelemetry, err := serialization.Serialize(msg)
 	if err != nil {
 		n.logger.Error("OCR3_1SerializingEndpoint: Failed to serialize", commontypes.LogFields{
 			"message": msg,
@@ -113,29 +113,43 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 	// OutboundBinaryMessage type and priority.
 	switch msg := msg.(type) {
 	case protocol.MessageNewEpochWish[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessageEpochStartRequest[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessageEpochStart[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessageRoundStart[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessageRequest{
+			types.SingleUseSizedLimitedResponsePolicy{
+				n.serializedLengthLimits.MaxLenMsgObservation,
+				time.Now().Add(n.publicConfig.DeltaProgress),
+			},
+			payload,
+			types.BinaryMessagePriorityDefault,
+		}, pbMessageForTelemetry
 	case protocol.MessageObservation[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return msg.RequestHandle.MakeResponse(payload), pbMessageForTelemetry
 	case protocol.MessageProposal[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessagePrepare[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessageCommit[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessageReportSignatures[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbMessageForTelemetry
 	case protocol.MessageReportsPlusPrecursorRequest[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return types.OutboundBinaryMessageRequest{
+			types.SingleUseSizedLimitedResponsePolicy{
+				n.serializedLengthLimits.MaxLenMsgReportsPlusPrecursor,
+				time.Now().Add(3 * n.publicConfig.GetDeltaReportsPlusPrecursorRequest()),
+			},
+			payload,
+			types.BinaryMessagePriorityDefault,
+		}, pbMessageForTelemetry
 	case protocol.MessageReportsPlusPrecursor[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityDefault}, pbm
+		return msg.RequestHandle.MakeResponse(payload), pbMessageForTelemetry
 	case protocol.MessageStateSyncSummary[RI]:
-		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityLow}, pbm
+		return types.OutboundBinaryMessagePlain{payload, types.BinaryMessagePriorityLow}, pbMessageForTelemetry
 	case protocol.MessageBlockSyncRequest[RI]:
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
@@ -144,9 +158,9 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 			},
 			payload,
 			types.BinaryMessagePriorityLow,
-		}, pbm
+		}, pbMessageForTelemetry
 	case protocol.MessageBlockSyncResponse[RI]:
-		return msg.RequestHandle.MakeResponse(payload), pbm
+		return msg.RequestHandle.MakeResponse(payload), pbMessageForTelemetry
 	case protocol.MessageTreeSyncChunkRequest[RI]:
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
@@ -155,9 +169,9 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 			},
 			payload,
 			types.BinaryMessagePriorityLow,
-		}, pbm
+		}, pbMessageForTelemetry
 	case protocol.MessageTreeSyncChunkResponse[RI]:
-		return msg.RequestHandle.MakeResponse(payload), pbm
+		return msg.RequestHandle.MakeResponse(payload), pbMessageForTelemetry
 	case protocol.MessageBlobOffer[RI]:
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
@@ -166,7 +180,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 			},
 			payload,
 			types.BinaryMessagePriorityDefault,
-		}, pbm
+		}, pbMessageForTelemetry
 	case protocol.MessageBlobChunkRequest[RI]:
 		return types.OutboundBinaryMessageRequest{
 			types.SingleUseSizedLimitedResponsePolicy{
@@ -175,17 +189,17 @@ func (n *OCR3_1SerializingEndpoint[RI]) toOutboundBinaryMessage(msg protocol.Mes
 			},
 			payload,
 			types.BinaryMessagePriorityDefault,
-		}, pbm
+		}, pbMessageForTelemetry
 	case protocol.MessageBlobChunkResponse[RI]:
-		return msg.RequestHandle.MakeResponse(payload), pbm
+		return msg.RequestHandle.MakeResponse(payload), pbMessageForTelemetry
 	case protocol.MessageBlobOfferResponse[RI]:
-		return msg.RequestHandle.MakeResponse(payload), pbm
+		return msg.RequestHandle.MakeResponse(payload), pbMessageForTelemetry
 	}
 
 	panic("unreachable")
 }
 
-func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMessage types.InboundBinaryMessage) (protocol.Message[RI], *serialization.MessageWrapper, error) {
+func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMessage types.InboundBinaryMessage) (message protocol.Message[RI], pbMessageForTelemetry *serialization.MessageWrapper, err error) {
 	var payload []byte
 	var requestHandle types.RequestHandle
 	switch m := inboundBinaryMessage.(type) {
@@ -198,7 +212,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMe
 		payload = m.Payload
 	}
 
-	m, pbm, err := serialization.Deserialize[RI](n.publicConfig.N(), payload, requestHandle)
+	message, pbMessageForTelemetry, err = serialization.Deserialize[RI](n.publicConfig.N(), payload, requestHandle)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,94 +220,94 @@ func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMe
 	// Check InboundBinaryMessage type and priority. We can do this here because
 	// for every protocol message type we know the corresponding
 	// InboundBinaryMessage type and priority.
-	switch m.(type) {
+	switch message.(type) {
 	case protocol.MessageNewEpochWish[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageNewEpochWish[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageNewEpochWish")
+			return protocol.MessageNewEpochWish[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageNewEpochWish")
 		}
 	case protocol.MessageEpochStartRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageEpochStartRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageEpochStartRequest")
+			return protocol.MessageEpochStartRequest[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageEpochStartRequest")
 		}
 	case protocol.MessageEpochStart[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageEpochStart[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageEpochStart")
+			return protocol.MessageEpochStart[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageEpochStart")
 		}
 	case protocol.MessageRoundStart[RI]:
-		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageRoundStart[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageRoundStart")
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
+			return protocol.MessageRoundStart[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageRoundStart")
 		}
 	case protocol.MessageObservation[RI]:
-		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageObservation[RI]{}, pbm, fmt.Errorf("wrong type or request ID for MessageObservation")
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
+			return protocol.MessageObservation[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageObservation")
 		}
 	case protocol.MessageProposal[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageProposal[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageProposal")
+			return protocol.MessageProposal[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageProposal")
 		}
 	case protocol.MessagePrepare[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessagePrepare[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessagePrepare")
+			return protocol.MessagePrepare[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessagePrepare")
 		}
 	case protocol.MessageCommit[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageCommit[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageCommit")
+			return protocol.MessageCommit[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageCommit")
 		}
 	case protocol.MessageReportSignatures[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageReportSignatures[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageReportSignatures")
+			return protocol.MessageReportSignatures[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageReportSignatures")
 		}
 	case protocol.MessageReportsPlusPrecursorRequest[RI]:
-		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageReportsPlusPrecursorRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageReportsPlusPrecursorRequest")
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
+			return protocol.MessageReportsPlusPrecursorRequest[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageReportsPlusPrecursorRequest")
 		}
 	case protocol.MessageReportsPlusPrecursor[RI]:
-		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageReportsPlusPrecursor[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageReportsPlusPrecursor")
+		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
+			return protocol.MessageReportsPlusPrecursor[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageReportsPlusPrecursor")
 		}
 	case protocol.MessageBlockSyncRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageBlockSyncRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlockSyncRequest")
+			return protocol.MessageBlockSyncRequest[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageBlockSyncRequest")
 		}
 	case protocol.MessageBlockSyncResponse[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageBlockSyncResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlockSync")
+			return protocol.MessageBlockSyncResponse[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageBlockSync")
 		}
 	case protocol.MessageStateSyncSummary[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessagePlain); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageStateSyncSummary[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageStateSyncSummary")
+			return protocol.MessageStateSyncSummary[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageStateSyncSummary")
 		}
 	case protocol.MessageTreeSyncChunkRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageTreeSyncChunkRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageTreeSyncRequest")
+			return protocol.MessageTreeSyncChunkRequest[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageTreeSyncRequest")
 		}
 	case protocol.MessageTreeSyncChunkResponse[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityLow {
-			return protocol.MessageTreeSyncChunkResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageTreeSyncChunk")
+			return protocol.MessageTreeSyncChunkResponse[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageTreeSyncChunk")
 		}
 	case protocol.MessageBlobOffer[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageBlobOffer[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobOffer")
+			return protocol.MessageBlobOffer[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageBlobOffer")
 		}
 	case protocol.MessageBlobOfferResponse[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageBlobOfferResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobOfferResponse")
+			return protocol.MessageBlobOfferResponse[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageBlobOfferResponse")
 		}
 	case protocol.MessageBlobChunkRequest[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageRequest); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageBlobChunkRequest[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobChunkRequest")
+			return protocol.MessageBlobChunkRequest[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageBlobChunkRequest")
 		}
 	case protocol.MessageBlobChunkResponse[RI]:
 		if ibm, ok := inboundBinaryMessage.(types.InboundBinaryMessageResponse); !ok || ibm.Priority != types.BinaryMessagePriorityDefault {
-			return protocol.MessageBlobChunkResponse[RI]{}, pbm, fmt.Errorf("wrong type or priority for MessageBlobChunkResponse")
+			return protocol.MessageBlobChunkResponse[RI]{}, pbMessageForTelemetry, fmt.Errorf("wrong type or priority for MessageBlobChunkResponse")
 		}
 	}
 
-	if !m.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen, n.publicConfig) {
+	if !message.CheckSize(n.publicConfig.N(), n.publicConfig.F, n.pluginLimits, n.maxSigLen, n.publicConfig) {
 		return nil, nil, fmt.Errorf("message failed size check")
 	}
 
-	return m, pbm, nil
+	return message, pbMessageForTelemetry, nil
 }
 
 // Start starts the SerializingEndpoint. It will also start the underlying endpoint.
@@ -324,7 +338,9 @@ func (n *OCR3_1SerializingEndpoint[RI]) Start() error {
 					return
 				}
 
-				m, pbm, err := n.fromInboundBinaryMessage(raw.InboundBinaryMessage)
+				priority := getBinaryMessageOutboundPriorityFromInboundBinaryMessage(raw.InboundBinaryMessage)
+
+				message, pbMessageForTelemetry, err := n.fromInboundBinaryMessage(raw.InboundBinaryMessage)
 				if err != nil {
 					n.logger.Error("OCR3_1SerializingEndpoint: Failed to deserialize", commontypes.LogFields{
 						"error": err,
@@ -334,9 +350,11 @@ func (n *OCR3_1SerializingEndpoint[RI]) Start() error {
 					n.sendTelemetry(&serialization.TelemetryWrapper{
 						Wrapped: &serialization.TelemetryWrapper_AssertionViolation{&serialization.TelemetryAssertionViolation{
 							Violation: &serialization.TelemetryAssertionViolation_InvalidSerialization{&serialization.TelemetryAssertionViolationInvalidSerialization{
-								ConfigDigest:  n.configDigest[:],
-								SerializedMsg: raw.InboundBinaryMessage.GetPayload(),
-								Sender:        uint32(raw.Sender),
+								ConfigDigest:        n.configDigest[:],
+								SerializedMsgPrefix: truncateByteSlice(raw.InboundBinaryMessage.GetPayload(), 100),
+								SerializedMsgLength: uint32(len(raw.InboundBinaryMessage.GetPayload())),
+								Sender:              uint32(raw.Sender),
+								Priority:            uint32(priority),
 							}},
 						}},
 						UnixTimeNanoseconds: time.Now().UnixNano(),
@@ -344,17 +362,19 @@ func (n *OCR3_1SerializingEndpoint[RI]) Start() error {
 					break
 				}
 
+				redactPbMessageForTelemetryToSaveBandwidth(pbMessageForTelemetry)
 				n.sendTelemetry(&serialization.TelemetryWrapper{
 					Wrapped: &serialization.TelemetryWrapper_MessageReceived{&serialization.TelemetryMessageReceived{
 						ConfigDigest: n.configDigest[:],
-						Msg:          pbm,
+						Msg:          pbMessageForTelemetry,
 						Sender:       uint32(raw.Sender),
+						Priority:     uint32(priority),
 					}},
 					UnixTimeNanoseconds: time.Now().UnixNano(),
 				})
 
 				select {
-				case n.chOut <- protocol.MessageWithSender[RI]{m, raw.Sender}:
+				case n.chOut <- protocol.MessageWithSender[RI]{message, raw.Sender}:
 				case <-n.chCancel:
 					return
 				}
@@ -392,16 +412,16 @@ func (n *OCR3_1SerializingEndpoint[RI]) Close() error {
 }
 
 func (n *OCR3_1SerializingEndpoint[RI]) SendTo(msg protocol.Message[RI], to commontypes.OracleID) {
-	oMsg, pbm := n.toOutboundBinaryMessage(msg)
+	oMsg, pbMessageForTelemetry := n.toOutboundBinaryMessage(msg)
 	if oMsg != nil {
 		n.endpoint.SendTo(oMsg, to)
+		redactPbMessageForTelemetryToSaveBandwidth(pbMessageForTelemetry)
 		n.sendTelemetry(&serialization.TelemetryWrapper{
 			Wrapped: &serialization.TelemetryWrapper_MessageSent{&serialization.TelemetryMessageSent{
-				ConfigDigest:  n.configDigest[:],
-				Msg:           pbm,
-				SerializedMsg: oMsg.GetPayload(),
-				// TODO: What about priority or message type?
-				Receiver: uint32(to),
+				ConfigDigest: n.configDigest[:],
+				Msg:          pbMessageForTelemetry,
+				Receiver:     uint32(to),
+				Priority:     uint32(getBinaryMessageOutboundPriorityFromOutboundBinaryMessage(oMsg)),
 			}},
 			UnixTimeNanoseconds: time.Now().UnixNano(),
 		})
@@ -409,15 +429,15 @@ func (n *OCR3_1SerializingEndpoint[RI]) SendTo(msg protocol.Message[RI], to comm
 }
 
 func (n *OCR3_1SerializingEndpoint[RI]) Broadcast(msg protocol.Message[RI]) {
-	oMsg, pbm := n.toOutboundBinaryMessage(msg)
+	oMsg, pbMessageForTelemetry := n.toOutboundBinaryMessage(msg)
 	if oMsg != nil {
 		n.endpoint.Broadcast(oMsg)
+		redactPbMessageForTelemetryToSaveBandwidth(pbMessageForTelemetry)
 		n.sendTelemetry(&serialization.TelemetryWrapper{
 			Wrapped: &serialization.TelemetryWrapper_MessageBroadcast{&serialization.TelemetryMessageBroadcast{
 				ConfigDigest: n.configDigest[:],
-				Msg:          pbm,
-				// TODO: What about priority or message type?
-				SerializedMsg: oMsg.GetPayload(),
+				Msg:          pbMessageForTelemetry,
+				Priority:     uint32(getBinaryMessageOutboundPriorityFromOutboundBinaryMessage(oMsg)),
 			}},
 			UnixTimeNanoseconds: time.Now().UnixNano(),
 		})
@@ -426,4 +446,62 @@ func (n *OCR3_1SerializingEndpoint[RI]) Broadcast(msg protocol.Message[RI]) {
 
 func (n *OCR3_1SerializingEndpoint[RI]) Receive() <-chan protocol.MessageWithSender[RI] {
 	return n.chOut
+}
+
+func redactPbMessageForTelemetryToSaveBandwidth(pbMessageForTelemetry *serialization.MessageWrapper) {
+	switch pbMessageForTelemetry.Msg.(type) {
+	case *serialization.MessageWrapper_MessageReportsPlusPrecursor:
+		mrpc := pbMessageForTelemetry.GetMessageReportsPlusPrecursor()
+		if mrpc != nil {
+			mrpc.ReportsPlusPrecursor = nil
+		}
+	case *serialization.MessageWrapper_MessageBlockSyncResponse:
+		mbsr := pbMessageForTelemetry.GetMessageBlockSyncResponse()
+		if mbsr != nil {
+			mbsr.AttestedStateTransitionBlocks = nil
+		}
+	case *serialization.MessageWrapper_MessageTreeSyncChunkResponse:
+		mtscr := pbMessageForTelemetry.GetMessageTreeSyncChunkResponse()
+		if mtscr != nil {
+			mtscr.KeyValues = nil
+			mtscr.BoundingLeaves = nil
+		}
+	case *serialization.MessageWrapper_MessageBlobChunkResponse:
+		mbcr := pbMessageForTelemetry.GetMessageBlobChunkResponse()
+		if mbcr != nil {
+			mbcr.Chunk = nil
+			mbcr.Proof = nil
+		}
+	}
+}
+
+func getBinaryMessageOutboundPriorityFromInboundBinaryMessage(inboundBinaryMessage types.InboundBinaryMessage) types.BinaryMessageOutboundPriority {
+	switch inboundBinaryMessage := inboundBinaryMessage.(type) {
+	case types.InboundBinaryMessagePlain:
+		return inboundBinaryMessage.Priority
+	case types.InboundBinaryMessageRequest:
+		return inboundBinaryMessage.Priority
+	case types.InboundBinaryMessageResponse:
+		return inboundBinaryMessage.Priority
+	}
+	panic("getBinaryMessageOutboundPriorityFromInboundBinaryMessage: unreachable")
+}
+
+func getBinaryMessageOutboundPriorityFromOutboundBinaryMessage(outboundBinaryMessage types.OutboundBinaryMessage) types.BinaryMessageOutboundPriority {
+	switch outboundBinaryMessage := outboundBinaryMessage.(type) {
+	case types.OutboundBinaryMessagePlain:
+		return outboundBinaryMessage.Priority
+	case types.OutboundBinaryMessageRequest:
+		return outboundBinaryMessage.Priority
+	case types.OutboundBinaryMessageResponse:
+		return outboundBinaryMessage.Priority
+	}
+	panic("getBinaryMessageOutboundPriorityFromOutboundBinaryMessage: unreachable")
+}
+
+func truncateByteSlice(b []byte, maxLength int) []byte {
+	if len(b) > maxLength {
+		return b[:maxLength]
+	}
+	return b
 }

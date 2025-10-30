@@ -28,7 +28,7 @@ type SemanticOCR3_1KeyValueDatabase struct {
 	Limits           ocr3_1types.ReportingPluginLimits
 	config           ocr3_1config.PublicConfig
 	logger           commontypes.Logger
-	metrics          *keyValueMetrics
+	metrics          *semanticKeyValueDatabaseMetrics
 }
 
 var _ protocol.KeyValueDatabase = &SemanticOCR3_1KeyValueDatabase{}
@@ -39,15 +39,18 @@ func NewSemanticOCR3_1KeyValueDatabase(
 	config ocr3_1config.PublicConfig,
 	logger commontypes.Logger,
 	metricsRegisterer prometheus.Registerer,
-) *SemanticOCR3_1KeyValueDatabase {
+) (*SemanticOCR3_1KeyValueDatabase, error) {
+	if err := initializeSchema(keyValueDatabase); err != nil {
+		return nil, fmt.Errorf("failed to initialize schema: %w", err)
+	}
 	return &SemanticOCR3_1KeyValueDatabase{
 		singlewriter.NewConflictTracker(),
 		keyValueDatabase,
 		limits,
 		config,
 		logger,
-		newKeyValueMetrics(metricsRegisterer, logger),
-	}
+		newSemanticKeyValueDatabaseMetrics(metricsRegisterer, logger),
+	}, nil
 }
 
 func (s *SemanticOCR3_1KeyValueDatabase) newReadWriteTransaction(tx ocr3_1types.KeyValueDatabaseReadWriteTransaction, nilOrSeqNr *uint64) *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction {
@@ -65,10 +68,11 @@ func (s *SemanticOCR3_1KeyValueDatabase) newReadWriteTransaction(tx ocr3_1types.
 	}
 }
 
+// SemanticOCR3_1KeyValueDatabase does not manage the lifetime of the underlying
+// database, and is expected to be closed first, before the database is closed.
 func (s *SemanticOCR3_1KeyValueDatabase) Close() error {
-	err := s.KeyValueDatabase.Close()
 	s.metrics.Close()
-	return err
+	return nil
 }
 
 func (s *SemanticOCR3_1KeyValueDatabase) HighestCommittedSeqNr() (uint64, error) {
@@ -169,7 +173,7 @@ func (s *SemanticOCR3_1KeyValueDatabase) NewReadTransactionUnchecked() (protocol
 type SemanticOCR3_1KeyValueDatabaseReadWriteTransaction struct {
 	SemanticOCR3_1KeyValueDatabaseReadTransaction // inherit all read implementations
 	rawTransaction                                ocr3_1types.KeyValueDatabaseReadWriteTransaction
-	metrics                                       *keyValueMetrics
+	metrics                                       *semanticKeyValueDatabaseMetrics
 	mu                                            sync.Mutex
 	nilOrWriteSet                                 *limitCheckWriteSet
 	nilOrSeqNr                                    *uint64
@@ -195,7 +199,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransactionWithPreCommitHook) Co
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Commit() error {
 	start := time.Now()
 	defer func() {
-		s.metrics.txCommitDurationNanoseconds.Observe(float64(time.Since(start).Nanoseconds()))
+		s.metrics.txCommitDurationSeconds.Observe(float64(time.Since(start).Seconds()))
 	}()
 
 	err := s.rawTransaction.Commit()
@@ -229,50 +233,66 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Delete(key []byte) 
 	return s.rawTransaction.Delete(pluginPrefixedUnhashedKey(key))
 }
 
-func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) deletePrefixedKeys(prefix []byte, except [][]byte, n int) (done bool, err error) {
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) deletePrefixedKeys(prefix []byte, n int) (done bool, numDeleted int, err error) {
 	// We cannot delete the keys while iterating them, if we want to be agnostic
 	// to kvdb implementation semantics.
 	var keysToDelete [][]byte
 
 	it := s.rawTransaction.Range(prefix, nil)
 	for it.Next() && len(keysToDelete) < n+1 {
-		if !bytes.HasPrefix(it.Key(), prefix) {
+		key := it.Key()
+		if !bytes.HasPrefix(key, prefix) {
 			break
 		}
-		matchAnyException := false
-		for _, e := range except {
-			if bytes.Equal(it.Key(), e) {
-				matchAnyException = true
-				break
-			}
-		}
-		if matchAnyException {
-			continue
-		}
-		keysToDelete = append(keysToDelete, it.Key())
+		keysToDelete = append(keysToDelete, key)
 	}
 	if err := it.Err(); err != nil {
 		it.Close()
-		return false, fmt.Errorf("failed to range: %w", err)
+		return false, 0, fmt.Errorf("failed to range: %w", err)
 	}
 	it.Close()
 
 	for _, key := range keysToDelete {
-		if err := s.rawTransaction.Delete(key); err != nil {
-			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+		if !(numDeleted+1 <= n) {
+			break
 		}
+		if err := s.rawTransaction.Delete(key); err != nil {
+			return false, numDeleted, fmt.Errorf("failed to delete key %s: %w", key, err)
+		}
+		numDeleted++
 	}
 
-	return len(keysToDelete) <= n, nil
+	return len(keysToDelete) <= n, numDeleted, nil
 }
 
 // Caller must ensure to make committed state inaccessible to other transactions
 // until completed. Must be reinvoked until done=true.
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DestructiveDestroyForTreeSync(n int) (done bool, err error) {
-	return s.deletePrefixedKeys([]byte{}, [][]byte{
-		[]byte(highestCommittedSeqNrKey),
-		[]byte(treeSyncStatusKey),
-	}, n)
+	prefixesToDelete := destructiveDestroyForTreeSyncPrefixesToDelete
+
+	prefixesDone := make([]bool, len(prefixesToDelete))
+	budget := n
+	for i, prefix := range prefixesToDelete {
+		done, numDeleted, err := s.deletePrefixedKeys(prefix, budget)
+		if err != nil {
+			return false, fmt.Errorf("failed to delete prefixed keys for prefix %q: %w", prefix, err)
+		}
+		budget -= numDeleted
+		if done {
+			prefixesDone[i] = true
+		} else if budget == 0 {
+			break
+		}
+	}
+
+	allPrefixesDone := true
+	for _, done := range prefixesDone {
+		if !done {
+			allPrefixesDone = false
+			break
+		}
+	}
+	return allPrefixesDone, nil
 }
 
 // Helper for reaping methods that require large ranges over multiple transactions
@@ -341,7 +361,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) GetWriteSet() ([]pr
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) CloseWriteSet() (protocol.StateRootDigest, error) {
 	start := time.Now()
 	defer func() {
-		s.metrics.closeWriteSetDurationNanoseconds.Observe(float64(time.Since(start).Nanoseconds()))
+		s.metrics.closeWriteSetDurationSeconds.Observe(float64(time.Since(start).Seconds()))
 	}()
 
 	s.mu.Lock()
@@ -416,7 +436,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) ApplyWriteSet(write
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, value []byte) error {
 	start := time.Now()
 	defer func() {
-		s.metrics.txWriteDurationNanoseconds.Observe(float64(time.Since(start).Nanoseconds()))
+		s.metrics.txWriteDurationSeconds.Observe(float64(time.Since(start).Seconds()))
 	}()
 
 	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyBytes) {
@@ -565,6 +585,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadTreeSyncChunk(
 	toSeqNr uint64,
 	startIndex jmt.Digest,
 	requestEndInclIndex jmt.Digest,
+	maxCumulativeKeysPlusValuesBytes int,
 ) (
 	endInclIndex jmt.Digest,
 	boundingLeaves []jmt.BoundingLeaf,
@@ -595,7 +616,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadTreeSyncChunk(
 		protocol.RootVersion(toSeqNr, s.config),
 		startIndex,
 		requestEndInclIndex,
-		s.config.GetMaxTreeSyncChunkKeysPlusValuesBytes(),
+		maxCumulativeKeysPlusValuesBytes,
 		s.config.GetMaxTreeSyncChunkKeys(),
 	)
 	if err != nil {
@@ -724,7 +745,6 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 	}
 
 	// write flat representation
-
 	for _, kv := range keyValues {
 		err := s.rawTransaction.Write(pluginPrefixedUnhashedKey(kv.Key), kv.Value)
 		if err != nil {
@@ -963,6 +983,10 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteBlobQuotaStats
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadStaleBlobIndex(maxStaleSinceSeqNr uint64, limit int) ([]protocol.StaleBlob, error) {
+	if maxStaleSinceSeqNr+1 < maxStaleSinceSeqNr {
+		return nil, fmt.Errorf("maxStaleSinceSeqNr overflow")
+	}
+
 	it := s.rawTransaction.Range(staleBlobIndexPrefixKey(protocol.StaleBlob{0, blobtypes.BlobDigest{}}), staleBlobIndexPrefixKey(protocol.StaleBlob{maxStaleSinceSeqNr + 1, blobtypes.BlobDigest{}}))
 	defer it.Close()
 
@@ -1070,7 +1094,18 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteUnattestedSta
 	return !more, err
 }
 
+var destructiveDestroyForTreeSyncPrefixesToDelete = [][]byte{
+	[]byte(pluginPrefix),
+	[]byte(treeNodePrefix),
+	[]byte(treeRootPrefix),
+	[]byte(treeStaleNodePrefix),
+	[]byte(lowestPersistedSeqNrKey),
+}
+
 const (
+	schemaVersionKey       = "OCR3_1_SCHEMA_VERSION"
+	supportedSchemaVersion = "1"
+
 	blockPrefix                = "B|"
 	pluginPrefix               = "P|"
 	blobChunkPrefix            = "BC|"
@@ -1088,6 +1123,68 @@ const (
 	lowestPersistedSeqNrKey  = "LPS"
 )
 
+func initializeSchema(keyValueDatabase ocr3_1types.KeyValueDatabase) error {
+	rawTx, err := keyValueDatabase.NewReadWriteTransaction()
+	if err != nil {
+		return fmt.Errorf("failed to create read write transaction: %w", err)
+	}
+	defer rawTx.Discard()
+
+	schemaVersion, err := readSchemaVersion(rawTx)
+	if err != nil {
+		return fmt.Errorf("failed to read schema version: %w", err)
+	}
+	if schemaVersion != nil {
+		if *schemaVersion != supportedSchemaVersion {
+			return fmt.Errorf("unsupported schema version: %q, we support: %q", *schemaVersion, supportedSchemaVersion)
+		}
+		// already initialized
+		return nil
+	}
+
+	// ensure database is empty
+	err = func() error {
+		it := rawTx.Range(nil, nil)
+		defer it.Close()
+		for it.Next() {
+			return fmt.Errorf("database is not empty")
+		}
+		if err := it.Err(); err != nil {
+			return fmt.Errorf("failed to ensure database is not empty, iteration error: %w", err)
+		}
+		return nil
+	}()
+
+	if err != nil {
+		return err
+	}
+
+	if err := writeSchemaVersion(rawTx); err != nil {
+		return fmt.Errorf("failed to write schema version: %w", err)
+	}
+
+	if err := rawTx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func writeSchemaVersion(rawTx ocr3_1types.KeyValueDatabaseReadWriteTransaction) error {
+	return rawTx.Write([]byte(schemaVersionKey), []byte(supportedSchemaVersion))
+}
+
+func readSchemaVersion(rawTx ocr3_1types.KeyValueDatabaseReadTransaction) (*string, error) {
+	schemaVersion, err := rawTx.Read([]byte(schemaVersionKey))
+	if err != nil {
+		return nil, fmt.Errorf("error reading schema version: %w", err)
+	}
+	if schemaVersion == nil {
+		return nil, nil
+	}
+	return util.PointerTo(string(schemaVersion)), nil
+}
+
 func encodeBigEndianUint64(n uint64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, n)
@@ -1098,13 +1195,8 @@ func hashPluginKey(key []byte) jmt.Digest {
 	return jmt.DigestKey(key)
 }
 
-func pluginPrefixedUnhashedKey(key []byte) []byte {
-	pluginKey := hashPluginKey(key)
-	return pluginPrefixedHashedKey(pluginKey[:])
-}
-
-func pluginPrefixedHashedKey(hashedKey []byte) []byte {
-	return append([]byte(pluginPrefix), hashedKey[:]...)
+func pluginPrefixedUnhashedKey(unhashedKey []byte) []byte {
+	return append([]byte(pluginPrefix), unhashedKey[:]...)
 }
 
 // ────────────────────────── blocks ───────────────────────────
@@ -1118,6 +1210,9 @@ func deserializeBlockKey(enc []byte) (uint64, error) {
 		return 0, fmt.Errorf("encoding too short")
 	}
 	enc = enc[len(blockPrefix):]
+	if len(enc) < 8 {
+		return 0, fmt.Errorf("encoding too short to contain seqnr")
+	}
 	return binary.BigEndian.Uint64(enc), nil
 }
 

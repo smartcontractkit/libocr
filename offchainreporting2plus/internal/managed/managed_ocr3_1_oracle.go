@@ -22,13 +22,6 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
 
-const (
-	defaultIncomingMessageBufferSize     = 10
-	defaultOutgoingMessageBufferSize     = 10
-	lowPriorityIncomingMessageBufferSize = 10
-	lowPriorityOutgoingMessageBufferSize = 10
-)
-
 // RunManagedOCR3_1Oracle runs a "managed" version of protocol.RunOracle. It handles
 // setting up telemetry, garbage collection, configuration updates, translating
 // from types.BinaryNetworkEndpoint2 to protocol.NetworkEndpoint, and
@@ -175,15 +168,16 @@ func RunManagedOCR3_1Oracle[RI any](
 				})
 				return fmt.Errorf("ManagedOCR3_1Oracle: error during limits"), false
 			}
+
 			defaultPriorityConfig := types.BinaryNetworkEndpoint2Config{
 				defaultLims,
-				defaultIncomingMessageBufferSize,
-				defaultOutgoingMessageBufferSize,
+				nil,
+				nil,
 			}
 			lowPriorityConfig := types.BinaryNetworkEndpoint2Config{
 				lowPriorityLimits,
-				lowPriorityIncomingMessageBufferSize,
-				lowPriorityOutgoingMessageBufferSize,
+				nil,
+				nil,
 			}
 
 			binNetEndpoint, err := messageNetEndpointFactory.NewEndpoint(
@@ -237,7 +231,21 @@ func RunManagedOCR3_1Oracle[RI any](
 				logger,
 				"ManagedOCR3_1Oracle: error during keyValueDatabase.Close()",
 			)
-			semanticOCR3_1KeyValueDatabase := shim.NewSemanticOCR3_1KeyValueDatabase(keyValueDatabase, reportingPluginInfo.Limits, sharedConfig.PublicConfig, logger, metricsRegisterer)
+			keyValueDatabaseWithMetrics := shim.NewKeyValueDatabaseWithMetrics(keyValueDatabase, metricsRegisterer, logger)
+			defer loghelper.CloseLogError(
+				keyValueDatabaseWithMetrics,
+				logger,
+				"ManagedOCR3_1Oracle: error during keyValueDatabaseWithMetrics.Close()",
+			)
+			semanticOCR3_1KeyValueDatabase, err := shim.NewSemanticOCR3_1KeyValueDatabase(keyValueDatabaseWithMetrics, reportingPluginInfo.Limits, sharedConfig.PublicConfig, logger, metricsRegisterer)
+			if err != nil {
+				return fmt.Errorf("ManagedOCR3_1Oracle: error during NewSemanticOCR3_1KeyValueDatabase: %w", err), false
+			}
+			defer loghelper.CloseLogError(
+				semanticOCR3_1KeyValueDatabase,
+				logger,
+				"ManagedOCR3_1Oracle: error during semanticOCR3_1KeyValueDatabase.Close()",
+			)
 
 			protocol.RunOracle[RI](
 				ctx,

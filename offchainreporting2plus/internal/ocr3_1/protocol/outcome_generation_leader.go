@@ -393,6 +393,7 @@ func (outgen *outcomeGenerationState[RI]) eventComputedQuery(ev EventComputedQue
 		"seqNr": outgen.sharedState.committedSeqNr + 1,
 	})
 	outgen.netSender.Broadcast(MessageRoundStart[RI]{
+		types.EmptyRequestHandleForOutboundRequest,
 		outgen.sharedState.e,
 		outgen.sharedState.committedSeqNr + 1,
 		ev.Query,

@@ -40,6 +40,7 @@ type KeyValueDatabaseSemanticRead interface {
 		toSeqNr uint64,
 		startIndex jmt.Digest,
 		requestEndInclIndex jmt.Digest,
+		maxCumulativeKeysPlusValuesBytes int,
 	) (
 		endInclIndex jmt.Digest,
 		boundingLeaves []jmt.BoundingLeaf,

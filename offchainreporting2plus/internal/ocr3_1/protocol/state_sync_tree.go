@@ -64,6 +64,7 @@ func (stasy *stateSyncState[RI]) sendTreeSyncChunkRequest(item treeSyncChunkRequ
 		item.targetSeqNr,
 		item.keyDigestRange.StartIndex,
 		item.keyDigestRange.EndInclIndex,
+		stasy.config.GetMaxTreeSyncChunkKeysPlusValuesBytes(),
 	}
 	stasy.netSender.SendTo(msg, target)
 	return requestInfo, true
@@ -306,7 +307,6 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkRequest(msg MessageTreeSync
 	}
 
 	if treeSyncStatus.Phase != TreeSyncPhaseInactive || !(lowestPersistedSeqNr <= msg.ToSeqNr && msg.ToSeqNr <= highestCommittedSeqNr) {
-		kvReadTxn.Discard()
 		stasy.treeSyncState.logger.Debug("sending MessageTreeSyncChunkResponse to go-away", commontypes.LogFields{
 			"sender":                sender,
 			"toSeqNr":               msg.ToSeqNr,
@@ -318,7 +318,7 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkRequest(msg MessageTreeSync
 			msg.RequestHandle,
 			msg.ToSeqNr,
 			msg.StartIndex,
-			jmt.Digest{},
+			msg.EndInclIndex,
 			true,
 			jmt.Digest{},
 			nil,
@@ -327,10 +327,13 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkRequest(msg MessageTreeSync
 		return
 	}
 
+	maxCumulativeKeysPlusValuesBytes := min(msg.MaxCumulativeKeysPlusValuesBytes, stasy.config.GetMaxTreeSyncChunkKeysPlusValuesBytes())
+
 	endInclIndex, boundingLeaves, keyValues, err := kvReadTxn.ReadTreeSyncChunk(
 		msg.ToSeqNr,
 		msg.StartIndex,
 		msg.EndInclIndex,
+		maxCumulativeKeysPlusValuesBytes,
 	)
 	if err != nil {
 		stasy.treeSyncState.logger.Warn("failed to read chunk", commontypes.LogFields{
@@ -354,12 +357,14 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkRequest(msg MessageTreeSync
 	}
 
 	stasy.treeSyncState.logger.Debug("sent MessageTreeSyncChunkResponse", commontypes.LogFields{
-		"target":         sender,
-		"toSeqNr":        msg.ToSeqNr,
-		"startIndex":     fmt.Sprintf("%x", msg.StartIndex),
-		"endInclIndex":   fmt.Sprintf("%x", endInclIndex),
-		"proofLen":       proofLen(boundingLeaves),
-		"keyValuesCount": len(keyValues),
+		"target":                           sender,
+		"toSeqNr":                          msg.ToSeqNr,
+		"requestStartIndex":                fmt.Sprintf("%x", msg.StartIndex),
+		"requestEndInclIndex":              fmt.Sprintf("%x", msg.EndInclIndex),
+		"endInclIndex":                     fmt.Sprintf("%x", endInclIndex),
+		"maxCumulativeKeysPlusValuesBytes": maxCumulativeKeysPlusValuesBytes,
+		"proofLen":                         proofLen(boundingLeaves),
+		"keyValuesCount":                   len(keyValues),
 	})
 
 	stasy.netSender.SendTo(chunk, sender)

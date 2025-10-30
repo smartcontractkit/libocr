@@ -13,6 +13,7 @@ import (
 	"github.com/smartcontractkit/libocr/subprocesses"
 
 	"github.com/smartcontractkit/libocr/internal/loghelper"
+	"github.com/smartcontractkit/libocr/internal/util"
 )
 
 var (
@@ -22,8 +23,8 @@ var (
 // ocrEndpointV3 represents a member of a particular feed oracle group
 type ocrEndpointV3 struct {
 	// configuration and settings
-	defaultPriorityConfig ocr2types.BinaryNetworkEndpoint2Config
-	lowPriorityConfig     ocr2types.BinaryNetworkEndpoint2Config
+	defaultPriorityConfig binaryNetworkEndpoint2ConfigNoNils
+	lowPriorityConfig     binaryNetworkEndpoint2ConfigNoNils
 	peerMapping           map[commontypes.OracleID]ragetypes.PeerID
 	host                  *ragep2pnew.Host
 	configDigest          ocr2types.ConfigDigest
@@ -48,6 +49,21 @@ type ocrEndpointV3 struct {
 type priorityStreamGroup struct {
 	Low     ragep2pnew.Stream2
 	Default ragep2pnew.Stream2
+}
+
+// copy of ocr2types.BinaryNetworkEndpoint2Config without nils
+type binaryNetworkEndpoint2ConfigNoNils struct {
+	ocr2types.BinaryNetworkEndpointLimits
+	IncomingMessageBufferSize int
+	OutgoingMessageBufferSize int
+}
+
+func binaryNetworkEndpoint2ConfigNilCoalesceWithPeerConfig(config ocr2types.BinaryNetworkEndpoint2Config, peer *concretePeerV2) binaryNetworkEndpoint2ConfigNoNils {
+	return binaryNetworkEndpoint2ConfigNoNils{
+		config.BinaryNetworkEndpointLimits,
+		util.NilCoalesce(config.OverrideIncomingMessageBufferSize, peer.endpointConfig.IncomingMessageBufferSize),
+		util.NilCoalesce(config.OverrideOutgoingMessageBufferSize, peer.endpointConfig.OutgoingMessageBufferSize),
+	}
 }
 
 //nolint:unused
@@ -94,8 +110,8 @@ func newOCREndpointV3(
 	}
 
 	o := &ocrEndpointV3{
-		defaultPriorityConfig,
-		lowPriorityConfig,
+		binaryNetworkEndpoint2ConfigNilCoalesceWithPeerConfig(defaultPriorityConfig, peer),
+		binaryNetworkEndpoint2ConfigNilCoalesceWithPeerConfig(lowPriorityConfig, peer),
 		peerMapping,
 		host,
 		configDigest,
@@ -141,8 +157,8 @@ func (o *ocrEndpointV3) start() error {
 			pid,
 			streamNameFromConfigDigestAndPriority(o.configDigest, ragep2pnew.StreamPriorityLow),
 			ragep2pnew.StreamPriorityLow,
-			ragep2pnew.Stream2Limits{o.lowPriorityConfig.OverrideOutgoingMessageBufferSize,
-				o.lowPriorityConfig.OverrideIncomingMessageBufferSize,
+			ragep2pnew.Stream2Limits{o.lowPriorityConfig.OutgoingMessageBufferSize,
+				o.lowPriorityConfig.IncomingMessageBufferSize,
 				o.lowPriorityConfig.MaxMessageLength,
 				ragetypes.TokenBucketParams{
 					o.lowPriorityConfig.MessagesRatePerOracle,
@@ -163,8 +179,8 @@ func (o *ocrEndpointV3) start() error {
 			streamNameFromConfigDigestAndPriority(o.configDigest, ragep2pnew.StreamPriorityDefault),
 			ragep2pnew.StreamPriorityDefault,
 			ragep2pnew.Stream2Limits{
-				o.defaultPriorityConfig.OverrideOutgoingMessageBufferSize,
-				o.defaultPriorityConfig.OverrideIncomingMessageBufferSize,
+				o.defaultPriorityConfig.OutgoingMessageBufferSize,
+				o.defaultPriorityConfig.IncomingMessageBufferSize,
 				o.defaultPriorityConfig.MaxMessageLength,
 				ragetypes.TokenBucketParams{
 					o.defaultPriorityConfig.MessagesRatePerOracle,

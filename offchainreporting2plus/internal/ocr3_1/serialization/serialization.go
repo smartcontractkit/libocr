@@ -377,6 +377,7 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			// fields
 			v.StartSeqNr,
 			v.EndExclSeqNr,
+			uint32(v.MaxCumulativeWriteSetBytes),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageBlockSyncRequest{pm}
 	case protocol.MessageBlockSyncResponse[RI]:
@@ -416,6 +417,7 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			v.ToSeqNr,
 			v.StartIndex[:],
 			v.EndInclIndex[:],
+			uint32(v.MaxCumulativeKeysPlusValuesBytes),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageTreeSyncChunkRequest{pm}
 	case protocol.MessageTreeSyncChunkResponse[RI]:
@@ -529,10 +531,11 @@ func (tpm *toProtoMessage[RI]) certifiedPrepareOrCommit(cpoc protocol.CertifiedP
 				0,
 				nil,
 				// fields
+				v.PrevHistoryDigest[:],
 				v.Epoch(),
 				v.SeqNr(),
 				v.StateTransitionInputsDigest[:],
-				v.StateTransitionOutputsDigest[:],
+				v.StateWriteSetDigest[:],
 				v.StateRootDigest[:],
 				v.ReportsPlusPrecursorDigest[:],
 				prepareQuorumCertificate,
@@ -573,10 +576,11 @@ func (tpm *toProtoMessage[RI]) CertifiedCommit(cpocc protocol.CertifiedCommit) *
 		0,
 		nil,
 		// fields
+		cpocc.PrevHistoryDigest[:],
 		cpocc.Epoch(),
 		cpocc.SeqNr(),
 		cpocc.StateTransitionInputsDigest[:],
-		cpocc.StateTransitionOutputsDigest[:],
+		cpocc.StateWriteSetDigest[:],
 		cpocc.StateRootDigest[:],
 		cpocc.ReportsPlusPrecursorDigest[:],
 		commitQuorumCertificate,
@@ -691,18 +695,19 @@ func (tpm *toProtoMessage[RI]) stateTransitionBlock(stb protocol.StateTransition
 		0,
 		nil,
 		// fields
+		stb.PrevHistoryDigest[:],
 		stb.Epoch,
 		stb.SeqNr(),
 		stb.StateTransitionInputsDigest[:],
-		tpm.stateTransitionOutputs(stb.StateTransitionOutputs),
+		tpm.stateWriteSet(stb.StateWriteSet),
 		stb.StateRootDigest[:],
 		stb.ReportsPlusPrecursorDigest[:],
 	}
 }
 
-func (tpm *toProtoMessage[RI]) stateTransitionOutputs(sto protocol.StateTransitionOutputs) *StateTransitionOutputs {
-	pbWriteSet := make([]*KeyValueModification, 0, len(sto.WriteSet))
-	for _, kvmod := range sto.WriteSet {
+func (tpm *toProtoMessage[RI]) stateWriteSet(sto protocol.StateWriteSet) *StateWriteSet {
+	pbWriteSet := make([]*KeyValueModification, 0, len(sto.Entries))
+	for _, kvmod := range sto.Entries {
 		pbWriteSet = append(pbWriteSet, &KeyValueModification{
 			// zero-initialize protobuf built-ins
 			protoimpl.MessageState{},
@@ -714,7 +719,7 @@ func (tpm *toProtoMessage[RI]) stateTransitionOutputs(sto protocol.StateTransiti
 			kvmod.Deleted,
 		})
 	}
-	return &StateTransitionOutputs{
+	return &StateWriteSet{
 		// zero-initialize protobuf built-ins
 		protoimpl.MessageState{},
 		0,
@@ -956,10 +961,12 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol
 	if m == nil {
 		return protocol.CertifiedPrepare{}, fmt.Errorf("unable to extract a CertifiedPrepare value")
 	}
+	var prevHistoryDigest protocol.HistoryDigest
+	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
 	var inputsDigest protocol.StateTransitionInputsDigest
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
-	var outputsDigest protocol.StateTransitionOutputDigest
-	copy(outputsDigest[:], m.StateTransitionOutputsDigest)
+	var writeSetDigest protocol.StateWriteSetDigest
+	copy(writeSetDigest[:], m.StateWriteSetDigest)
 	var stateRootDigest protocol.StateRootDigest
 	copy(stateRootDigest[:], m.StateRootDigest)
 	var reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest
@@ -977,10 +984,11 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol
 		})
 	}
 	return protocol.CertifiedPrepare{
+		prevHistoryDigest,
 		m.Epoch,
 		m.SeqNr,
 		inputsDigest,
-		outputsDigest,
+		writeSetDigest,
 		stateRootDigest,
 		reportsPlusPrecursorDigest,
 		prepareQuorumCertificate,
@@ -992,10 +1000,12 @@ func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.C
 	if m == nil {
 		return protocol.CertifiedCommit{}, fmt.Errorf("unable to extract a CertifiedCommit value")
 	}
+	var prevHistoryDigest protocol.HistoryDigest
+	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
 	var inputsDigest protocol.StateTransitionInputsDigest
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
-	var outputsDigest protocol.StateTransitionOutputDigest
-	copy(outputsDigest[:], m.StateTransitionOutputsDigest)
+	var writeSetDigest protocol.StateWriteSetDigest
+	copy(writeSetDigest[:], m.StateWriteSetDigest)
 	var stateRootDigest protocol.StateRootDigest
 	copy(stateRootDigest[:], m.StateRootDigest)
 	var reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest
@@ -1013,10 +1023,11 @@ func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.C
 		})
 	}
 	return protocol.CertifiedCommit{
+		prevHistoryDigest,
 		m.Epoch,
 		m.SeqNr,
 		inputsDigest,
-		outputsDigest,
+		writeSetDigest,
 		stateRootDigest,
 		reportsPlusPrecursorDigest,
 		commitQuorumCertificate,
@@ -1086,6 +1097,7 @@ func (fpm *fromProtoMessage[RI]) messageRoundStart(m *MessageRoundStart) (protoc
 		return protocol.MessageRoundStart[RI]{}, fmt.Errorf("unable to extract a MessageRoundStart value")
 	}
 	return protocol.MessageRoundStart[RI]{
+		fpm.requestHandle,
 		m.Epoch,
 		m.SeqNr,
 		m.Query,
@@ -1101,6 +1113,7 @@ func (fpm *fromProtoMessage[RI]) messageObservation(m *MessageObservation) (prot
 		return protocol.MessageObservation[RI]{}, err
 	}
 	return protocol.MessageObservation[RI]{
+		types.EmptyRequestHandleForInboundResponse,
 		m.Epoch,
 		m.SeqNr,
 		so,
@@ -1127,6 +1140,7 @@ func (fpm *fromProtoMessage[RI]) messageReportsPlusPrecursorRequest(m *MessageRe
 		return protocol.MessageReportsPlusPrecursorRequest[RI]{}, fmt.Errorf("unable to extract a MessageReportsPlusPrecursorRequest value")
 	}
 	return protocol.MessageReportsPlusPrecursorRequest[RI]{
+		fpm.requestHandle,
 		m.SeqNr,
 	}, nil
 }
@@ -1136,6 +1150,7 @@ func (fpm *fromProtoMessage[RI]) messageReportsPlusPrecursor(m *MessageReportsPl
 		return protocol.MessageReportsPlusPrecursor[RI]{}, fmt.Errorf("unable to extract a MessageReportsPlusPrecursor value")
 	}
 	return protocol.MessageReportsPlusPrecursor[RI]{
+		fpm.requestHandle,
 		m.SeqNr,
 		m.ReportsPlusPrecursor,
 	}, nil
@@ -1202,6 +1217,7 @@ func (fpm *fromProtoMessage[RI]) messageBlockSyncRequest(m *MessageBlockSyncRequ
 		types.EmptyRequestInfoForInboundRequest,
 		m.StartSeqNr,
 		m.EndExclSeqNr,
+		int(m.MaxCumulativeWriteSetBytes),
 	}, nil
 }
 
@@ -1264,21 +1280,24 @@ func (fpm *fromProtoMessage[RI]) stateTransitionBlock(m *StateTransitionBlock) (
 	if m == nil {
 		return protocol.StateTransitionBlock{}, fmt.Errorf("unable to extract a StateTransitionBlock value")
 	}
+	var prevHistoryDigest protocol.HistoryDigest
+	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
 	var inputsDigest protocol.StateTransitionInputsDigest
 	copy(inputsDigest[:], m.StateTransitionInputsDigest)
 	var stateRootDigest protocol.StateRootDigest
 	copy(stateRootDigest[:], m.StateRootDigest)
-	outputs, err := fpm.stateTransitionOutputs(m.StateTransitionOutputs)
+	writeSet, err := fpm.stateWriteSet(m.StateWriteSet)
 	if err != nil {
 		return protocol.StateTransitionBlock{}, err
 	}
 	var reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest
 	copy(reportsPlusPrecursorDigest[:], m.ReportsPlusPrecursorDigest)
 	return protocol.StateTransitionBlock{
+		prevHistoryDigest,
 		m.Epoch,
 		m.SeqNr,
 		inputsDigest,
-		outputs,
+		writeSet,
 		stateRootDigest,
 		reportsPlusPrecursorDigest,
 	}, nil
@@ -1310,13 +1329,13 @@ func (fpm *fromProtoMessage[RI]) attributedCommitSignature(m *AttributedCommitSi
 	}, nil
 }
 
-func (fpm *fromProtoMessage[RI]) stateTransitionOutputs(m *StateTransitionOutputs) (protocol.StateTransitionOutputs, error) {
+func (fpm *fromProtoMessage[RI]) stateWriteSet(m *StateWriteSet) (protocol.StateWriteSet, error) {
 	if m == nil {
-		return protocol.StateTransitionOutputs{}, fmt.Errorf("unable to extract an StateTransitionOutputs value")
+		return protocol.StateWriteSet{}, fmt.Errorf("unable to extract an StateWriteSet value")
 	}
 
-	writeSet := make([]protocol.KeyValuePairWithDeletions, 0, len(m.WriteSet))
-	for _, pbkvmod := range m.WriteSet {
+	writeSet := make([]protocol.KeyValuePairWithDeletions, 0, len(m.Entries))
+	for _, pbkvmod := range m.Entries {
 		writeSet = append(writeSet, protocol.KeyValuePairWithDeletions{
 			pbkvmod.Key,
 			pbkvmod.Value,
@@ -1324,7 +1343,7 @@ func (fpm *fromProtoMessage[RI]) stateTransitionOutputs(m *StateTransitionOutput
 		})
 	}
 
-	return protocol.StateTransitionOutputs{writeSet}, nil
+	return protocol.StateWriteSet{writeSet}, nil
 }
 
 func (fpm *fromProtoMessage[RI]) messageBlobOffer(m *MessageBlobOffer) (protocol.MessageBlobOffer[RI], error) {
@@ -1428,6 +1447,7 @@ func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkRequest(m *MessageTreeSyncC
 		m.ToSeqNr,
 		startIndex,
 		endInclIndex,
+		int(m.MaxCumulativeKeysPlusValuesBytes),
 	}, nil
 }
 

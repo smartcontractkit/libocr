@@ -71,7 +71,7 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 	const sigOverhead = 10
 	const overhead = 256
 
-	maxLenStateTransitionOutputs := add(
+	maxLenStateWriteSet := add(
 		pluginLimits.MaxKeyValueModifiedKeysPlusValuesBytes,
 		mul(
 			pluginLimits.MaxKeyValueModifiedKeys,
@@ -79,7 +79,7 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 		),
 	)
 	maxLenCertifiedPrepareOrCommit := add(mul(ed25519.SignatureSize+sigOverhead, cfg.ByzQuorumSize()),
-		sha256.Size*3,
+		sha256.Size*5,
 		overhead)
 	maxLenMsgNewEpoch := overhead
 	maxLenMsgEpochStartRequest := add(maxLenCertifiedPrepareOrCommit, overhead)
@@ -132,7 +132,7 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 
 	// block sync messages
 	maxLenMsgBlockSyncRequest := overhead
-	maxLenAttestedStateTransitionBlock := add(maxLenCertifiedPrepareOrCommit, maxLenStateTransitionOutputs)
+	maxLenAttestedStateTransitionBlock := add(maxLenCertifiedPrepareOrCommit, maxLenStateWriteSet)
 	maxLenMsgBlockSyncResponse := add(mul(cfg.GetMaxBlocksPerBlockSyncResponse(), maxLenAttestedStateTransitionBlock), overhead)
 
 	// blob exchange messages
@@ -151,13 +151,11 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 		maxLenMsgEpochStartRequest,
 		maxLenMsgEpochStart,
 		maxLenMsgRoundStart,
-		maxLenMsgObservation,
 		maxLenMsgProposal,
 		maxLenMsgPrepare,
 		maxLenMsgCommit,
 		maxLenMsgReportSignatures,
 		maxLenMsgReportsPlusPrecursorRequest,
-		maxLenMsgReportsPlusPrecursor,
 		maxLenMsgBlobOffer,
 		maxLenMsgBlobChunkRequest,
 	)
@@ -174,7 +172,7 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 
 	defaultPriorityMessagesRate := (1.0*float64(time.Second)/float64(cfg.GetDeltaResend()) +
 		3.0*float64(time.Second)/minEpochInterval +
-		8.0*float64(time.Second)/float64(minRoundInterval) +
+		6.0*float64(time.Second)/float64(minRoundInterval) +
 		2.0*float64(time.Second)/float64(cfg.GetDeltaBlobOfferMinRequestToSameOracleInterval()) +
 		1.0*float64(time.Second)/float64(cfg.GetDeltaBlobChunkMinRequestToSameOracleInterval())) * 1.2
 
@@ -182,7 +180,7 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 		1.0*float64(time.Second)/float64(cfg.GetDeltaTreeSyncMinRequestToSameOracleInterval()) +
 		1.0*float64(time.Second)/float64(cfg.GetDeltaStateSyncSummaryInterval())) * 1.2
 
-	defaultPriorityMessagesCapacity := mul(15, 3)
+	defaultPriorityMessagesCapacity := mul(13, 3)
 	lowPriorityMessagesCapacity := mul(3, 3)
 
 	// we don't multiply bytesRate by a safetyMargin since we already have a generous overhead on each message
@@ -196,9 +194,7 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgRoundStart) +
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgProposal) +
 		float64(time.Second)/float64(minEpochInterval)*float64(maxLenMsgEpochStartRequest) +
-		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgObservation) +
 		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgReportsPlusPrecursorRequest) +
-		float64(time.Second)/float64(minRoundInterval)*float64(maxLenMsgReportsPlusPrecursor) +
 		float64(time.Second)/float64(cfg.GetDeltaBlobOfferMinRequestToSameOracleInterval())*float64(maxLenMsgBlobOffer) + // blob-related messages
 		float64(time.Second)/float64(cfg.GetDeltaBlobChunkMinRequestToSameOracleInterval())*float64(maxLenMsgBlobChunkRequest)
 
@@ -212,16 +208,13 @@ func OCR3_1Limits(cfg ocr3_1config.PublicConfig, pluginLimits ocr3_1types.Report
 		maxLenMsgEpochStartRequest,
 		maxLenMsgEpochStart,
 		maxLenMsgRoundStart,
-		maxLenMsgObservation,
 		maxLenMsgProposal,
 		maxLenMsgPrepare,
 		maxLenMsgCommit,
 		maxLenMsgReportSignatures,
 		maxLenMsgReportsPlusPrecursorRequest,
-		maxLenMsgReportsPlusPrecursor,
 		maxLenMsgBlobOffer,
 		maxLenMsgBlobChunkRequest,
-		maxLenMsgBlobOfferResponse,
 	), 3)
 
 	lowPriorityBytesCapacity := mul(add(

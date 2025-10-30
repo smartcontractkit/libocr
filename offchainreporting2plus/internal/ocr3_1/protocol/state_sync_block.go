@@ -6,7 +6,13 @@ import (
 	"github.com/google/btree"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
+)
+
+const (
+	maxCumulativeWriteSetBytes    = ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesBytes
+	maxMaxCumulativeWriteSetBytes = 2 * maxCumulativeWriteSetBytes
 )
 
 // Half-open range, i.e. [StartSeqNr, EndExclSeqNr)
@@ -125,6 +131,7 @@ func (stasy *stateSyncState[RI]) sendBlockSyncRequest(seqNrRange seqNrRange, tar
 		requestInfo,
 		seqNrRange.StartSeqNr,
 		seqNrRange.EndExclSeqNr,
+		maxCumulativeWriteSetBytes,
 	}
 	stasy.netSender.SendTo(msg, target)
 	return requestInfo, true
@@ -174,51 +181,49 @@ func (stasy *stateSyncState[RI]) messageBlockSyncRequest(msg MessageBlockSyncReq
 		return
 	}
 
+	maxCumulativeWriteSetBytes := min(msg.MaxCumulativeWriteSetBytes, maxMaxCumulativeWriteSetBytes)
+
+	// trim suffix of astbs to fit in maxCumulativeWriteSetBytes and avoid seq nr gaps
+	cumulativeWriteSetBytes := 0
 	for i, astb := range astbs {
+		// check if block has the expected sequence number, if not break
 		seqNr := astb.StateTransitionBlock.SeqNr()
-		var expectedSeqNr uint64
-		if i == 0 {
-			expectedSeqNr = msg.StartSeqNr
-		} else {
-			expectedSeqNr = astbs[i-1].StateTransitionBlock.SeqNr() + 1
-		}
+		expectedSeqNr := msg.StartSeqNr + uint64(i)
 		if seqNr != expectedSeqNr {
-			astbs = nil
-			break // do not produce gap
+			// response shouldn't contain gaps
+			break
 		}
+
+		// check if block's write set size would cause response to be too big
+		thisBlockWriteSetBytes := writeSetBytes(&astb)
+		if cumulativeWriteSetBytes+thisBlockWriteSetBytes < cumulativeWriteSetBytes {
+			// overflow, shouldn't happen but we are careful
+			break
+		}
+		if cumulativeWriteSetBytes+thisBlockWriteSetBytes > maxCumulativeWriteSetBytes {
+			// block would cause response to be too big
+			break
+		}
+		cumulativeWriteSetBytes += thisBlockWriteSetBytes
 	}
 
-	if len(astbs) > 0 {
-		stasy.blockSyncState.logger.Debug("sending MessageBlockSyncResponse", commontypes.LogFields{
-			"highestPersisted":     stasy.highestPersistedStateTransitionBlockSeqNr,
-			"lowestPersisted":      stasy.lowestPersistedStateTransitionBlockSeqNr,
-			"requestStartSeqNr":    msg.StartSeqNr,
-			"requestEndExclSeqNr":  msg.EndExclSeqNr,
-			"responseStartSeqNr":   astbs[0].StateTransitionBlock.SeqNr(),
-			"responseEndExclSeqNr": astbs[len(astbs)-1].StateTransitionBlock.SeqNr() + 1,
-			"to":                   sender,
-		})
-		stasy.netSender.SendTo(MessageBlockSyncResponse[RI]{
-			msg.RequestHandle,
-			msg.StartSeqNr,
-			msg.EndExclSeqNr,
-			astbs,
-		}, sender)
-	} else {
-		stasy.blockSyncState.logger.Debug("no blocks to send, sending an empty MessageBlockSyncResponse to indicate go-away", commontypes.LogFields{
-			"highestPersisted":    stasy.highestPersistedStateTransitionBlockSeqNr,
-			"lowestPersisted":     stasy.lowestPersistedStateTransitionBlockSeqNr,
-			"requestStartSeqNr":   msg.StartSeqNr,
-			"requestEndExclSeqNr": msg.EndExclSeqNr,
-			"to":                  sender,
-		})
-		stasy.netSender.SendTo(MessageBlockSyncResponse[RI]{
-			msg.RequestHandle,
-			msg.StartSeqNr,
-			msg.EndExclSeqNr,
-			astbs,
-		}, sender)
-	}
+	stasy.blockSyncState.logger.Debug("sending MessageBlockSyncResponse", commontypes.LogFields{
+		"highestPersisted":           stasy.highestPersistedStateTransitionBlockSeqNr,
+		"lowestPersisted":            stasy.lowestPersistedStateTransitionBlockSeqNr,
+		"requestStartSeqNr":          msg.StartSeqNr,
+		"requestEndExclSeqNr":        msg.EndExclSeqNr,
+		"blocks":                     len(astbs),
+		"cumulativeWriteSetBytes":    cumulativeWriteSetBytes,
+		"maxCumulativeWriteSetBytes": maxCumulativeWriteSetBytes,
+		"goAway":                     len(astbs) == 0,
+		"to":                         sender,
+	})
+	stasy.netSender.SendTo(MessageBlockSyncResponse[RI]{
+		msg.RequestHandle,
+		msg.StartSeqNr,
+		msg.EndExclSeqNr,
+		astbs,
+	}, sender)
 }
 
 func (stasy *stateSyncState[RI]) messageBlockSyncResponse(msg MessageBlockSyncResponse[RI], sender commontypes.OracleID) {
@@ -375,4 +380,12 @@ func (stasy *stateSyncState[RI]) tryCompleteBlockSync() {
 	}
 	stasy.highestPersistedStateTransitionBlockSeqNr = lastSeqNr
 	stasy.pleaseTryToReplayBlock()
+}
+
+func writeSetBytes(astb *AttestedStateTransitionBlock) int {
+	runningCumulativeWriteSetBytes := 0
+	for _, kvPair := range astb.StateTransitionBlock.StateWriteSet.Entries {
+		runningCumulativeWriteSetBytes += len(kvPair.Key) + len(kvPair.Value)
+	}
+	return runningCumulativeWriteSetBytes
 }

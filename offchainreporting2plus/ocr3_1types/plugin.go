@@ -382,12 +382,43 @@ type ReportingPluginLimits struct {
 	// A modification that resets the value of a key to its original value at
 	// the start of StateTransition will still count towards the limit.
 
-	MaxKeyValueModifiedKeys                int
+	// MaxKeyValueModifiedKeys upper bounds the number of modified keys inside
+	// the StateTransition method. A key might be modified multiple times within
+	// a single StateTransition, but will only count once towards the limit. A
+	// modification that resets the value of a key to its original value at the
+	// start of StateTransition will still count towards the limit.
+	MaxKeyValueModifiedKeys int
+	// MaxKeyValueModifiedKeysPlusValuesBytes upper bounds the cumulative bytes
+	// for all modifications to key-values inside the StateTransition method.
+	// For a write modification, both the key and the value count towards the
+	// limit. For a delete modification, only the key counts towards the limit.
+	// For each key, only its last modification counts towards the limit. A
+	// modification that resets the value of a key to its original value at the
+	// start of StateTransition will still count towards the limit.
 	MaxKeyValueModifiedKeysPlusValuesBytes int
 
-	MaxBlobPayloadBytes                             int
+	// MaxBlobPayloadBytes upper bounds the payload bytes for a single blob. A
+	// broadcast with a larger payload will be rejected.
+	MaxBlobPayloadBytes int
+	// MaxPerOracleUnexpiredBlobCumulativePayloadBytes upper bounds the
+	// cumulative payload length for all unreaped blobs from a single oracle.
+	// Inbound broadcasts that would violate this upper bound will be rejected.
+	// Due to the asynchronous nature of blob reaping, an expired blob might not
+	// be reaped yet, and thus might still be counted towards this upper bound.
+	// The number of unreaped blobs eventually approximates the number of
+	// unexpired blobs. Consequently, you must set this value loosely,
+	// multiplying by a factor that accounts for a blob reaping interval in the
+	// tens of seconds.
 	MaxPerOracleUnexpiredBlobCumulativePayloadBytes int
-	MaxPerOracleUnexpiredBlobCount                  int
+	// MaxPerOracleUnexpiredBlobCount is upper bounds the number of unreaped
+	// blobs from a single oracle. Inbound broadcasts that would violate this
+	// upper bound will be rejected. Due to the asynchronous nature of blob
+	// reaping, an expired blob might not be reaped yet, and thus might still be
+	// counted towards this upper bound. The number of unreaped blobs eventually
+	// approximates the number of unexpired blobs. Consequently, you must set
+	// this value loosely, multiplying by a factor that accounts for a blob
+	// reaping interval in the tens of seconds.
+	MaxPerOracleUnexpiredBlobCount int
 }
 
 //go-sumtype:decl ReportingPluginInfo
