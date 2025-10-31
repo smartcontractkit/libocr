@@ -82,10 +82,7 @@ func (stasy *stateSyncState[RI]) getPendingBlocksToRequest() []seqNrRange {
 			// [lastSeqNr+1..seqNr) (exclusive) is a gap to fill
 
 			for rangeStartSeqNr := lastSeqNr + 1; rangeStartSeqNr < seqNr; rangeStartSeqNr += cfgMaxBlocksPerBlockSyncResponse {
-				rangeEndExclSeqNr := rangeStartSeqNr + cfgMaxBlocksPerBlockSyncResponse
-				if rangeEndExclSeqNr > seqNr {
-					rangeEndExclSeqNr = seqNr
-				}
+				rangeEndExclSeqNr := min(rangeStartSeqNr+cfgMaxBlocksPerBlockSyncResponse, seqNr)
 				pending = append(pending, seqNrRange{rangeStartSeqNr, rangeEndExclSeqNr})
 			}
 		}
@@ -94,11 +91,11 @@ func (stasy *stateSyncState[RI]) getPendingBlocksToRequest() []seqNrRange {
 	})
 
 	for rangeStartSeqNr := lastSeqNr + 1; rangeStartSeqNr <= stasy.highestPersistedStateTransitionBlockSeqNr+cfgBlockSyncLookahead && rangeStartSeqNr <= stasy.highestHeardSeqNr; rangeStartSeqNr += cfgMaxBlocksPerBlockSyncResponse {
-		rangeEndExclSeqNr := rangeStartSeqNr + cfgMaxBlocksPerBlockSyncResponse
-		if rangeEndExclSeqNr > stasy.highestPersistedStateTransitionBlockSeqNr+cfgBlockSyncLookahead {
-			rangeEndExclSeqNr = stasy.highestPersistedStateTransitionBlockSeqNr + cfgBlockSyncLookahead
-		}
-		// no check for rangeEndExclSeqNr > stasy.highestHeardSeqNr, because there is no harm in asking for more than exists
+		maxRangeEndExclSeqNr := stasy.highestPersistedStateTransitionBlockSeqNr + cfgBlockSyncLookahead + 1
+		rangeEndExclSeqNr := min(rangeStartSeqNr+cfgMaxBlocksPerBlockSyncResponse, maxRangeEndExclSeqNr)
+		// If this is the last range that is pending, we're fine with asking for
+		// blocks beyond highestHeardSeqNr, as long as we're not asking for more
+		// than cfgMaxBlocksPerBlockSyncResponse blocks.
 		pending = append(pending, seqNrRange{rangeStartSeqNr, rangeEndExclSeqNr})
 	}
 

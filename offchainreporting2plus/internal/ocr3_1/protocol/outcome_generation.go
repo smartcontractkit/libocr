@@ -553,7 +553,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 		return
 	}
 
-	stb, err := tx.ReadUnattestedStateTransitionBlock(commitQC.CommitSeqNr, commitQC.StateTransitionInputsDigest)
+	ustb, err := tx.ReadUnattestedStateTransitionBlock(commitQC.CommitSeqNr, commitQC.StateTransitionInputsDigest)
 	if err != nil {
 		outgen.logger.Error("error during ReadUnattestedStateTransitionBlock", commontypes.LogFields{
 			"commitQCSeqNr": commitQC.CommitSeqNr,
@@ -561,27 +561,54 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 		})
 		return
 	}
-	if stb == nil {
+	if ustb == nil {
 		outgen.logger.Debug("unattested state transition block not found, can't move kv state", commontypes.LogFields{
 			"commitQCSeqNr": commitQC.CommitSeqNr,
 		})
 		return
 	}
-	if err := outgen.isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC, *stb); err != nil {
+	if err := outgen.isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC, ustb); err != nil {
 		outgen.logger.Critical("sanity check of unattested state transition block failed, very surprising!", commontypes.LogFields{
-			"commitQCSeqNr": commitQC.CommitSeqNr,
-			"error":         err,
+			"commitQCSeqNr":                  commitQC.CommitSeqNr,
+			"commitQC":                       commitQC,
+			"unattestedStateTransitionBlock": ustb,
+			"error":                          err,
 		})
 		return
 	}
 
-	astb := AttestedStateTransitionBlock{
-		*stb,
+	commitQCStateTransitionBlock := StateTransitionBlock{
+		commitQC.PrevHistoryDigest,
+		commitQC.CommitEpoch,
+		commitQC.CommitSeqNr,
+		commitQC.StateTransitionInputsDigest,
+		ustb.StateWriteSet,
+		commitQC.StateRootDigest,
+		commitQC.ReportsPlusPrecursorDigest,
+	}
+
+	commitQCAttestedStateTransitionBlock := AttestedStateTransitionBlock{
+		commitQCStateTransitionBlock,
 		commitQC.CommitQuorumCertificate,
 	}
 
-	// write astb
-	err = tx.WriteAttestedStateTransitionBlock(commitQC.CommitSeqNr, astb)
+	if err := commitQCAttestedStateTransitionBlock.Verify(
+		outgen.config.ConfigDigest,
+		outgen.config.OracleIdentities,
+		outgen.config.ByzQuorumSize(),
+	); err != nil {
+		outgen.logger.Critical("commitQCAttestedStateTransitionBlock is invalid, very surprising!", commontypes.LogFields{
+			"commitQCSeqNr":                        commitQC.CommitSeqNr,
+			"commitQC":                             commitQC,
+			"commitQCAttestedStateTransitionBlock": commitQCAttestedStateTransitionBlock,
+			"unattestedStateTransitionBlock":       ustb,
+			"error":                                err,
+		})
+		return
+	}
+
+	// write commitQCAttestedStateTransitionBlock
+	err = tx.WriteAttestedStateTransitionBlock(commitQC.CommitSeqNr, commitQCAttestedStateTransitionBlock)
 	if err != nil {
 		outgen.logger.Error("error writing attested state transition block", commontypes.LogFields{
 			"commitQCSeqNr": commitQC.CommitSeqNr,
@@ -591,7 +618,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 	}
 
 	// apply write set
-	stateRootDigest, err := tx.ApplyWriteSet(stb.StateWriteSet.Entries)
+	stateRootDigest, err := tx.ApplyWriteSet(commitQCStateTransitionBlock.StateWriteSet.Entries)
 	if err != nil {
 		outgen.logger.Error("error applying write set", commontypes.LogFields{
 			"commitQCSeqNr": commitQC.CommitSeqNr,
@@ -600,10 +627,10 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 		return
 	}
 
-	if stateRootDigest != stb.StateRootDigest {
+	if stateRootDigest != commitQCStateTransitionBlock.StateRootDigest {
 		outgen.logger.Error("state root digest mismatch from write set application", commontypes.LogFields{
 			"commitQCSeqNr": commitQC.CommitSeqNr,
-			"expected":      stb.StateRootDigest,
+			"expected":      commitQCStateTransitionBlock.StateRootDigest,
 			"actual":        stateRootDigest,
 		})
 		return
@@ -646,13 +673,16 @@ func (outgen *outcomeGenerationState[RI]) persistUnattestedStateTransitionBlockA
 	return nil
 }
 
-func (outgen *outcomeGenerationState[RI]) isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC *CertifiedCommit, stb StateTransitionBlock) error {
+func (outgen *outcomeGenerationState[RI]) isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC *CertifiedCommit, stb *StateTransitionBlock) error {
 	stbStateWriteSetDigest := MakeStateWriteSetDigest(
 		outgen.config.ConfigDigest,
 		stb.BlockSeqNr,
 		stb.StateWriteSet.Entries,
 	)
 
+	if stb.PrevHistoryDigest != commitQC.PrevHistoryDigest {
+		return fmt.Errorf("local state transition block prev history digest does not match commitQC: expected %s but got %s", commitQC.PrevHistoryDigest, stb.PrevHistoryDigest)
+	}
 	if stbStateWriteSetDigest != commitQC.StateWriteSetDigest {
 		return fmt.Errorf("local state transition block write set digest does not match commitQC: expected %s but got %s", commitQC.StateWriteSetDigest, stbStateWriteSetDigest)
 	}
