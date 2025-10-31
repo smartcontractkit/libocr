@@ -1147,7 +1147,7 @@ func initializeSchema(keyValueDatabase ocr3_1types.KeyValueDatabase) error {
 		it := rawTx.Range(nil, nil)
 		defer it.Close()
 		for it.Next() {
-			return fmt.Errorf("database is not empty")
+			return fmt.Errorf("database is not empty, this database was likely created with an unsupported alpha release of libocr")
 		}
 		if err := it.Err(); err != nil {
 			return fmt.Errorf("failed to ensure database is not empty, iteration error: %w", err)
