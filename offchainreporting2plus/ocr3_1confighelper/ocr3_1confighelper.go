@@ -88,6 +88,10 @@ type PublicConfig struct {
 	MaxDurationShouldAcceptAttestedReport   time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
 
+	PrevConfigDigest  *types.ConfigDigest
+	PrevSeqNr         *uint64
+	PrevHistoryDigest *types.HistoryDigest
+
 	ConfigDigest types.ConfigDigest
 }
 
@@ -196,6 +200,11 @@ func PublicConfigFromContractConfig(checkPublicConfigLevel CheckPublicConfigLeve
 		internalPublicConfig.WarnDurationCommitted,
 		internalPublicConfig.MaxDurationShouldAcceptAttestedReport,
 		internalPublicConfig.MaxDurationShouldTransmitAcceptedReport,
+
+		internalPublicConfig.PrevConfigDigest,
+		internalPublicConfig.PrevSeqNr,
+		internalPublicConfig.PrevHistoryDigest,
+
 		internalPublicConfig.ConfigDigest,
 	}, nil
 }
@@ -306,6 +315,10 @@ type ContractSetConfigArgsOptionalConfig struct {
 	DeltaBlobChunkMinRequestToSameOracleInterval *time.Duration
 	DeltaBlobChunkResponseTimeout                *time.Duration
 	BlobChunkBytes                               *int
+
+	PrevConfigDigest  *types.ConfigDigest
+	PrevSeqNr         *uint64
+	PrevHistoryDigest *types.HistoryDigest
 }
 
 // This function may be used in production. If you use this as part of multisig
@@ -415,6 +428,11 @@ func ContractSetConfigArgsDeterministic(
 			warnDurationCommitted,
 			maxDurationShouldAcceptAttestedReport,
 			maxDurationShouldTransmitAcceptedReport,
+
+			optionalConfig.PrevConfigDigest,
+			optionalConfig.PrevSeqNr,
+			optionalConfig.PrevHistoryDigest,
+
 			f,
 			onchainConfig,
 			types.ConfigDigest{},

@@ -70,6 +70,9 @@ type offchainConfig struct {
 	WarnDurationCommitted                   time.Duration
 	MaxDurationShouldAcceptAttestedReport   time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
+	PrevConfigDigest                        *types.ConfigDigest
+	PrevSeqNr                               *uint64
+	PrevHistoryDigest                       *types.HistoryDigest
 	SharedSecretEncryptions                 config.SharedSecretEncryptions
 }
 
@@ -135,6 +138,24 @@ func deprotoOffchainConfig(
 		return offchainConfig{}, fmt.Errorf("could not unmarshal shared protobuf: %w", err)
 	}
 
+	var prevConfigDigest *types.ConfigDigest
+	if len(offchainConfigProto.PrevConfigDigest) != 0 {
+		d, err := types.BytesToConfigDigest(offchainConfigProto.PrevConfigDigest)
+		if err != nil {
+			return offchainConfig{}, fmt.Errorf("invalid PrevConfigDigest: %w", err)
+		}
+		prevConfigDigest = &d
+	}
+
+	var prevHistoryDigest *types.HistoryDigest
+	if len(offchainConfigProto.PrevHistoryDigest) != 0 {
+		d, err := types.BytesToHistoryDigest(offchainConfigProto.PrevHistoryDigest)
+		if err != nil {
+			return offchainConfig{}, fmt.Errorf("invalid PrevHistoryDigest: %w", err)
+		}
+		prevHistoryDigest = &d
+	}
+
 	return offchainConfig{
 		time.Duration(offchainConfigProto.GetDeltaProgressNanoseconds()),
 		util.PointerIntegerCast[time.Duration](offchainConfigProto.DeltaResendNanoseconds),
@@ -186,6 +207,9 @@ func deprotoOffchainConfig(
 		time.Duration(offchainConfigProto.GetWarnDurationCommittedNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationShouldAcceptAttestedReportNanoseconds()),
 		time.Duration(offchainConfigProto.GetMaxDurationShouldTransmitAcceptedReportNanoseconds()),
+		prevConfigDigest,
+		offchainConfigProto.PrevSeqNr,
+		prevHistoryDigest,
 		sharedSecretEncryptions,
 	}, nil
 }
@@ -230,6 +254,16 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		offchainPublicKeys = append(offchainPublicKeys, k[:])
 	}
 	sharedSecretEncryptions := enprotoSharedSecretEncryptions(o.SharedSecretEncryptions)
+
+	var prevConfigDigestBytes []byte
+	if o.PrevConfigDigest != nil {
+		prevConfigDigestBytes = o.PrevConfigDigest[:]
+	}
+	var prevHistoryDigestBytes []byte
+	if o.PrevHistoryDigest != nil {
+		prevHistoryDigestBytes = o.PrevHistoryDigest[:]
+	}
+
 	return OffchainConfigProto{
 		// zero-initialize protobuf built-ins
 		protoimpl.MessageState{},
@@ -275,6 +309,9 @@ func enprotoOffchainConfig(o offchainConfig) OffchainConfigProto {
 		uint64(o.WarnDurationCommitted),
 		uint64(o.MaxDurationShouldAcceptAttestedReport),
 		uint64(o.MaxDurationShouldTransmitAcceptedReport),
+		prevConfigDigestBytes,
+		o.PrevSeqNr,
+		prevHistoryDigestBytes,
 		&sharedSecretEncryptions,
 	}
 }

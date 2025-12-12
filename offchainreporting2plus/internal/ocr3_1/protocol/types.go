@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"fmt"
+
 	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -37,6 +39,18 @@ const (
 	// Tree sync is actively progressing now.
 	TreeSyncPhaseActive
 )
+
+func (tsp TreeSyncPhase) String() string {
+	switch tsp {
+	case TreeSyncPhaseInactive:
+		return "inactive"
+	case TreeSyncPhaseWaiting:
+		return "waiting"
+	case TreeSyncPhaseActive:
+		return "active"
+	}
+	return fmt.Sprintf("unknown tree sync phase: %d", tsp)
+}
 
 type TreeSyncStatus struct {
 	Phase                  TreeSyncPhase

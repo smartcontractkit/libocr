@@ -61,6 +61,8 @@ type KeyValueDatabaseSemanticRead interface {
 
 	jmt.RootReader
 	jmt.NodeReader
+
+	ReadPrevInstanceGenesisStateTransitionBlock() (*GenesisStateTransitionBlock, error)
 }
 
 type KeyValueDatabaseReadWriteTransaction interface {
@@ -114,12 +116,15 @@ type KeyValueDatabaseSemanticWrite interface {
 	WriteLowestPersistedSeqNr(seqNr uint64) error
 	// VerifyAndWriteTreeSyncChunk first verifies that the keyValues are fully
 	// and without omissions included in the key digest range of [startIndex,
-	// endInclIndex]. Only after doing so, it writes all keyValues into the tree
-	// and flat representation.
+	// endInclIndex]. It also verifies that endInclIndex is in the range of
+	// [startIndex, requestEndInclIndex], and that keyValues is non-empty unless
+	// requestEndInclIndex == endInclIndex. Only after doing all the above, it
+	// writes all keyValues into the tree and flat representation.
 	VerifyAndWriteTreeSyncChunk(
 		targetRootDigest StateRootDigest,
 		targetSeqNr uint64,
 		startIndex jmt.Digest,
+		requestEndInclIndex jmt.Digest,
 		endInclIndex jmt.Digest,
 		boundingLeaves []jmt.BoundingLeaf,
 		keyValues []KeyValuePair,
@@ -145,6 +150,8 @@ type KeyValueDatabaseSemanticWrite interface {
 	DeleteStaleNodes(maxStaleSinceVersion jmt.Version, maxItems int) (done bool, err error)
 
 	DestructiveDestroyForTreeSync(n int) (done bool, err error)
+
+	WritePrevInstanceGenesisStateTransitionBlock(genesisStateTransitionBlock GenesisStateTransitionBlock) error
 }
 
 type BlobMeta struct {

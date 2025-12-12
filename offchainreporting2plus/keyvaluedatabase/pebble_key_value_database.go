@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"sync"
 
 	"github.com/cockroachdb/pebble"
@@ -30,10 +30,23 @@ type pebbleKeyValueDatabaseFactory struct{ baseDir string }
 var _ ocr3_1types.KeyValueDatabaseFactory = &pebbleKeyValueDatabaseFactory{}
 
 func (p *pebbleKeyValueDatabaseFactory) NewKeyValueDatabase(configDigest types.ConfigDigest) (ocr3_1types.KeyValueDatabase, error) {
-	dbPath := path.Join(p.baseDir, fmt.Sprintf("%s.db", configDigest.String()))
+	return p.newKeyValueDatabase(configDigest, true)
+}
 
-	db, err := pebble.Open(dbPath, nil)
+func (p *pebbleKeyValueDatabaseFactory) NewKeyValueDatabaseIfExists(configDigest types.ConfigDigest) (ocr3_1types.KeyValueDatabase, error) {
+	return p.newKeyValueDatabase(configDigest, false)
+}
+
+func (p *pebbleKeyValueDatabaseFactory) newKeyValueDatabase(configDigest types.ConfigDigest, createIfNotExists bool) (ocr3_1types.KeyValueDatabase, error) {
+	dbPath := p.pathForConfigDigest(configDigest)
+	opts := pebble.Options{}
+	errorIfNotExists := !createIfNotExists
+	opts.ErrorIfNotExists = errorIfNotExists
+	db, err := pebble.Open(dbPath, &opts)
 	if err != nil {
+		if errorIfNotExists && errors.Is(err, pebble.ErrDBDoesNotExist) {
+			return nil, ocr3_1types.ErrKeyValueDatabaseDoesNotExist
+		}
 		return nil, err
 	}
 
@@ -42,6 +55,10 @@ func (p *pebbleKeyValueDatabaseFactory) NewKeyValueDatabase(configDigest types.C
 		sync.Mutex{},
 		sync.Once{},
 	}, nil
+}
+
+func (p *pebbleKeyValueDatabaseFactory) pathForConfigDigest(configDigest types.ConfigDigest) string {
+	return filepath.Join(p.baseDir, fmt.Sprintf("%s.db", configDigest.String()))
 }
 
 type pebbleKeyValueDatabase struct {

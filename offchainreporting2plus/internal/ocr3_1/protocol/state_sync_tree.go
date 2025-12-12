@@ -7,7 +7,6 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/jmt"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol/requestergadget"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -64,6 +63,7 @@ func (stasy *stateSyncState[RI]) sendTreeSyncChunkRequest(item treeSyncChunkRequ
 		item.targetSeqNr,
 		item.keyDigestRange.StartIndex,
 		item.keyDigestRange.EndInclIndex,
+
 		stasy.config.GetMaxTreeSyncChunkKeysPlusValuesBytes(),
 	}
 	stasy.netSender.SendTo(msg, target)
@@ -143,6 +143,7 @@ func (stasy *stateSyncState[RI]) evolveTreeSyncPhase() {
 			return
 		}
 		stasy.refreshStateSyncState()
+		stasy.pleaseDestroyStateIfNeeded()
 		return
 	case TreeSyncPhaseWaiting:
 		stasy.treeSyncState.logger.Debug("tree-sync waiting for key-value store cleanup 🧹", nil)
@@ -190,6 +191,7 @@ func (stasy *stateSyncState[RI]) evolveTreeSyncPhase() {
 				return
 			}
 			stasy.refreshStateSyncState()
+			stasy.pleaseDestroyStateIfNeeded()
 			return
 		} else {
 			// our target seq nr is fine, and we are active
@@ -206,7 +208,7 @@ func (stasy *stateSyncState[RI]) evolveTreeSyncPhase() {
 	}
 }
 
-func (stasy *stateSyncState[RI]) acceptTreeSyncTargetBlockFromBlockSync(block AttestedStateTransitionBlock) error {
+func (stasy *stateSyncState[RI]) acceptTreeSyncTargetBlockFromBlockSync(block AttestedOrGenesisStateTransitionBlock) error {
 	if stasy.syncMode != syncModeFetchSnapshotBlock {
 		return fmt.Errorf("not in fetch snapshot block mode")
 	}
@@ -219,12 +221,12 @@ func (stasy *stateSyncState[RI]) acceptTreeSyncTargetBlockFromBlockSync(block At
 		return fmt.Errorf("not accepting block in unexpected tree-sync phase %v", stasy.treeSyncState.treeSyncPhase)
 	}
 
-	seqNr := block.StateTransitionBlock.SeqNr()
+	seqNr := block.seqNr()
 	if seqNr != stasy.treeSyncState.targetSeqNr {
-		return fmt.Errorf("tree-sync target block sequence number does not match expected target sequence number")
+		return fmt.Errorf("tree-sync target block sequence number %d does not match expected target sequence number %d", seqNr, stasy.treeSyncState.targetSeqNr)
 	}
 
-	stateRootDigest := block.StateTransitionBlock.StateRootDigest
+	stateRootDigest := block.stateRootDigest()
 
 	kvReadWriteTxn, err := stasy.kvDb.NewSerializedReadWriteTransactionUnchecked()
 	if err != nil {
@@ -240,8 +242,18 @@ func (stasy *stateSyncState[RI]) acceptTreeSyncTargetBlockFromBlockSync(block At
 		return fmt.Errorf("failed to write tree-sync status: %w", err)
 	}
 
-	if err = kvReadWriteTxn.WriteAttestedStateTransitionBlock(seqNr, block); err != nil {
-		return fmt.Errorf("failed to write attested state transition block: %w", err)
+	var isGenesis bool
+	switch b := block.(type) {
+	case *AttestedStateTransitionBlock:
+		isGenesis = false
+		if err = kvReadWriteTxn.WriteAttestedStateTransitionBlock(seqNr, *b); err != nil {
+			return fmt.Errorf("failed to write attested state transition block: %w", err)
+		}
+	case *GenesisStateTransitionBlock:
+		isGenesis = true
+		if err = kvReadWriteTxn.WritePrevInstanceGenesisStateTransitionBlock(*b); err != nil {
+			return fmt.Errorf("failed to write genesis state transition block: %w", err)
+		}
 	}
 
 	if err = kvReadWriteTxn.Commit(); err != nil {
@@ -249,8 +261,9 @@ func (stasy *stateSyncState[RI]) acceptTreeSyncTargetBlockFromBlockSync(block At
 	}
 
 	stasy.treeSyncState.logger.Debug("tree-sync accepted verified state root digest", commontypes.LogFields{
-		"targetSeqNr": seqNr,
-		"rootDigest":  stateRootDigest,
+		"targetSeqNr":    seqNr,
+		"rootDigest":     stateRootDigest,
+		"isGenesisBlock": isGenesis,
 	})
 
 	stasy.syncMode = syncModeTree
@@ -266,7 +279,7 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkRequest(msg MessageTreeSync
 		"startIndex": msg.StartIndex,
 	})
 
-	if !mustTakeSnapshot(msg.ToSeqNr, stasy.config.PublicConfig) {
+	if !stasy.mustTakeSnapshot(msg.ToSeqNr) {
 		stasy.treeSyncState.logger.Warn("dropping MessageTreeSyncChunkRequest with invalid SeqNr", commontypes.LogFields{
 			"toSeqNr": msg.ToSeqNr,
 		})
@@ -474,6 +487,7 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkResponse(msg MessageTreeSyn
 		stasy.treeSyncState.targetStateRootDigest,
 		stasy.treeSyncState.targetSeqNr,
 		msg.StartIndex,
+		msg.RequestEndInclIndex,
 		msg.EndInclIndex,
 		msg.BoundingLeaves,
 		msg.KeyValues,
@@ -577,6 +591,6 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkResponse(msg MessageTreeSyn
 	panic("unreachable")
 }
 
-func mustTakeSnapshot(seqNr uint64, config ocr3_1config.PublicConfig) bool {
-	return seqNr%config.GetSnapshotInterval() == 0
+func (stasy *stateSyncState[RI]) mustTakeSnapshot(seqNr uint64) bool {
+	return isCompleteSnapshotSeqNr(seqNr, stasy.config.PublicConfig)
 }

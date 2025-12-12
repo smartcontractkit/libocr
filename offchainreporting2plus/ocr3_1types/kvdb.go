@@ -1,6 +1,8 @@
 package ocr3_1types
 
 import (
+	"fmt"
+
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -87,6 +89,9 @@ type KeyValueDatabase interface {
 	Close() error
 }
 
+var ErrKeyValueDatabaseDoesNotExist = fmt.Errorf("key value database does not exist")
+
 type KeyValueDatabaseFactory interface {
 	NewKeyValueDatabase(configDigest types.ConfigDigest) (KeyValueDatabase, error)
+	NewKeyValueDatabaseIfExists(configDigest types.ConfigDigest) (KeyValueDatabase, error)
 }

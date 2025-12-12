@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/btree"
@@ -170,18 +171,36 @@ func (stasy *stateSyncState[RI]) messageBlockSyncRequest(msg MessageBlockSyncReq
 	}
 	defer tx.Discard()
 
-	astbs, _, err := tx.ReadAttestedStateTransitionBlocks(msg.StartSeqNr, maxBlocksInResponse)
-	if err != nil {
-		stasy.blockSyncState.logger.Error("failed to read attested state transition blocks", commontypes.LogFields{
-			"error": err,
-		})
-		return
+	var astbs []AttestedStateTransitionBlock
+	var gstb *GenesisStateTransitionBlock
+
+	// Special case: If someone requests the genesis block, they're looking for
+	// the genesis state transition block from the prev instance.
+	if msg.StartSeqNr == stasy.genesisSeqNr && msg.EndExclSeqNr == stasy.genesisSeqNr+1 {
+		prevInstanceGenesisStateTransitionBlock, err := tx.ReadPrevInstanceGenesisStateTransitionBlock()
+		if err != nil {
+			stasy.blockSyncState.logger.Error("error reading prev instance genesis state transition block", commontypes.LogFields{
+				"error": err,
+			})
+			return
+		}
+		gstb = prevInstanceGenesisStateTransitionBlock
+	} else {
+		var err error
+		astbs, _, err = tx.ReadAttestedStateTransitionBlocks(msg.StartSeqNr, maxBlocksInResponse)
+		if err != nil {
+			stasy.blockSyncState.logger.Error("failed to read attested state transition blocks", commontypes.LogFields{
+				"error": err,
+			})
+			return
+		}
 	}
 
 	maxCumulativeWriteSetBytes := min(msg.MaxCumulativeWriteSetBytes, maxMaxCumulativeWriteSetBytes)
 
 	// trim suffix of astbs to fit in maxCumulativeWriteSetBytes and avoid seq nr gaps
 	cumulativeWriteSetBytes := 0
+	validPrefixCount := 0
 	for i, astb := range astbs {
 		// check if block has the expected sequence number, if not break
 		seqNr := astb.StateTransitionBlock.SeqNr()
@@ -202,17 +221,21 @@ func (stasy *stateSyncState[RI]) messageBlockSyncRequest(msg MessageBlockSyncReq
 			break
 		}
 		cumulativeWriteSetBytes += thisBlockWriteSetBytes
+		validPrefixCount++
 	}
+	astbs = astbs[:validPrefixCount]
 
+	goAway := len(astbs) == 0 && gstb == nil
 	stasy.blockSyncState.logger.Debug("sending MessageBlockSyncResponse", commontypes.LogFields{
 		"highestPersisted":           stasy.highestPersistedStateTransitionBlockSeqNr,
 		"lowestPersisted":            stasy.lowestPersistedStateTransitionBlockSeqNr,
 		"requestStartSeqNr":          msg.StartSeqNr,
 		"requestEndExclSeqNr":        msg.EndExclSeqNr,
 		"blocks":                     len(astbs),
+		"hasGenesisBlock":            gstb != nil,
 		"cumulativeWriteSetBytes":    cumulativeWriteSetBytes,
 		"maxCumulativeWriteSetBytes": maxCumulativeWriteSetBytes,
-		"goAway":                     len(astbs) == 0,
+		"goAway":                     goAway,
 		"to":                         sender,
 	})
 	stasy.netSender.SendTo(MessageBlockSyncResponse[RI]{
@@ -220,6 +243,7 @@ func (stasy *stateSyncState[RI]) messageBlockSyncRequest(msg MessageBlockSyncReq
 		msg.StartSeqNr,
 		msg.EndExclSeqNr,
 		astbs,
+		gstb,
 	}, sender)
 }
 
@@ -234,17 +258,52 @@ func (stasy *stateSyncState[RI]) messageBlockSyncResponse(msg MessageBlockSyncRe
 		return
 	}
 
-	if len(msg.AttestedStateTransitionBlocks) == 0 {
-		stasy.blockSyncState.logger.Debug("dropping MessageBlockSyncResponse, go-away", commontypes.LogFields{
-			"sender":            sender,
-			"requestSeqNrRange": requestSeqNrRange,
-		})
-		stasy.blockSyncState.blockRequesterGadget.MarkGoAwayResponse(requestSeqNrRange, sender)
-		return
+	requestedGenesis := msg.RequestStartSeqNr == stasy.genesisSeqNr && msg.RequestEndExclSeqNr == stasy.genesisSeqNr+1
+
+	// Validate response structure based on what was requested
+	if requestedGenesis {
+		// Genesis request: must have GenesisStateTransitionBlock, must NOT have AttestedStateTransitionBlocks
+		if len(msg.AttestedStateTransitionBlocks) > 0 {
+			stasy.blockSyncState.logger.Warn("dropping MessageBlockSyncResponse for genesis with unexpected attested blocks", commontypes.LogFields{
+				"sender":            sender,
+				"requestSeqNrRange": requestSeqNrRange,
+				"numBlocks":         len(msg.AttestedStateTransitionBlocks),
+			})
+			stasy.blockSyncState.blockRequesterGadget.MarkBadResponse(requestSeqNrRange, sender)
+			return
+		}
+		if msg.GenesisStateTransitionBlock == nil {
+			stasy.blockSyncState.logger.Debug("dropping MessageBlockSyncResponse for genesis, go-away", commontypes.LogFields{
+				"sender":            sender,
+				"requestSeqNrRange": requestSeqNrRange,
+			})
+			stasy.blockSyncState.blockRequesterGadget.MarkGoAwayResponse(requestSeqNrRange, sender)
+			return
+		}
+	} else {
+		// Non-genesis request: must NOT have GenesisStateTransitionBlock
+		if msg.GenesisStateTransitionBlock != nil {
+			stasy.blockSyncState.logger.Warn("dropping MessageBlockSyncResponse for non-genesis with unexpected genesis block", commontypes.LogFields{
+				"sender":            sender,
+				"requestSeqNrRange": requestSeqNrRange,
+			})
+			stasy.blockSyncState.blockRequesterGadget.MarkBadResponse(requestSeqNrRange, sender)
+			return
+		}
+		if len(msg.AttestedStateTransitionBlocks) == 0 {
+			stasy.blockSyncState.logger.Debug("dropping MessageBlockSyncResponse, go-away", commontypes.LogFields{
+				"sender":            sender,
+				"requestSeqNrRange": requestSeqNrRange,
+			})
+			stasy.blockSyncState.blockRequesterGadget.MarkGoAwayResponse(requestSeqNrRange, sender)
+			return
+		}
 	}
 
 	stasy.blockSyncState.logger.Debug("received MessageBlockSyncResponse", commontypes.LogFields{
-		"sender": sender,
+		"sender":          sender,
+		"blocks":          len(msg.AttestedStateTransitionBlocks),
+		"hasGenesisBlock": msg.GenesisStateTransitionBlock != nil,
 	})
 
 	switch stasy.syncMode {
@@ -256,6 +315,21 @@ func (stasy *stateSyncState[RI]) messageBlockSyncResponse(msg MessageBlockSyncRe
 		return
 	case syncModeUnknown:
 		return
+	}
+
+	// Verify genesis state transition block if present
+	if msg.GenesisStateTransitionBlock != nil {
+		if err := stasy.verifyGenesisStateTransitionBlock(*msg.GenesisStateTransitionBlock); err != nil {
+			stasy.blockSyncState.logger.Warn("dropping MessageBlockSyncResponse with genesis block that does not verify", commontypes.LogFields{
+				"sender":              sender,
+				"requestStartSeqNr":   msg.RequestStartSeqNr,
+				"requestEndExclSeqNr": msg.RequestEndExclSeqNr,
+				"genesisBlockSeqNr":   msg.GenesisStateTransitionBlock.SeqNr,
+				"error":               err,
+			})
+			stasy.blockSyncState.blockRequesterGadget.MarkBadResponse(requestSeqNrRange, sender)
+			return
+		}
 	}
 
 	for i, astb := range msg.AttestedStateTransitionBlocks {
@@ -281,8 +355,8 @@ func (stasy *stateSyncState[RI]) messageBlockSyncResponse(msg MessageBlockSyncRe
 			return
 		}
 
-		if err := astb.Verify(stasy.config.ConfigDigest, stasy.config.OracleIdentities, stasy.config.ByzQuorumSize()); err != nil {
-			stasy.blockSyncState.logger.Warn("dropping MessageBlockSyncResponse with invalid attestation", commontypes.LogFields{
+		if err := stasy.verifyAttestedStateTransitionBlock(astb); err != nil {
+			stasy.blockSyncState.logger.Warn("dropping MessageBlockSyncResponse with block that does not verify", commontypes.LogFields{
 				"sender":                    sender,
 				"requestStartSeqNr":         msg.RequestStartSeqNr,
 				"requestEndExclSeqNr":       msg.RequestEndExclSeqNr,
@@ -297,9 +371,16 @@ func (stasy *stateSyncState[RI]) messageBlockSyncResponse(msg MessageBlockSyncRe
 	stasy.blockSyncState.blockRequesterGadget.MarkGoodResponse(requestSeqNrRange, sender)
 
 	if stasy.syncMode == syncModeFetchSnapshotBlock {
-		err := stasy.acceptTreeSyncTargetBlockFromBlockSync(msg.AttestedStateTransitionBlocks[0])
-		if err != nil {
-			stasy.blockSyncState.logger.Error("error accepting tree-sync target block from block sync, will try again", commontypes.LogFields{
+		var block AttestedOrGenesisStateTransitionBlock
+		if msg.GenesisStateTransitionBlock != nil {
+			block = msg.GenesisStateTransitionBlock
+		} else if len(msg.AttestedStateTransitionBlocks) > 0 {
+			block = &msg.AttestedStateTransitionBlocks[0]
+		}
+		if block == nil {
+			stasy.blockSyncState.logger.Critical("unexpected: no block in response after validation passed", nil)
+		} else if err := stasy.acceptTreeSyncTargetBlockFromBlockSync(block); err != nil {
+			stasy.blockSyncState.logger.Error("error accepting tree-sync target block, will try again", commontypes.LogFields{
 				"error": err,
 			})
 		}
@@ -314,6 +395,17 @@ func (stasy *stateSyncState[RI]) messageBlockSyncResponse(msg MessageBlockSyncRe
 	}
 
 	stasy.tryCompleteBlockSync()
+}
+
+func (stasy *stateSyncState[RI]) verifyAttestedStateTransitionBlock(astb AttestedStateTransitionBlock) error {
+	return astb.Verify(stasy.config.PublicConfig)
+}
+
+func (stasy *stateSyncState[RI]) verifyGenesisStateTransitionBlock(gstb GenesisStateTransitionBlock) error {
+	if gstb.SeqNr != stasy.genesisSeqNr {
+		return fmt.Errorf("genesis state transition block seqNr %d does not match expected genesis seqNr %d", gstb.SeqNr, stasy.genesisSeqNr)
+	}
+	return VerifyGenesisStateTransitionBlockFromPrevInstance(stasy.config.PublicConfig, gstb)
 }
 
 func (stasy *stateSyncState[RI]) tryCompleteBlockSync() {

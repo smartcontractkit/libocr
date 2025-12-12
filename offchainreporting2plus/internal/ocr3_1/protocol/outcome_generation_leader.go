@@ -117,11 +117,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
-	if err := maxRequest.message.HighestCertified.Verify(
-		outgen.config.ConfigDigest,
-		outgen.config.OracleIdentities,
-		outgen.config.ByzQuorumSize(),
-	); err != nil {
+	if err := maxRequest.message.HighestCertified.Verify(outgen.config.PublicConfig); err != nil {
 		maxRequest.bad = true
 		outgen.logger.Warn("MessageEpochStartRequest.HighestCertified is invalid", commontypes.LogFields{
 			"sender": *maxSender,
@@ -154,7 +150,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 
 	// This is a sanity check to ensure that we only construct epochStartProofs that are actually valid.
 	// This should never fail.
-	if err := epochStartProof.Verify(outgen.ID(), outgen.config.OracleIdentities, outgen.config.ByzQuorumSize()); err != nil {
+	if err := epochStartProof.Verify(outgen.ID(), outgen.config.PublicConfig); err != nil {
 		outgen.logger.Critical("EpochStartProof is invalid, very surprising!", commontypes.LogFields{
 			"proof": epochStartProof,
 			"error": err,
@@ -189,10 +185,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
-	if epochStartProof.HighestCertified.IsGenesis() {
+	switch cpoc := epochStartProof.HighestCertified.(type) {
+	case *GenesisFromScratch, *GenesisFromPrevInstance:
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
-	} else if commitQC, ok := epochStartProof.HighestCertified.(*CertifiedCommit); ok {
+	case *CertifiedCommit:
+		commitQC := cpoc
 		// Try to commit the block corresponding to the commitQC if (1) we have
 		// not done so and (2) if we have all available information present,
 		// i.e. the StateTransitionBlock corresponding to the commitQC is
@@ -209,12 +207,8 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		}
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentLeaderRound()
-	} else {
-		prepareQc, ok := epochStartProof.HighestCertified.(*CertifiedPrepare)
-		if !ok {
-			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStartRequest", nil)
-			return
-		}
+	case *CertifiedPrepare:
+		prepareQc := cpoc
 
 		if prepareQc.SeqNr() < outgen.sharedState.committedSeqNr {
 
@@ -240,6 +234,10 @@ func (outgen *outcomeGenerationState[RI]) couldLeaderCreateProposalInEpoch(highe
 	)
 
 	switch cpoc := highestCertified.(type) {
+	case *GenesisFromScratch, *GenesisFromPrevInstance:
+		highestCertifiedSeqNr = cpoc.SeqNr()
+
+		highestCertifiedStateTransitionInputsDigest = StateTransitionInputsDigest{}
 	case *CertifiedCommit:
 		highestCertifiedSeqNr = cpoc.CommitSeqNr
 		highestCertifiedStateTransitionInputsDigest = cpoc.StateTransitionInputsDigest

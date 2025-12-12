@@ -200,12 +200,15 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 	var restoredCommitedSeqNr uint64
 	var restoredCommitedHistoryDigest HistoryDigest
 	if restoredCert == nil {
-		restoredCert = &CertifiedCommit{} // genesis
+		// must not be nil per restoreFromDatabase
+		panic("restoredCert is nil")
 	}
-	if commitQC, ok := restoredCert.(*CertifiedCommit); ok {
-		restoredCommitedSeqNr = commitQC.SeqNr()
-		restoredCommitedHistoryDigest = commitQC.HistoryDigest(outgen.config.ConfigDigest)
-	} else if prepareQc, ok := restoredCert.(*CertifiedPrepare); ok {
+	switch cpoc := restoredCert.(type) {
+	case *GenesisFromScratch, *GenesisFromPrevInstance, *CertifiedCommit:
+		restoredCommitedSeqNr = cpoc.SeqNr()
+		restoredCommitedHistoryDigest = cpoc.HistoryDigest(outgen.config.ConfigDigest)
+	case *CertifiedPrepare:
+		prepareQc := cpoc
 		if prepareQc.SeqNr() >= 1 {
 			restoredCommitedSeqNr = prepareQc.SeqNr() - 1
 			restoredCommitedHistoryDigest = prepareQc.PrevHistoryDigest
@@ -473,6 +476,10 @@ func callPluginFromOutcomeGenerationBackground[T any](
 func (outgen *outcomeGenerationState[RI]) sendStateSyncRequestFromCertifiedPrepareOrCommit(cert CertifiedPrepareOrCommit) {
 	var seqNr uint64
 	switch cert := cert.(type) {
+	case *GenesisFromScratch:
+		seqNr = cert.SeqNr()
+	case *GenesisFromPrevInstance:
+		seqNr = cert.PrevSeqNr
 	case *CertifiedPrepare:
 		seqNr = cert.PrepareSeqNr - 1
 	case *CertifiedCommit:
@@ -592,11 +599,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 		commitQC.CommitQuorumCertificate,
 	}
 
-	if err := commitQCAttestedStateTransitionBlock.Verify(
-		outgen.config.ConfigDigest,
-		outgen.config.OracleIdentities,
-		outgen.config.ByzQuorumSize(),
-	); err != nil {
+	if err := commitQCAttestedStateTransitionBlock.Verify(outgen.config.PublicConfig); err != nil {
 		outgen.logger.Critical("commitQCAttestedStateTransitionBlock is invalid, very surprising!", commontypes.LogFields{
 			"commitQCSeqNr":                        commitQC.CommitSeqNr,
 			"commitQC":                             commitQC,

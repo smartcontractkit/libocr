@@ -443,6 +443,7 @@ type MessageBlockSyncResponse[RI any] struct {
 	RequestStartSeqNr             uint64
 	RequestEndExclSeqNr           uint64
 	AttestedStateTransitionBlocks []AttestedStateTransitionBlock // must be contiguous and (if non-empty) starting at RequestStartSeqNr
+	GenesisStateTransitionBlock   *GenesisStateTransitionBlock   // optional genesis block info when syncing from prev instance
 }
 
 var _ MessageToStateSync[struct{}] = MessageBlockSyncResponse[struct{}]{}

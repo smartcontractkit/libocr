@@ -426,7 +426,7 @@ func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepar
 		})
 	} else {
 		o.logger.Info("restoreFromDatabase: did not find cert, starting at genesis", nil)
-		cert = &CertifiedCommit{}
+		cert = GenesisCertifiedPrepareOrCommit(o.config.PublicConfig)
 	}
 
 	return paceState, cert, nil

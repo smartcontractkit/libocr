@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"context"
-	"math"
 	"slices"
 	"time"
 
@@ -29,11 +28,15 @@ func RunStateSync[RI any](
 	netSender NetworkSender[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 ) {
+	subs := subprocesses.Subprocesses{}
+	defer subs.Wait()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	chNotificationToStateBlockReplay := make(chan struct{})
 	chNotificationToStateDestroyIfNeeded := make(chan struct{})
 
-	subs := subprocesses.Subprocesses{}
-	defer subs.Wait()
 	subs.Go(func() {
 		RunStateSyncDestroyIfNeeded(ctx, logger, kvDb, chNotificationToStateDestroyIfNeeded)
 	})
@@ -76,6 +79,8 @@ type stateSyncState[RI any] struct {
 	kvDb                                 KeyValueDatabase
 	logger                               loghelper.LoggerWithContext
 	netSender                            NetworkSender[RI]
+
+	genesisSeqNr uint64
 
 	highestPersistedStateTransitionBlockSeqNr uint64
 	lowestPersistedStateTransitionBlockSeqNr  uint64
@@ -228,7 +233,8 @@ func (stasy *stateSyncState[RI]) eventTSendSummaryTimeout() {
 	if stasy.treeSyncState.treeSyncPhase != TreeSyncPhaseInactive {
 
 		stasy.netSender.Broadcast(MessageStateSyncSummary[RI]{
-			math.MaxUint64,
+
+			0,
 			0,
 		})
 		return
@@ -348,19 +354,16 @@ func (stasy *stateSyncState[RI]) decideBlockSyncOrTreeSyncBasedOnSummariesAndHig
 }
 
 func (stasy *stateSyncState[RI]) pickSomeTreeSyncTarget() (uint64, bool) {
-	if snapshotSeqNr(stasy.highestHeardSeqNr, stasy.config.PublicConfig) == stasy.highestHeardSeqNr {
-		return stasy.highestHeardSeqNr, true
-	} else {
-		snapshotIndex := snapshotIndexFromSeqNr(stasy.highestHeardSeqNr, stasy.config.PublicConfig)
-		if snapshotIndex > 0 {
-			return maxSeqNrWithSnapshotIndex(snapshotIndex-1, stasy.config.PublicConfig), true
-		} else {
-			return 0, false
-		}
-	}
+	return highestCompleteSnapshotSeqNrNotAbove(stasy.highestHeardSeqNr, stasy.config.PublicConfig)
 }
 
 func (stasy *stateSyncState[RI]) needToRetargetTreeSync() bool {
+
+	newTargetSeqNr, found := stasy.pickSomeTreeSyncTarget()
+	if found && newTargetSeqNr == stasy.treeSyncState.targetSeqNr {
+		return false
+	}
+
 	switch stasy.findSomeHonestOraclePruneStatus(stasy.treeSyncState.targetSeqNr) {
 	case honestOraclePruneStatusWouldNotPrune:
 		return false
@@ -413,7 +416,12 @@ func (stasy *stateSyncState[RI]) tryToKickStartSync() {
 		return
 	}
 
-	decision := stasy.decideBlockSyncOrTreeSyncBasedOnSummariesAndHighestHeard()
+	var decision blockSyncOrTreeSyncDecision
+	if stasy.mustTreeSyncToPrevInstance() {
+		decision = blockSyncOrTreeSyncDecisionTreeSync
+	} else {
+		decision = stasy.decideBlockSyncOrTreeSyncBasedOnSummariesAndHighestHeard()
+	}
 
 	if decision == blockSyncOrTreeSyncDecisionCannotDecideYet {
 		stasy.logger.Debug("cannot decide whether to block-sync or tree-sync, yet", nil)
@@ -434,6 +442,10 @@ func (stasy *stateSyncState[RI]) tryToKickStartSync() {
 		stasy.blockSyncState.blockRequesterGadget.PleaseRecheckPendingItems()
 		return
 	}
+}
+
+func (stasy *stateSyncState[RI]) mustTreeSyncToPrevInstance() bool {
+	return stasy.highestCommittedSeqNr < stasy.genesisSeqNr
 }
 
 func newStateSyncState[RI any](
@@ -459,6 +471,8 @@ func newStateSyncState[RI any](
 		})
 	}
 
+	genesisSeqNr := genesisSeqNr(config.PublicConfig)
+
 	stasy := &stateSyncState[RI]{
 		ctx,
 
@@ -473,12 +487,15 @@ func newStateSyncState[RI any](
 		kvDb,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "stasy"}),
 		netSender,
+
+		genesisSeqNr,
+
 		0,
 		0,
 		0,
 
 		oracles,
-		0,
+		genesisSeqNr,
 
 		blockSyncState[RI]{
 			logger.MakeUpdated(commontypes.LogFields{"proto": "stasy/block"}),
