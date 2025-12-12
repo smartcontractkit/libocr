@@ -190,6 +190,47 @@ type PublicConfig struct {
 	MaxDurationShouldAcceptAttestedReport   time.Duration // Context deadline passed to ShouldAcceptAttestedReport.
 	MaxDurationShouldTransmitAcceptedReport time.Duration // Context deadline passed to ShouldTransmitAcceptedReport.
 
+	// PrevConfigDigest is the config digest of the previous instance that this
+	// next instance is a continuation of. The previous instance must overlap in
+	// at least one oracle with the next instance, though larger overlaps are
+	// highly encouraged and will improve the initial synchronization
+	// performance.
+	//
+	// WARNING! This is an advanced feature and should only be used if you
+	// *really* know what you are doing. Failure to set this or any of the other
+	// Prev fields correctly will result in the instance not making any
+	// progress or data loss.
+	PrevConfigDigest *types.ConfigDigest
+	// PrevSeqNr is the sequence number of the previous instance that this next
+	// instance will continue from. Sequence numbers in the next instance will
+	// continue from PrevSeqNr. This must be a snapshot sequence number for the
+	// previous instance, i.e., PrevSeqNr % PrevInstanceConfig.SnapshotInterval
+	// == 0. The overlapping oracle must have locally committed the state as of
+	// PrevSeqNr and the snapshot associated with PrevSeqNr must be in the
+	// retention window implied by
+	// PrevInstanceConfig.MaxHistoricalSnapshotsRetained and
+	// PrevInstanceConfig.SnapshotInterval. (For instances whose previous
+	// instance already has a PrevSeqNr, this imples PrevSeqNr >
+	// PrevInstanceConfig.PrevSeqNr.)
+	//
+	// Be aware that any state transitions committed after PrevSeqNr in the
+	// previous instance will not be available in the next instance (and
+	// typically be lost forever).
+	//
+	// WARNING! This is an advanced feature and should only be used if you
+	// *really* know what you are doing. Failure to set this or any of the other
+	// Prev fields correctly will result in the instance not making any
+	// progress or data loss.
+	PrevSeqNr *uint64
+	// PrevHistoryDigest is the history digest of the previous instance at
+	// PrevSeqNr.
+	//
+	// WARNING! This is an advanced feature and should only be used if you
+	// *really* know what you are doing. Failure to set this or any of the other
+	// Prev fields correctly will result in the instance not making any
+	// progress or data loss.
+	PrevHistoryDigest *types.HistoryDigest
+
 	// The maximum number of oracles that are assumed to be faulty while the
 	// protocol can retain liveness and safety. Unless you really know what
 	// you’re doing, be sure to set this to floor((n-1)/3) where n is the total
@@ -297,6 +338,23 @@ func (c *PublicConfig) GetBlobChunkBytes() int {
 	return util.NilCoalesce(c.BlobChunkBytes, DefaultBlobChunkBytes)
 }
 
+type PublicConfigPrevFields struct {
+	PrevConfigDigest  types.ConfigDigest
+	PrevSeqNr         uint64
+	PrevHistoryDigest types.HistoryDigest
+}
+
+func (c *PublicConfig) GetPrevFields() (PublicConfigPrevFields, bool) {
+	if c.PrevConfigDigest == nil || c.PrevSeqNr == nil || c.PrevHistoryDigest == nil {
+		return PublicConfigPrevFields{}, false
+	}
+	return PublicConfigPrevFields{
+		*c.PrevConfigDigest,
+		*c.PrevSeqNr,
+		*c.PrevHistoryDigest,
+	}, true
+}
+
 // The minimum interval between round starts.
 // This is not a guaranteed lower bound. For example, a malicious leader could
 // violate this bound.
@@ -399,6 +457,10 @@ func publicConfigFromContractConfig(skipInsaneForProductionChecks bool, change t
 		oc.WarnDurationCommitted,
 		oc.MaxDurationShouldAcceptAttestedReport,
 		oc.MaxDurationShouldTransmitAcceptedReport,
+
+		oc.PrevConfigDigest,
+		oc.PrevSeqNr,
+		oc.PrevHistoryDigest,
 
 		int(change.F),
 		change.OnchainConfig,
@@ -553,6 +615,13 @@ func checkPublicConfigParameters(cfg PublicConfig) error {
 	// Be sure to think about changes to other tooling that need to
 	// be made when you change this function!
 	/////////////////////////////////////////////////////////////////
+
+	if !((cfg.PrevConfigDigest == nil) == (cfg.PrevSeqNr == nil) && (cfg.PrevSeqNr == nil) == (cfg.PrevHistoryDigest == nil)) {
+		return fmt.Errorf("PrevConfigDigest, PrevSeqNr, and PrevHistoryDigest must all be set or all be nil")
+	}
+	if cfg.PrevSeqNr != nil && !(0 < *cfg.PrevSeqNr) {
+		return fmt.Errorf("PrevSeqNr (%v) must be positive if non-nil", *cfg.PrevSeqNr)
+	}
 
 	if !(0 <= cfg.F && cfg.F*3 < cfg.N()) {
 		return fmt.Errorf("F (%v) must be non-negative and less than N/3 (N = %v)",

@@ -109,6 +109,12 @@ func SerializeStateTransitionBlock(stb protocol.StateTransitionBlock) ([]byte, e
 	return proto.Marshal(tpm.stateTransitionBlock(stb))
 }
 
+func SerializeGenesisStateTransitionBlock(gstb protocol.GenesisStateTransitionBlock) ([]byte, error) {
+	tpm := toProtoMessage[struct{}]{}
+
+	return proto.Marshal(tpm.genesisStateTransitionBlock(&gstb))
+}
+
 // Deserialize decodes a binary payload into a protocol.Message
 func Deserialize[RI any](n int, b []byte, requestHandle types.RequestHandle) (protocol.Message[RI], *MessageWrapper, error) {
 	pb := &MessageWrapper{}
@@ -225,6 +231,23 @@ func DeserializeStateTransitionBlock(b []byte) (protocol.StateTransitionBlock, e
 
 	fpm := fromProtoMessage[struct{}]{}
 	return fpm.stateTransitionBlock(&pb)
+}
+
+func DeserializeGenesisStateTransitionBlock(b []byte) (protocol.GenesisStateTransitionBlock, error) {
+	pb := GenesisStateTransitionBlock{}
+	if err := proto.Unmarshal(b, &pb); err != nil {
+		return protocol.GenesisStateTransitionBlock{}, err
+	}
+
+	fpm := fromProtoMessage[struct{}]{}
+	gstb, err := fpm.genesisStateTransitionBlock(&pb)
+	if err != nil {
+		return protocol.GenesisStateTransitionBlock{}, err
+	}
+	if gstb == nil {
+		return protocol.GenesisStateTransitionBlock{}, fmt.Errorf("unexpectedly got nil genesis state transition block")
+	}
+	return *gstb, nil
 }
 
 //
@@ -394,6 +417,7 @@ func (tpm *toProtoMessage[RI]) messageWrapper(m protocol.Message[RI]) (*MessageW
 			v.RequestStartSeqNr,
 			v.RequestEndExclSeqNr,
 			astbs,
+			tpm.genesisStateTransitionBlock(v.GenesisStateTransitionBlock),
 		}
 		msgWrapper.Msg = &MessageWrapper_MessageBlockSyncResponse{pm}
 	case protocol.MessageStateSyncSummary[RI]:
@@ -550,6 +574,33 @@ func (tpm *toProtoMessage[RI]) certifiedPrepareOrCommit(cpoc protocol.CertifiedP
 			// fields
 			&CertifiedPrepareOrCommit_Commit{tpm.CertifiedCommit(*v)},
 		}
+	case *protocol.GenesisFromScratch:
+		return &CertifiedPrepareOrCommit{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			&CertifiedPrepareOrCommit_GenesisFromScratch{&GenesisFromScratch{}},
+		}
+	case *protocol.GenesisFromPrevInstance:
+		return &CertifiedPrepareOrCommit{
+			// zero-initialize protobuf built-ins
+			protoimpl.MessageState{},
+			0,
+			nil,
+			// fields
+			&CertifiedPrepareOrCommit_GenesisFromPrevInstance{
+				&GenesisFromPrevInstance{
+					// zero-initialize protobuf built-ins
+					protoimpl.MessageState{},
+					0,
+					nil,
+					// fields
+					v.PrevHistoryDigest[:],
+					v.PrevSeqNr,
+				}},
+		}
 	default:
 		// It's safe to crash here since the "protocol.*" versions of these values
 		// come from the trusted, local environment.
@@ -702,6 +753,25 @@ func (tpm *toProtoMessage[RI]) stateTransitionBlock(stb protocol.StateTransition
 		tpm.stateWriteSet(stb.StateWriteSet),
 		stb.StateRootDigest[:],
 		stb.ReportsPlusPrecursorDigest[:],
+	}
+}
+
+func (tpm *toProtoMessage[RI]) genesisStateTransitionBlock(gstb *protocol.GenesisStateTransitionBlock) *GenesisStateTransitionBlock {
+	if gstb == nil {
+		return nil
+	}
+	return &GenesisStateTransitionBlock{
+		// zero-initialize protobuf built-ins
+		protoimpl.MessageState{},
+		0,
+		nil,
+		// fields
+		gstb.PrevHistoryDigest[:],
+		gstb.SeqNr,
+		gstb.StateTransitionInputsDigest[:],
+		gstb.StateWriteSetDigest[:],
+		gstb.StateRootDigest[:],
+		gstb.ReportsPlusPrecursorDigest[:],
 	}
 }
 
@@ -952,9 +1022,29 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepareOrCommit(m *CertifiedPrepareOrC
 			return nil, err
 		}
 		return &cpocc, nil
+	case *CertifiedPrepareOrCommit_GenesisFromScratch:
+		return &protocol.GenesisFromScratch{}, nil
+	case *CertifiedPrepareOrCommit_GenesisFromPrevInstance:
+		gfpi, err := fpm.genesisFromPrevInstance(poc.GenesisFromPrevInstance)
+		if err != nil {
+			return nil, err
+		}
+		return &gfpi, nil
 	default:
 		return nil, fmt.Errorf("unknown case of CertifiedPrepareOrCommit")
 	}
+}
+
+func (fpm *fromProtoMessage[RI]) genesisFromPrevInstance(m *GenesisFromPrevInstance) (protocol.GenesisFromPrevInstance, error) {
+	if m == nil {
+		return protocol.GenesisFromPrevInstance{}, fmt.Errorf("unable to extract a GenesisFromPrevInstance value")
+	}
+	var prevHistoryDigest protocol.HistoryDigest
+	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
+	return protocol.GenesisFromPrevInstance{
+		prevHistoryDigest,
+		m.PrevSeqNr,
+	}, nil
 }
 
 func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol.CertifiedPrepare, error) {
@@ -1229,11 +1319,16 @@ func (fpm *fromProtoMessage[RI]) messageBlockSyncResponse(m *MessageBlockSyncRes
 	if err != nil {
 		return protocol.MessageBlockSyncResponse[RI]{}, err
 	}
+	gstb, err := fpm.genesisStateTransitionBlock(m.GenesisStateTransitionBlock)
+	if err != nil {
+		return protocol.MessageBlockSyncResponse[RI]{}, err
+	}
 	return protocol.MessageBlockSyncResponse[RI]{
 		types.EmptyRequestHandleForInboundResponse,
 		m.RequestStartSeqNr,
 		m.RequestEndExclSeqNr,
 		astbs,
+		gstb,
 	}, nil
 }
 
@@ -1303,6 +1398,30 @@ func (fpm *fromProtoMessage[RI]) stateTransitionBlock(m *StateTransitionBlock) (
 	}, nil
 }
 
+func (fpm *fromProtoMessage[RI]) genesisStateTransitionBlock(m *GenesisStateTransitionBlock) (*protocol.GenesisStateTransitionBlock, error) {
+	if m == nil {
+		return nil, nil
+	}
+	var prevHistoryDigest protocol.HistoryDigest
+	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
+	var inputsDigest protocol.StateTransitionInputsDigest
+	copy(inputsDigest[:], m.StateTransitionInputsDigest)
+	var writeSetDigest protocol.StateWriteSetDigest
+	copy(writeSetDigest[:], m.StateWriteSetDigest)
+	var stateRootDigest protocol.StateRootDigest
+	copy(stateRootDigest[:], m.StateRootDigest)
+	var reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest
+	copy(reportsPlusPrecursorDigest[:], m.ReportsPlusPrecursorDigest)
+	return &protocol.GenesisStateTransitionBlock{
+		prevHistoryDigest,
+		m.SeqNr,
+		inputsDigest,
+		writeSetDigest,
+		stateRootDigest,
+		reportsPlusPrecursorDigest,
+	}, nil
+}
+
 func (fpm *fromProtoMessage[RI]) attributedCommitSignatures(pbasigs []*AttributedCommitSignature) ([]protocol.AttributedCommitSignature, error) {
 	asigs := make([]protocol.AttributedCommitSignature, 0, len(pbasigs))
 	for _, pbasig := range pbasigs {
@@ -1329,6 +1448,18 @@ func (fpm *fromProtoMessage[RI]) attributedCommitSignature(m *AttributedCommitSi
 	}, nil
 }
 
+func (fpm *fromProtoMessage[RI]) keyValuePairWithDeletions(pbkvmod *KeyValueModification) (protocol.KeyValuePairWithDeletions, error) {
+	if pbkvmod == nil {
+		return protocol.KeyValuePairWithDeletions{}, fmt.Errorf("unable to extract a KeyValuePairWithDeletions value")
+	}
+
+	return protocol.KeyValuePairWithDeletions{
+		pbkvmod.Key,
+		pbkvmod.Value,
+		pbkvmod.Deleted,
+	}, nil
+}
+
 func (fpm *fromProtoMessage[RI]) stateWriteSet(m *StateWriteSet) (protocol.StateWriteSet, error) {
 	if m == nil {
 		return protocol.StateWriteSet{}, fmt.Errorf("unable to extract an StateWriteSet value")
@@ -1336,11 +1467,11 @@ func (fpm *fromProtoMessage[RI]) stateWriteSet(m *StateWriteSet) (protocol.State
 
 	writeSet := make([]protocol.KeyValuePairWithDeletions, 0, len(m.Entries))
 	for _, pbkvmod := range m.Entries {
-		writeSet = append(writeSet, protocol.KeyValuePairWithDeletions{
-			pbkvmod.Key,
-			pbkvmod.Value,
-			pbkvmod.Deleted,
-		})
+		kvwd, err := fpm.keyValuePairWithDeletions(pbkvmod)
+		if err != nil {
+			return protocol.StateWriteSet{}, err
+		}
+		writeSet = append(writeSet, kvwd)
 	}
 
 	return protocol.StateWriteSet{writeSet}, nil
@@ -1464,13 +1595,25 @@ func (fpm *fromProtoMessage[RI]) treeSyncChunkProof(pbpns [][]byte) ([]jmt.Diges
 	return proof, nil
 }
 
+func (fpm *fromProtoMessage[RI]) keyValuePair(pbkvp *KeyValuePair) (protocol.KeyValuePair, error) {
+	if pbkvp == nil {
+		return protocol.KeyValuePair{}, fmt.Errorf("unable to extract a KeyValuePair value")
+	}
+
+	return protocol.KeyValuePair{
+		pbkvp.Key,
+		pbkvp.Value,
+	}, nil
+}
+
 func (fpm *fromProtoMessage[RI]) treeSyncChunkKeyValues(pbkvps []*KeyValuePair) ([]protocol.KeyValuePair, error) {
 	kvps := make([]protocol.KeyValuePair, 0, len(pbkvps))
 	for _, pbkvp := range pbkvps {
-		kvps = append(kvps, protocol.KeyValuePair{
-			pbkvp.Key,
-			pbkvp.Value,
-		})
+		kv, err := fpm.keyValuePair(pbkvp)
+		if err != nil {
+			return nil, err
+		}
+		kvps = append(kvps, kv)
 	}
 	return kvps, nil
 }
@@ -1485,6 +1628,9 @@ func (fpm *fromProtoMessage[RI]) digest(pbdigest []byte) (jmt.Digest, error) {
 }
 
 func (fpm *fromProtoMessage[RI]) leafKeyAndValueDigests(pblkd *LeafKeyAndValueDigests) (jmt.LeafKeyAndValueDigests, error) {
+	if pblkd == nil {
+		return jmt.LeafKeyAndValueDigests{}, fmt.Errorf("unable to extract a LeafKeyAndValueDigests value")
+	}
 	keyDigest, err := fpm.digest(pblkd.KeyDigest)
 	if err != nil {
 		return jmt.LeafKeyAndValueDigests{}, err
@@ -1499,21 +1645,32 @@ func (fpm *fromProtoMessage[RI]) leafKeyAndValueDigests(pblkd *LeafKeyAndValueDi
 	}, nil
 }
 
+func (fpm *fromProtoMessage[RI]) boundingLeaf(pbbl *BoundingLeaf) (jmt.BoundingLeaf, error) {
+	if pbbl == nil {
+		return jmt.BoundingLeaf{}, fmt.Errorf("unable to extract a BoundingLeaf value")
+	}
+	leafKeyAndValueDigests, err := fpm.leafKeyAndValueDigests(pbbl.Leaf)
+	if err != nil {
+		return jmt.BoundingLeaf{}, err
+	}
+	siblings, err := fpm.treeSyncChunkProof(pbbl.Siblings)
+	if err != nil {
+		return jmt.BoundingLeaf{}, err
+	}
+	return jmt.BoundingLeaf{
+		leafKeyAndValueDigests,
+		siblings,
+	}, nil
+}
+
 func (fpm *fromProtoMessage[RI]) treeSyncChunkBoundingLeaves(pbbls []*BoundingLeaf) ([]jmt.BoundingLeaf, error) {
 	boundingLeaves := make([]jmt.BoundingLeaf, 0, len(pbbls))
-	for _, pbbbl := range pbbls {
-		leafKeyAndValueDigests, err := fpm.leafKeyAndValueDigests(pbbbl.Leaf)
+	for _, pbbl := range pbbls {
+		bl, err := fpm.boundingLeaf(pbbl)
 		if err != nil {
 			return nil, err
 		}
-		siblings, err := fpm.treeSyncChunkProof(pbbbl.Siblings)
-		if err != nil {
-			return nil, err
-		}
-		boundingLeaves = append(boundingLeaves, jmt.BoundingLeaf{
-			leafKeyAndValueDigests,
-			siblings,
-		})
+		boundingLeaves = append(boundingLeaves, bl)
 	}
 	return boundingLeaves, nil
 }
@@ -1554,18 +1711,29 @@ func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkResponse(m *MessageTreeSync
 	}, nil
 }
 
+func (fpm *fromProtoMessage[RI]) keyDigestRange(pbr *KeyDigestRange) (protocol.KeyDigestRange, error) {
+	if pbr == nil {
+		return protocol.KeyDigestRange{}, fmt.Errorf("unable to extract a KeyDigestRange value")
+	}
+	startIndex, err := fpm.digest(pbr.StartIndex)
+	if err != nil {
+		return protocol.KeyDigestRange{}, err
+	}
+	endInclIndex, err := fpm.digest(pbr.EndInclIndex)
+	if err != nil {
+		return protocol.KeyDigestRange{}, err
+	}
+	return protocol.KeyDigestRange{startIndex, endInclIndex}, nil
+}
+
 func (fpm *fromProtoMessage[RI]) pendingKeyDigestRanges(pbRanges []*KeyDigestRange) (protocol.PendingKeyDigestRanges, error) {
 	ranges := make([]protocol.KeyDigestRange, 0, len(pbRanges))
 	for _, pbr := range pbRanges {
-		startIndex, err := fpm.digest(pbr.StartIndex)
+		kr, err := fpm.keyDigestRange(pbr)
 		if err != nil {
 			return protocol.PendingKeyDigestRanges{}, err
 		}
-		endInclIndex, err := fpm.digest(pbr.EndInclIndex)
-		if err != nil {
-			return protocol.PendingKeyDigestRanges{}, err
-		}
-		ranges = append(ranges, protocol.KeyDigestRange{startIndex, endInclIndex})
+		ranges = append(ranges, kr)
 	}
 	return protocol.NewPendingKeyDigestRanges(ranges), nil
 }

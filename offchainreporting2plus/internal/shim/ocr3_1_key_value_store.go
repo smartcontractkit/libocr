@@ -680,10 +680,24 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 	targetRootDigest protocol.StateRootDigest,
 	targetSeqNr uint64,
 	startIndex jmt.Digest,
+	requestEndInclIndex jmt.Digest,
 	endInclIndex jmt.Digest,
 	boundingLeaves []jmt.BoundingLeaf,
 	keyValues []protocol.KeyValuePair,
 ) (protocol.VerifyAndWriteTreeSyncChunkResult, error) {
+	if !(bytes.Compare(startIndex[:], endInclIndex[:]) <= 0) {
+		return protocol.VerifyAndWriteTreeSyncChunkResultByzantine, fmt.Errorf("start index %x is not less than or equal to end incl index %x", startIndex, endInclIndex)
+	}
+	if !(bytes.Compare(endInclIndex[:], requestEndInclIndex[:]) <= 0) {
+		return protocol.VerifyAndWriteTreeSyncChunkResultByzantine, fmt.Errorf("end incl index %x is not less than or equal to request end incl index %x", endInclIndex, requestEndInclIndex)
+	}
+	if len(keyValues) == 0 && !bytes.Equal(endInclIndex[:], requestEndInclIndex[:]) {
+
+		return protocol.VerifyAndWriteTreeSyncChunkResultByzantine,
+			fmt.Errorf("no leaves in chunk and endInclIndex != requestEndInclIndex, the seeder is stalling us: "+
+				"startIndex:%x endInclIndex:%x requestEndInclIndex:%x", startIndex, endInclIndex, requestEndInclIndex)
+	}
+
 	if len(keyValues) > s.config.GetMaxTreeSyncChunkKeys() {
 		return protocol.VerifyAndWriteTreeSyncChunkResultByzantine, fmt.Errorf("too many leaves: %d > %d",
 			len(keyValues), s.config.GetMaxTreeSyncChunkKeys())
@@ -1094,6 +1108,29 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteUnattestedSta
 	return !more, err
 }
 
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadPrevInstanceGenesisStateTransitionBlock() (*protocol.GenesisStateTransitionBlock, error) {
+	genesisStateTransitionBlockRaw, err := s.rawTransaction.Read([]byte(prevInstanceGenesisStateTransitionBlockKey))
+	if err != nil {
+		return nil, fmt.Errorf("error reading prev instance genesis state transition block: %w", err)
+	}
+	if genesisStateTransitionBlockRaw == nil {
+		return nil, nil
+	}
+	genesisStateTransitionBlock, err := serialization.DeserializeGenesisStateTransitionBlock(genesisStateTransitionBlockRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deserialize prev instance genesis state transition block: %w", err)
+	}
+	return &genesisStateTransitionBlock, nil
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WritePrevInstanceGenesisStateTransitionBlock(genesisStateTransitionBlock protocol.GenesisStateTransitionBlock) error {
+	genesisStateTransitionBlockRaw, err := serialization.SerializeGenesisStateTransitionBlock(genesisStateTransitionBlock)
+	if err != nil {
+		return fmt.Errorf("failed to serialize genesis state transition block: %w", err)
+	}
+	return s.rawTransaction.Write([]byte(prevInstanceGenesisStateTransitionBlockKey), genesisStateTransitionBlockRaw)
+}
+
 var destructiveDestroyForTreeSyncPrefixesToDelete = [][]byte{
 	[]byte(pluginPrefix),
 	[]byte(treeNodePrefix),
@@ -1121,6 +1158,8 @@ const (
 	treeSyncStatusKey        = "TSS"
 	highestCommittedSeqNrKey = "HCS"
 	lowestPersistedSeqNrKey  = "LPS"
+
+	prevInstanceGenesisStateTransitionBlockKey = "PIGSTB"
 )
 
 func initializeSchema(keyValueDatabase ocr3_1types.KeyValueDatabase) error {

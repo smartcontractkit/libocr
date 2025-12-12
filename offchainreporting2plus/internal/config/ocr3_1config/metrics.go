@@ -57,6 +57,8 @@ type PublicConfigMetrics struct {
 	maxDurationShouldAcceptAttestedReport   prometheus.Gauge
 	maxDurationShouldTransmitAcceptedReport prometheus.Gauge
 
+	prevSeqNr prometheus.Gauge
+
 	n prometheus.Gauge
 	f prometheus.Gauge
 
@@ -319,6 +321,17 @@ func NewPublicConfigMetrics(
 	maxDurationShouldTransmitAcceptedReport.Set(publicConfig.MaxDurationShouldTransmitAcceptedReport.Seconds())
 	metricshelper.RegisterOrLogError(logger, registerer, maxDurationShouldTransmitAcceptedReport, "ocr3_1_config_max_duration_should_transmit_accepted_report_seconds")
 
+	prevSeqNr := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "ocr3_1_config_prev_seq_nr",
+		Help: "See https://pkg.go.dev/github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config#PublicConfig for details",
+	})
+	if publicConfig.PrevSeqNr != nil {
+		prevSeqNr.Set(float64(*publicConfig.PrevSeqNr))
+	} else {
+		prevSeqNr.Set(0)
+	}
+	metricshelper.RegisterOrLogError(logger, registerer, prevSeqNr, "ocr3_1_config_prev_seq_nr")
+
 	n := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_1_config_n",
 		Help: "The number of oracles participating in this protocol instance",
@@ -391,6 +404,8 @@ func NewPublicConfigMetrics(
 		maxDurationShouldAcceptAttestedReport,
 		maxDurationShouldTransmitAcceptedReport,
 
+		prevSeqNr,
+
 		n,
 		f,
 		minRoundInterval,
@@ -445,6 +460,8 @@ func (pm *PublicConfigMetrics) Close() {
 	pm.registerer.Unregister(pm.warnDurationCommitted)
 	pm.registerer.Unregister(pm.maxDurationShouldAcceptAttestedReport)
 	pm.registerer.Unregister(pm.maxDurationShouldTransmitAcceptedReport)
+
+	pm.registerer.Unregister(pm.prevSeqNr)
 
 	pm.registerer.Unregister(pm.n)
 	pm.registerer.Unregister(pm.f)

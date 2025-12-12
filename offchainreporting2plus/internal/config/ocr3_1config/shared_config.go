@@ -186,6 +186,9 @@ func ContractSetConfigArgsFromSharedConfigDeterministic(
 		c.WarnDurationCommitted,
 		c.MaxDurationShouldAcceptAttestedReport,
 		c.MaxDurationShouldTransmitAcceptedReport,
+		c.PrevConfigDigest,
+		c.PrevSeqNr,
+		c.PrevHistoryDigest,
 		sharedSecretEncryptions,
 	}).serialize()
 	return signers, transmitters, uint8(c.F), c.OnchainConfig, config.OCR3_1OffchainConfigVersion, offchainConfig_, nil

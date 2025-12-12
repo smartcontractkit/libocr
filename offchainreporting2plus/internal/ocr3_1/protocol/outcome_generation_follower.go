@@ -74,8 +74,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	{
 		err := msg.EpochStartProof.Verify(
 			outgen.ID(),
-			outgen.config.OracleIdentities,
-			outgen.config.ByzQuorumSize(),
+			outgen.config.PublicConfig,
 		)
 		if err != nil {
 			outgen.logger.Warn("dropping MessageEpochStart containing invalid StartRoundQuorumCertificate", commontypes.LogFields{
@@ -91,10 +90,12 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 	outgen.refreshCommittedSeqNrAndCert() // call in case stasy has made progress in the meanwhile
 	outgen.sendStateSyncRequestFromCertifiedPrepareOrCommit(msg.EpochStartProof.HighestCertified)
 
-	if msg.EpochStartProof.HighestCertified.IsGenesis() {
+	switch cpoc := msg.EpochStartProof.HighestCertified.(type) {
+	case *GenesisFromScratch, *GenesisFromPrevInstance:
 		outgen.sharedState.firstSeqNrOfEpoch = outgen.sharedState.committedSeqNr + 1
 		outgen.startSubsequentFollowerRound()
-	} else if commitQC, ok := msg.EpochStartProof.HighestCertified.(*CertifiedCommit); ok {
+	case *CertifiedCommit:
+		commitQC := cpoc
 		outgen.tryToMoveCertAndKVStateToCommitQC(commitQC)
 		if outgen.sharedState.committedSeqNr != commitQC.CommitSeqNr {
 			outgen.logger.Warn("cannot process MessageEpochStart, mismatching committedSeqNr, will not be able to participate in epoch", commontypes.LogFields{
@@ -109,15 +110,9 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStart(msg MessageEpochStar
 			return
 		}
 		outgen.startSubsequentFollowerRound()
-	} else {
+	case *CertifiedPrepare:
 		// We're dealing with a re-proposal from a failed epoch
-		prepareQc, ok := msg.EpochStartProof.HighestCertified.(*CertifiedPrepare)
-		if !ok {
-			outgen.logger.Critical("cast to CertifiedPrepare failed while processing MessageEpochStart", commontypes.LogFields{
-				"seqNr": outgen.sharedState.seqNr,
-			})
-			return
-		}
+		prepareQc := cpoc
 
 		if prepareQc.SeqNr() < outgen.sharedState.committedSeqNr {
 			outgen.logger.Warn("cannot process MessageEpochStart, prepareQC seqNr is less than committedSeqNr, will not be able to participate in epoch", commontypes.LogFields{
@@ -920,7 +915,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		}
 
 		if outgen.followerState.openKVTxn == nil {
-			outgen.logger.Error("no open kv transaction, unexpected", commontypes.LogFields{
+			outgen.logger.Error("no open kv transaction, we likely already failed to commit to kvdb in a prior call to tryProcessCommitPool", commontypes.LogFields{
 				"seqNr": outgen.sharedState.seqNr,
 				"phase": outgen.followerState.phase,
 			})
@@ -930,7 +925,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 		// Write attested state transition block
 		{
 			stb := StateTransitionBlock{
-				stid.PrevHistoryDigest,
+				sti.PrevHistoryDigest,
 				commitQC.CommitEpoch,
 				commitQC.CommitSeqNr,
 				sti.InputsDigest,
@@ -984,7 +979,7 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 	}
 
 	if outgen.sharedState.committedSeqNr != commitQC.CommitSeqNr {
-		outgen.logger.Warn("could not move committed seq nr to commit qc, abandoning epoch", commontypes.LogFields{
+		outgen.logger.Warn("could not move committed seq nr to commit qc, will retry if another MessageCommit is received", commontypes.LogFields{
 			"commitSeqNr":    commitQC.CommitSeqNr,
 			"committedSeqNr": outgen.sharedState.committedSeqNr,
 		})
@@ -1143,7 +1138,8 @@ func (outgen *outcomeGenerationState[RI]) commit(commit CertifiedCommit) bool {
 		outgen.metrics.committedSeqNr.Set(float64(commit.SeqNr()))
 
 		outgen.logger.Debug("✅ committed", commontypes.LogFields{
-			"seqNr": commit.SeqNr(),
+			"seqNr":         commit.SeqNr(),
+			"historyDigest": outgen.sharedState.committedHistoryDigest,
 		})
 
 		select {

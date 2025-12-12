@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	stateReapInterval          = 10 * time.Second
-	stateReapFastFollowOnError = 120 * time.Millisecond
+	stateReapInterval                 = 10 * time.Second
+	initialStateReapFastFollowOnError = 120 * time.Millisecond
+	maxStateReapFastFollowOnError     = stateReapInterval
 
 	maxBlocksToReapInOneGo    = 100_000
 	maxTreeNodesToReapInOneGo = 10_000
@@ -192,6 +193,8 @@ func RunStateSyncReap(
 	chDone := ctx.Done()
 	chTick := time.After(0)
 
+	stateReapFastFollowOnError := initialStateReapFastFollowOnError
+
 	for {
 		select {
 		case <-chTick:
@@ -202,15 +205,22 @@ func RunStateSyncReap(
 		logger.Info("RunStateSyncReap: calling reapState", nil)
 		done, err := reapState(ctx, kvDb, logger, config.PublicConfig)
 		if err != nil {
+			stateReapFastFollowOnError *= 2
+			if stateReapFastFollowOnError > maxStateReapFastFollowOnError {
+				stateReapFastFollowOnError = maxStateReapFastFollowOnError
+			}
 			logger.Warn("RunStateSyncReap: failed to reap state. Will retry soon.", commontypes.LogFields{
 				"error":           err,
 				"waitBeforeRetry": stateReapFastFollowOnError.String(),
 			})
 			chTick = time.After(stateReapFastFollowOnError)
-		} else if !done {
-			chTick = time.After(0)
 		} else {
-			chTick = time.After(stateReapInterval)
+			stateReapFastFollowOnError = initialStateReapFastFollowOnError
+			if !done {
+				chTick = time.After(0)
+			} else {
+				chTick = time.After(stateReapInterval)
+			}
 		}
 	}
 }

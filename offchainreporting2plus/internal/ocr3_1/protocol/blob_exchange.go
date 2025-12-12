@@ -3,6 +3,7 @@ package protocol
 import (
 	"context"
 	"fmt"
+	"iter"
 	"slices"
 	"time"
 
@@ -380,8 +381,29 @@ type blobChunkId struct {
 	chunkIndex uint64
 }
 
-func numChunks(payloadLength uint64, blobChunkSize int) uint64 {
-	return (payloadLength + uint64(blobChunkSize) - 1) / uint64(blobChunkSize)
+func numChunks(payloadLength uint64, cfgBlobChunkSize int) uint64 {
+	return (payloadLength + uint64(cfgBlobChunkSize) - 1) / uint64(cfgBlobChunkSize)
+}
+
+func chunkBytes(payloadLength uint64, chunkIndex uint64, cfgBlobChunkSize int) (uint64, bool) {
+	if !(0 <= chunkIndex && chunkIndex < numChunks(payloadLength, cfgBlobChunkSize)) {
+		return 0, false
+	}
+	cfgBlobChunkSizeU64 := uint64(cfgBlobChunkSize)
+	remainingAfterPreviousChunks := payloadLength - (chunkIndex * cfgBlobChunkSizeU64)
+	return min(remainingAfterPreviousChunks, cfgBlobChunkSizeU64), true
+}
+
+func chunkPayload(payload []byte, cfgBlobChunkSize int) iter.Seq2[uint64, []byte] {
+	return func(yield func(uint64, []byte) bool) {
+		chunkIdx := uint64(0)
+		for chunk := range slices.Chunk(payload, cfgBlobChunkSize) {
+			if !yield(chunkIdx, chunk) {
+				return
+			}
+			chunkIdx++
+		}
+	}
 }
 
 type blobFetchMeta struct {
@@ -483,7 +505,11 @@ func (b *blob) weOweOfferResponse() bool {
 }
 
 func (b *blob) haveAllChunks() bool {
-	return !slices.Contains(b.chunkHaves, false)
+	return haveAllChunks(b.chunkHaves, b.chunkDigests, b.chunkDigestsRoot)
+}
+
+func haveAllChunks(chunkHaves []bool, chunkDigests []BlobChunkDigest, chunkDigestsRoot mt.Digest) bool {
+	return !slices.Contains(chunkHaves, false) && blobtypes.MakeBlobChunkDigestsRoot(chunkDigests) == chunkDigestsRoot
 }
 
 func (b *blob) prunable() bool {
@@ -709,7 +735,7 @@ func (bex *blobExchangeState[RI]) messageBlobOffer(msg MessageBlobOffer[RI], sen
 	}
 
 	// check if we maybe already have this blob in full
-	if !slices.Contains(chunkHaves, false) {
+	if haveAllChunks(chunkHaves, chunkDigests, msg.ChunkDigestsRoot) {
 		bex.logger.Debug("received MessageBlobOffer for which we already have the payload", commontypes.LogFields{
 			"blobDigest": blobDigest,
 			"sender":     sender,
@@ -1230,6 +1256,22 @@ func (bex *blobExchangeState[RI]) messageBlobChunkResponse(msg MessageBlobChunkR
 		return
 	}
 
+	expectedChunkBytes, ok := chunkBytes(blob.payloadLength, chunkIndex, bex.config.GetBlobChunkBytes())
+
+	if !ok || uint64(len(msg.Chunk)) != expectedChunkBytes {
+		bex.logger.Warn("dropping MessageBlobChunkResponse, incorrectly sized chunk", commontypes.LogFields{
+			"blobDigest":         msg.BlobDigest,
+			"sender":             sender,
+			"chunkIndex":         chunkIndex,
+			"chunkCount":         len(blob.chunkDigests),
+			"payloadLength":      blob.payloadLength,
+			"expectedChunkBytes": expectedChunkBytes,
+			"actualChunkBytes":   len(msg.Chunk),
+		})
+		bex.chunkRequesterGadget.MarkBadResponse(bcid, sender)
+		return
+	}
+
 	if blob.chunkHaves[chunkIndex] {
 		bex.logger.Debug("dropping MessageBlobChunkResponse, already have chunk", commontypes.LogFields{
 			"blobDigest": msg.BlobDigest,
@@ -1364,9 +1406,7 @@ func (bex *blobExchangeState[RI]) processBlobBroadcastRequest(req blobBroadcastR
 	chunkDigests := make([]BlobChunkDigest, 0, numChunks(payloadLength, cfgBlobChunkSize))
 	chunkHaves := make([]bool, 0, numChunks(payloadLength, cfgBlobChunkSize))
 
-	for i, chunkIdx := 0, 0; i < len(payload); i, chunkIdx = i+cfgBlobChunkSize, chunkIdx+1 {
-		payloadChunk := payload[i:min(i+cfgBlobChunkSize, len(payload))]
-
+	for _, payloadChunk := range chunkPayload(payload, cfgBlobChunkSize) {
 		// prepare for offer
 		chunkDigest := blobtypes.MakeBlobChunkDigest(payloadChunk)
 		chunkDigests = append(chunkDigests, chunkDigest)
@@ -1531,8 +1571,7 @@ func (bex *blobExchangeState[RI]) writeBlobBeforeBroadcast(blobDigest BlobDigest
 
 	chunkHaves := make([]bool, numChunks)
 	chunkDigests := make([]BlobChunkDigest, numChunks)
-	for i, chunkIdx := 0, uint64(0); i < len(payload); i, chunkIdx = i+cfgBlobChunkSize, chunkIdx+1 {
-		payloadChunk := payload[i:min(i+cfgBlobChunkSize, len(payload))]
+	for chunkIdx, payloadChunk := range chunkPayload(payload, cfgBlobChunkSize) {
 		if err := tx.WriteBlobChunk(blobDigest, chunkIdx, payloadChunk); err != nil {
 			return fmt.Errorf("failed to write local blob chunk: %w", err)
 		}

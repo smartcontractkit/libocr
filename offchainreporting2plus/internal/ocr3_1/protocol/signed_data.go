@@ -9,7 +9,7 @@ import (
 
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/byzquorum"
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -291,7 +291,7 @@ func (sig CommitSignature) Verify(
 	return nil
 }
 
-type HistoryDigest [32]byte
+type HistoryDigest = types.HistoryDigest
 
 const historyDigestDomainSeparator = "ocr3.1/HistoryDigest/"
 
@@ -450,9 +450,10 @@ type EpochStartProof struct {
 
 func (qc *EpochStartProof) Verify(
 	ogid OutcomeGenerationID,
-	oracleIdentities []config.OracleIdentity,
-	byzQuorumSize int,
+	config ocr3_1config.PublicConfig,
 ) error {
+	oracleIdentities := config.OracleIdentities
+	byzQuorumSize := config.ByzQuorumSize()
 	if byzQuorumSize != len(qc.HighestCertifiedProof) {
 		return fmt.Errorf("wrong length of HighestCertifiedProof, expected %v for byz. quorum and got %v", byzQuorumSize, len(qc.HighestCertifiedProof))
 	}
@@ -481,7 +482,7 @@ func (qc *EpochStartProof) Verify(
 		return fmt.Errorf("mismatch between timestamp of HighestCertified (%v) and the max from HighestCertifiedProof (%v)", qc.HighestCertified.Timestamp(), maximumTimestamp)
 	}
 
-	if err := qc.HighestCertified.Verify(ogid.ConfigDigest, oracleIdentities, byzQuorumSize); err != nil {
+	if err := qc.HighestCertified.Verify(config); err != nil {
 		return fmt.Errorf("failed to verify HighestCertified: %w", err)
 	}
 
@@ -495,12 +496,8 @@ type CertifiedPrepareOrCommit interface {
 	Epoch() uint64
 	SeqNr() uint64
 	Timestamp() HighestCertifiedTimestamp
-	IsGenesis() bool
-	Verify(
-		_ types.ConfigDigest,
-		_ []config.OracleIdentity,
-		byzQuorumSize int,
-	) error
+	HistoryDigest(_ types.ConfigDigest) HistoryDigest
+	Verify(_ ocr3_1config.PublicConfig) error
 	CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool
 }
 
@@ -535,15 +532,22 @@ func (hc *CertifiedPrepare) Timestamp() HighestCertifiedTimestamp {
 	}
 }
 
-func (hc *CertifiedPrepare) IsGenesis() bool {
-	return false
+func (hc *CertifiedPrepare) HistoryDigest(configDigest types.ConfigDigest) HistoryDigest {
+	return MakeHistoryDigest(
+		configDigest,
+		hc.PrevHistoryDigest,
+		hc.PrepareSeqNr,
+		hc.StateTransitionInputsDigest,
+		hc.StateWriteSetDigest,
+		hc.StateRootDigest,
+		hc.ReportsPlusPrecursorDigest,
+	)
 }
 
-func (hc *CertifiedPrepare) Verify(
-	configDigest types.ConfigDigest,
-	oracleIdentities []config.OracleIdentity,
-	byzQuorumSize int,
-) error {
+func (hc *CertifiedPrepare) Verify(config ocr3_1config.PublicConfig) error {
+	configDigest := config.ConfigDigest
+	oracleIdentities := config.OracleIdentities
+	byzQuorumSize := config.ByzQuorumSize()
 	if byzQuorumSize != len(hc.PrepareQuorumCertificate) {
 		return fmt.Errorf("wrong number of signatures, expected %v for byz. quorum and got %v", byzQuorumSize, len(hc.PrepareQuorumCertificate))
 	}
@@ -585,7 +589,6 @@ func (hc *CertifiedPrepare) CheckSize(n int, f int, limits ocr3_1types.Reporting
 
 var _ CertifiedPrepareOrCommit = &CertifiedCommit{}
 
-// The empty CertifiedCommit{} is the genesis value
 type CertifiedCommit struct {
 	PrevHistoryDigest           HistoryDigest
 	CommitEpoch                 uint64
@@ -615,28 +618,10 @@ func (hc *CertifiedCommit) Timestamp() HighestCertifiedTimestamp {
 	}
 }
 
-func (hc *CertifiedCommit) IsGenesis() bool {
-	// We intentionally don't just compare with CertifiedCommit{}, because after
-	// protobuf deserialization, we might end up with hc.Outcome = []byte{}
-	return hc.PrevHistoryDigest == HistoryDigest{} &&
-		hc.CommitEpoch == uint64(0) &&
-		hc.CommitSeqNr == uint64(0) &&
-		hc.StateTransitionInputsDigest == StateTransitionInputsDigest{} &&
-		hc.StateWriteSetDigest == StateWriteSetDigest{} &&
-		hc.StateRootDigest == StateRootDigest{} &&
-		hc.ReportsPlusPrecursorDigest == ReportsPlusPrecursorDigest{} &&
-		len(hc.CommitQuorumCertificate) == 0
-}
-
-func (hc *CertifiedCommit) Verify(
-	configDigest types.ConfigDigest,
-	oracleIdentities []config.OracleIdentity,
-	byzQuorumSize int,
-) error {
-	if hc.IsGenesis() {
-		return nil
-	}
-
+func (hc *CertifiedCommit) Verify(config ocr3_1config.PublicConfig) error {
+	configDigest := config.ConfigDigest
+	oracleIdentities := config.OracleIdentities
+	byzQuorumSize := config.ByzQuorumSize()
 	if byzQuorumSize != len(hc.CommitQuorumCertificate) {
 		return fmt.Errorf("wrong number of signatures, expected %d for byz. quorum but got %d", byzQuorumSize, len(hc.CommitQuorumCertificate))
 	}
@@ -671,10 +656,6 @@ func (hc *CertifiedCommit) Verify(
 }
 
 func (hc *CertifiedCommit) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, maxReportSigLen int) bool {
-	if hc.IsGenesis() {
-		return true
-	}
-
 	if len(hc.CommitQuorumCertificate) != byzquorum.Size(n, f) {
 		return false
 	}
@@ -696,6 +677,117 @@ func (hc *CertifiedCommit) HistoryDigest(configDigest types.ConfigDigest) Histor
 		hc.StateRootDigest,
 		hc.ReportsPlusPrecursorDigest,
 	)
+}
+
+type GenesisFromScratch struct{}
+
+var _ CertifiedPrepareOrCommit = &GenesisFromScratch{}
+
+func (gscratch *GenesisFromScratch) CheckSize(_ int, _ int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+	return true
+}
+
+func (gscratch *GenesisFromScratch) Epoch() uint64 {
+	return 0
+}
+
+func (gscratch *GenesisFromScratch) SeqNr() uint64 {
+	return 0
+}
+
+func (gscratch *GenesisFromScratch) Timestamp() HighestCertifiedTimestamp {
+	return HighestCertifiedTimestamp{
+		0,
+		true,
+		0,
+	}
+}
+
+func (gscratch *GenesisFromScratch) Verify(config ocr3_1config.PublicConfig) error {
+	if _, ok := config.GetPrevFields(); ok {
+		return fmt.Errorf("GenesisFromScratch is invalid when previous instance is specified in PublicConfig")
+	}
+	return nil
+}
+
+func (gscratch *GenesisFromScratch) HistoryDigest(configDigest types.ConfigDigest) HistoryDigest {
+	return MakeHistoryDigest(
+		configDigest,
+		HistoryDigest{},
+		0,
+		StateTransitionInputsDigest{},
+		StateWriteSetDigest{},
+		StateRootDigest{},
+		ReportsPlusPrecursorDigest{},
+	)
+}
+
+func (gscratch *GenesisFromScratch) isCertifiedPrepareOrCommit() {}
+
+type GenesisFromPrevInstance struct {
+	PrevHistoryDigest HistoryDigest
+	PrevSeqNr         uint64
+}
+
+var _ CertifiedPrepareOrCommit = &GenesisFromPrevInstance{}
+
+func (gprev *GenesisFromPrevInstance) CheckSize(_ int, _ int, _ ocr3_1types.ReportingPluginLimits, _ int) bool {
+	return true
+}
+
+func (gprev *GenesisFromPrevInstance) Epoch() uint64 {
+	return 0
+}
+
+func (gprev *GenesisFromPrevInstance) SeqNr() uint64 {
+	return gprev.PrevSeqNr
+}
+
+func (gprev *GenesisFromPrevInstance) Timestamp() HighestCertifiedTimestamp {
+	return HighestCertifiedTimestamp{
+		gprev.SeqNr(),
+		true,
+		gprev.Epoch(),
+	}
+}
+
+func (gprev *GenesisFromPrevInstance) Verify(config ocr3_1config.PublicConfig) error {
+	prev, ok := config.GetPrevFields()
+	if !ok {
+		return fmt.Errorf("GenesisFromPrevInstance is invalid when previous instance is not specified in PublicConfig")
+	}
+	if gprev.PrevHistoryDigest != prev.PrevHistoryDigest {
+		return fmt.Errorf("GenesisFromPrevInstance.PrevHistoryDigest (%x) does not match config.PrevHistoryDigest (%x)", gprev.PrevHistoryDigest, prev.PrevHistoryDigest)
+	}
+	if gprev.PrevSeqNr != prev.PrevSeqNr {
+		return fmt.Errorf("GenesisFromPrevInstance.PrevSeqNr (%d) does not match config.PrevSeqNr (%d)", gprev.PrevSeqNr, prev.PrevSeqNr)
+	}
+	return nil
+}
+
+func (gprev *GenesisFromPrevInstance) HistoryDigest(configDigest types.ConfigDigest) HistoryDigest {
+	return MakeHistoryDigest(
+		configDigest,
+		gprev.PrevHistoryDigest,
+		gprev.SeqNr(),
+		StateTransitionInputsDigest{},
+		StateWriteSetDigest{},
+		StateRootDigest{},
+		ReportsPlusPrecursorDigest{},
+	)
+}
+
+func (gprev *GenesisFromPrevInstance) isCertifiedPrepareOrCommit() {}
+
+func GenesisCertifiedPrepareOrCommit(cfg ocr3_1config.PublicConfig) CertifiedPrepareOrCommit {
+	prev, ok := cfg.GetPrevFields()
+	if !ok {
+		return &GenesisFromScratch{}
+	}
+	return &GenesisFromPrevInstance{
+		prev.PrevHistoryDigest,
+		prev.PrevSeqNr,
+	}
 }
 
 type StateTransitionBlock struct {
@@ -760,13 +852,9 @@ func (astb *AttestedStateTransitionBlock) CheckSize(n int, f int, limits ocr3_1t
 	return astb.StateTransitionBlock.CheckSize(limits)
 }
 
-func (astb *AttestedStateTransitionBlock) Verify(
-	configDigest types.ConfigDigest,
-	oracleIdentities []config.OracleIdentity,
-	byzQuorumSize int,
-) error {
-	certifiedCommit := astb.ToCertifiedCommit(configDigest)
-	return certifiedCommit.Verify(configDigest, oracleIdentities, byzQuorumSize)
+func (astb *AttestedStateTransitionBlock) Verify(config ocr3_1config.PublicConfig) error {
+	certifiedCommit := astb.ToCertifiedCommit(config.ConfigDigest)
+	return certifiedCommit.Verify(config)
 }
 
 func (astb *AttestedStateTransitionBlock) ToCertifiedCommit(configDigest types.ConfigDigest) CertifiedCommit {
@@ -786,6 +874,39 @@ func (astb *AttestedStateTransitionBlock) ToCertifiedCommit(configDigest types.C
 		stb.ReportsPlusPrecursorDigest,
 		astb.AttributedCommitSignatures,
 	}
+}
+
+type GenesisStateTransitionBlock struct {
+	PrevHistoryDigest           HistoryDigest
+	SeqNr                       uint64
+	StateTransitionInputsDigest StateTransitionInputsDigest
+	StateWriteSetDigest         StateWriteSetDigest
+	StateRootDigest             StateRootDigest
+	ReportsPlusPrecursorDigest  ReportsPlusPrecursorDigest
+}
+
+//go-sumtype:decl AttestedOrGenesisStateTransitionBlock
+
+type AttestedOrGenesisStateTransitionBlock interface {
+	isAttestedOrGenesisStateTransitionBlock()
+	seqNr() uint64
+	stateRootDigest() StateRootDigest
+}
+
+func (astb *AttestedStateTransitionBlock) isAttestedOrGenesisStateTransitionBlock() {}
+func (astb *AttestedStateTransitionBlock) seqNr() uint64 {
+	return astb.StateTransitionBlock.SeqNr()
+}
+func (astb *AttestedStateTransitionBlock) stateRootDigest() StateRootDigest {
+	return astb.StateTransitionBlock.StateRootDigest
+}
+
+func (gstb *GenesisStateTransitionBlock) isAttestedOrGenesisStateTransitionBlock() {}
+func (gstb *GenesisStateTransitionBlock) seqNr() uint64 {
+	return gstb.SeqNr
+}
+func (gstb *GenesisStateTransitionBlock) stateRootDigest() StateRootDigest {
+	return gstb.StateRootDigest
 }
 
 type BlobDigest = blobtypes.BlobDigest

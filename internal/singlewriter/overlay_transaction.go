@@ -108,6 +108,7 @@ func (oi *overlayIterator) advanceBase() {
 	}
 
 	oi.baseNext = true
+
 	oi.baseKey = bytes.Clone(k)
 }
 
