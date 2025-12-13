@@ -132,7 +132,7 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, false
 	}
 	if latestConfigDigest == (types.ConfigDigest{}) {
-		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest. Looks like the contract has not been configured", commontypes.LogFields{
+		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest, oh poo. Looks like the contract has not been configured", commontypes.LogFields{
 			"configDigest": latestConfigDigest,
 		})
 		return nil, false

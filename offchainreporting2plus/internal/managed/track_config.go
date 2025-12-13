@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -91,6 +92,10 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 	ctx, cancel := context.WithTimeout(state.ctx, state.localConfig.ContractConfigLoadTimeout)
 	defer cancel()
 
+	state.logger.Info("Here we are again", commontypes.LogFields{
+		"error": "oohhere2",
+	})
+
 	blockheight, err := state.configTracker.LatestBlockHeight(ctx)
 	if err != nil {
 		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestBlockHeight()", ctx, commontypes.LogFields{
@@ -99,6 +104,21 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, false
 	}
 
+	fmt.Printf("Type of configTracker: %T\n", state.configTracker)
+
+	changedInBlockl, latestConfigDigestl, err1 := state.configTracker.LatestConfigDetails(ctx)
+	latestBlockHeight, err2 := state.configTracker.LatestBlockHeight(ctx)
+	config, err3 := state.configTracker.LatestConfig(ctx, changedInBlockl)
+
+	fmt.Printf("changedInBlock: %v\n", changedInBlockl)
+	fmt.Printf("latestConfigDigest: %v\n", latestConfigDigestl)
+	if err1 != nil || err2 != nil || err3 != nil {
+		fmt.Printf("Error in TrackConfig: %v, %v, %v\n", err1, err2, err3)
+	}
+
+	fmt.Printf("LatestBlockHeight from configTracker: %d\n", latestBlockHeight)
+	fmt.Printf("Config from configTracker: %+v\n", config)
+
 	changedInBlock, latestConfigDigest, err := state.configTracker.LatestConfigDetails(ctx)
 	if err != nil {
 		state.logger.ErrorIfNotCanceled("TrackConfig: error during LatestConfigDetails()", ctx, commontypes.LogFields{
@@ -106,18 +126,25 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
+	fmt.Println("This is a debug trial line 1")
+
 	if latestConfigDigest == (types.ConfigDigest{}) {
-		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest. Looks like the contract has not been configured", commontypes.LogFields{
+		state.logger.Warn("TrackConfig: LatestConfigDetails() returned a zero configDigest, oh crap. Looks like the contract has not been configured", commontypes.LogFields{
 			"configDigest": latestConfigDigest,
 		})
 		return nil, false
 	}
+
+	fmt.Println("This is a debug trial line 2")
 	if state.configDigest == latestConfigDigest {
 		return nil, false
 	}
+
+	fmt.Println("This is a debug trial line 3")
 	if !state.localConfig.SkipContractConfigConfirmations && blockheight < changedInBlock+uint64(state.localConfig.ContractConfigConfirmations)-1 {
 		return nil, true
 	}
+	fmt.Println("This is a debug trial line 4")
 
 	contractConfig, err := state.configTracker.LatestConfig(ctx, changedInBlock)
 	if err != nil {
@@ -126,6 +153,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, true
 	}
+
+	fmt.Println("This is a debug trial line 5")
 
 	if latestConfigDigest != contractConfig.ConfigDigest {
 		state.logger.Error("TrackConfig: received config change with ConfigDigest mismatch", commontypes.LogFields{
@@ -136,6 +165,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		return nil, false
 	}
 
+	fmt.Println("This is a debug trial line 6")
+
 	// Ignore configs where the configDigest doesn't match, they might have
 	// been corrupted somehow.
 	if err := state.configDigester.CheckContractConfig(ctx, contractConfig); err != nil {
@@ -145,6 +176,8 @@ func (state *trackConfigState) checkLatestConfigDetails() (
 		})
 		return nil, false
 	}
+
+	fmt.Println("This is a debug trial line 5")
 
 	return &contractConfig, false
 }
