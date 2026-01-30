@@ -7,10 +7,11 @@ import (
 	"math"
 	"slices"
 	"sort"
+
+	"github.com/smartcontractkit/libocr/internal/util"
 )
 
 type KeyValue struct {
-	// Key length must be greater than 0.
 	Key []byte
 	// Value of nil is permitted and indicates a desire to delete Key.
 	Value []byte
@@ -67,10 +68,6 @@ func BatchUpdate(
 		seenDigestedKeys := make(map[Digest]struct{}, len(keyValueUpdates))
 
 		for i, keyValue := range keyValueUpdates {
-			if len(keyValue.Key) == 0 {
-				return NodeKey{}, fmt.Errorf("%d-th keyValueUpdate: key is empty", i)
-			}
-
 			keyDigest := DigestKey(keyValue.Key)
 			if _, ok := seenDigestedKeys[keyDigest]; ok {
 				return NodeKey{}, fmt.Errorf("%d-th keyValueUpdate: duplicate key %v in keyValueUpdates", i, keyValue.Key)
@@ -599,7 +596,7 @@ func Read(
 
 	if n, ok := rootNode.(*LeafNode); ok {
 		if n.KeyDigest == DigestKey(key) {
-			return n.Value, nil
+			return util.NilCoalesceSlice(n.Value), nil
 		} else {
 			return nil, nil
 		}
@@ -788,7 +785,10 @@ func readRange(
 				truncated = true
 			} else {
 				keysPlusValuesBytes += len(n.Key) + len(n.Value)
-				keyValues = append(keyValues, KeyValue{n.Key, n.Value})
+				keyValues = append(keyValues, KeyValue{
+					util.NilCoalesceSlice(n.Key),
+					util.NilCoalesceSlice(n.Value),
+				})
 			}
 		}
 	}

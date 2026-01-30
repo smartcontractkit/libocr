@@ -479,6 +479,7 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkResponse(msg MessageTreeSyn
 		stasy.treeSyncState.logger.Warn("could not create kv read/write transaction", commontypes.LogFields{
 			"err": err,
 		})
+		return
 	}
 	defer kvReadWriteTxn.Discard()
 

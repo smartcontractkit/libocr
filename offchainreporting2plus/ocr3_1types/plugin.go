@@ -24,19 +24,27 @@ type ReportingPluginFactory[RI any] interface {
 // Deprecated: Use KeyValueStateReader instead.
 type KeyValueReader = KeyValueStateReader
 
-// Provides read access to the replicated KeyValueState.
+// KeyValueStateReader provides read access to the replicated KeyValueState.
 type KeyValueStateReader interface {
-	// A return value of nil indicates that the key does not exist.
+	// Read reads the value associated with the given key.
+	// A nil key is interpreted as an empty slice.
+	// If the key exists, the returned value will be non-nil.
+	// If the key does not exist, it returns (nil, nil).
 	Read(key []byte) ([]byte, error)
 }
 
 // Deprecated: Use KeyValueStateReadWriter instead.
 type KeyValueReadWriter = KeyValueStateReadWriter
 
-// Provides read and write access to the replicated KeyValueState.
+// KeyValueStateReadWriter provides read and write access to the replicated KeyValueState.
 type KeyValueStateReadWriter interface {
 	KeyValueStateReader
+	// Write writes the value for the provided key.
+	// A nil key or value is interpreted as an empty slice.
+	// To delete a key, use the Delete method.
 	Write(key []byte, value []byte) error
+	// Delete deletes the provided key and its associated value.
+	// A nil key is interpreted as an empty slice.
 	Delete(key []byte) error
 }
 
@@ -67,10 +75,10 @@ type KeyValueStateReadWriter interface {
 // the round. For each report, ShouldAcceptAttestedReport will be called, iff
 // the oracle is in the set of transmitters for the report. If
 // ShouldAcceptAttestedReport returns true, ShouldTransmitAcceptedReport will be
-// called. However, an ReportingPlugin must also correctly handle the case where
+// called. However, a ReportingPlugin must also correctly handle the case where
 // faults occur.
 //
-// In particular, an ReportingPlugin must deal with cases where:
+// In particular, a ReportingPlugin must deal with cases where:
 //   - only a subset of the functions on the ReportingPlugin are invoked for a
 //     given round
 //   - the observation returned by Observation is not included in the list of
@@ -83,7 +91,7 @@ type KeyValueStateReadWriter interface {
 //
 // # Engineering requirements for ReportingPlugin implementations
 //
-// All functions on an ReportingPlugin must be thread-safe.
+// All functions on a ReportingPlugin must be thread-safe.
 //
 // The execution of the functions in the ReportingPlugin is on the critical path
 // of the protocol's execution. A blocking function may block the oracle from
@@ -111,7 +119,7 @@ type KeyValueStateReadWriter interface {
 //     a function from returning an error on context expiration.
 //
 // For a given OCR protocol instance, there can be many (consecutive) instances
-// of an ReportingPlugin, e.g. due to software restarts. If you need
+// of a ReportingPlugin, e.g. due to software restarts. If you need
 // ReportingPlugin state to survive across restarts, you should probably
 // persist it in the KeyValueState. A ReportingPlugin instance will only ever serve a
 // single protocol instance. State is not preserved between protocol instances.
@@ -282,8 +290,8 @@ type ReportingPlugin[RI any] interface {
 	//
 	// Don't do anything slow in here.
 	//
-	// The KeyValueReader gives read access to the key-value store in the state
-	// that it is after the StateTransition for seqNr is computed.
+	// The keyValueStateReader gives read access to the replicated KeyValueState
+	// in the state that it is after the StateTransition for seqNr is computed.
 	Committed(
 		ctx context.Context,
 		seqNr uint64,
@@ -327,7 +335,7 @@ type ReportingPlugin[RI any] interface {
 	// As mentioned above, you should gracefully handle only a subset of a
 	// ReportingPlugin's functions being invoked for a given report. For
 	// example, due to reloading persisted pending transmissions from the
-	// database upon oracle restart, this function  may be called with reports
+	// database upon oracle restart, this function may be called with reports
 	// that no other function of this instance of this interface has ever
 	// been invoked on.
 	ShouldTransmitAcceptedReport(
