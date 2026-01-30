@@ -211,6 +211,8 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Commit() error {
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Delete(key []byte) error {
+	key = util.NilCoalesceSlice(key)
+
 	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyBytes) {
 		return fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyBytes)
 	}
@@ -434,6 +436,9 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) ApplyWriteSet(write
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, value []byte) error {
+	key = util.NilCoalesceSlice(key)
+	value = util.NilCoalesceSlice(value)
+
 	start := time.Now()
 	defer func() {
 		s.metrics.txWriteDurationSeconds.Observe(float64(time.Since(start).Seconds()))
@@ -445,8 +450,6 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, v
 	if !(len(value) <= ocr3_1types.MaxMaxKeyValueValueBytes) {
 		return fmt.Errorf("value length %d exceeds maximum %d", len(value), ocr3_1types.MaxMaxKeyValueValueBytes)
 	}
-
-	value = util.NilCoalesceSlice(value)
 
 	s.mu.Lock()
 	if s.closedForWriting {
@@ -482,6 +485,8 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) Discard() {
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) Read(key []byte) ([]byte, error) {
+	key = util.NilCoalesceSlice(key)
+
 	if !(len(key) <= ocr3_1types.MaxMaxKeyValueKeyBytes) {
 		return nil, fmt.Errorf("key length %d exceeds maximum %d", len(key), ocr3_1types.MaxMaxKeyValueKeyBytes)
 	}
@@ -714,7 +719,8 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 	prevIdx := startIndex
 	for i, kv := range keyValues {
 		if kv.Value == nil {
-			return protocol.VerifyAndWriteTreeSyncChunkResultByzantine, fmt.Errorf("leaf %v has nil value", kv)
+
+			keyValues[i].Value = []byte{}
 		}
 		idx := hashPluginKey(kv.Key)
 		if bytes.Compare(idx[:], startIndex[:]) < 0 {

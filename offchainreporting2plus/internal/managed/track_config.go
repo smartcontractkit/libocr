@@ -28,9 +28,16 @@ func (state *trackConfigState) run() {
 	// Check immediately after startup
 	tCheckLatestConfigDetails := time.After(0)
 
-	chNotify := state.configTracker.Notify()
+	ignoreNotify := false
 
 	for {
+		var chNotify <-chan struct{}
+		if ignoreNotify {
+			chNotify = nil
+		} else {
+			chNotify = state.configTracker.Notify()
+		}
+
 		select {
 		case _, ok := <-chNotify:
 			if ok {
@@ -38,7 +45,8 @@ func (state *trackConfigState) run() {
 				tCheckLatestConfigDetails = time.After(0 * time.Second)
 				state.logger.Info("TrackConfig: ContractConfigTracker.Notify() fired", nil)
 			} else {
-				chNotify = nil
+				ignoreNotify = true
+				chNotify = nil //nolint:ineffassign
 				state.logger.Error("TrackConfig: ContractConfigTracker.Notify() was closed, which should never happen. Will ignore ContractConfigTracker.Notify() from now", nil)
 			}
 		case <-tCheckLatestConfigDetails:
