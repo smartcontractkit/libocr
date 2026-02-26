@@ -496,7 +496,7 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
 
 	outcomeInputsDigest := MakeOutcomeInputsDigest(
 		ogid,
-		outgen.sharedState.committedOutcome,
+		outctx.PreviousOutcome,
 		outctx.SeqNr,
 		query,
 		attributedObservations,
