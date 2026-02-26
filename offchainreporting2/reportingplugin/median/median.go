@@ -323,6 +323,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 			configuration.F,
 			epochRound{},
 			new(big.Int),
+			time.Time{},
 			maxReportLength,
 		}, types.ReportingPluginInfo{
 			"NumericalMedian",
@@ -372,6 +373,7 @@ type numericalMedian struct {
 	f                        int
 	latestAcceptedEpochRound epochRound
 	latestAcceptedMedian     *big.Int
+	latestAcceptedAt         time.Time
 	maxReportLength          int
 }
 
@@ -712,21 +714,32 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		deviates = result
 	}
 	nothingPending := !contractEpochRound.Less(nm.latestAcceptedEpochRound)
-	result := deviates || nothingPending
+
+	// If a previously accepted report has been pending for longer than DeltaC
+	// without landing on-chain, treat it as expired. This prevents a permanent
+	// deadlock when a TX fails silently and the on-chain state never advances.
+	pendingTooOld := !nothingPending && !nm.latestAcceptedAt.IsZero() &&
+		time.Since(nm.latestAcceptedAt) > nm.offchainConfig.DeltaC
+
+	result := deviates || nothingPending || pendingTooOld
 
 	nm.logger.Debug("ShouldAcceptFinalizedReport() = result", commontypes.LogFields{
 		"contractEpochRound":       contractEpochRound,
 		"reportEpochRound":         reportEpochRound,
 		"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
+		"latestAcceptedAt":         nm.latestAcceptedAt,
 		"alphaAcceptInfinite":      nm.offchainConfig.AlphaAcceptInfinite,
 		"alphaAcceptPPB":           nm.offchainConfig.AlphaAcceptPPB,
 		"deviates":                 deviates,
+		"nothingPending":           nothingPending,
+		"pendingTooOld":            pendingTooOld,
 		"result":                   result,
 	})
 
 	if result {
 		nm.latestAcceptedEpochRound = reportEpochRound
 		nm.latestAcceptedMedian = reportMedian
+		nm.latestAcceptedAt = time.Now()
 	}
 
 	return result, nil
