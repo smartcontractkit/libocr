@@ -298,6 +298,7 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 				"l": outgen.sharedState.l,
 			})
 			outgen.subs.Wait()
+			outgen.ensureOpenKVTransactionDiscarded()
 			outgen.metrics.Close()
 			outgen.logger.Info("OutcomeGeneration: exiting", commontypes.LogFields{
 				"e": outgen.sharedState.e,

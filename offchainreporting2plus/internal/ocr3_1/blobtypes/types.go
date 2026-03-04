@@ -259,7 +259,25 @@ func (h *BlobHandle) UnmarshalBinary(data []byte) error {
 		}
 		h.blobHandleSumType = &lc
 	default:
-		return fmt.Errorf("unknown BlobHandle version: %d", data[0])
+		return fmt.Errorf("unknown BlobHandle variant: %v", variant)
 	}
 	return nil
+}
+
+const (
+	// blobHandleVariantTagBytes accounts for the 1-byte variant tag that
+	// prefixes the marshalled BlobHandleSumType.
+	blobHandleVariantTagBytes = 1
+)
+
+// BlobHandleMarshalledBytesUpperBound returns a conservative upper bound on the
+// marshalled length of a BlobHandle produced in a protocol instance with
+// parameters (n, f).
+//
+// This computes the maximum across all possible BlobHandleSumType variants.
+func BlobHandleMarshalledBytesUpperBound(n int, f int) int {
+	// Take max across all variants (currently only LightCertifiedBlob)
+	maxVariantSize := LightCertifiedBlobMarshalledBytesUpperBound(n)
+
+	return blobHandleVariantTagBytes + maxVariantSize
 }

@@ -104,6 +104,14 @@ type OffchainConfig struct {
 	// maximum age is exceeded, a new report will be created by the report
 	// generation protocol.
 	DeltaC time.Duration
+	// If TransmitDespiteContractReadError is true and MedianContract reads
+	// return an error, ShouldAcceptFinalizedReport and
+	// ShouldTransmitAcceptedReport will return that the report
+	// should be transmitted. "If in doubt, transmit!"
+	//
+	// Be careful setting this. It can cause increased transaction load and
+	// costs.
+	TransmitDespiteContractReadError bool
 }
 
 func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
@@ -123,6 +131,7 @@ func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 		configProto.GetAlphaAcceptInfinite(),
 		configProto.GetAlphaAcceptPpb(),
 		time.Duration(configProto.GetDeltaCNanoseconds()),
+		configProto.GetTransmitDespiteContractReadError(),
 	}, nil
 }
 
@@ -138,6 +147,7 @@ func (c OffchainConfig) Encode() []byte {
 		c.AlphaAcceptInfinite,
 		c.AlphaAcceptPPB,
 		uint64(c.DeltaC),
+		c.TransmitDespiteContractReadError,
 	}
 	result, err := proto.Marshal(&configProto)
 	if err != nil {
@@ -306,6 +316,15 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 	} else {
 		deviationFunc = fac.DeviationFunc
 	}
+
+	logger.Info("NewReportingPlugin configuration values", commontypes.LogFields{
+		"f":                                    configuration.F,
+		"n":                                    configuration.N,
+		"offchainConfig":                       offchainConfig,
+		"onchainConfig":                        onchainConfig,
+		"includeGasPriceSubunitsInObservation": fac.IncludeGasPriceSubunitsInObservation,
+		"hasCustomDeviationFunc":               fac.DeviationFunc != nil,
+	})
 
 	return &numericalMedian{
 			offchainConfig,
@@ -655,8 +674,33 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 	return false, nil
 }
 
+type latestTransmissionDetails struct {
+	ConfigDigest    types.ConfigDigest
+	EpochRound      epochRound
+	LatestAnswer    *big.Int
+	LatestTimestamp time.Time
+}
+
+func (nm *numericalMedian) getLatestTransmissionDetails(ctx context.Context) (*latestTransmissionDetails, error) {
+	configDigest, epoch, round, latestAnswer, latestTimestamp, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error during LatestTransmissionDetails: %w", err)
+	}
+	return &latestTransmissionDetails{
+		configDigest,
+		epochRound{epoch, round},
+		latestAnswer,
+		latestTimestamp,
+	}, nil
+}
+
 func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, repts types.ReportTimestamp, report types.Report) (bool, error) {
 	reportEpochRound := epochRound{repts.Epoch, repts.Round}
+
+	if !(len(report) <= nm.maxReportLength) {
+		return false, fmt.Errorf("report violates MaxReportLength limit set by ReportCodec. (reportLength: %v, maxReportLength: %v)", len(report), nm.maxReportLength)
+	}
+
 	if !nm.latestAcceptedEpochRound.Less(reportEpochRound) {
 		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
 			"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
@@ -665,42 +709,35 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		return false, nil
 	}
 
-	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
-	if err != nil {
-		return false, fmt.Errorf("error during LatestTransmissionDetails: %w", err)
-	}
-
-	contractEpochRound := epochRound{contractEpoch, contractRound}
-
-	if contractConfigDigest != nm.configDigest {
-		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, config digest mismatch", commontypes.LogFields{
-			"contractConfigDigest": contractConfigDigest,
-			"reportConfigDigest":   nm.configDigest,
-			"reportEpochRound":     reportEpochRound,
-		})
-		return false, nil
-	}
-
-	if !contractEpochRound.Less(reportEpochRound) {
-		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
-			"contractEpochRound": contractEpochRound,
-			"reportEpochRound":   reportEpochRound,
-		})
-		return false, nil
-	}
-
-	if !(len(report) <= nm.maxReportLength) {
-		nm.logger.Warn("report violates MaxReportLength limit set by ReportCodec", commontypes.LogFields{
-			"reportEpochRound": reportEpochRound,
-			"reportLength":     len(report),
-			"maxReportLength":  nm.maxReportLength,
-		})
-		return false, nil
-	}
-
 	reportMedian, err := nm.reportCodec.MedianFromReport(ctx, report)
 	if err != nil {
 		return false, fmt.Errorf("error during MedianFromReport: %w", err)
+	}
+
+	medianContractReadErrorAcceptOverride := false
+	contractLatestTransmissionDetailsOrNil, err := nm.getLatestTransmissionDetails(ctx)
+	if err != nil {
+		if nm.offchainConfig.TransmitDespiteContractReadError {
+			medianContractReadErrorAcceptOverride = true
+			nm.logger.Error("error during getLatestTransmissionDetails", commontypes.LogFields{
+				"error":            err,
+				"reportEpochRound": reportEpochRound,
+			})
+			// We intentionally do not return an error here.
+
+		} else {
+			return false, fmt.Errorf("error during getLatestTransmissionDetails: %w", err)
+		}
+	}
+
+	contractConfigDigestMatches := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		contractConfigDigestMatches = contractLatestTransmissionDetailsOrNil.ConfigDigest == nm.configDigest
+	}
+
+	reportFresh := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		reportFresh = contractLatestTransmissionDetailsOrNil.EpochRound.Less(reportEpochRound)
 	}
 
 	deviates := false
@@ -711,17 +748,26 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		}
 		deviates = result
 	}
-	nothingPending := !contractEpochRound.Less(nm.latestAcceptedEpochRound)
-	result := deviates || nothingPending
+
+	nothingPending := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		nothingPending = !contractLatestTransmissionDetailsOrNil.EpochRound.Less(nm.latestAcceptedEpochRound)
+	}
+
+	result := medianContractReadErrorAcceptOverride || (contractConfigDigestMatches && reportFresh && (deviates || nothingPending))
 
 	nm.logger.Debug("ShouldAcceptFinalizedReport() = result", commontypes.LogFields{
-		"contractEpochRound":       contractEpochRound,
-		"reportEpochRound":         reportEpochRound,
-		"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
-		"alphaAcceptInfinite":      nm.offchainConfig.AlphaAcceptInfinite,
-		"alphaAcceptPPB":           nm.offchainConfig.AlphaAcceptPPB,
-		"deviates":                 deviates,
-		"result":                   result,
+		"contractLatestTransmissionDetailsOrNil": contractLatestTransmissionDetailsOrNil,
+		"reportEpochRound":                       reportEpochRound,
+		"latestAcceptedEpochRound":               nm.latestAcceptedEpochRound,
+		"alphaAcceptInfinite":                    nm.offchainConfig.AlphaAcceptInfinite,
+		"alphaAcceptPPB":                         nm.offchainConfig.AlphaAcceptPPB,
+		"medianContractReadErrorAcceptOverride":  medianContractReadErrorAcceptOverride,
+		"contractConfigDigestMatches":            contractConfigDigestMatches,
+		"reportFresh":                            reportFresh,
+		"nothingPending":                         nothingPending,
+		"deviates":                               deviates,
+		"result":                                 result,
 	})
 
 	if result {
@@ -735,31 +781,45 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 func (nm *numericalMedian) ShouldTransmitAcceptedReport(ctx context.Context, repts types.ReportTimestamp, report types.Report) (bool, error) {
 	reportEpochRound := epochRound{repts.Epoch, repts.Round}
 
-	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
+	medianContractReadErrorTransmitOverride := false
+	contractLatestTransmissionDetailsOrNil, err := nm.getLatestTransmissionDetails(ctx)
 	if err != nil {
-		return false, err
+		if nm.offchainConfig.TransmitDespiteContractReadError {
+			medianContractReadErrorTransmitOverride = true
+			nm.logger.Error("error during getLatestTransmissionDetails", commontypes.LogFields{
+				"error":            err,
+				"reportEpochRound": reportEpochRound,
+			})
+			// We intentionally do not return an error here.
+
+		} else {
+			return false, fmt.Errorf("error during getLatestTransmissionDetails: %w", err)
+		}
 	}
 
-	contractEpochRound := epochRound{contractEpoch, contractRound}
-
-	if contractConfigDigest != nm.configDigest {
-		nm.logger.Debug("ShouldTransmitAcceptedReport() = false, config digest mismatch", commontypes.LogFields{
-			"contractConfigDigest": contractConfigDigest,
-			"reportConfigDigest":   nm.configDigest,
-			"reportEpochRound":     reportEpochRound,
-		})
-		return false, nil
+	contractConfigDigestMatches := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		contractConfigDigestMatches = contractLatestTransmissionDetailsOrNil.ConfigDigest == nm.configDigest
 	}
 
-	if !contractEpochRound.Less(reportEpochRound) {
-		nm.logger.Debug("ShouldTransmitAcceptedReport() = false, report is stale", commontypes.LogFields{
-			"contractEpochRound": contractEpochRound,
-			"reportEpochRound":   reportEpochRound,
-		})
-		return false, nil
+	reportFresh := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		reportFresh = contractLatestTransmissionDetailsOrNil.EpochRound.Less(reportEpochRound)
 	}
 
-	return true, nil
+	result := medianContractReadErrorTransmitOverride || (contractConfigDigestMatches && reportFresh)
+
+	nm.logger.Debug("ShouldTransmitAcceptedReport() = result", commontypes.LogFields{
+		"contractLatestTransmissionDetailsOrNil":  contractLatestTransmissionDetailsOrNil,
+		"reportEpochRound":                        reportEpochRound,
+		"latestAcceptedEpochRound":                nm.latestAcceptedEpochRound,
+		"medianContractReadErrorTransmitOverride": medianContractReadErrorTransmitOverride,
+		"contractConfigDigestMatches":             contractConfigDigestMatches,
+		"reportFresh":                             reportFresh,
+		"result":                                  result,
+	})
+
+	return result, nil
 }
 
 func (nm *numericalMedian) Close() error {

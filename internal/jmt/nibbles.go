@@ -60,6 +60,9 @@ func (np NibblePath) Bytes() []byte {
 }
 
 func (np NibblePath) Append(nibble byte) NibblePath {
+	if nibble&0xf0 != 0 {
+		panic("nibble is out of range, byte high nibble is non-zero")
+	}
 	np2 := NibblePath{
 		np.numNibbles + 1,
 		bytes.Clone(np.bytes),

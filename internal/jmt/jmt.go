@@ -46,6 +46,31 @@ func BatchUpdate(
 	newVersion Version,
 	keyValueUpdates []KeyValue,
 ) (NodeKey, error) {
+	digested := make([]digestedKeyValue, 0, len(keyValueUpdates))
+	for _, kv := range keyValueUpdates {
+		keyDigest := DigestKey(kv.Key)
+		var valueDigest Digest
+		if kv.Value != nil {
+			valueDigest = DigestValue(kv.Value)
+		}
+		digested = append(digested, digestedKeyValue{
+			kv.Key,
+			keyDigest,
+			kv.Value,
+			valueDigest,
+		})
+	}
+	return batchUpdateDigested(rootReadWriter, nodeReadWriter, staleNodeWriter, oldVersion, newVersion, digested)
+}
+
+func batchUpdateDigested(
+	rootReadWriter RootReadWriter,
+	nodeReadWriter NodeReadWriter,
+	staleNodeWriter StaleNodeWriter,
+	oldVersion Version,
+	newVersion Version,
+	keyValueUpdates []digestedKeyValue,
+) (NodeKey, error) {
 	if oldVersion > newVersion {
 		return NodeKey{}, fmt.Errorf("old version %d is greater than new version %d", oldVersion, newVersion)
 	}
@@ -67,26 +92,14 @@ func BatchUpdate(
 
 		seenDigestedKeys := make(map[Digest]struct{}, len(keyValueUpdates))
 
-		for i, keyValue := range keyValueUpdates {
-			keyDigest := DigestKey(keyValue.Key)
+		for i, dkv := range keyValueUpdates {
+			keyDigest := dkv.keyDigest
 			if _, ok := seenDigestedKeys[keyDigest]; ok {
-				return NodeKey{}, fmt.Errorf("%d-th keyValueUpdate: duplicate key %v in keyValueUpdates", i, keyValue.Key)
+				return NodeKey{}, fmt.Errorf("%d-th keyValueUpdate: duplicate key %v in keyValueUpdates", i, dkv.key)
 			}
 			seenDigestedKeys[keyDigest] = struct{}{}
 
-			var valueDigest Digest
-			if keyValue.Value != nil {
-				valueDigest = DigestValue(keyValue.Value)
-			}
-
-			dkv := digestedKeyValue{
-				keyValue.Key,
-				keyDigest,
-				keyValue.Value,
-				valueDigest,
-			}
-
-			if keyValue.Value == nil {
+			if dkv.value == nil {
 				digestedDeletes = append(digestedDeletes, dkv)
 			} else {
 				digestedInserts = append(digestedInserts, dkv)
@@ -552,6 +565,15 @@ func Read(
 	version Version,
 	key []byte,
 ) ([]byte, error) {
+	return readDigested(rootReader, nodeReader, version, DigestKey(key))
+}
+
+func readDigested(
+	rootReader RootReader,
+	nodeReader NodeReader,
+	version Version,
+	keyDigest Digest,
+) ([]byte, error) {
 	rootNodeKey, err := rootReader.ReadRoot(version)
 	if err != nil {
 		return nil, fmt.Errorf("error reading root node with version %d: %w", version, err)
@@ -566,7 +588,7 @@ func Read(
 		return nil, nil
 	}
 
-	nibblePath := NibblePathFromDigest(DigestKey(key))
+	nibblePath := NibblePathFromDigest(keyDigest)
 
 	for i := 0; i < nibblePath.NumNibbles(); i++ {
 		nibble := nibblePath.Get(i)
@@ -595,7 +617,7 @@ func Read(
 	}
 
 	if n, ok := rootNode.(*LeafNode); ok {
-		if n.KeyDigest == DigestKey(key) {
+		if n.KeyDigest == keyDigest {
 			return util.NilCoalesceSlice(n.Value), nil
 		} else {
 			return nil, nil

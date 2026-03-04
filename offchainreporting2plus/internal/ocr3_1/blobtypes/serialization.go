@@ -76,3 +76,28 @@ func (lc *LightCertifiedBlob) UnmarshalBinary(data []byte) error {
 	}
 	return nil
 }
+
+// Conservative upper bounds for LightCertifiedBlob marshalled size estimation.
+// These are intentionally generous to accommodate future format changes.
+const (
+	protobufOverhead = 8
+
+	LightCertifiedBlobBaseBytes = protobufOverhead +
+		len(mt.Digest{}) + // ChunkDigestsRoot
+		8 + // PayloadLength
+		8 + // ExpirySeqNr
+		8 // Submitter
+
+	AttributedBlobAvailabilitySignatureBytes = protobufOverhead +
+		ed25519.SignatureSize + // Signature
+		8 // Signer
+)
+
+// LightCertifiedBlobMarshalledBytesUpperBound returns a conservative upper bound
+// on the marshalled length of a LightCertifiedBlob with at most n signatures.
+func LightCertifiedBlobMarshalledBytesUpperBound(n int) int {
+	if n < 0 {
+		n = 0
+	}
+	return LightCertifiedBlobBaseBytes + n*AttributedBlobAvailabilitySignatureBytes
+}

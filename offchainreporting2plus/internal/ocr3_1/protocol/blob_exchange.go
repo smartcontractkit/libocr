@@ -1120,13 +1120,13 @@ func (bex *blobExchangeState[RI]) messageBlobChunkRequest(msg MessageBlobChunkRe
 	})
 
 	tx, err := bex.kv.NewReadTransactionUnchecked()
-	defer tx.Discard()
 	if err != nil {
 		bex.logger.Error("failed to create read transaction for MessageBlobChunkRequest", commontypes.LogFields{
 			"error": err,
 		})
 		return
 	}
+	defer tx.Discard()
 
 	meta, err := tx.ReadBlobMeta(msg.BlobDigest)
 	if err != nil {
