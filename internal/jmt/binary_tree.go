@@ -54,61 +54,66 @@ func sparseDigestInternalBinary(leftNode sparseMerkleNode, rightNode sparseMerkl
 	}
 }
 
-func evolveLayer(bottomLayer []sparseMerkleNode) []sparseMerkleNode {
-	if len(bottomLayer)%2 != 0 {
-		panic("")
-	}
-
-	nextLayer := make([]sparseMerkleNode, 0, len(bottomLayer)/2)
-
-	for i, j := 0, 1; j < len(bottomLayer); i, j = i+2, j+2 {
-		nextLayer = append(nextLayer, sparseDigestInternalBinary(bottomLayer[i], bottomLayer[j]))
-	}
-	return nextLayer
+func sparseMerkleTreeDigest(bottomLayer []sparseMerkleNode) Digest {
+	return sparseMerkleTreeRoot(bottomLayer).digest
 }
 
-func sparseMerkleTreeDigest(bottomLayer []sparseMerkleNode) Digest {
+func sparseMerkleTreeRoot(bottomLayer []sparseMerkleNode) sparseMerkleNode {
 	if len(bottomLayer) == 0 {
-		return SparseMerklePlaceholderDigest
+		return sparseMerkleNode{false, SparseMerklePlaceholderDigest}
+	}
+	if !isPowerOfTwo(len(bottomLayer)) {
+		panic("bottomLayer length must be a power of two if not zero")
 	}
 	if len(bottomLayer) == 1 {
-		return bottomLayer[0].digest
+		return bottomLayer[0]
 	}
-	return sparseMerkleTreeDigest(evolveLayer(bottomLayer))
+	return sparseDigestInternalBinary(
+		sparseMerkleTreeRoot(bottomLayer[:len(bottomLayer)/2]),
+		sparseMerkleTreeRoot(bottomLayer[len(bottomLayer)/2:]),
+	)
 }
 
-// Calling with a compactable i will return invalid proofs, because the node is really not part of the final tree.
-func sparseMerkleProof(bottomLayer []sparseMerkleNode, i int) []Digest {
-	// find the bottommost layer where the node at index i remains after compactions
-	for len(bottomLayer) > 1 {
-		bottomLayerCandidate := evolveLayer(bottomLayer)
-
-		if len(bottomLayerCandidate) > i/2 && bottomLayerCandidate[i/2] == bottomLayer[i] {
-			bottomLayer = bottomLayerCandidate
-			i = i / 2
-		} else {
-			break
-		}
+func sparseMerkleIsLeafAndProof(bottomLayer []sparseMerkleNode, i int) (singleLeaf bool, proof []Digest) {
+	if !isPowerOfTwo(len(bottomLayer)) {
+		panic("bottomLayer length must be a power of two")
 	}
-
-	if len(bottomLayer) <= 1 {
-
-		return nil
+	if i < 0 || i >= len(bottomLayer) {
+		panic("i is out of bounds")
+	}
+	if bottomLayer[i].digest == SparseMerklePlaceholderDigest {
+		panic("bottomLayer[i] is a placeholder")
+	}
+	if len(bottomLayer) == 1 {
+		return bottomLayer[0].isLeaf, nil
 	}
 
 	mid := len(bottomLayer) / 2
-
 	var (
-		sibling            Digest
-		descendantSiblings []Digest
+		sibling             Digest
+		subtreeSiblings     []Digest
+		subtreeIsSingleLeaf bool
 	)
 	if i < mid {
 		sibling = sparseMerkleTreeDigest(bottomLayer[mid:])
-		descendantSiblings = sparseMerkleProof(bottomLayer[:mid], i)
+		subtreeIsSingleLeaf, subtreeSiblings = sparseMerkleIsLeafAndProof(bottomLayer[:mid], i)
 	} else { // i >= mid
 		sibling = sparseMerkleTreeDigest(bottomLayer[:mid])
-		descendantSiblings = sparseMerkleProof(bottomLayer[mid:], i-mid)
+		subtreeIsSingleLeaf, subtreeSiblings = sparseMerkleIsLeafAndProof(bottomLayer[mid:], i-mid)
 	}
 
-	return append(descendantSiblings, sibling)
+	rootIsSingleLeaf := subtreeIsSingleLeaf && sibling == SparseMerklePlaceholderDigest
+	if rootIsSingleLeaf {
+		return true, nil
+	}
+	return false, append(subtreeSiblings, sibling)
+}
+
+func sparseMerkleProof(bottomLayer []sparseMerkleNode, i int) []Digest {
+	_, proof := sparseMerkleIsLeafAndProof(bottomLayer, i)
+	return proof
+}
+
+func isPowerOfTwo(num int) bool {
+	return num > 0 && (num&(num-1)) == 0
 }

@@ -66,7 +66,7 @@ func VerifySubrange(
 	})
 	for i := range sortedDigestedKeyValues {
 		if i > 0 && !(bytes.Compare(sortedDigestedKeyValues[i-1].keyDigest[:], sortedDigestedKeyValues[i].keyDigest[:]) < 0) {
-			return fmt.Errorf("key values contain duplicates")
+			return fmt.Errorf("key values contain duplicates: key digest %x", sortedDigestedKeyValues[i].keyDigest)
 		}
 	}
 
@@ -310,8 +310,11 @@ func verifySubrangePadded(
 	if len(layer) != 1 {
 		return fmt.Errorf("unexpectedly ended with a non-singleton layer of %v nodes at the top", len(layer))
 	}
-	if !((leftBoundingLeafOrNil == nil || len(leftBoundingLeafOrNil.Siblings) == 0) && (rightBoundingLeafOrNil == nil || len(rightBoundingLeafOrNil.Siblings) == 0)) {
-		return fmt.Errorf("unexpectedly ended with left or right siblings remaining: left %v, right %v", len(leftBoundingLeafOrNil.Siblings), len(rightBoundingLeafOrNil.Siblings))
+	if leftBoundingLeafOrNil != nil && len(leftBoundingLeafOrNil.Siblings) != 0 {
+		return fmt.Errorf("unexpectedly ended with left siblings remaining: %v", len(leftBoundingLeafOrNil.Siblings))
+	}
+	if rightBoundingLeafOrNil != nil && len(rightBoundingLeafOrNil.Siblings) != 0 {
+		return fmt.Errorf("unexpectedly ended with right siblings remaining: %v", len(rightBoundingLeafOrNil.Siblings))
 	}
 	if layer[0].sparseMerkleNode.digest != expectedRootDigest {
 		return fmt.Errorf("computed root digest mismatch: computed %x, expected %x", layer[0].sparseMerkleNode.digest, expectedRootDigest)

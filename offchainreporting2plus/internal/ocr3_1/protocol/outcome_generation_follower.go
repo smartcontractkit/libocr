@@ -472,9 +472,9 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 	asos []AttributedSignedObservation,
 	kvReadWriteTxn KeyValueDatabaseReadWriteTransaction,
 ) {
-	shouldDiscardKVTxn := true
+	succeeded := false
 	defer func() {
-		if shouldDiscardKVTxn {
+		if !succeeded {
 			kvReadWriteTxn.Discard()
 		}
 	}()
@@ -516,16 +516,16 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 
 	writeSet, err := kvReadWriteTxn.GetWriteSet()
 	if err != nil {
-		outgen.logger.Warn("failed to get write set from kv read/write transaction", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
+		logger.Warn("failed to get write set from kv read/write transaction", commontypes.LogFields{
+			"seqNr": roundCtx.SeqNr,
 			"error": err,
 		})
 		return
 	}
 	stateRootDigest, err := kvReadWriteTxn.CloseWriteSet()
 	if err != nil {
-		outgen.logger.Warn("failed to close the transaction WriteSet", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
+		logger.Warn("failed to close the transaction WriteSet", commontypes.LogFields{
+			"seqNr": roundCtx.SeqNr,
 			"error": err,
 		})
 		return
@@ -553,12 +553,19 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalStateTransition(
 			reportsPlusPrecursor,
 		},
 	}:
-		shouldDiscardKVTxn = false
+		succeeded = true
 	case <-ctx.Done():
 	}
 }
 
 func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(ev EventComputedProposalStateTransition[RI]) {
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			ev.KeyValueDatabaseReadWriteTransaction.Discard()
+		}
+	}()
+
 	if ev.Epoch != outgen.sharedState.e || ev.SeqNr != outgen.sharedState.seqNr {
 		outgen.logger.Debug("discarding EventComputedProposalStateTransition from old round", commontypes.LogFields{
 			"seqNr":   outgen.sharedState.seqNr,
@@ -576,8 +583,6 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(e
 		return
 	}
 
-	outgen.followerState.openKVTxn = ev.KeyValueDatabaseReadWriteTransaction
-
 	var stidap stateTransitionInfoDigestsAndPreimages
 	switch sti := ev.stateTransitionInfo.(type) {
 	case stateTransitionInfoDigestsAndPreimages:
@@ -588,8 +593,6 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(e
 		})
 		return
 	}
-
-	outgen.followerState.stateTransitionInfo = stidap
 
 	err := outgen.persistUnattestedStateTransitionBlockAndReportsPlusPrecursor(
 		StateTransitionBlock{
@@ -612,7 +615,11 @@ func (outgen *outcomeGenerationState[RI]) eventComputedProposalStateTransition(e
 		return
 	}
 
+	outgen.followerState.stateTransitionInfo = stidap
+	outgen.followerState.openKVTxn = ev.KeyValueDatabaseReadWriteTransaction
 	outgen.broadcastMessagePrepare()
+
+	succeeded = true
 }
 
 // broadcasts MessagePrepare for outgen.sharedState.e, outgen.sharedState.seqNr
@@ -1037,8 +1044,8 @@ func (outgen *outcomeGenerationState[RI]) backgroundCommitted(
 	kvReadTxn.Discard()
 
 	if !ok {
-		outgen.logger.Info("continuing after ReportingPlugin.Committed returned an error", commontypes.LogFields{
-			"seqNr": outgen.sharedState.seqNr,
+		logger.Info("continuing after ReportingPlugin.Committed returned an error", commontypes.LogFields{
+			"seqNr": roundCtx.SeqNr,
 		})
 
 	}
