@@ -139,6 +139,9 @@ func PublicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 }
 
 func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change types.ContractConfig) (PublicConfig, config.SharedSecretEncryptions, error) {
+	fmt.Printf("OCRDEBUG: publicConfigFromContractConfig: change: %+v\n", change)
+	fmt.Printf("OCRDEBUG: publicConfigFromContractConfig: change signers: %+v\n", change.Signers)
+
 	if change.OffchainConfigVersion != config.OCR3OffchainConfigVersion {
 		return PublicConfig{}, config.SharedSecretEncryptions{}, fmt.Errorf("unsuppported OffchainConfigVersion %v, supported OffchainConfigVersion is %v", change.OffchainConfigVersion, config.OCR3OffchainConfigVersion)
 	}
@@ -147,6 +150,8 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 	if err != nil {
 		return PublicConfig{}, config.SharedSecretEncryptions{}, err
 	}
+
+	fmt.Printf("OCRDEBUG: publicConfigFromContractConfig: deserialized offchain config: %+v\n", oc)
 
 	if err := checkIdentityListsHaveNoDuplicates(change, oc); err != nil {
 		return PublicConfig{}, config.SharedSecretEncryptions{}, err
@@ -167,6 +172,8 @@ func publicConfigFromContractConfig(skipResourceExhaustionChecks bool, change ty
 			change.Transmitters[i],
 		})
 	}
+
+	fmt.Printf("OCRDEBUG: publicConfigFromContractConfig: identities: %+v\n", identities)
 
 	cfg := PublicConfig{
 		oc.DeltaProgress,

@@ -52,17 +52,26 @@ func SharedConfigFromContractConfig[RI any](
 	peerID string,
 	transmitAccount types.Account,
 ) (SharedConfig, commontypes.OracleID, error) {
+	fmt.Printf("SharedConfigFromContractConfig: at the start")
+
 	publicConfig, encSharedSecret, err := publicConfigFromContractConfig(skipResourceExhaustionChecks, change)
 	if err != nil {
 		return SharedConfig{}, 0, err
 	}
 
+	fmt.Printf("SharedConfigFromContractConfig: publicConfig: %+v\n", publicConfig)
+
 	oracleID := commontypes.OracleID(math.MaxUint8)
 	{
 		onchainPublicKey := onchainKeyring.PublicKey()
+		fmt.Printf("SharedConfigFromContractConfig: onchainPublicKey: %x\n", onchainPublicKey)
+
 		offchainPublicKey := offchainKeyring.OffchainPublicKey()
+
+		fmt.Printf("SharedConfigFromContractConfig: offchainPublicKey: %x\n", offchainPublicKey)
 		var found bool
 		for i, identity := range publicConfig.OracleIdentities {
+			fmt.Printf("Comparing identity %d: %x with onchainPublicKey: %x\n", i, identity.OnchainPublicKey, onchainPublicKey)
 			if bytes.Equal(identity.OnchainPublicKey, onchainPublicKey) {
 				if identity.OffchainPublicKey != offchainPublicKey {
 					return SharedConfig{}, 0, errors.Errorf(
@@ -98,6 +107,8 @@ func SharedConfigFromContractConfig[RI any](
 	if err != nil {
 		return SharedConfig{}, 0, fmt.Errorf("could not decrypt shared secret: %w", err)
 	}
+
+	fmt.Printf("returning public config and oracleID: %v, %d\n", publicConfig, oracleID)
 
 	return SharedConfig{
 		publicConfig,
