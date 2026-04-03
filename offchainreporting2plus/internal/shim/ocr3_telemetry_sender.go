@@ -39,14 +39,14 @@ func (ts *OCR3TelemetrySender) send(t *serialization.TelemetryWrapper) {
 
 func (ts *OCR3TelemetrySender) EpochStarted(
 	configDigest types.ConfigDigest,
-	epoch uint32,
+	epoch uint64,
 	leader commontypes.OracleID,
 ) {
 	t := time.Now().UnixNano()
 	ts.send(&serialization.TelemetryWrapper{
 		Wrapped: &serialization.TelemetryWrapper_EpochStarted{&serialization.TelemetryEpochStarted{
 			ConfigDigest: configDigest[:],
-			Epoch:        uint64(epoch),
+			Epoch:        epoch,
 			Leader:       uint64(leader),
 		}},
 		UnixTimeNanoseconds: t,

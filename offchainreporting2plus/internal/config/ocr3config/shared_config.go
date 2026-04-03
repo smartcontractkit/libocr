@@ -1,7 +1,6 @@
 package ocr3config
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -48,7 +47,7 @@ func SharedConfigFromContractConfig[RI any](
 	skipResourceExhaustionChecks bool,
 	change types.ContractConfig,
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	peerID string,
 	transmitAccount types.Account,
 ) (SharedConfig, commontypes.OracleID, error) {
@@ -59,38 +58,38 @@ func SharedConfigFromContractConfig[RI any](
 
 	oracleID := commontypes.OracleID(math.MaxUint8)
 	{
-		onchainPublicKey := onchainKeyring.PublicKey()
 		offchainPublicKey := offchainKeyring.OffchainPublicKey()
 		var found bool
 		for i, identity := range publicConfig.OracleIdentities {
-			if bytes.Equal(identity.OnchainPublicKey, onchainPublicKey) {
-				if identity.OffchainPublicKey != offchainPublicKey {
-					return SharedConfig{}, 0, errors.Errorf(
-						"OnchainPublicKey %x in publicConfig matches "+
-							"mine, but OffchainPublicKey does not: %v (config) vs %v (mine)",
-						onchainPublicKey, identity.OffchainPublicKey, offchainPublicKey)
-				}
-				if identity.PeerID != peerID {
-					return SharedConfig{}, 0, errors.Errorf(
-						"OnchainPublicKey %x in publicConfig matches "+
-							"mine, but PeerID does not: %v (config) vs %v (mine)",
-						onchainPublicKey, identity.PeerID, peerID)
-				}
-				if identity.TransmitAccount != transmitAccount {
-					return SharedConfig{}, 0, errors.Errorf(
-						"OnchainPublicKey %x in publicConfig matches "+
-							"mine, but TransmitAccount does not: %v (config) vs %v (mine)",
-						onchainPublicKey, identity.TransmitAccount, transmitAccount)
-				}
-				oracleID = commontypes.OracleID(i)
-				found = true
+			if identity.OffchainPublicKey != offchainPublicKey {
+				continue
 			}
+			if !onchainKeyring.Has(identity.OnchainPublicKey) {
+				return SharedConfig{}, 0, errors.Errorf(
+					"OffchainPublicKey %v in publicConfig matches "+
+						"mine, but OnchainPublicKey %x does not match keyring %s",
+					offchainPublicKey, identity.OnchainPublicKey, onchainKeyring.DebugIdentifier())
+			}
+			if identity.PeerID != peerID {
+				return SharedConfig{}, 0, errors.Errorf(
+					"OffchainPublicKey %v in publicConfig matches "+
+						"mine, but PeerID does not: %v (config) vs %v (mine)",
+					offchainPublicKey, identity.PeerID, peerID)
+			}
+			if identity.TransmitAccount != transmitAccount {
+				return SharedConfig{}, 0, errors.Errorf(
+					"OffchainPublicKey %v in publicConfig matches "+
+						"mine, but TransmitAccount does not: %v (config) vs %v (mine)",
+					offchainPublicKey, identity.TransmitAccount, transmitAccount)
+			}
+			oracleID = commontypes.OracleID(i)
+			found = true
 		}
 
 		if !found {
 			return SharedConfig{},
 				0,
-				fmt.Errorf("could not find my OnchainPublicKey %x in publicConfig", onchainPublicKey)
+				fmt.Errorf("could not find matching OffchainPublicKey in publicConfig for %v", offchainPublicKey)
 		}
 	}
 

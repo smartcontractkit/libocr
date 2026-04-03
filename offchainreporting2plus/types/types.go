@@ -155,6 +155,10 @@ type ReportingPluginConfig struct {
 	MaxDurationReport                       time.Duration
 	MaxDurationShouldAcceptFinalizedReport  time.Duration
 	MaxDurationShouldTransmitAcceptedReport time.Duration
+
+	// The duration until all transmitters had at least one stage to transmit.
+	// Computed based on the schedule and the actual number of oracles.
+	DurationAllTransmissionStages time.Duration
 }
 
 // A ReportingPlugin allows plugging custom logic into the OCR protocol. The OCR
@@ -377,10 +381,13 @@ type ContractConfigTracker interface {
 	Notify() <-chan struct{}
 
 	// LatestConfigDetails returns information about the latest configuration,
-	// but not the configuration itself.
+	// but not the configuration itself. When no configuration has been set,
+	// should return (0, ConfigDigest{}, nil).
 	LatestConfigDetails(ctx context.Context) (changedInBlock uint64, configDigest ConfigDigest, err error)
 
-	// LatestConfig returns the latest configuration.
+	// LatestConfig returns the latest configuration. If no configuration has
+	// been set inside the block specified by changedInBlock, should return an
+	// error.
 	LatestConfig(ctx context.Context, changedInBlock uint64) (ContractConfig, error)
 
 	// LatestBlockHeight returns the height of the most recent block in the chain.

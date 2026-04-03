@@ -2,6 +2,8 @@ package ocr3types
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -163,4 +165,23 @@ type MercuryPluginInfo struct {
 	Name string
 
 	Limits MercuryPluginLimits
+}
+
+func (l MercuryPluginLimits) Validate() error {
+	var err error
+	check := func(name string, val, max int) {
+		if !(0 <= val && val <= max) {
+			err = errors.Join(err, fmt.Errorf("%s (%v) out of range. Should be between 0 and %v", name, val, max))
+		}
+	}
+	check("MaxObservationLength", l.MaxObservationLength, MaxMaxMercuryObservationLength)
+	check("MaxReportLength", l.MaxReportLength, MaxMaxMercuryReportLength)
+	return err
+}
+
+func (i MercuryPluginInfo) Validate() error {
+	if err := i.Limits.Validate(); err != nil {
+		return fmt.Errorf("Limits are invalid: %w", err)
+	}
+	return nil
 }

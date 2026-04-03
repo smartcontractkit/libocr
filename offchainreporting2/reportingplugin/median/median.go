@@ -112,6 +112,17 @@ type OffchainConfig struct {
 	// Be careful setting this. It can cause increased transaction load and
 	// costs.
 	TransmitDespiteContractReadError bool
+	// If AcceptAfterFullTransmissionScheduleElapsed is true, a report will
+	// be accepted by ShouldAcceptFinalizedReport if the full transmission
+	// schedule has elapsed since the last accepted report.  This is useful
+	// to prevent missed heartbeats on chains where sometimes *all* nodes
+	// are unable to successfully land a transaction, because otherwise the
+	// "pending report check" will keep blocking later non-deviating
+	// reports from being accepted.
+	// This flag defaults to false. The corresponding flag on
+	// NumericalMedianFactory has the same effect; if either flag is true,
+	// the condition applies.
+	AcceptAfterFullTransmissionScheduleElapsed bool
 }
 
 func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
@@ -132,6 +143,7 @@ func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 		configProto.GetAlphaAcceptPpb(),
 		time.Duration(configProto.GetDeltaCNanoseconds()),
 		configProto.GetTransmitDespiteContractReadError(),
+		configProto.GetAcceptAfterFullTransmissionScheduleElapsed(),
 	}, nil
 }
 
@@ -148,6 +160,7 @@ func (c OffchainConfig) Encode() []byte {
 		c.AlphaAcceptPPB,
 		uint64(c.DeltaC),
 		c.TransmitDespiteContractReadError,
+		c.AcceptAfterFullTransmissionScheduleElapsed,
 	}
 	result, err := proto.Marshal(&configProto)
 	if err != nil {
@@ -286,10 +299,16 @@ type NumericalMedianFactory struct {
 	// function DefaultDeviationFunc. All oracles in the OCR protocol instance
 	// must run with the same deviation function.
 	DeviationFunc DeviationFunc
+	// The corresponding flag on OffchainConfig has the same effect;
+	// if either flag is true, the condition applies. See the
+	// comment on OffchainConfig.AcceptAfterFullTransmissionScheduleElapsed
+	// for details on what this does.
+	// It's preferable to configure this flag via OffchainConfig, but in cases
+	// where that is not feasible, you may set it here instead.
+	AcceptAfterFullTransmissionScheduleElapsed bool
 }
 
 func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
-
 	offchainConfig, err := DecodeOffchainConfig(configuration.OffchainConfig)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
@@ -324,6 +343,7 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 		"onchainConfig":                        onchainConfig,
 		"includeGasPriceSubunitsInObservation": fac.IncludeGasPriceSubunitsInObservation,
 		"hasCustomDeviationFunc":               fac.DeviationFunc != nil,
+		"acceptAfterFullTransmissionScheduleElapsed": fac.AcceptAfterFullTransmissionScheduleElapsed,
 	})
 
 	return &numericalMedian{
@@ -337,11 +357,14 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 			logger,
 			fac.ReportCodec,
 			deviationFunc,
+			fac.AcceptAfterFullTransmissionScheduleElapsed || offchainConfig.AcceptAfterFullTransmissionScheduleElapsed,
 
 			configuration.ConfigDigest,
 			configuration.F,
+			configuration.DurationAllTransmissionStages,
 			epochRound{},
 			new(big.Int),
+			time.Now(),
 			maxReportLength,
 		}, types.ReportingPluginInfo{
 			"NumericalMedian",
@@ -376,22 +399,25 @@ func DefaultDeviationFunc(_ context.Context, thresholdPPB uint64, old *big.Int, 
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
 
 type numericalMedian struct {
-	offchainConfig                       OffchainConfig
-	onchainConfig                        OnchainConfig
-	contractTransmitter                  MedianContract
-	dataSource                           DataSource
-	juelsPerFeeCoinDataSource            DataSource
-	gasPriceSubunitsDataSource           DataSource
-	includeGasPriceSubunitsInObservation bool
-	logger                               loghelper.LoggerWithContext
-	reportCodec                          ReportCodec
-	deviationFunc                        DeviationFunc
+	offchainConfig                             OffchainConfig
+	onchainConfig                              OnchainConfig
+	contractTransmitter                        MedianContract
+	dataSource                                 DataSource
+	juelsPerFeeCoinDataSource                  DataSource
+	gasPriceSubunitsDataSource                 DataSource
+	includeGasPriceSubunitsInObservation       bool
+	logger                                     loghelper.LoggerWithContext
+	reportCodec                                ReportCodec
+	deviationFunc                              DeviationFunc
+	acceptAfterFullTransmissionScheduleElapsed bool
 
-	configDigest             types.ConfigDigest
-	f                        int
-	latestAcceptedEpochRound epochRound
-	latestAcceptedMedian     *big.Int
-	maxReportLength          int
+	configDigest                  types.ConfigDigest
+	f                             int
+	durationAllTransmissionStages time.Duration
+	latestAcceptedEpochRound      epochRound
+	latestAcceptedMedian          *big.Int
+	latestAcceptedTime            time.Time
+	maxReportLength               int
 }
 
 func (nm *numericalMedian) Query(ctx context.Context, repts types.ReportTimestamp) (types.Query, error) {
@@ -754,25 +780,30 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		nothingPending = !contractLatestTransmissionDetailsOrNil.EpochRound.Less(nm.latestAcceptedEpochRound)
 	}
 
-	result := medianContractReadErrorAcceptOverride || (contractConfigDigestMatches && reportFresh && (deviates || nothingPending))
+	fullTransmissionScheduleElapsedSinceLastAccepted := time.Since(nm.latestAcceptedTime) > nm.durationAllTransmissionStages
+
+	result := medianContractReadErrorAcceptOverride || (contractConfigDigestMatches && reportFresh && (deviates || nothingPending || (nm.acceptAfterFullTransmissionScheduleElapsed && fullTransmissionScheduleElapsedSinceLastAccepted)))
 
 	nm.logger.Debug("ShouldAcceptFinalizedReport() = result", commontypes.LogFields{
-		"contractLatestTransmissionDetailsOrNil": contractLatestTransmissionDetailsOrNil,
-		"reportEpochRound":                       reportEpochRound,
-		"latestAcceptedEpochRound":               nm.latestAcceptedEpochRound,
-		"alphaAcceptInfinite":                    nm.offchainConfig.AlphaAcceptInfinite,
-		"alphaAcceptPPB":                         nm.offchainConfig.AlphaAcceptPPB,
-		"medianContractReadErrorAcceptOverride":  medianContractReadErrorAcceptOverride,
-		"contractConfigDigestMatches":            contractConfigDigestMatches,
-		"reportFresh":                            reportFresh,
-		"nothingPending":                         nothingPending,
-		"deviates":                               deviates,
-		"result":                                 result,
+		"contractLatestTransmissionDetailsOrNil":           contractLatestTransmissionDetailsOrNil,
+		"reportEpochRound":                                 reportEpochRound,
+		"latestAcceptedEpochRound":                         nm.latestAcceptedEpochRound,
+		"alphaAcceptInfinite":                              nm.offchainConfig.AlphaAcceptInfinite,
+		"alphaAcceptPPB":                                   nm.offchainConfig.AlphaAcceptPPB,
+		"medianContractReadErrorAcceptOverride":            medianContractReadErrorAcceptOverride,
+		"contractConfigDigestMatches":                      contractConfigDigestMatches,
+		"reportFresh":                                      reportFresh,
+		"nothingPending":                                   nothingPending,
+		"acceptAfterFullTransmissionScheduleElapsed":       nm.acceptAfterFullTransmissionScheduleElapsed,
+		"fullTransmissionScheduleElapsedSinceLastAccepted": fullTransmissionScheduleElapsedSinceLastAccepted,
+		"deviates": deviates,
+		"result":   result,
 	})
 
 	if result {
 		nm.latestAcceptedEpochRound = reportEpochRound
 		nm.latestAcceptedMedian = reportMedian
+		nm.latestAcceptedTime = time.Now()
 	}
 
 	return result, nil

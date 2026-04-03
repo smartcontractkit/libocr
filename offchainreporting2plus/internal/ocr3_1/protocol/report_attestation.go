@@ -34,7 +34,7 @@ func RunReportAttestation[RI any](
 	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 ) {
 	sched := scheduler.NewScheduler[EventMissingReportsPlusPrecursor[RI]]()
@@ -70,7 +70,7 @@ type reportAttestationState[RI any] struct {
 	kvDb                                   KeyValueDatabase
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender[RI]
-	onchainKeyring                         ocr3types.OnchainKeyring[RI]
+	onchainKeyring                         ocr3types.OnchainKeyring2[RI]
 	reportingPlugin                        ocr3_1types.ReportingPlugin[RI]
 
 	scheduler    *scheduler.Scheduler[EventMissingReportsPlusPrecursor[RI]]
@@ -885,7 +885,7 @@ func newReportAttestationState[RI any](
 	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 	sched *scheduler.Scheduler[EventMissingReportsPlusPrecursor[RI]],
 ) *reportAttestationState[RI] {

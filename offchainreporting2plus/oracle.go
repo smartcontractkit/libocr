@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3shims"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -15,6 +16,8 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
 )
+
+//go-sumtype:decl OracleArgs
 
 type OracleArgs interface {
 	oracleArgsMarker()
@@ -240,6 +243,49 @@ func (args OCR3OracleArgs[RI]) runManaged(ctx context.Context) {
 		args.BinaryNetworkEndpointFactory,
 		args.OffchainConfigDigester,
 		args.OffchainKeyring,
+		ocr3shims.OnchainKeyringAsOnchainKeyring2(args.OnchainKeyring),
+		args.ReportingPluginFactory,
+	)
+}
+
+// OCR3OracleArgs2 is like OCR3OracleArgs but accepts an OnchainKeyring2.
+type OCR3OracleArgs2[RI any] struct {
+	BinaryNetworkEndpointFactory types.BinaryNetworkEndpointFactory
+	V2Bootstrappers              []commontypes.BootstrapperLocator
+	ContractConfigTracker        types.ContractConfigTracker
+	ContractTransmitter          ocr3types.ContractTransmitter[RI]
+	Database                     ocr3types.Database
+	LocalConfig                  types.LocalConfig
+	Logger                       commontypes.Logger
+	MetricsRegisterer            prometheus.Registerer
+	MonitoringEndpoint           commontypes.MonitoringEndpoint
+	OffchainConfigDigester       types.OffchainConfigDigester
+	OffchainKeyring              types.OffchainKeyring
+	OnchainKeyring               ocr3types.OnchainKeyring2[RI]
+	ReportingPluginFactory       ocr3types.ReportingPluginFactory[RI]
+}
+
+func (OCR3OracleArgs2[RI]) oracleArgsMarker() {}
+
+func (args OCR3OracleArgs2[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args OCR3OracleArgs2[RI]) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
+
+	managed.RunManagedOCR3Oracle(
+		ctx,
+
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.LocalConfig,
+		logger,
+		args.MetricsRegisterer,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
 		args.OnchainKeyring,
 		args.ReportingPluginFactory,
 	)
@@ -300,6 +346,51 @@ func (OCR3_1OracleArgs[RI]) oracleArgsMarker() {}
 func (args OCR3_1OracleArgs[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
 
 func (args OCR3_1OracleArgs[RI]) runManaged(ctx context.Context) {
+	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
+
+	managed.RunManagedOCR3_1Oracle(
+		ctx,
+
+		args.V2Bootstrappers,
+		args.ContractConfigTracker,
+		args.ContractTransmitter,
+		args.Database,
+		args.KeyValueDatabaseFactory,
+		args.LocalConfig,
+		logger,
+		args.MetricsRegisterer,
+		args.MonitoringEndpoint,
+		args.BinaryNetworkEndpointFactory,
+		args.OffchainConfigDigester,
+		args.OffchainKeyring,
+		ocr3shims.OnchainKeyringAsOnchainKeyring2(args.OnchainKeyring),
+		args.ReportingPluginFactory,
+	)
+}
+
+// OCR3_1OracleArgs2 is like OCR3_1OracleArgs but accepts an OnchainKeyring2.
+type OCR3_1OracleArgs2[RI any] struct {
+	BinaryNetworkEndpointFactory types.BinaryNetworkEndpoint2Factory
+	V2Bootstrappers              []commontypes.BootstrapperLocator
+	ContractConfigTracker        types.ContractConfigTracker
+	ContractTransmitter          ocr3types.ContractTransmitter[RI]
+	Database                     ocr3_1types.Database
+	KeyValueDatabaseFactory      ocr3_1types.KeyValueDatabaseFactory
+	LocalConfig                  types.LocalConfig
+	Logger                       commontypes.Logger
+	MetricsRegisterer            prometheus.Registerer
+	MonitoringEndpoint           commontypes.MonitoringEndpoint
+	OffchainConfigDigester       types.OffchainConfigDigester
+	OffchainKeyring              types.OffchainKeyring
+	OnchainKeyring               ocr3types.OnchainKeyring2[RI]
+	ReportingPluginFactory       ocr3_1types.ReportingPluginFactory[RI]
+}
+
+func (OCR3_1OracleArgs2[RI]) oracleArgsMarker() {}
+
+func (args OCR3_1OracleArgs2[RI]) localConfig() types.LocalConfig { return args.LocalConfig }
+
+func (args OCR3_1OracleArgs2[RI]) runManaged(ctx context.Context) {
 	logger := loghelper.MakeRootLoggerWithContext(args.Logger)
 
 	managed.RunManagedOCR3_1Oracle(

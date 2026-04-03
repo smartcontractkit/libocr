@@ -10,7 +10,7 @@ import (
 type TelemetrySender interface {
 	EpochStarted(
 		configDigest types.ConfigDigest,
-		epoch uint32,
+		epoch uint64,
 		leader commontypes.OracleID,
 	)
 
