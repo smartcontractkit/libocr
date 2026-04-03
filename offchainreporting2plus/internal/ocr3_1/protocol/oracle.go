@@ -30,13 +30,13 @@ func RunOracle[RI any](
 	database Database,
 	id commontypes.OracleID,
 	kvDb KeyValueDatabase,
-	limits ocr3_1types.ReportingPluginLimits,
+	reportingPluginInfo ocr3_1types.ReportingPluginInfo1,
 	localConfig types.LocalConfig,
 	logger loghelper.LoggerWithContext,
 	metricsRegisterer prometheus.Registerer,
 	netEndpoint NetworkEndpoint[RI],
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 	telemetrySender TelemetrySender,
 ) {
@@ -49,7 +49,7 @@ func RunOracle[RI any](
 		database:            database,
 		id:                  id,
 		kvDb:                kvDb,
-		limits:              limits,
+		reportingPluginInfo: reportingPluginInfo,
 		localConfig:         localConfig,
 		logger:              logger,
 		metricsRegisterer:   metricsRegisterer,
@@ -71,13 +71,13 @@ type oracleState[RI any] struct {
 	database            Database
 	id                  commontypes.OracleID
 	kvDb                KeyValueDatabase
-	limits              ocr3_1types.ReportingPluginLimits
+	reportingPluginInfo ocr3_1types.ReportingPluginInfo1
 	localConfig         types.LocalConfig
 	logger              loghelper.LoggerWithContext
 	metricsRegisterer   prometheus.Registerer
 	netEndpoint         NetworkEndpoint[RI]
 	offchainKeyring     types.OffchainKeyring
-	onchainKeyring      ocr3types.OnchainKeyring[RI]
+	onchainKeyring      ocr3types.OnchainKeyring2[RI]
 	reportingPlugin     ocr3_1types.ReportingPlugin[RI]
 	telemetrySender     TelemetrySender
 
@@ -146,8 +146,9 @@ type oracleState[RI any] struct {
 // This enables us to wait for their completion before exiting.
 func (o *oracleState[RI]) run() {
 	o.logger.Info("Oracle: running", commontypes.LogFields{
-		"localConfig":  fmt.Sprintf("%+v", o.localConfig),
-		"publicConfig": fmt.Sprintf("%+v", o.config.PublicConfig),
+		"localConfig":         fmt.Sprintf("%+v", o.localConfig),
+		"publicConfig":        fmt.Sprintf("%+v", o.config.PublicConfig),
+		"reportingPluginInfo": fmt.Sprintf("%+v", o.reportingPluginInfo),
 	})
 
 	chNetToPacemaker := make(chan MessageToPacemakerWithSender[RI])
@@ -297,6 +298,7 @@ func (o *oracleState[RI]) run() {
 			o.localConfig,
 			o.logger,
 			o.reportingPlugin,
+			o.telemetrySender,
 		)
 	})
 
@@ -313,7 +315,7 @@ func (o *oracleState[RI]) run() {
 			o.config,
 			o.kvDb,
 			o.id,
-			o.limits,
+			o.reportingPluginInfo.Limits,
 			o.localConfig,
 			o.logger,
 			o.metricsRegisterer,

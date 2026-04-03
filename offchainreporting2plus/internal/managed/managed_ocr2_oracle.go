@@ -135,6 +135,7 @@ func RunManagedOCR2Oracle(
 				sharedConfig.MaxDurationReport,
 				sharedConfig.MaxDurationShouldAcceptFinalizedReport,
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
+				sharedConfig.DurationAllTransmissionStages(),
 			})
 
 			ins.Stop()

@@ -90,6 +90,12 @@ func (p *pebbleKeyValueDatabase) NewReadTransaction() (ocr3_1types.KeyValueDatab
 	}, nil
 }
 
+// Deprecated: Metrics is only used for internal benchmarking and should not be
+// used externally. It may be removed or changed without notice in the future.
+func (p *pebbleKeyValueDatabase) Metrics() (*pebble.Metrics, error) {
+	return p.db.Metrics(), nil
+}
+
 // The resulting transaction is NOT thread-safe.
 
 func (p *pebbleKeyValueDatabase) NewReadWriteTransaction() (ocr3_1types.KeyValueDatabaseReadWriteTransaction, error) {

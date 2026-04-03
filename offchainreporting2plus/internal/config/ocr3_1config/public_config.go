@@ -157,7 +157,8 @@ type PublicConfig struct {
 	// attempt to transmit (if in their view the first and second stage didn't
 	// succeed).
 	//
-	// sum(S) should equal n.
+	// It is recommended to have sum(S) >= n to ensure all oracles are
+	// included as transmitters.
 	S []int
 	// Identities (i.e. public keys) of the oracles participating in this
 	// protocol instance.

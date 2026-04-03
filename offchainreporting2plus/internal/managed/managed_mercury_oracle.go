@@ -2,8 +2,8 @@ package managed
 
 import (
 	"context"
-	"errors"
 	"fmt"
+
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,6 +17,7 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/serialization"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/shim"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3shims"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"github.com/smartcontractkit/libocr/subprocesses"
@@ -70,7 +71,7 @@ func RunManagedMercuryOracle(
 				return fmt.Errorf("ManagedMercuryOracle: error getting FromAccount: %w", err), true
 			}
 
-			ocr3OnchainKeyring := mercuryshim.NewMercuryOCR3OnchainKeyring(onchainKeyring)
+			ocr3OnchainKeyring := ocr3shims.OnchainKeyringAsOnchainKeyring2[mercuryshim.MercuryReportInfo](mercuryshim.NewMercuryOCR3OnchainKeyring(onchainKeyring))
 
 			sharedConfig, oid, err := ocr3config.SharedConfigFromContractConfig[mercuryshim.MercuryReportInfo](
 				skipResourceExhaustionChecks,
@@ -139,7 +140,7 @@ func RunManagedMercuryOracle(
 				metricsRegistererWrapper,
 			)
 
-			if err := validateMercuryPluginLimits(mercuryPluginInfo.Limits); err != nil {
+			if err := mercuryPluginInfo.Validate(); err != nil {
 				logger.Error("ManagedMercuryOracle: invalid MercuryPluginInfo", commontypes.LogFields{
 					"error":             err,
 					"mercuryPluginInfo": mercuryPluginInfo,
@@ -147,7 +148,8 @@ func RunManagedMercuryOracle(
 				return fmt.Errorf("ManagedMercuryOracle: invalid MercuryPluginInfo"), false
 			}
 
-			reportingPluginLimits := mercuryshim.ReportingPluginLimits(mercuryPluginInfo.Limits)
+			reportingPluginInfo := mercuryshim.ReportingPluginInfo(mercuryPluginInfo)
+			reportingPluginLimits := reportingPluginInfo.Limits
 
 			lims, err := limits.OCR3Limits(sharedConfig.PublicConfig, reportingPluginLimits, ocr3OnchainKeyring.MaxSignatureLength())
 			if err != nil {
@@ -230,6 +232,7 @@ func RunManagedMercuryOracle(
 				offchainKeyring,
 				ocr3OnchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[mercuryshim.MercuryReportInfo]{reportingPlugin, reportingPluginLimits},
+				reportingPluginInfo,
 				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
@@ -240,15 +243,4 @@ func RunManagedMercuryOracle(
 		offchainConfigDigester,
 		defaultRetryParams(),
 	)
-}
-
-func validateMercuryPluginLimits(limits ocr3types.MercuryPluginLimits) error {
-	var err error
-	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= ocr3types.MaxMaxMercuryObservationLength) {
-		err = errors.Join(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3types.MaxMaxMercuryObservationLength))
-	}
-	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= ocr3types.MaxMaxMercuryReportLength) {
-		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxMercuryReportLength))
-	}
-	return err
 }

@@ -30,7 +30,7 @@ func RunReportAttestation[RI any](
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3types.ReportingPlugin[RI],
 ) {
 	sched := scheduler.NewScheduler[EventMissingOutcome[RI]]()
@@ -60,7 +60,7 @@ type reportAttestationState[RI any] struct {
 	contractTransmitter                    ocr3types.ContractTransmitter[RI]
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender[RI]
-	onchainKeyring                         ocr3types.OnchainKeyring[RI]
+	onchainKeyring                         ocr3types.OnchainKeyring2[RI]
 	reportingPlugin                        ocr3types.ReportingPlugin[RI]
 
 	scheduler    *scheduler.Scheduler[EventMissingOutcome[RI]]
@@ -670,7 +670,7 @@ func newReportAttestationState[RI any](
 	contractTransmitter ocr3types.ContractTransmitter[RI],
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3types.ReportingPlugin[RI],
 	sched *scheduler.Scheduler[EventMissingOutcome[RI]],
 ) *reportAttestationState[RI] {
