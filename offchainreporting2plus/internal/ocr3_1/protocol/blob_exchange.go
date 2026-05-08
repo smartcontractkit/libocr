@@ -25,7 +25,6 @@ func RunBlobExchange[RI any](
 	ctx context.Context,
 
 	chNetToBlobExchange <-chan MessageToBlobExchangeWithSender[RI],
-	chOutcomeGenerationToBlobExchange <-chan EventToBlobExchange[RI],
 
 	chBlobBroadcastRequest <-chan blobBroadcastRequest,
 	chBlobFetchRequest <-chan blobFetchRequest,
@@ -40,17 +39,19 @@ func RunBlobExchange[RI any](
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
+
+	initialHighestCommittedSeqNr uint64,
 ) {
 	broadcastGraceTimeoutScheduler := scheduler.NewScheduler[EventBlobBroadcastGraceTimeout[RI]]()
 	defer broadcastGraceTimeoutScheduler.Close()
 
 	bex := makeBlobExchangeState[RI](
 		ctx, chNetToBlobExchange,
-		chOutcomeGenerationToBlobExchange,
 		chBlobBroadcastRequest, chBlobFetchRequest,
 		config, kv,
 		id, limits, localConfig, logger, metricsRegisterer, netSender, offchainKeyring,
 		telemetrySender,
+		initialHighestCommittedSeqNr,
 		broadcastGraceTimeoutScheduler,
 	)
 	bex.run()
@@ -60,7 +61,6 @@ func makeBlobExchangeState[RI any](
 	ctx context.Context,
 
 	chNetToBlobExchange <-chan MessageToBlobExchangeWithSender[RI],
-	chOutcomeGenerationToBlobExchange <-chan EventToBlobExchange[RI],
 
 	chBlobBroadcastRequest <-chan blobBroadcastRequest,
 	chBlobFetchRequest <-chan blobFetchRequest,
@@ -75,12 +75,27 @@ func makeBlobExchangeState[RI any](
 	netSender NetworkSender[RI],
 	offchainKeyring types.OffchainKeyring,
 	telemetrySender TelemetrySender,
+	initialHighestCommittedSeqNr uint64,
 
 	broadcastGraceTimeoutScheduler *scheduler.Scheduler[EventBlobBroadcastGraceTimeout[RI]],
 ) *blobExchangeState[RI] {
-	offerLogTapers := make([]loghelper.LogarithmicTaper, config.N())
+	chHighestCommittedSeqNrTrackerToBlobExchange := make(chan uint64)
+	chBlobExchangeToBlobReap := make(chan uint64)
 
-	tStopExpiredBlobFetchOrBroadcast := time.After(DeltaStopExpiredBlobFetchOrBroadcast)
+	var submitters []*blobSubmitter
+	var perOracleMetrics []*blobOracleMetrics
+	for i := range config.N() {
+		submitters = append(submitters, &blobSubmitter{
+			loghelper.LogarithmicTaper{},
+			loghelper.LogarithmicTaper{},
+		})
+		perOracleMetrics = append(perOracleMetrics, newBlobOracleMetrics(
+			metricsRegisterer,
+			logger,
+			commontypes.OracleID(i),
+			limits,
+		))
+	}
 
 	bex := &blobExchangeState[RI]{
 		ctx,
@@ -88,7 +103,6 @@ func makeBlobExchangeState[RI any](
 
 		make(chan EventToBlobExchange[RI]),
 		chNetToBlobExchange,
-		chOutcomeGenerationToBlobExchange,
 
 		chBlobBroadcastRequest,
 		chBlobFetchRequest,
@@ -99,7 +113,6 @@ func makeBlobExchangeState[RI any](
 		limits,
 		localConfig,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "bex"}),
-		offerLogTapers,
 		newBlobExchangeMetrics(metricsRegisterer, logger),
 		netSender,
 		offchainKeyring,
@@ -109,8 +122,13 @@ func makeBlobExchangeState[RI any](
 		nil, // must be filled right below
 
 		nil, // must be filled right below
-		tStopExpiredBlobFetchOrBroadcast,
+		chHighestCommittedSeqNrTrackerToBlobExchange,
+		chBlobExchangeToBlobReap,
+		initialHighestCommittedSeqNr,
+		true,
 
+		submitters,
+		perOracleMetrics,
 		make(map[BlobDigest]*blob),
 	}
 
@@ -290,11 +308,9 @@ const (
 	// we will reject the offer.
 	maxOwedOfferResponsesPerOracle = 10
 
-	// DeltaStopExpiredBlobFetchOrBroadcast denotes the interval with which we
-	// check for in-progress blob broadcasts and fetches for blobs that might
-	// have expired, and mark them as expired and/or send reject
-	// MessageBlobOfferResponse to the submitter if appropriate.
-	DeltaStopExpiredBlobFetchOrBroadcast = 5 * time.Second
+	// trackHighestCommittedSeqNrInterval denotes the rough interval with which blob
+	// exchange refreshes its view of the highest committed seq nr.
+	trackHighestCommittedSeqNrInterval = 1 * time.Second
 )
 
 type blobBroadcastRequest struct {
@@ -340,9 +356,8 @@ type blobExchangeState[RI any] struct {
 	ctx  context.Context
 	subs subprocesses.Subprocesses
 
-	chLocalEvent                      chan EventToBlobExchange[RI]
-	chNetToBlobExchange               <-chan MessageToBlobExchangeWithSender[RI]
-	chOutcomeGenerationToBlobExchange <-chan EventToBlobExchange[RI]
+	chLocalEvent        chan EventToBlobExchange[RI]
+	chNetToBlobExchange <-chan MessageToBlobExchangeWithSender[RI]
 
 	chBlobBroadcastRequest <-chan blobBroadcastRequest
 	chBlobFetchRequest     <-chan blobFetchRequest
@@ -353,7 +368,6 @@ type blobExchangeState[RI any] struct {
 	limits          ocr3_1types.ReportingPluginLimits
 	localConfig     types.LocalConfig
 	logger          loghelper.LoggerWithContext
-	offerLogTapers  []loghelper.LogarithmicTaper
 	metrics         *blobExchangeMetrics
 	netSender       NetworkSender[RI]
 	offchainKeyring types.OffchainKeyring
@@ -366,9 +380,19 @@ type blobExchangeState[RI any] struct {
 	// blob fetch
 	chunkRequesterGadget *requestergadget.RequesterGadget[blobChunkId]
 
-	tStopExpiredBlobBroadcastOrFetch <-chan time.Time
+	chHighestCommittedSeqNrTrackerToBlobExchange chan uint64
+	chBlobExchangeToBlobReap                     chan uint64
+	highestCommittedSeqNr                        uint64
+	notifyBlobReapOfHighestCommittedSeqNr        bool
 
-	blobs map[BlobDigest]*blob
+	submitters       []*blobSubmitter
+	perOracleMetrics []*blobOracleMetrics
+	blobs            map[BlobDigest]*blob
+}
+
+type blobSubmitter struct {
+	rejectedOfferLogTaper loghelper.LogarithmicTaper
+	statsOverflowLogTaper loghelper.LogarithmicTaper
 }
 
 type blobOfferItem struct {
@@ -519,8 +543,28 @@ func (b *blob) prunable() bool {
 func (bex *blobExchangeState[RI]) run() {
 	bex.logger.Info("BlobExchange: running", nil)
 
+	if err := bex.initializeStatsMetricsFromKV(); err != nil {
+		bex.logger.Warn("BlobExchange: failed to initialize stats metrics from kv, stats metrics will only be set as updated during operation", commontypes.LogFields{
+			"error": err,
+		})
+	}
+
 	bex.subs.Go(func() {
-		RunBlobReap(bex.ctx, bex.logger, bex.kv)
+		RunHighestCommittedSeqNrTracker(
+			bex.ctx,
+			bex.logger,
+			bex.kv,
+			trackHighestCommittedSeqNrInterval,
+			bex.chHighestCommittedSeqNrTrackerToBlobExchange,
+		)
+	})
+
+	bex.subs.Go(func() {
+		RunBlobReap(bex.ctx, bex.logger, bex.kv, bex.chBlobExchangeToBlobReap, bex.perOracleMetrics)
+	})
+
+	bex.subs.Go(func() {
+		RunBlobPopulateStaleIndex(bex.ctx, bex.logger, bex.kv)
 	})
 
 	// Take a reference to the ctx.Done channel once, here, to avoid taking the
@@ -529,14 +573,20 @@ func (bex *blobExchangeState[RI]) run() {
 
 	// Event Loop
 	for {
+		var nilOrChBlobExchangeToBlobReap chan<- uint64
+		if bex.notifyBlobReapOfHighestCommittedSeqNr {
+			nilOrChBlobExchangeToBlobReap = bex.chBlobExchangeToBlobReap
+		}
+
 		select {
+		case nilOrChBlobExchangeToBlobReap <- bex.highestCommittedSeqNr:
+			bex.notifyBlobReapOfHighestCommittedSeqNr = false
+
 		case ev := <-bex.chLocalEvent:
 			ev.processBlobExchange(bex)
 
 		case msg := <-bex.chNetToBlobExchange:
 			msg.msg.processBlobExchange(bex, msg.sender)
-		case ev := <-bex.chOutcomeGenerationToBlobExchange:
-			ev.processBlobExchange(bex)
 
 		case req := <-bex.chBlobBroadcastRequest:
 			bex.processBlobBroadcastRequest(req)
@@ -550,8 +600,8 @@ func (bex *blobExchangeState[RI]) run() {
 
 		case <-bex.chunkRequesterGadget.Ticker():
 			bex.chunkRequesterGadget.Tick()
-		case <-bex.tStopExpiredBlobBroadcastOrFetch:
-			bex.eventTStopExpiredBlobBroadcastOrFetch()
+		case highestCommittedSeqNr := <-bex.chHighestCommittedSeqNrTrackerToBlobExchange:
+			bex.eventHighestCommittedSeqNr(highestCommittedSeqNr)
 
 		case <-chDone:
 		}
@@ -562,6 +612,9 @@ func (bex *blobExchangeState[RI]) run() {
 			bex.logger.Info("BlobExchange: winding down", nil)
 			bex.subs.Wait()
 			bex.metrics.Close()
+			for _, m := range bex.perOracleMetrics {
+				m.Close()
+			}
 			bex.logger.Info("BlobExchange: exiting", nil)
 			return
 		default:
@@ -569,34 +622,22 @@ func (bex *blobExchangeState[RI]) run() {
 	}
 }
 
-func (bex *blobExchangeState[RI]) eventTStopExpiredBlobBroadcastOrFetch() {
-	defer func() {
-		bex.tStopExpiredBlobBroadcastOrFetch = time.After(DeltaStopExpiredBlobFetchOrBroadcast)
-	}()
-
-	tx, err := bex.kv.NewReadTransactionUnchecked()
-	if err != nil {
-		bex.logger.Error("failed to create read transaction for eventTStopExpiredBlobBroadcastOrFetch", commontypes.LogFields{
-			"error": err,
-		})
+func (bex *blobExchangeState[RI]) eventHighestCommittedSeqNr(highestCommittedSeqNr uint64) {
+	if highestCommittedSeqNr <= bex.highestCommittedSeqNr {
 		return
 	}
-	defer tx.Discard()
+	bex.highestCommittedSeqNr = highestCommittedSeqNr
 
-	highestCommittedSeqNr, err := tx.ReadHighestCommittedSeqNr()
-	if err != nil {
-		bex.logger.Error("failed to read highest committed seq nr for eventTStopExpiredBlobBroadcastOrFetch", commontypes.LogFields{
-			"error": err,
-		})
-		return
-	}
+	bex.logger.Debug("blob exchange learned of even higher highest committed seq nr", commontypes.LogFields{
+		"highestCommittedSeqNr": bex.highestCommittedSeqNr,
+	})
 
 	for blobDigest, blob := range bex.blobs {
-		if !hasBlobExpired(blob.expirySeqNr, highestCommittedSeqNr) {
+		if !bex.hasBlobExpired(blob.expirySeqNr) {
 			continue
 		}
 
-		broadcastPending := blob.broadcast != nil && blob.broadcast.phase == blobBroadcastPhaseOffering
+		broadcastPending := blob.broadcast != nil && blob.broadcast.shouldOffer()
 		fetchPending := blob.fetch != nil && !blob.fetch.expired && !blob.haveAllChunks()
 
 		if !(broadcastPending || fetchPending) {
@@ -616,12 +657,14 @@ func (bex *blobExchangeState[RI]) eventTStopExpiredBlobBroadcastOrFetch() {
 			broadcast := blob.broadcast
 			broadcast.phase = blobBroadcastPhaseExpired
 			close(broadcast.chNotify)
+			bex.incMyBlobsUndeterminedTotalForNonResponders(broadcast)
 		}
 
 		if fetchPending {
 			fetch := blob.fetch
 			if fetch.exchange != nil {
 				bex.sendBlobOfferResponseRejecting(blobDigest, blob.submitter, fetch.exchange.latestOfferRequestHandle)
+				bex.perOracleMetrics[blob.submitter].theirBlobsRejectedDueToExpirationTotal.Inc()
 				fetch.exchange.weServiced()
 			}
 
@@ -634,6 +677,12 @@ func (bex *blobExchangeState[RI]) eventTStopExpiredBlobBroadcastOrFetch() {
 			delete(bex.blobs, blobDigest)
 		}
 	}
+
+	bex.notifyBlobReapOfHighestCommittedSeqNr = true
+}
+
+func (bex *blobExchangeState[RI]) hasBlobExpired(expirySeqNr uint64) bool {
+	return expirySeqNr <= bex.highestCommittedSeqNr
 }
 
 func (bex *blobExchangeState[RI]) allowBlobOfferBasedOnOwedOfferResponsesBudget(sender commontypes.OracleID) error {
@@ -672,9 +721,29 @@ func (bex *blobExchangeState[RI]) allowBlobOfferBasedOnQuotaStats(offer MessageB
 		return fmt.Errorf("failed to read blob quota stats: %w", err)
 	}
 
+	statsOverflowLogTaper := &bex.submitters[submitter].statsOverflowLogTaper
+
 	totalQuotaStats, ok := appendedQuotaStats.Sub(reapedQuotaStats)
 	if !ok {
-		return fmt.Errorf("overflow when subtracting reaped quota stats from appended quota stats")
+		statsOverflowLogTaper.Trigger(func(consecutiveOverflows uint64) {
+			bex.logger.Debug("overflow when subtracting reaped quota stats from appended quota stats, "+
+				"reaper is likely ahead of blob exchange, treating as zero", commontypes.LogFields{
+				"consecutiveOverflows": consecutiveOverflows,
+				"appendedQuotaStats":   appendedQuotaStats,
+				"reapedQuotaStats":     reapedQuotaStats,
+				"submitter":            submitter,
+			})
+		})
+		totalQuotaStats = BlobQuotaStats{0, 0}
+	} else {
+		statsOverflowLogTaper.Reset(func(previouslyConsecutiveOverflows uint64) {
+			bex.logger.Debug("stopped seeing overflow when subtracting reaped quota stats from appended quota stats", commontypes.LogFields{
+				"previouslyConsecutiveOverflows": previouslyConsecutiveOverflows,
+				"appendedQuotaStats":             appendedQuotaStats,
+				"reapedQuotaStats":               reapedQuotaStats,
+				"submitter":                      submitter,
+			})
+		})
 	}
 
 	totalQuotaStatsIncludingOffer, ok := totalQuotaStats.Add(BlobQuotaStats{
@@ -690,12 +759,9 @@ func (bex *blobExchangeState[RI]) allowBlobOfferBasedOnQuotaStats(offer MessageB
 		uint64(bex.limits.MaxPerOracleUnexpiredBlobCumulativePayloadBytes),
 	}
 
-	if totalQuotaStatsIncludingOffer.Count > maxQuotaStats.Count {
-		return fmt.Errorf("accepting the offer would exceed our allowed per-oracle unexpired blob count, have %d, max %d", totalQuotaStats.Count, maxQuotaStats.Count)
-	}
-
-	if totalQuotaStatsIncludingOffer.CumulativePayloadLength > maxQuotaStats.CumulativePayloadLength {
-		return fmt.Errorf("accepting the offer would exceed our allowed per-oracle unexpired blob payload length, have %d, offer is for %d, max is %d", totalQuotaStats.CumulativePayloadLength, offer.PayloadLength, maxQuotaStats.CumulativePayloadLength)
+	if totalQuotaStatsIncludingOffer.Exceeds(maxQuotaStats) {
+		return fmt.Errorf("accepting the offer would exceed our allowed per-oracle unexpired quota, "+
+			"have %+v, would have %+v, max %+v", totalQuotaStats, totalQuotaStatsIncludingOffer, maxQuotaStats)
 	}
 
 	return nil
@@ -703,10 +769,12 @@ func (bex *blobExchangeState[RI]) allowBlobOfferBasedOnQuotaStats(offer MessageB
 
 func (bex *blobExchangeState[RI]) allowBlobOffer(offer MessageBlobOffer[RI], submitter commontypes.OracleID) error {
 	if err := bex.allowBlobOfferBasedOnOwedOfferResponsesBudget(submitter); err != nil {
+		bex.perOracleMetrics[submitter].theirBlobsRejectedDueToManyInflightTotal.Inc()
 		return err
 	}
 
 	if err := bex.allowBlobOfferBasedOnQuotaStats(offer, submitter); err != nil {
+		bex.perOracleMetrics[submitter].theirBlobsRejectedDueToQuotaTotal.Inc()
 		return err
 	}
 
@@ -716,6 +784,8 @@ func (bex *blobExchangeState[RI]) allowBlobOffer(offer MessageBlobOffer[RI], sub
 func (bex *blobExchangeState[RI]) messageBlobOffer(msg MessageBlobOffer[RI], sender commontypes.OracleID) {
 	submitter := sender
 
+	bex.perOracleMetrics[submitter].theirBlobOffersTotal.Inc()
+
 	blobDigest := blobtypes.MakeBlobDigest(
 		bex.config.ConfigDigest,
 		msg.ChunkDigestsRoot,
@@ -723,6 +793,24 @@ func (bex *blobExchangeState[RI]) messageBlobOffer(msg MessageBlobOffer[RI], sen
 		msg.ExpirySeqNr,
 		submitter,
 	)
+
+	rejectedOfferLogTaper := &bex.submitters[sender].rejectedOfferLogTaper
+
+	// Reject if payload length exceeds maximum allowed length
+	if msg.PayloadLength > uint64(bex.limits.MaxBlobPayloadBytes) {
+		rejectedOfferLogTaper.Trigger(func(consecutiveRejectedOffers uint64) {
+			bex.logger.Warn("received MessageBlobOffer with payload length that exceeds maximum allowed length, rejecting", commontypes.LogFields{
+				"blobDigest":                blobDigest,
+				"submitter":                 submitter,
+				"payloadLength":             msg.PayloadLength,
+				"maxPayloadLength":          bex.limits.MaxBlobPayloadBytes,
+				"consecutiveRejectedOffers": consecutiveRejectedOffers,
+			})
+		})
+		bex.sendBlobOfferResponseRejecting(blobDigest, submitter, msg.RequestHandle)
+		bex.perOracleMetrics[submitter].theirBlobsRejectedDueToOversizePayloadBytesTotal.Inc()
+		return
+	}
 
 	chunkDigests, chunkHaves, err := bex.loadChunkDigestsAndHaves(blobDigest, msg.PayloadLength)
 	if err != nil {
@@ -755,48 +843,25 @@ func (bex *blobExchangeState[RI]) messageBlobOffer(msg MessageBlobOffer[RI], sen
 		return
 	}
 
-	offerLogTaper := &bex.offerLogTapers[sender]
-
-	// Reject if payload length exceeds maximum allowed length
-	if msg.PayloadLength > uint64(bex.limits.MaxBlobPayloadBytes) {
-		offerLogTaper.Trigger(func(consecutiveRejectedOffers uint64) {
-			bex.logger.Warn("received MessageBlobOffer with payload length that exceeds maximum allowed length, rejecting", commontypes.LogFields{
-				"blobDigest":                blobDigest,
-				"submitter":                 submitter,
-				"payloadLength":             msg.PayloadLength,
-				"maxPayloadLength":          bex.limits.MaxBlobPayloadBytes,
-				"consecutiveRejectedOffers": consecutiveRejectedOffers,
-			})
-		})
-		bex.sendBlobOfferResponseRejecting(blobDigest, submitter, msg.RequestHandle)
-		return
-	}
-
 	// Reject if blob has already expired
-	committedSeqNr, err := bex.kv.HighestCommittedSeqNr()
-	if err != nil {
-		bex.logger.Error("failed to read highest committed seq nr for MessageBlobOffer", commontypes.LogFields{
-			"error": err,
-		})
-		return
-	}
-	if hasBlobExpired(msg.ExpirySeqNr, committedSeqNr) {
-		offerLogTaper.Trigger(func(consecutiveRejectedOffers uint64) {
+	if bex.hasBlobExpired(msg.ExpirySeqNr) {
+		rejectedOfferLogTaper.Trigger(func(consecutiveRejectedOffers uint64) {
 			bex.logger.Warn("received MessageBlobOffer for already expired blob, rejecting", commontypes.LogFields{
 				"blobDigest":                blobDigest,
 				"submitter":                 submitter,
 				"expirySeqNr":               msg.ExpirySeqNr,
-				"committedSeqNr":            committedSeqNr,
+				"highestCommittedSeqNr":     bex.highestCommittedSeqNr,
 				"consecutiveRejectedOffers": consecutiveRejectedOffers,
 			})
 		})
 		bex.sendBlobOfferResponseRejecting(blobDigest, submitter, msg.RequestHandle)
+		bex.perOracleMetrics[submitter].theirBlobsRejectedDueToExpirationTotal.Inc()
 		return
 	}
 
 	if err := bex.allowBlobOffer(msg, submitter); err != nil {
 
-		offerLogTaper.Trigger(func(consecutiveRejectedOffers uint64) {
+		rejectedOfferLogTaper.Trigger(func(consecutiveRejectedOffers uint64) {
 			bex.logger.Info("received MessageBlobOffer that goes over rate limits, rejecting", commontypes.LogFields{
 				"blobDigest":                blobDigest,
 				"submitter":                 submitter,
@@ -805,10 +870,13 @@ func (bex *blobExchangeState[RI]) messageBlobOffer(msg MessageBlobOffer[RI], sen
 			})
 		})
 		bex.sendBlobOfferResponseRejecting(blobDigest, sender, msg.RequestHandle)
+		// bex.perOracleMetrics[submitter].theirBlobsRejectedDueToXTotal
+		// incremented inside allowBlobOffer, which knows the exact reason. No
+		// need to do anything here.
 		return
 	}
 
-	offerLogTaper.Reset(func(previouslyConsecutiveRejectedOffers uint64) {
+	rejectedOfferLogTaper.Reset(func(previouslyConsecutiveRejectedOffers uint64) {
 		bex.logger.Info("stopped receiving offers that we keep rejecting from submitter", commontypes.LogFields{
 			"submitter":                           submitter,
 			"previouslyConsecutiveRejectedOffers": previouslyConsecutiveRejectedOffers,
@@ -934,6 +1002,7 @@ func (bex *blobExchangeState[RI]) messageBlobOfferResponse(msg MessageBlobOfferR
 			true,
 			msg.Signature,
 		}
+		bex.perOracleMetrics[sender].myBlobsAcceptedTotal.Inc()
 	} else {
 		// save rejection for oracle
 		broadcast.oracles[sender] = blobBroadcastOracleMeta{
@@ -941,6 +1010,7 @@ func (bex *blobExchangeState[RI]) messageBlobOfferResponse(msg MessageBlobOfferR
 			false,
 			nil,
 		}
+		bex.perOracleMetrics[sender].myBlobsRejectedTotal.Inc()
 	}
 
 	rejectThreshold := bex.minRejectors()
@@ -993,8 +1063,18 @@ func (bex *blobExchangeState[RI]) messageBlobOfferResponse(msg MessageBlobOfferR
 		})
 		broadcast.phase = blobBroadcastPhaseRejected
 		close(broadcast.chNotify)
+		bex.incMyBlobsUndeterminedTotalForNonResponders(broadcast)
 
 		return
+	}
+}
+
+// Must be called once when entering terminal phases of broadcast: accepted, rejected, expired
+func (bex *blobExchangeState[RI]) incMyBlobsUndeterminedTotalForNonResponders(broadcast *blobBroadcastMeta) {
+	for oracleID, oracle := range broadcast.oracles {
+		if !oracle.weReceivedOfferResponse {
+			bex.perOracleMetrics[oracleID].myBlobsUndeterminedTotal.Inc()
+		}
 	}
 }
 
@@ -1057,6 +1137,7 @@ func (bex *blobExchangeState[RI]) eventBlobBroadcastGraceTimeout(ev EventBlobBro
 	broadcast.certOrNil = &lcb
 	broadcast.phase = blobBroadcastPhaseAccepted
 	close(broadcast.chNotify)
+	bex.incMyBlobsUndeterminedTotalForNonResponders(broadcast)
 }
 
 func (bex *blobExchangeState[RI]) sendBlobOfferResponseAccepting(blobDigest BlobDigest, submitter commontypes.OracleID, requestHandle types.RequestHandle) {
@@ -1083,6 +1164,8 @@ func (bex *blobExchangeState[RI]) sendBlobOfferResponseAccepting(blobDigest Blob
 		},
 		submitter,
 	)
+
+	bex.perOracleMetrics[submitter].theirBlobAcceptsSentTotal.Inc()
 }
 func (bex *blobExchangeState[RI]) sendBlobOfferResponseRejecting(blobDigest BlobDigest, submitter commontypes.OracleID, requestHandle types.RequestHandle) {
 	bex.netSender.SendTo(
@@ -1094,6 +1177,8 @@ func (bex *blobExchangeState[RI]) sendBlobOfferResponseRejecting(blobDigest Blob
 		},
 		submitter,
 	)
+
+	bex.perOracleMetrics[submitter].theirBlobRejectsSentTotal.Inc()
 }
 
 func (bex *blobExchangeState[RI]) readBlobPayload(blobDigest BlobDigest) ([]byte, error) {
@@ -1398,6 +1483,14 @@ func (bex *blobExchangeState[RI]) processBlobBroadcastRequest(req blobBroadcastR
 		})
 		return
 	}
+	expirySeqNr := req.expirySeqNr
+	if bex.hasBlobExpired(expirySeqNr) {
+		req.respond(bex.ctx, blobBroadcastResponse{
+			LightCertifiedBlob{},
+			fmt.Errorf("blob expiry seq nr %d is not above highest committed seq nr %d", expirySeqNr, bex.highestCommittedSeqNr),
+		})
+		return
+	}
 
 	payload := req.payload
 	payloadLength := uint64(len(payload))
@@ -1415,7 +1508,6 @@ func (bex *blobExchangeState[RI]) processBlobBroadcastRequest(req blobBroadcastR
 		chunkHaves = append(chunkHaves, true)
 	}
 
-	expirySeqNr := req.expirySeqNr
 	submitter := bex.id
 
 	chunkDigestsRoot := blobtypes.MakeBlobChunkDigestsRoot(chunkDigests)
@@ -1431,6 +1523,7 @@ func (bex *blobExchangeState[RI]) processBlobBroadcastRequest(req blobBroadcastR
 	bex.logger.Debug("processing BlobBroadcastRequest", commontypes.LogFields{"blobDigest": blobDigest})
 
 	var chNotifyCertAvailable chan struct{}
+	startedNewBroadcast := false
 	if existingBlob, ok := bex.blobs[blobDigest]; ok {
 		if existingBlob.broadcast == nil {
 			existingBlob.broadcast = &blobBroadcastMeta{
@@ -1440,6 +1533,7 @@ func (bex *blobExchangeState[RI]) processBlobBroadcastRequest(req blobBroadcastR
 				nil,
 				make([]blobBroadcastOracleMeta, bex.config.N()),
 			}
+			startedNewBroadcast = true
 		} else {
 			existingBlob.broadcast.waiters++
 		}
@@ -1477,6 +1571,11 @@ func (bex *blobExchangeState[RI]) processBlobBroadcastRequest(req blobBroadcastR
 			expirySeqNr,
 			submitter,
 		}
+		startedNewBroadcast = true
+	}
+
+	if startedNewBroadcast {
+		bex.metrics.myBroadcastPayloadBytes.Observe(float64(payloadLength))
 	}
 
 	bex.offerRequesterGadget.PleaseRecheckPendingItems()
@@ -1609,6 +1708,11 @@ func (bex *blobExchangeState[RI]) processBlobFetchRequest(req blobFetchRequest) 
 		return
 	}
 
+	if bex.hasBlobExpired(cert.ExpirySeqNr) {
+		req.respond(bex.ctx, blobFetchResponse{nil, fmt.Errorf("blob expired")})
+		return
+	}
+
 	blobDigest := blobtypes.MakeBlobDigest(
 		bex.config.ConfigDigest,
 		cert.ChunkDigestsRoot,
@@ -1722,6 +1826,28 @@ func (bex *blobExchangeState[RI]) processBlobFetchRequest(req blobFetchRequest) 
 	})
 }
 
+func (bex *blobExchangeState[RI]) initializeStatsMetricsFromKV() error {
+	tx, err := bex.kv.NewReadTransactionUnchecked()
+	if err != nil {
+		return fmt.Errorf("failed to create read transaction: %w", err)
+	}
+	defer tx.Discard()
+
+	for i, m := range bex.perOracleMetrics {
+		appended, err := tx.ReadBlobQuotaStats(BlobQuotaStatsTypeAppended, commontypes.OracleID(i))
+		if err != nil {
+			return fmt.Errorf("failed to read appended blob quota stats for submitter %d: %w", i, err)
+		}
+		reaped, err := tx.ReadBlobQuotaStats(BlobQuotaStatsTypeReaped, commontypes.OracleID(i))
+		if err != nil {
+			return fmt.Errorf("failed to read reaped blob quota stats for submitter %d: %w", i, err)
+		}
+		m.SetTheirAppendedStats(appended)
+		m.SetTheirReapedStats(reaped)
+	}
+	return nil
+}
+
 func (bex *blobExchangeState[RI]) createOrUpdateBlobMetaAndQuotaStats(
 	blobDigest BlobDigest,
 	payloadLength uint64,
@@ -1776,11 +1902,17 @@ func (bex *blobExchangeState[RI]) createOrUpdateBlobMetaAndQuotaStats(
 	if err != nil {
 		return fmt.Errorf("failed to write blob meta: %w", err)
 	}
-
+	err = tx.WriteStaleBlobIndex(staleBlob(expirySeqNr, blobDigest))
+	if err != nil {
+		return fmt.Errorf("failed to write stale blob index: %w", err)
+	}
 	err = tx.Commit()
 	if err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	bex.perOracleMetrics[submitter].SetTheirAppendedStats(updatedQuotaStats)
+	bex.perOracleMetrics[submitter].theirBlobAppendedPayloadBytes.Observe(float64(payloadLength))
 
 	return nil
 }
@@ -1855,8 +1987,4 @@ func (bex *blobExchangeState[RI]) verifyCert(cert *LightCertifiedBlob) error {
 
 func staleBlob(expirySeqNr uint64, blobDigest BlobDigest) StaleBlob {
 	return StaleBlob{expirySeqNr, blobDigest}
-}
-
-func hasBlobExpired(expirySeqNr uint64, committedSeqNr uint64) bool {
-	return expirySeqNr <= committedSeqNr
 }

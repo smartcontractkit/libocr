@@ -177,8 +177,6 @@ func (o *oracleState[RI]) run() {
 	chNetToBlobExchange := make(chan MessageToBlobExchangeWithSender[RI])
 	o.chNetToBlobExchange = chNetToBlobExchange
 
-	chOutcomeGenerationToBlobExchange := make(chan EventToBlobExchange[RI])
-
 	// communication between blob exchange and blob endpoint
 	chBlobBroadcastRequest := make(chan blobBroadcastRequest)
 	chBlobFetchRequest := make(chan blobFetchRequest)
@@ -193,6 +191,14 @@ func (o *oracleState[RI]) run() {
 	paceState, cert, err := o.restoreFromDatabase()
 	if err != nil {
 		o.logger.Error("restoreFromDatabase returned an error, exiting oracle", commontypes.LogFields{
+			"error": err,
+		})
+		return
+	}
+
+	initialHighestCommittedSeqNr, err := o.restoreHighestCommittedSeqNrFromKeyValueDatabase()
+	if err != nil {
+		o.logger.Error("restoreHighestCommittedSeqNrFromKeyValueDatabase returned an error, exiting oracle", commontypes.LogFields{
 			"error": err,
 		})
 		return
@@ -307,7 +313,6 @@ func (o *oracleState[RI]) run() {
 			o.childCtx,
 
 			chNetToBlobExchange,
-			chOutcomeGenerationToBlobExchange,
 
 			chBlobBroadcastRequest,
 			chBlobFetchRequest,
@@ -322,11 +327,16 @@ func (o *oracleState[RI]) run() {
 			o.netEndpoint,
 			o.offchainKeyring,
 			o.telemetrySender,
+
+			initialHighestCommittedSeqNr,
 		)
 	})
 
 	publicConfigMetrics := ocr3_1config.NewPublicConfigMetrics(o.metricsRegisterer, o.logger, o.config.PublicConfig)
 	defer publicConfigMetrics.Close()
+
+	reportingPluginInfo1Metrics := newReportingPluginInfo1Metrics(o.metricsRegisterer, o.logger, o.reportingPluginInfo)
+	defer reportingPluginInfo1Metrics.Close()
 
 	chNet := o.netEndpoint.Receive()
 
@@ -432,4 +442,28 @@ func (o *oracleState[RI]) restoreFromDatabase() (PacemakerState, CertifiedPrepar
 	}
 
 	return paceState, cert, nil
+}
+
+func (o *oracleState[RI]) restoreHighestCommittedSeqNrFromKeyValueDatabase() (uint64, error) {
+	const retryPeriod = 5 * time.Second
+
+	highestCommittedSeqNr, err := tryUntilSuccess[uint64](
+		o.ctx,
+		o.logger,
+		retryPeriod,
+		o.localConfig.DatabaseTimeout,
+		"KeyValueDatabase.HighestCommittedSeqNr",
+		func(context.Context) (uint64, error) {
+			return o.kvDb.HighestCommittedSeqNr()
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	o.logger.Info("restoreHighestCommittedSeqNrFromKeyValueDatabase: successfully restored highest committed seq nr", commontypes.LogFields{
+		"highestCommittedSeqNr": highestCommittedSeqNr,
+	})
+
+	return highestCommittedSeqNr, nil
 }

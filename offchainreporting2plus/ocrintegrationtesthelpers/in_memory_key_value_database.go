@@ -58,7 +58,7 @@ func (StatelessInMemoryKeyValueDatabaseFactory) NewKeyValueDatabaseIfExists(type
 // NewKeyValueDatabaseIfExists call for the same configDigest returns a database
 // with the contents written before Close. Enforces exclusive access:
 // NewKeyValueDatabase* returns an error if a database for that configDigest has
-// been opened but not yet closed. Use [ForgetKeyValueDatabaseForTests] to make
+// been opened but not yet closed. Use [StatefulInMemoryKeyValueDatabaseFactory.ForgetKeyValueDatabaseForTests] to make
 // the factory forget about a configDigest (akin to deleting the database from
 // the filesystem for a disk-based implementation).
 type StatefulInMemoryKeyValueDatabaseFactory struct {
@@ -88,7 +88,7 @@ func (f *StatefulInMemoryKeyValueDatabaseFactory) NewKeyValueDatabaseIfExists(co
 // database; NewKeyValueDatabaseIfExists will return ErrKeyValueDatabaseDoesNotExist.
 // Any currently open database for this configDigest is unaffected and continues
 // to work, but the exclusivity guarantee is lost: the database opened before
-// ForgetKeyValueDatabaseForTests and the database opened after can be open
+// [StatefulInMemoryKeyValueDatabaseFactory.ForgetKeyValueDatabaseForTests] and the database opened after can be open
 // simultaneously.
 func (f *StatefulInMemoryKeyValueDatabaseFactory) ForgetKeyValueDatabaseForTests(configDigest types.ConfigDigest) {
 	f.mu.Lock()
@@ -140,8 +140,8 @@ type InMemoryKeyValueDatabase struct {
 var _ ocr3_1types.KeyValueDatabase = &InMemoryKeyValueDatabase{}
 
 // NewInMemoryKeyValueDatabase creates a standalone in-memory database without
-// factory tracking. Use NewInMemoryKeyValueDatabaseFactory for exclusive access
-// and persistence semantics.
+// factory tracking. Use [NewStatefulInMemoryKeyValueDatabaseFactory] for
+// exclusive access and persistence semantics.
 func NewInMemoryKeyValueDatabase() *InMemoryKeyValueDatabase {
 	return newInMemoryKeyValueDatabaseWithTree(btree.NewG(32, func(a, b item) bool {
 		return a.Less(b)
