@@ -16,6 +16,13 @@ const (
 	// Guarantees that all sets of observations overlap in at least one honest oracle
 	QuorumByzQuorum
 	// Maximal number of observations we can rely on being available
+	//
+	// We discourage use of this quorum for OCR ReportingPlugins. Unlike the quorums
+	// used in OCR protocol logic, this quorum is not monotone in f (i.e. decreasing
+	// f increases the threshold n−f) and thus the common practice of
+	// setting a non-maximum f (i.e. choosing f s.t. 3f+1 < n) to improve
+	// availability in case of crash-faults while reducing byzantine-fault
+	// tolerance would actually *reduce* availability when this quorum is used.
 	QuorumNMinusF
 )
 

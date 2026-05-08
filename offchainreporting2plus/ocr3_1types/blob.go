@@ -21,10 +21,23 @@ type BlobExpirationHintSequenceNumber struct{ SeqNr uint64 }
 func (BlobExpirationHintSequenceNumber) isBlobExpirationHint() {}
 
 type BlobBroadcaster interface {
+	// BroadcastBlob broadcasts a blob with the given payload and expiration
+	// hint, returning a handle that can be used to refer to the blob in the
+	// future (e.g. in a query or observation). Note that BroadcastBlob may
+	// return an error, and callers must gracefully handle such an error. Errors
+	// might be transient, and related to resource exhaustion prevention, so
+	// callers are encouranged to employ a backoff when retrying. An error in
+	// BroadcastBlob should not cause Observation to error also. BroadcastBlob
+	// is a blocking call, and callers must ensure that it fits into their
+	// runtime envelope.
 	BroadcastBlob(ctx context.Context, payload []byte, expirationHint BlobExpirationHint) (BlobHandle, error)
 }
 
 type BlobFetcher interface {
+	// FetchBlob fetches the payload corresponding to the BlobHandle passed.
+	// Callers must gracefully handle errors returned by FetchBlob. FetchBlob is
+	// a blocking call, and callers must ensure that it fits into their runtime
+	// envelope.
 	FetchBlob(ctx context.Context, handle BlobHandle) ([]byte, error)
 }
 

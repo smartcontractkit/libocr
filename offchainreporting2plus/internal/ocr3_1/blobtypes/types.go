@@ -9,6 +9,7 @@ import (
 	"hash"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/bigendianbytearray"
 	"github.com/smartcontractkit/libocr/internal/mt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -69,6 +70,18 @@ var _ fmt.Stringer = BlobDigest{}
 
 func (bd BlobDigest) String() string {
 	return fmt.Sprintf("%x", bd[:])
+}
+
+func MinBlobDigest() BlobDigest {
+	return bigendianbytearray.Min32[BlobDigest]()
+}
+
+func MaxBlobDigest() BlobDigest {
+	return bigendianbytearray.Max32[BlobDigest]()
+}
+
+func WrappingIncrementBlobDigest(bd BlobDigest) BlobDigest {
+	return bigendianbytearray.WrappingIncrement32(bd)
 }
 
 func MakeBlobDigest(

@@ -29,8 +29,9 @@ func (ct *ConflictTracker) beginTransaction() (uint64, uint64) {
 func (ct *ConflictTracker) lockAndPrepareToCommit(maxCommittedTxTimestampAtCreation uint64) error {
 	ct.mu.Lock()
 	if maxCommittedTxTimestampAtCreation != ct.maxCommittedTxTimestamp {
+		maxCommittedTxTimestamp := ct.maxCommittedTxTimestamp
 		ct.mu.Unlock()
-		return fmt.Errorf("concurrent conflict detected: expected maxCommittedTxTimestamp: %d, got: %d", maxCommittedTxTimestampAtCreation, ct.maxCommittedTxTimestamp)
+		return fmt.Errorf("concurrent conflict detected: expected maxCommittedTxTimestamp: %d, got: %d", maxCommittedTxTimestampAtCreation, maxCommittedTxTimestamp)
 	}
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
@@ -35,14 +34,9 @@ func NewMockContractConfigTracker(offchainConfigDigester types.OffchainConfigDig
 	return &MockContractConfigTracker{offchainConfigDigester, sync.RWMutex{}, configs}
 }
 
-func (c *MockContractConfigTracker) SetConfig(identities []config.OracleIdentity, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) error {
-	signers := make([]types.OnchainPublicKey, len(identities))
-	transmitters := make([]types.Account, len(identities))
-	for i, id := range identities {
-		signers[i] = id.OnchainPublicKey
-		transmitters[i] = id.TransmitAccount
-	}
-
+// SetConfig does not perform *any* validity checks on the supplied config. You
+// are responsible for ensuring that the config is valid for your use case.
+func (c *MockContractConfigTracker) SetConfig(signers []types.OnchainPublicKey, transmitters []types.Account, f uint8, onchainConfig []byte, offchainConfigVersion uint64, offchainConfig []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	config := types.ContractConfig{types.ConfigDigest{}, uint64(len(c.configs)), signers, transmitters, f, onchainConfig, offchainConfigVersion, offchainConfig}
