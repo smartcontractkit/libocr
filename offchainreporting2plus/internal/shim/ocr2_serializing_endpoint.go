@@ -22,6 +22,7 @@ type OCR2SerializingEndpoint struct {
 	logger                commontypes.Logger
 	metrics               *serializingEndpointMetrics
 	reportingPluginLimits types.ReportingPluginLimits
+	deserializer          *serialization.Deserializer
 
 	mutex        sync.Mutex
 	subprocesses subprocesses.Subprocesses
@@ -41,8 +42,13 @@ func NewOCR2SerializingEndpoint(
 	endpoint commontypes.BinaryNetworkEndpoint,
 	logger commontypes.Logger,
 	metricsRegisterer prometheus.Registerer,
+	n int,
 	reportingPluginLimits types.ReportingPluginLimits,
-) *OCR2SerializingEndpoint {
+) (*OCR2SerializingEndpoint, error) {
+	deserializer, err := serialization.NewDeserializer(n)
+	if err != nil {
+		return nil, fmt.Errorf("NewOCR2SerializingEndpoint: %w", err)
+	}
 	return &OCR2SerializingEndpoint{
 		chTelemetry,
 		configDigest,
@@ -50,6 +56,7 @@ func NewOCR2SerializingEndpoint(
 		logger,
 		newSerializingEndpointMetrics(metricsRegisterer, logger),
 		reportingPluginLimits,
+		deserializer,
 		sync.Mutex{},
 		subprocesses.Subprocesses{},
 		false,
@@ -58,7 +65,7 @@ func NewOCR2SerializingEndpoint(
 		make(chan struct{}),
 		make(chan protocol.MessageWithSender),
 		loghelper.LogarithmicTaper{},
-	}
+	}, nil
 }
 
 func (n *OCR2SerializingEndpoint) sendTelemetry(t *serialization.TelemetryWrapper) {
@@ -99,7 +106,7 @@ func (n *OCR2SerializingEndpoint) serialize(msg protocol.Message) ([]byte, *seri
 }
 
 func (n *OCR2SerializingEndpoint) deserialize(raw []byte) (protocol.Message, *serialization.MessageWrapper, error) {
-	m, pbm, err := serialization.Deserialize(raw)
+	m, pbm, err := n.deserializer.Deserialize(raw)
 	if err != nil {
 		return nil, nil, err
 	}

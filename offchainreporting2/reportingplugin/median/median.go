@@ -127,7 +127,7 @@ type OffchainConfig struct {
 
 func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 	var configProto NumericalMedianConfigProto
-	if err := proto.Unmarshal(b, &configProto); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &configProto); err != nil {
 		return OffchainConfig{}, err
 	}
 
@@ -490,7 +490,7 @@ type ParsedAttributedObservation struct {
 
 func parseAttributedObservation(ao types.AttributedObservation) (ParsedAttributedObservation, error) {
 	var observationProto NumericalMedianObservationProto
-	if err := proto.Unmarshal(ao.Observation, &observationProto); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(ao.Observation, &observationProto); err != nil {
 		return ParsedAttributedObservation{}, fmt.Errorf("attributed observation cannot be unmarshaled: %w", err)
 	}
 	value, err := DecodeValue(observationProto.Value)

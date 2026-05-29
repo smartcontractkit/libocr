@@ -176,7 +176,7 @@ func RunManagedOCR3Oracle[RI any](
 
 			// No need to binNetEndpoint.Start/Close since netEndpoint will handle that for us
 
-			netEndpoint := shim.NewOCR3SerializingEndpoint[RI](
+			netEndpoint, err := shim.NewOCR3SerializingEndpoint[RI](
 				chTelemetrySend,
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
@@ -187,6 +187,9 @@ func RunManagedOCR3Oracle[RI any](
 				sharedConfig.N(),
 				sharedConfig.F,
 			)
+			if err != nil {
+				return fmt.Errorf("ManagedOCR3Oracle: error during NewOCR3SerializingEndpoint: %w", err), false
+			}
 			if err := netEndpoint.Start(); err != nil {
 				return fmt.Errorf("ManagedOCR3Oracle: error during netEndpoint.Start(): %w", err), true
 			}

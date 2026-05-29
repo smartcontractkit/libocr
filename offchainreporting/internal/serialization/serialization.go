@@ -26,7 +26,7 @@ func Serialize(m protocol.Message) (b []byte, pbm *protobuf.MessageWrapper, err 
 // Deserialize decodes a binary payload into a protocol.Message
 func Deserialize(b []byte) (protocol.Message, *protobuf.MessageWrapper, error) {
 	pbm := &protobuf.MessageWrapper{}
-	err := proto.Unmarshal(b, pbm)
+	err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, pbm)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "could not unmarshal protobuf")
 	}

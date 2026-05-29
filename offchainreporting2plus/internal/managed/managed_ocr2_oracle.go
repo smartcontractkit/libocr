@@ -188,14 +188,18 @@ func RunManagedOCR2Oracle(
 
 			// No need to binNetEndpoint.Start/Close since netEndpoint will handle that for us
 
-			netEndpoint := shim.NewOCR2SerializingEndpoint(
+			netEndpoint, err := shim.NewOCR2SerializingEndpoint(
 				chTelemetrySend,
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
 				childLogger,
 				registerer,
+				sharedConfig.N(),
 				reportingPluginInfo.Limits,
 			)
+			if err != nil {
+				return fmt.Errorf("ManagedOCR2Oracle: error during NewOCR2SerializingEndpoint: %w", err), false
+			}
 			if err := netEndpoint.Start(); err != nil {
 				return fmt.Errorf("ManagedOCR2Oracle: error during netEndpoint.Start(): %w", err), true
 			}

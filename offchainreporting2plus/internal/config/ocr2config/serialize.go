@@ -70,7 +70,7 @@ func deserializeOffchainConfig(
 	}
 
 	offchainConfigPB := OffchainConfigProto{}
-	if err := proto.Unmarshal(b, &offchainConfigPB); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &offchainConfigPB); err != nil {
 		return offchainConfig{}, fmt.Errorf("could not unmarshal ContractConfig.OffchainConfig protobuf: %w", err)
 	}
 
