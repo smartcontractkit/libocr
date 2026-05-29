@@ -24,6 +24,7 @@ type OCR3SerializingEndpoint[RI any] struct {
 	logger       commontypes.Logger
 	metrics      *serializingEndpointMetrics
 	pluginLimits ocr3types.ReportingPluginLimits
+	deserializer *serialization.Deserializer[RI]
 	n, f         int
 
 	mutex        sync.Mutex
@@ -47,7 +48,11 @@ func NewOCR3SerializingEndpoint[RI any](
 	metricsRegisterer prometheus.Registerer,
 	pluginLimits ocr3types.ReportingPluginLimits,
 	n, f int,
-) *OCR3SerializingEndpoint[RI] {
+) (*OCR3SerializingEndpoint[RI], error) {
+	deserializer, err := serialization.NewDeserializer[RI](n, f, pluginLimits)
+	if err != nil {
+		return nil, fmt.Errorf("NewOCR3SerializingEndpoint: %w", err)
+	}
 	return &OCR3SerializingEndpoint[RI]{
 		chTelemetry,
 		configDigest,
@@ -56,6 +61,7 @@ func NewOCR3SerializingEndpoint[RI any](
 		logger,
 		newSerializingEndpointMetrics(metricsRegisterer, logger),
 		pluginLimits,
+		deserializer,
 		n, f,
 
 		sync.Mutex{},
@@ -66,7 +72,7 @@ func NewOCR3SerializingEndpoint[RI any](
 		make(chan struct{}),
 		make(chan protocol.MessageWithSender[RI]),
 		loghelper.LogarithmicTaper{},
-	}
+	}, nil
 }
 
 func (n *OCR3SerializingEndpoint[RI]) sendTelemetry(t *serialization.TelemetryWrapper) {
@@ -106,7 +112,7 @@ func (n *OCR3SerializingEndpoint[RI]) serialize(msg protocol.Message[RI]) ([]byt
 }
 
 func (n *OCR3SerializingEndpoint[RI]) deserialize(raw []byte) (protocol.Message[RI], *serialization.MessageWrapper, error) {
-	m, pbm, err := serialization.Deserialize[RI](n.n, raw)
+	m, pbm, err := n.deserializer.Deserialize(raw)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -203,7 +203,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				"ManagedOCR3_1Oracle: error during BinaryNetworkEndpoint2.Close()",
 			)
 
-			netEndpoint := shim.NewOCR3_1SerializingEndpoint[RI](
+			netEndpoint, err := shim.NewOCR3_1SerializingEndpoint[RI](
 				chTelemetrySend,
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
@@ -214,6 +214,9 @@ func RunManagedOCR3_1Oracle[RI any](
 				sharedConfig.PublicConfig,
 				serializedLengthLimits,
 			)
+			if err != nil {
+				return fmt.Errorf("ManagedOCR3_1Oracle: error during NewOCR3_1SerializingEndpoint: %w", err), false
+			}
 			err = netEndpoint.Start()
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3_1Oracle: error during netEndpoint.Start(): %w", err), true
@@ -404,37 +407,10 @@ func tryCopyFromPrevInstance(
 		return nil
 	}
 
-	startIndex := jmt.Digest{}
-	for {
-		logger.Info("⚙️ tryCopyFromPrevInstance: copying chunk from prev instance to next instance", commontypes.LogFields{
-			"startIndex": fmt.Sprintf("%x", startIndex),
-			"prevSeqNr":  prevSeqNr,
-		})
-		endInclIndex, done, err := copyChunkFromPrevInstance(
-			publicConfig,
-			prevSeqNr,
-			genesisBlock.StateRootDigest,
-			startIndex,
-			prevTxn,
-			nextSemanticKeyValueDatabase,
-		)
-		if err != nil {
-			return fmt.Errorf("error during copyChunkFromPrevInstance: %w", err)
-		}
-
-		if done {
-			break
-		}
-
-		var ok bool
-		startIndex, ok = jmt.IncrementDigest(endInclIndex)
-		if !ok {
-			return fmt.Errorf("failed to increment endInclIndex even though we are not done copying chunks")
-		}
-
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
+	err = CopyAllTreeSyncChunksFromPrevInstance(
+		ctx, logger, publicConfig, prevSeqNr, genesisBlock.StateRootDigest, prevTxn, nextSemanticKeyValueDatabase)
+	if err != nil {
+		return fmt.Errorf("error during copyAllTreeSyncChunksFromPrevInstance: %w", err)
 	}
 
 	nextTxn, err := nextSemanticKeyValueDatabase.NewSerializedReadWriteTransactionUnchecked()
@@ -461,6 +437,51 @@ func tryCopyFromPrevInstance(
 	err = nextTxn.Commit()
 	if err != nil {
 		return fmt.Errorf("error during Commit: %w", err)
+	}
+
+	return nil
+}
+
+func CopyAllTreeSyncChunksFromPrevInstance(
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	publicConfig ocr3_1config.PublicConfig, // non essential
+	prevSeqNr uint64,
+	prevStateRootDigest protocol.StateRootDigest,
+	prevTxn protocol.KeyValueDatabaseReadTransaction,
+	nextSemanticKeyValueDatabase protocol.KeyValueDatabase,
+) error {
+	startIndex := jmt.Digest{}
+	for {
+		logger.Info("⚙️ tryCopyFromPrevInstance: copying tree sync chunk from prev instance to next instance", commontypes.LogFields{
+			"startIndex": fmt.Sprintf("%x", startIndex),
+			"prevSeqNr":  prevSeqNr,
+		})
+		endInclIndex, done, err := copyTreeSyncChunkFromPrevInstance(
+			publicConfig,
+			prevSeqNr,
+			prevStateRootDigest,
+			startIndex,
+			prevTxn,
+			nextSemanticKeyValueDatabase,
+		)
+		if err != nil {
+			return fmt.Errorf("error during copyTreeSyncChunkFromPrevInstance: %w", err)
+		}
+
+		if done {
+			break
+		}
+
+		var ok bool
+		startIndex, ok = jmt.IncrementDigest(endInclIndex)
+		if !ok {
+			return fmt.Errorf("failed to increment endInclIndex even though we are not done copying tree sync chunks")
+		}
+
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 	}
 
 	return nil
@@ -561,7 +582,7 @@ func findGenesisBlockInPrevKeyValueDatabase(
 	return &gstb, nil
 }
 
-func copyChunkFromPrevInstance(
+func copyTreeSyncChunkFromPrevInstance(
 	publicConfig ocr3_1config.PublicConfig, // non essential
 	prevSeqNr uint64,
 	prevStateRootDigest protocol.StateRootDigest,

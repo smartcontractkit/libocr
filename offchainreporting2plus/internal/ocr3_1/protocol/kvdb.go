@@ -28,6 +28,10 @@ type KeyValueDatabaseSemanticRead interface {
 	ExistsUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest) (bool, error)
 	ReadUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest) (*StateTransitionBlock, error)
 
+	// ReadRootVersions returns up to maxItems version numbers of tree roots at or
+	// above minRootVersion, in ascending order. Intended for tooling/inspection.
+	ReadRootVersions(minRootVersion uint64, maxItems int) (versions []uint64, more bool, err error)
+
 	ReadTreeSyncStatus() (TreeSyncStatus, error)
 	// ReadTreeSyncChunk retrieves a chunk of undigested key-value pairs in the
 	// range [startIndex, requestEndInclIndex] of the key digest space. It

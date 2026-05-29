@@ -870,6 +870,25 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadNode(nodeKey jmt.Nod
 	return serialization.DeserializeJmtNode(rawNode)
 }
 
+// ReadRootVersions returns up to maxItems version numbers of tree roots at or
+// above minRootVersion, in ascending order.
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadRootVersions(minRootVersion uint64, maxItems int) ([]uint64, bool, error) {
+	rootKeys, more, err := s.partialInclusiveRangeKeys(rootKey(minRootVersion), rootKey(math.MaxUint64), maxItems)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to range tree roots: %w", err)
+	}
+
+	versions := make([]uint64, 0, len(rootKeys))
+	for _, rootKey := range rootKeys {
+		version, err := deserializeRootKey(rootKey)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to deserialize root key: %w", err)
+		}
+		versions = append(versions, version)
+	}
+	return versions, more, nil
+}
+
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadRoot(version jmt.Version) (jmt.NodeKey, error) {
 	rawNodeKey, err := s.rawTransaction.Read(rootKey(version))
 	if err != nil {
@@ -1361,6 +1380,20 @@ func blobQuotaStatsPrefixKey(blobQuotaStatsType protocol.BlobQuotaStatsType, sub
 
 func rootKey(version uint64) []byte {
 	return append([]byte(treeRootPrefix), encodeBigEndianUint64(version)...)
+}
+
+func deserializeRootKey(enc []byte) (uint64, error) {
+	if len(enc) < len(treeRootPrefix) {
+		return 0, fmt.Errorf("encoding too short")
+	}
+	enc = enc[len(treeRootPrefix):]
+	if len(enc) < 8 {
+		return 0, fmt.Errorf("encoding too short to contain seqnr")
+	}
+	if len(enc) != 8 {
+		return 0, fmt.Errorf("encoding too long")
+	}
+	return binary.BigEndian.Uint64(enc), nil
 }
 
 // ────────────────────────── tree ───────────────────────────

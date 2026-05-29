@@ -129,7 +129,7 @@ func signedAnnouncementFromProto(pm *serialization.SignedAnnouncement) (Announce
 
 func deserializeSignedAnnouncement(binary []byte) (Announcement, error) {
 	pm := serialization.SignedAnnouncement{}
-	err := proto.Unmarshal(binary, &pm)
+	err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(binary, &pm)
 	if err != nil {
 		return Announcement{}, err
 	}
@@ -279,7 +279,7 @@ func (ann Announcement) toProtoWrapped() (*serialization.MessageWrapper, error) 
 
 func fromProtoWrappedBytes(b []byte) (WrappableMessage, error) {
 	wrapper := &serialization.MessageWrapper{}
-	err := proto.Unmarshal(b, wrapper)
+	err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, wrapper)
 	if err != nil {
 		return nil, err
 	}

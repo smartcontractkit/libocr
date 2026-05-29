@@ -39,7 +39,7 @@ func SerializeJmtNode(node jmt.Node) ([]byte, error) {
 // DeserializeJmtNode converts bytes to a jmt.Node
 func DeserializeJmtNode(b []byte) (jmt.Node, error) {
 	pb := &Node{}
-	if err := proto.Unmarshal(b, pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, pb); err != nil {
 		return nil, fmt.Errorf("could not unmarshal protobuf: %w", err)
 	}
 

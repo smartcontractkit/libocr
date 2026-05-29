@@ -4,12 +4,50 @@ import (
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/byzquorum"
+	"github.com/smartcontractkit/libocr/internal/protopreparsevalidation"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3/protocol"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
+
+// Deserializer owns reusable raw validation state and decodes untrusted OCR3
+// network messages. It is not safe for concurrent use.
+type Deserializer[RI any] struct {
+	n         int
+	validator *protopreparsevalidation.Validator
+}
+
+func NewDeserializer[RI any](n int, f int, limits ocr3types.ReportingPluginLimits) (*Deserializer[RI], error) {
+	root := (&MessageWrapper{}).ProtoReflect().Descriptor()
+	byzQuorumSize := byzquorum.Size(n, f)
+	validator, err := protopreparsevalidation.Compile(root, map[protoreflect.FullName]int{
+		"offchainreporting3.MessageProposal.attributed_signed_observations": n,
+		"offchainreporting3.MessageReportSignatures.report_signatures":      limits.MaxReportCount,
+		"offchainreporting3.EpochStartProof.highest_certified_proof":        byzQuorumSize,
+		"offchainreporting3.CertifiedPrepare.prepare_quorum_certificate":    byzQuorumSize,
+		"offchainreporting3.CertifiedCommit.commit_quorum_certificate":      byzQuorumSize,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("compile OCR3 deserializer: %w", err)
+	}
+	return &Deserializer[RI]{
+		n,
+		validator,
+	}, nil
+}
+
+func MustNewDeserializer[RI any](n int, f int, limits ocr3types.ReportingPluginLimits) *Deserializer[RI] {
+	deserializer, err := NewDeserializer[RI](n, f, limits)
+	if err != nil {
+		panic(err)
+	}
+	return deserializer
+}
 
 // Serialize encodes a protocol.Message into a binary payload
 func Serialize[RI any](m protocol.Message[RI]) ([]byte, *MessageWrapper, error) {
@@ -49,14 +87,17 @@ func SerializePacemakerState(m protocol.PacemakerState) ([]byte, error) {
 	return proto.Marshal(&pb)
 }
 
-// Deserialize decodes a binary payload into a protocol.Message
-func Deserialize[RI any](n int, b []byte) (protocol.Message[RI], *MessageWrapper, error) {
+func (deserializer *Deserializer[RI]) Deserialize(b []byte) (protocol.Message[RI], *MessageWrapper, error) {
+	if err := deserializer.validator.Validate(b); err != nil {
+		return nil, nil, fmt.Errorf("could not validate raw protobuf: %w", err)
+	}
+
 	pb := &MessageWrapper{}
-	if err := proto.Unmarshal(b, pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, pb); err != nil {
 		return nil, nil, fmt.Errorf("could not unmarshal protobuf: %w", err)
 	}
 
-	fpm := fromProtoMessage[RI]{n}
+	fpm := fromProtoMessage[RI]{deserializer.n}
 	m, err := fpm.messageWrapper(pb)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not translate protobuf to protocol.Message: %w", err)
@@ -66,7 +107,7 @@ func Deserialize[RI any](n int, b []byte) (protocol.Message[RI], *MessageWrapper
 
 func DeserializeTrustedPrepareOrCommit(b []byte) (protocol.CertifiedPrepareOrCommit, error) {
 	pb := CertifiedPrepareOrCommit{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return nil, err
 	}
 
@@ -79,7 +120,7 @@ func DeserializeTrustedPrepareOrCommit(b []byte) (protocol.CertifiedPrepareOrCom
 
 func DeserializePacemakerState(b []byte) (protocol.PacemakerState, error) {
 	pb := PacemakerState{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.PacemakerState{}, err
 	}
 

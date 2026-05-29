@@ -27,6 +27,7 @@ type OCR3_1SerializingEndpoint[RI any] struct {
 	metrics                *serializingEndpointMetrics
 	pluginLimits           ocr3_1types.ReportingPluginLimits
 	publicConfig           ocr3_1config.PublicConfig
+	deserializer           *serialization.Deserializer[RI]
 	serializedLengthLimits limits.OCR3_1SerializedLengthLimits
 
 	mutex        sync.Mutex
@@ -51,7 +52,11 @@ func NewOCR3_1SerializingEndpoint[RI any](
 	pluginLimits ocr3_1types.ReportingPluginLimits,
 	publicConfig ocr3_1config.PublicConfig,
 	serializedLengthLimits limits.OCR3_1SerializedLengthLimits,
-) *OCR3_1SerializingEndpoint[RI] {
+) (*OCR3_1SerializingEndpoint[RI], error) {
+	deserializer, err := serialization.NewDeserializer[RI](publicConfig.N(), publicConfig.F, pluginLimits, &publicConfig)
+	if err != nil {
+		return nil, fmt.Errorf("NewOCR3_1SerializingEndpoint: %w", err)
+	}
 	return &OCR3_1SerializingEndpoint[RI]{
 		chTelemetry,
 		configDigest,
@@ -61,6 +66,7 @@ func NewOCR3_1SerializingEndpoint[RI any](
 		newSerializingEndpointMetrics(metricsRegisterer, logger),
 		pluginLimits,
 		publicConfig,
+		deserializer,
 		serializedLengthLimits,
 
 		sync.Mutex{},
@@ -71,7 +77,7 @@ func NewOCR3_1SerializingEndpoint[RI any](
 		make(chan struct{}),
 		make(chan protocol.MessageWithSender[RI]),
 		loghelper.LogarithmicTaper{},
-	}
+	}, nil
 }
 
 func (n *OCR3_1SerializingEndpoint[RI]) sendTelemetry(t *serialization.TelemetryWrapper) {
@@ -212,7 +218,7 @@ func (n *OCR3_1SerializingEndpoint[RI]) fromInboundBinaryMessage(inboundBinaryMe
 		payload = m.Payload
 	}
 
-	message, pbMessageForTelemetry, err = serialization.Deserialize[RI](n.publicConfig.N(), payload, requestHandle)
+	message, pbMessageForTelemetry, err = n.deserializer.Deserialize(payload, requestHandle)
 	if err != nil {
 		return nil, nil, err
 	}
