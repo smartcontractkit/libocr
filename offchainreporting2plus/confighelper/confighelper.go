@@ -144,6 +144,7 @@ func ContractSetConfigArgsForEthereumIntegrationTest(
 				0,
 				false,
 				false,
+				false,
 			}.Encode(),
 			util.PointerTo(50 * time.Millisecond),
 			50 * time.Millisecond,

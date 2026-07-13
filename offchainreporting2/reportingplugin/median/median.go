@@ -123,6 +123,13 @@ type OffchainConfig struct {
 	// NumericalMedianFactory has the same effect; if either flag is true,
 	// the condition applies.
 	AcceptAfterFullTransmissionScheduleElapsed bool
+	// If BuildReportDespiteContractReadError is true and MedianContract reads
+	// return an error, Report will return that a report should be built. "If
+	// in doubt, report!"
+	//
+	// Be careful setting this. It can cause increased transaction load and
+	// costs.
+	BuildReportDespiteContractReadError bool
 }
 
 func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
@@ -144,6 +151,7 @@ func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 		time.Duration(configProto.GetDeltaCNanoseconds()),
 		configProto.GetTransmitDespiteContractReadError(),
 		configProto.GetAcceptAfterFullTransmissionScheduleElapsed(),
+		configProto.GetBuildReportDespiteContractReadError(),
 	}, nil
 }
 
@@ -161,6 +169,7 @@ func (c OffchainConfig) Encode() []byte {
 		uint64(c.DeltaC),
 		c.TransmitDespiteContractReadError,
 		c.AcceptAfterFullTransmissionScheduleElapsed,
+		c.BuildReportDespiteContractReadError,
 	}
 	result, err := proto.Marshal(&configProto)
 	if err != nil {
@@ -611,11 +620,22 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 	})
 	subs.Wait()
 
+	buildDespiteContractReadError := false
 	if err := errors.Join(resultTransmissionDetails.err, resultRoundRequested.err); err != nil {
-		return false, fmt.Errorf("error during LatestTransmissionDetails/LatestRoundRequested: %w", err)
+		if nm.offchainConfig.BuildReportDespiteContractReadError {
+			buildDespiteContractReadError = true
+			nm.logger.Error("error during LatestTransmissionDetails/LatestRoundRequested", commontypes.LogFields{
+				"error":     err,
+				"timestamp": repts,
+			})
+			// We intentionally do not return an error here.
+		} else {
+			return false, fmt.Errorf("error during LatestTransmissionDetails/LatestRoundRequested: %w", err)
+		}
 	}
 
-	if resultTransmissionDetails.latestAnswer == nil {
+	// On a contract read error, latestAnswer is legitimately nil.
+	if !buildDespiteContractReadError && resultTransmissionDetails.latestAnswer == nil {
 		return false, fmt.Errorf("nil latestAnswer was returned by LatestTransmissionDetails. This should never happen")
 	}
 
@@ -634,6 +654,14 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 			"max":    nm.onchainConfig.Max,
 		})
 		return false, nil
+	}
+
+	// The branches below depend on the contract read, which errored.
+	if buildDespiteContractReadError {
+		nm.logger.Info("shouldReport: yes, because of BuildReportDespiteContractReadError", commontypes.LogFields{
+			"result": true,
+		})
+		return true, nil
 	}
 
 	initialRound := // Is this the first round for this configuration?
