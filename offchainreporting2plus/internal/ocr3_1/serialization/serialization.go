@@ -4,14 +4,64 @@ import (
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/byzquorum"
 	"github.com/smartcontractkit/libocr/internal/jmt"
 	"github.com/smartcontractkit/libocr/internal/mt"
+	"github.com/smartcontractkit/libocr/internal/protopreparsevalidation"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/protocol"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
+
+type PreParseValidationConfig interface {
+	GetMaxBlocksPerBlockSyncResponse() int
+	GetMaxTreeSyncChunkKeys() int
+}
+
+// Deserializer owns reusable raw validation state and decodes untrusted OCR3.1
+// network messages. It is not safe for concurrent use.
+type Deserializer[RI any] struct {
+	n         int
+	validator *protopreparsevalidation.Validator
+}
+
+func NewDeserializer[RI any](n int, f int, limits ocr3_1types.ReportingPluginLimits, config PreParseValidationConfig) (*Deserializer[RI], error) {
+	root := (&MessageWrapper{}).ProtoReflect().Descriptor()
+	byzQuorumSize := byzquorum.Size(n, f)
+	validator, err := protopreparsevalidation.Compile(root, map[protoreflect.FullName]int{
+		"offchainreporting3_1.MessageProposal.attributed_signed_observations":            n,
+		"offchainreporting3_1.MessageReportSignatures.report_signatures":                 limits.MaxReportCount,
+		"offchainreporting3_1.MessageBlockSyncResponse.attested_state_transition_blocks": config.GetMaxBlocksPerBlockSyncResponse(),
+		"offchainreporting3_1.AttestedStateTransitionBlock.attributed_signatures":        byzQuorumSize,
+		"offchainreporting3_1.StateWriteSet.entries":                                     limits.MaxKeyValueModifiedKeys,
+		"offchainreporting3_1.MessageTreeSyncChunkResponse.key_values":                   config.GetMaxTreeSyncChunkKeys(),
+		"offchainreporting3_1.MessageTreeSyncChunkResponse.bounding_leaves":              jmt.MaxBoundingLeaves,
+		"offchainreporting3_1.BoundingLeaf.siblings":                                     jmt.MaxProofLength,
+		"offchainreporting3_1.MessageBlobChunkResponse.proof":                            mt.MaxProofLength(limits.MaxBlobPayloadBytes),
+		"offchainreporting3_1.EpochStartProof.highest_certified_proof":                   byzQuorumSize,
+		"offchainreporting3_1.CertifiedPrepare.prepare_quorum_certificate":               byzQuorumSize,
+		"offchainreporting3_1.CertifiedCommit.commit_quorum_certificate":                 byzQuorumSize,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("compile OCR3.1 deserializer: %w", err)
+	}
+	return &Deserializer[RI]{
+		n,
+		validator,
+	}, nil
+}
+
+func MustNewDeserializer[RI any](n int, f int, limits ocr3_1types.ReportingPluginLimits, config PreParseValidationConfig) *Deserializer[RI] {
+	deserializer, err := NewDeserializer[RI](n, f, limits, config)
+	if err != nil {
+		panic(err)
+	}
+	return deserializer
+}
 
 // Serialize encodes a protocol.Message into a binary payload
 func Serialize[RI any](m protocol.Message[RI]) ([]byte, *MessageWrapper, error) {
@@ -115,14 +165,17 @@ func SerializeGenesisStateTransitionBlock(gstb protocol.GenesisStateTransitionBl
 	return proto.Marshal(tpm.genesisStateTransitionBlock(&gstb))
 }
 
-// Deserialize decodes a binary payload into a protocol.Message
-func Deserialize[RI any](n int, b []byte, requestHandle types.RequestHandle) (protocol.Message[RI], *MessageWrapper, error) {
+func (deserializer *Deserializer[RI]) Deserialize(b []byte, requestHandle types.RequestHandle) (protocol.Message[RI], *MessageWrapper, error) {
+	if err := deserializer.validator.Validate(b); err != nil {
+		return nil, nil, fmt.Errorf("could not validate raw protobuf: %w", err)
+	}
+
 	pb := &MessageWrapper{}
-	if err := proto.Unmarshal(b, pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, pb); err != nil {
 		return nil, nil, fmt.Errorf("could not unmarshal protobuf: %w", err)
 	}
 
-	fpm := fromProtoMessage[RI]{n, requestHandle}
+	fpm := fromProtoMessage[RI]{deserializer.n, requestHandle}
 	m, err := fpm.messageWrapper(pb)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not translate protobuf to protocol.Message: %w", err)
@@ -132,7 +185,7 @@ func Deserialize[RI any](n int, b []byte, requestHandle types.RequestHandle) (pr
 
 func DeserializeTrustedPrepareOrCommit(b []byte) (protocol.CertifiedPrepareOrCommit, error) {
 	pb := CertifiedPrepareOrCommit{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return nil, err
 	}
 
@@ -147,7 +200,7 @@ func DeserializeTrustedPrepareOrCommit(b []byte) (protocol.CertifiedPrepareOrCom
 
 func DeserializeTreeSyncStatus(b []byte) (protocol.TreeSyncStatus, error) {
 	pb := TreeSyncStatus{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.TreeSyncStatus{}, err
 	}
 	var stateRootDigest protocol.StateRootDigest
@@ -170,7 +223,7 @@ func DeserializeTreeSyncStatus(b []byte) (protocol.TreeSyncStatus, error) {
 
 func DeserializePacemakerState(b []byte) (protocol.PacemakerState, error) {
 	pb := PacemakerState{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.PacemakerState{}, err
 	}
 
@@ -182,7 +235,7 @@ func DeserializePacemakerState(b []byte) (protocol.PacemakerState, error) {
 
 func DeserializeBlobMeta(b []byte) (protocol.BlobMeta, error) {
 	pb := BlobMeta{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.BlobMeta{}, err
 	}
 	fpm := fromProtoMessage[struct{}]{}
@@ -201,7 +254,7 @@ func DeserializeBlobMeta(b []byte) (protocol.BlobMeta, error) {
 
 func DeserializeBlobQuotaStats(b []byte) (protocol.BlobQuotaStats, error) {
 	pb := BlobQuotaStats{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.BlobQuotaStats{}, err
 	}
 	return protocol.BlobQuotaStats{
@@ -212,7 +265,7 @@ func DeserializeBlobQuotaStats(b []byte) (protocol.BlobQuotaStats, error) {
 
 func DeserializeAttestedStateTransitionBlock(b []byte) (protocol.AttestedStateTransitionBlock, error) {
 	pb := AttestedStateTransitionBlock{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.AttestedStateTransitionBlock{}, err
 	}
 
@@ -225,7 +278,7 @@ func DeserializeAttestedStateTransitionBlock(b []byte) (protocol.AttestedStateTr
 
 func DeserializeStateTransitionBlock(b []byte) (protocol.StateTransitionBlock, error) {
 	pb := StateTransitionBlock{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.StateTransitionBlock{}, err
 	}
 
@@ -235,7 +288,7 @@ func DeserializeStateTransitionBlock(b []byte) (protocol.StateTransitionBlock, e
 
 func DeserializeGenesisStateTransitionBlock(b []byte) (protocol.GenesisStateTransitionBlock, error) {
 	pb := GenesisStateTransitionBlock{}
-	if err := proto.Unmarshal(b, &pb); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &pb); err != nil {
 		return protocol.GenesisStateTransitionBlock{}, err
 	}
 

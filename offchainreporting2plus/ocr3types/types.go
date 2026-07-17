@@ -40,10 +40,10 @@ type OnchainKeyring[RI any] interface {
 	// PublicKey returns the public key of the keypair used by Sign.
 	PublicKey() types.OnchainPublicKey
 
-	// Sign returns a signature over Report.
-	Sign(types.ConfigDigest, uint64, ReportWithInfo[RI]) (signature []byte, err error)
+	// Sign returns a signature over ConfigDigest, seqNr, and ReportWithInfo.
+	Sign(_ types.ConfigDigest, seqNr uint64, _ ReportWithInfo[RI]) (signature []byte, err error)
 
-	// Verify verifies a signature over ReportContext and Report allegedly
+	// Verify verifies a signature over ConfigDigest, SeqNr, and ReportWithInfo allegedly
 	// created from OnchainPublicKey.
 	//
 	// Implementations of this function must gracefully handle malformed or
@@ -52,4 +52,37 @@ type OnchainKeyring[RI any] interface {
 
 	// Maximum length of a signature
 	MaxSignatureLength() int
+}
+
+// OnchainKeyring2 is an updated version of [OnchainKeyring] that can
+// support sets of public keys (as e.g. used in CRE). Unlike OnchainKeyring,
+// it does not expose a PublicKey() method. Identity matching is done via Has().
+//
+// Package ocr3shims provides a helper to turn an [OnchainKeyring] into an
+// [OnchainKeyring2].
+//
+// All its functions should be thread-safe.
+type OnchainKeyring2[RI any] interface {
+	// Sign returns a signature over ConfigDigest, seqNr, and ReportWithInfo.
+	Sign(_ types.ConfigDigest, seqNr uint64, _ ReportWithInfo[RI]) (signature []byte, err error)
+
+	// Verify verifies a signature over ConfigDigest, SeqNr, and ReportWithInfo allegedly
+	// created from OnchainPublicKey.
+	//
+	// Implementations of this function must gracefully handle malformed or
+	// adversarially crafted inputs.
+	Verify(_ types.OnchainPublicKey, _ types.ConfigDigest, seqNr uint64, _ ReportWithInfo[RI], signature []byte) bool
+
+	// Has returns true if the keyring supports signing for the given OnchainPublicKey.
+	// Implementations that are backed by a set of keys should return true iff the
+	// set of keys represented by the argument is a subset of the supported keys.
+	Has(types.OnchainPublicKey) bool
+
+	// Maximum length of a signature
+	MaxSignatureLength() int
+
+	// DebugIdentifier returns a human-readable string identifying this keyring,
+	// for use in log/error messages. Not used for any cryptographic or
+	// protocol-level purpose.
+	DebugIdentifier() string
 }

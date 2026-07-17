@@ -38,10 +38,33 @@ func (p *pebbleKeyValueDatabaseFactory) NewKeyValueDatabaseIfExists(configDigest
 }
 
 func (p *pebbleKeyValueDatabaseFactory) newKeyValueDatabase(configDigest types.ConfigDigest, createIfNotExists bool) (ocr3_1types.KeyValueDatabase, error) {
-	dbPath := p.pathForConfigDigest(configDigest)
+	return openPebbleKeyValueDatabase(p.pathForConfigDigest(configDigest), createIfNotExists, true)
+}
+
+// OpenPebbleKeyValueDatabaseReadOnlyForTooling opens a Pebble key-value database at the given
+// path directly, without the factory's <configDigest>.db naming convention.
+//
+// It is intended only for use by libocr internal tooling, and is not meant to
+// be used elsewhere in production code. It may be removed or changed without
+// notice in the future.
+//
+// Calls to read-write related methods of this database will behave unpredictably.
+// Returns [ocr3_1types.ErrKeyValueDatabaseDoesNotExist] if the database does
+// not exist.
+func OpenPebbleKeyValueDatabaseReadOnlyForTooling(dbPath string) (keyValueDatabaseReadOnlyForTooling, error) {
+	return openPebbleKeyValueDatabase(dbPath, false, false)
+}
+
+type keyValueDatabaseReadOnlyForTooling interface {
+	NewReadTransaction() (ocr3_1types.KeyValueDatabaseReadTransaction, error)
+	Close() error
+}
+
+func openPebbleKeyValueDatabase(dbPath string, createIfNotExists bool, readWrite bool) (ocr3_1types.KeyValueDatabase, error) {
 	opts := pebble.Options{}
 	errorIfNotExists := !createIfNotExists
 	opts.ErrorIfNotExists = errorIfNotExists
+	opts.ReadOnly = !readWrite
 	db, err := pebble.Open(dbPath, &opts)
 	if err != nil {
 		if errorIfNotExists && errors.Is(err, pebble.ErrDBDoesNotExist) {
@@ -88,6 +111,12 @@ func (p *pebbleKeyValueDatabase) NewReadTransaction() (ocr3_1types.KeyValueDatab
 		snapshot,
 		false,
 	}, nil
+}
+
+// Deprecated: Metrics is only used for internal benchmarking and should not be
+// used externally. It may be removed or changed without notice in the future.
+func (p *pebbleKeyValueDatabase) Metrics() (*pebble.Metrics, error) {
+	return p.db.Metrics(), nil
 }
 
 // The resulting transaction is NOT thread-safe.

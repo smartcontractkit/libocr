@@ -3,6 +3,7 @@ package protocol
 import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/jmt"
+	"github.com/smartcontractkit/libocr/internal/util"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
@@ -26,6 +27,10 @@ type KeyValueDatabaseSemanticRead interface {
 
 	ExistsUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest) (bool, error)
 	ReadUnattestedStateTransitionBlock(seqNr uint64, stateTransitionInputsDigest StateTransitionInputsDigest) (*StateTransitionBlock, error)
+
+	// ReadRootVersions returns up to maxItems version numbers of tree roots at or
+	// above minRootVersion, in ascending order. Intended for tooling/inspection.
+	ReadRootVersions(minRootVersion uint64, maxItems int) (versions []uint64, more bool, err error)
 
 	ReadTreeSyncStatus() (TreeSyncStatus, error)
 	// ReadTreeSyncChunk retrieves a chunk of undigested key-value pairs in the
@@ -53,9 +58,11 @@ type KeyValueDatabaseSemanticRead interface {
 	// If only some chunks are present, it returns an error.
 	ReadBlobPayload(BlobDigest) ([]byte, error)
 	ReadBlobMeta(BlobDigest) (*BlobMeta, error)
+	ReadBlobDigestExpirySeqNrs(minBlobDigest BlobDigest, maxItems int) (_ []BlobDigestExpirySeqNr, more bool, _ error)
 	ReadBlobQuotaStats(blobQuotaStatsType BlobQuotaStatsType, submitter commontypes.OracleID) (BlobQuotaStats, error)
 	ReadBlobChunk(BlobDigest, uint64) ([]byte, error)
 	ReadStaleBlobIndex(maxStaleSinceSeqNr uint64, limit int) ([]StaleBlob, error)
+	ExistsStaleBlobIndex(StaleBlob) (bool, error)
 
 	ReadReportsPlusPrecursor(seqNr uint64, reportsPlusPrecursorDigest ReportsPlusPrecursorDigest) (*ocr3_1types.ReportsPlusPrecursor, error)
 
@@ -189,6 +196,13 @@ func (b BlobQuotaStats) Add(other BlobQuotaStats) (BlobQuotaStats, bool) {
 	}, true
 }
 
+func (b BlobQuotaStats) SaturatingSub(other BlobQuotaStats) BlobQuotaStats {
+	return BlobQuotaStats{
+		util.SaturatingSub(b.Count, other.Count),
+		util.SaturatingSub(b.CumulativePayloadLength, other.CumulativePayloadLength),
+	}
+}
+
 func (b BlobQuotaStats) Sub(other BlobQuotaStats) (BlobQuotaStats, bool) {
 	diffCount := b.Count - other.Count
 	if diffCount > b.Count {
@@ -204,9 +218,28 @@ func (b BlobQuotaStats) Sub(other BlobQuotaStats) (BlobQuotaStats, bool) {
 	}, true
 }
 
+func (b BlobQuotaStats) Exceeds(limit BlobQuotaStats) bool {
+	if b.Count > limit.Count {
+		return true
+	}
+	if b.CumulativePayloadLength > limit.CumulativePayloadLength {
+		return true
+	}
+	return false
+}
+
 type StaleBlob struct {
 	StaleSinceSeqNr uint64
 	BlobDigest      BlobDigest
+}
+
+// BlobDigestExpirySeqNr is a projection of a [BlobMeta] entry that pairs a
+// blob's digest with its expiry sequence number. It is intentionally distinct
+// from [StaleBlob], which is keyed on the sequence number after which a blob
+// became stale.
+type BlobDigestExpirySeqNr struct {
+	BlobDigest  BlobDigest
+	ExpirySeqNr uint64
 }
 
 type KeyValueDatabase interface {

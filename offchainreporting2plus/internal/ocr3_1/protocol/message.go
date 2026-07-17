@@ -621,10 +621,15 @@ type MessageBlobChunkResponse[RI any] struct {
 
 var _ MessageToBlobExchange[struct{}] = MessageBlobChunkResponse[struct{}]{}
 
-func (msg MessageBlobChunkResponse[RI]) CheckSize(n int, f int, _ ocr3_1types.ReportingPluginLimits, _ int, config ocr3_1config.PublicConfig) bool {
+func (msg MessageBlobChunkResponse[RI]) CheckSize(n int, f int, limits ocr3_1types.ReportingPluginLimits, _ int, config ocr3_1config.PublicConfig) bool {
 	if len(msg.Chunk) > config.GetBlobChunkBytes() {
 		return false
 	}
+
+	if len(msg.Proof) > mt.MaxProofLength(limits.MaxBlobPayloadBytes) {
+		return false
+	}
+
 	return true
 }
 

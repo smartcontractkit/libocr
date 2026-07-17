@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"iter"
+	"math/bits"
 )
 
 type Digest = [sha256.Size]byte
@@ -130,4 +131,13 @@ func Verify(expectedRootDigest Digest, index uint64, leafPreimage []byte, proof 
 	}
 
 	return nil
+}
+
+// MaxProofLength returns the maximum possible length of a Merkle proof (i.e. number of sibling digests) for a tree with the given number of leaves.
+// This is an upper bound on the proof length, not necessarily the exact length of all proofs for a given leaf count.
+func MaxProofLength(leafCount int) int {
+	if leafCount <= 1 {
+		return 0
+	}
+	return bits.Len(uint(leafCount - 1))
 }

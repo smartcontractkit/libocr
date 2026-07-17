@@ -34,7 +34,7 @@ func RunReportAttestation[RI any](
 	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 ) {
 	sched := scheduler.NewScheduler[EventMissingReportsPlusPrecursor[RI]]()
@@ -70,7 +70,7 @@ type reportAttestationState[RI any] struct {
 	kvDb                                   KeyValueDatabase
 	logger                                 loghelper.LoggerWithContext
 	netSender                              NetworkSender[RI]
-	onchainKeyring                         ocr3types.OnchainKeyring[RI]
+	onchainKeyring                         ocr3types.OnchainKeyring2[RI]
 	reportingPlugin                        ocr3_1types.ReportingPlugin[RI]
 
 	scheduler    *scheduler.Scheduler[EventMissingReportsPlusPrecursor[RI]]
@@ -139,16 +139,7 @@ func (repatt *reportAttestationState[RI]) run() {
 }
 
 func (repatt *reportAttestationState[RI]) eventNewCertifiedCommit(ev EventNewCertifiedCommit[RI]) {
-	repatt.receivedCertifiedReportsPlusPrecursorDigest(ev.SeqNr, ev.ReportsPlusPrecursorDigest)
-}
-
-func (repatt *reportAttestationState[RI]) receivedCertifiedReportsPlusPrecursorDigest(seqNr uint64, reportsPlusPrecursorDigest ReportsPlusPrecursorDigest) {
-	if repatt.rounds[seqNr] != nil && repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest != nil {
-		repatt.logger.Debug("dropping redundant ReportsPlusPrecursorDigest", commontypes.LogFields{
-			"seqNr": seqNr,
-		})
-		return
-	}
+	seqNr := ev.SeqNr
 
 	if _, ok := repatt.rounds[seqNr]; !ok {
 		ctx, cancel := context.WithCancel(repatt.ctx)
@@ -165,7 +156,12 @@ func (repatt *reportAttestationState[RI]) receivedCertifiedReportsPlusPrecursorD
 		}
 	}
 
-	repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest = &reportsPlusPrecursorDigest
+	if repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest == nil {
+		repatt.rounds[seqNr].certifiedReportsPlusPrecursorDigest = &ev.ReportsPlusPrecursorDigest
+	}
+	if repatt.rounds[seqNr].certifiedReportsPlusPrecursor == nil {
+		repatt.rounds[seqNr].successfullyCheckedKV = false
+	}
 
 	repatt.tryComplete(seqNr)
 }
@@ -889,7 +885,7 @@ func newReportAttestationState[RI any](
 	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
 	netSender NetworkSender[RI],
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 	sched *scheduler.Scheduler[EventMissingReportsPlusPrecursor[RI]],
 ) *reportAttestationState[RI] {

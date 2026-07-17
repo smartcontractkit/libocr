@@ -8,6 +8,7 @@ import (
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/mt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr3_1/blobtypes/serialization"
+	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -45,9 +46,17 @@ func (lc LightCertifiedBlob) MarshalBinary() ([]byte, error) {
 }
 
 func (lc *LightCertifiedBlob) UnmarshalBinary(data []byte) error {
+	if len(data) > LightCertifiedBlobMarshalledBytesUpperBound(types.MaxOracles) {
+		return fmt.Errorf("data too long to unmarshal LightCertifiedBlob: %d bytes", len(data))
+	}
+
 	pbLightCertifiedBlob := serialization.LightCertifiedBlob{}
-	if err := proto.Unmarshal(data, &pbLightCertifiedBlob); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(data, &pbLightCertifiedBlob); err != nil {
 		return fmt.Errorf("failed to unmarshal LightCertifiedBlob protobuf: %w", err)
+	}
+
+	if len(pbLightCertifiedBlob.AttributedBlobAvailabilitySignatures) > types.MaxOracles {
+		return fmt.Errorf("too many signatures in LightCertifiedBlob: %d, max is %d", len(pbLightCertifiedBlob.AttributedBlobAvailabilitySignatures), types.MaxOracles)
 	}
 
 	var chunkDigestsRoot mt.Digest
@@ -75,4 +84,29 @@ func (lc *LightCertifiedBlob) UnmarshalBinary(data []byte) error {
 		signatures,
 	}
 	return nil
+}
+
+// Conservative upper bounds for LightCertifiedBlob marshalled size estimation.
+// These are intentionally generous to accommodate future format changes.
+const (
+	protobufOverhead = 8
+
+	LightCertifiedBlobBaseBytes = protobufOverhead +
+		len(mt.Digest{}) + // ChunkDigestsRoot
+		8 + // PayloadLength
+		8 + // ExpirySeqNr
+		8 // Submitter
+
+	AttributedBlobAvailabilitySignatureBytes = protobufOverhead +
+		ed25519.SignatureSize + // Signature
+		8 // Signer
+)
+
+// LightCertifiedBlobMarshalledBytesUpperBound returns a conservative upper bound
+// on the marshalled length of a LightCertifiedBlob with at most n signatures.
+func LightCertifiedBlobMarshalledBytesUpperBound(n int) int {
+	if n < 0 {
+		n = 0
+	}
+	return LightCertifiedBlobBaseBytes + n*AttributedBlobAvailabilitySignatureBytes
 }

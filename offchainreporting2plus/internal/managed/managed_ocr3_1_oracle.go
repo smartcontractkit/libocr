@@ -43,7 +43,7 @@ func RunManagedOCR3_1Oracle[RI any](
 	messageNetEndpointFactory types.BinaryNetworkEndpoint2Factory,
 	offchainConfigDigester types.OffchainConfigDigester,
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPluginFactory ocr3_1types.ReportingPluginFactory[RI],
 ) {
 	subs := subprocesses.Subprocesses{}
@@ -151,7 +151,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				reportingPluginInfo = rpi
 			}
 
-			if err := validateOCR3_1ReportingPluginLimits(reportingPluginInfo.Limits); err != nil {
+			if err := reportingPluginInfo.Validate(); err != nil {
 				logger.Error("ManagedOCR3_1Oracle: invalid ReportingPluginInfo", commontypes.LogFields{
 					"error":               err,
 					"reportingPluginInfo": reportingPluginInfo,
@@ -203,7 +203,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				"ManagedOCR3_1Oracle: error during BinaryNetworkEndpoint2.Close()",
 			)
 
-			netEndpoint := shim.NewOCR3_1SerializingEndpoint[RI](
+			netEndpoint, err := shim.NewOCR3_1SerializingEndpoint[RI](
 				chTelemetrySend,
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
@@ -214,6 +214,9 @@ func RunManagedOCR3_1Oracle[RI any](
 				sharedConfig.PublicConfig,
 				serializedLengthLimits,
 			)
+			if err != nil {
+				return fmt.Errorf("ManagedOCR3_1Oracle: error during NewOCR3_1SerializingEndpoint: %w", err), false
+			}
 			err = netEndpoint.Start()
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3_1Oracle: error during netEndpoint.Start(): %w", err), true
@@ -275,7 +278,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				&shim.SerializingOCR3_1Database{database},
 				oid,
 				semanticOCR3_1KeyValueDatabase,
-				reportingPluginInfo.Limits,
+				reportingPluginInfo,
 				localConfig,
 				childLogger,
 				registerer,
@@ -283,7 +286,7 @@ func RunManagedOCR3_1Oracle[RI any](
 				offchainKeyring,
 				onchainKeyring,
 				shim.LimitCheckOCR3_1ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
-				shim.NewOCR3_1TelemetrySender(chTelemetrySend, childLogger),
+				shim.NewOCR3_1TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
 			return nil, false
@@ -293,36 +296,6 @@ func RunManagedOCR3_1Oracle[RI any](
 		offchainConfigDigester,
 		defaultRetryParams(),
 	)
-}
-
-func validateOCR3_1ReportingPluginLimits(limits ocr3_1types.ReportingPluginLimits) error {
-	var err error
-	if !(0 <= limits.MaxQueryBytes && limits.MaxQueryBytes <= ocr3_1types.MaxMaxQueryBytes) {
-		err = errors.Join(err, fmt.Errorf("MaxQueryBytes (%v) out of range. Should be between 0 and %v", limits.MaxQueryBytes, ocr3_1types.MaxMaxQueryBytes))
-	}
-	if !(0 <= limits.MaxObservationBytes && limits.MaxObservationBytes <= ocr3_1types.MaxMaxObservationBytes) {
-		err = errors.Join(err, fmt.Errorf("MaxObservationBytes (%v) out of range. Should be between 0 and %v", limits.MaxObservationBytes, ocr3_1types.MaxMaxObservationBytes))
-	}
-	if !(0 <= limits.MaxReportBytes && limits.MaxReportBytes <= ocr3_1types.MaxMaxReportBytes) {
-		err = errors.Join(err, fmt.Errorf("MaxReportBytes (%v) out of range. Should be between 0 and %v", limits.MaxReportBytes, ocr3_1types.MaxMaxReportBytes))
-	}
-	if !(0 <= limits.MaxReportsPlusPrecursorBytes && limits.MaxReportsPlusPrecursorBytes <= ocr3_1types.MaxMaxReportsPlusPrecursorBytes) {
-		err = errors.Join(err, fmt.Errorf("MaxReportsPlusPrecursorBytes (%v) out of range. Should be between 0 and %v", limits.MaxReportsPlusPrecursorBytes, ocr3_1types.MaxMaxReportsPlusPrecursorBytes))
-	}
-	if !(0 <= limits.MaxReportCount && limits.MaxReportCount <= ocr3_1types.MaxMaxReportCount) {
-		err = errors.Join(err, fmt.Errorf("MaxReportCount (%v) out of range. Should be between 0 and %v", limits.MaxReportCount, ocr3_1types.MaxMaxReportCount))
-	}
-
-	if !(0 <= limits.MaxKeyValueModifiedKeys && limits.MaxKeyValueModifiedKeys <= ocr3_1types.MaxMaxKeyValueModifiedKeys) {
-		err = errors.Join(err, fmt.Errorf("MaxKeyValueModifiedKeys (%v) out of range. Should be between 0 and %v", limits.MaxKeyValueModifiedKeys, ocr3_1types.MaxMaxKeyValueModifiedKeys))
-	}
-	if !(0 <= limits.MaxKeyValueModifiedKeysPlusValuesBytes && limits.MaxKeyValueModifiedKeysPlusValuesBytes <= ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesBytes) {
-		err = errors.Join(err, fmt.Errorf("MaxKeyValueModifiedKeysPlusValuesBytes (%v) out of range. Should be between 0 and %v", limits.MaxKeyValueModifiedKeysPlusValuesBytes, ocr3_1types.MaxMaxKeyValueModifiedKeysPlusValuesBytes))
-	}
-	if !(0 <= limits.MaxBlobPayloadBytes && limits.MaxBlobPayloadBytes <= ocr3_1types.MaxMaxBlobPayloadBytes) {
-		err = errors.Join(err, fmt.Errorf("MaxBlobPayloadBytes (%v) out of range. Should be between 0 and %v", limits.MaxBlobPayloadBytes, ocr3_1types.MaxMaxBlobPayloadBytes))
-	}
-	return err
 }
 
 func tryCopyFromPrevInstance(
@@ -434,37 +407,10 @@ func tryCopyFromPrevInstance(
 		return nil
 	}
 
-	startIndex := jmt.Digest{}
-	for {
-		logger.Info("⚙️ tryCopyFromPrevInstance: copying chunk from prev instance to next instance", commontypes.LogFields{
-			"startIndex": fmt.Sprintf("%x", startIndex),
-			"prevSeqNr":  prevSeqNr,
-		})
-		endInclIndex, done, err := copyChunkFromPrevInstance(
-			publicConfig,
-			prevSeqNr,
-			genesisBlock.StateRootDigest,
-			startIndex,
-			prevTxn,
-			nextSemanticKeyValueDatabase,
-		)
-		if err != nil {
-			return fmt.Errorf("error during copyChunkFromPrevInstance: %w", err)
-		}
-
-		if done {
-			break
-		}
-
-		var ok bool
-		startIndex, ok = jmt.IncrementDigest(endInclIndex)
-		if !ok {
-			return fmt.Errorf("failed to increment endInclIndex even though we are not done copying chunks")
-		}
-
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
+	err = CopyAllTreeSyncChunksFromPrevInstance(
+		ctx, logger, publicConfig, prevSeqNr, genesisBlock.StateRootDigest, prevTxn, nextSemanticKeyValueDatabase)
+	if err != nil {
+		return fmt.Errorf("error during copyAllTreeSyncChunksFromPrevInstance: %w", err)
 	}
 
 	nextTxn, err := nextSemanticKeyValueDatabase.NewSerializedReadWriteTransactionUnchecked()
@@ -491,6 +437,51 @@ func tryCopyFromPrevInstance(
 	err = nextTxn.Commit()
 	if err != nil {
 		return fmt.Errorf("error during Commit: %w", err)
+	}
+
+	return nil
+}
+
+func CopyAllTreeSyncChunksFromPrevInstance(
+	ctx context.Context,
+	logger loghelper.LoggerWithContext,
+	publicConfig ocr3_1config.PublicConfig, // non essential
+	prevSeqNr uint64,
+	prevStateRootDigest protocol.StateRootDigest,
+	prevTxn protocol.KeyValueDatabaseReadTransaction,
+	nextSemanticKeyValueDatabase protocol.KeyValueDatabase,
+) error {
+	startIndex := jmt.Digest{}
+	for {
+		logger.Info("⚙️ tryCopyFromPrevInstance: copying tree sync chunk from prev instance to next instance", commontypes.LogFields{
+			"startIndex": fmt.Sprintf("%x", startIndex),
+			"prevSeqNr":  prevSeqNr,
+		})
+		endInclIndex, done, err := copyTreeSyncChunkFromPrevInstance(
+			publicConfig,
+			prevSeqNr,
+			prevStateRootDigest,
+			startIndex,
+			prevTxn,
+			nextSemanticKeyValueDatabase,
+		)
+		if err != nil {
+			return fmt.Errorf("error during copyTreeSyncChunkFromPrevInstance: %w", err)
+		}
+
+		if done {
+			break
+		}
+
+		var ok bool
+		startIndex, ok = jmt.IncrementDigest(endInclIndex)
+		if !ok {
+			return fmt.Errorf("failed to increment endInclIndex even though we are not done copying tree sync chunks")
+		}
+
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 	}
 
 	return nil
@@ -591,7 +582,7 @@ func findGenesisBlockInPrevKeyValueDatabase(
 	return &gstb, nil
 }
 
-func copyChunkFromPrevInstance(
+func copyTreeSyncChunkFromPrevInstance(
 	publicConfig ocr3_1config.PublicConfig, // non essential
 	prevSeqNr uint64,
 	prevStateRootDigest protocol.StateRootDigest,

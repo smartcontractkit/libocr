@@ -58,6 +58,7 @@ func (s *SemanticOCR3_1KeyValueDatabase) newReadWriteTransaction(tx ocr3_1types.
 		SemanticOCR3_1KeyValueDatabaseReadTransaction{
 			tx,
 			s.config,
+			s.logger,
 		},
 		tx,
 		s.metrics,
@@ -167,7 +168,11 @@ func (s *SemanticOCR3_1KeyValueDatabase) NewReadTransactionUnchecked() (protocol
 	if err != nil {
 		return nil, fmt.Errorf("failed to create read transaction: %w", err)
 	}
-	return &SemanticOCR3_1KeyValueDatabaseReadTransaction{tx, s.config}, nil
+	return &SemanticOCR3_1KeyValueDatabaseReadTransaction{
+		tx,
+		s.config,
+		s.logger,
+	}, nil
 }
 
 type SemanticOCR3_1KeyValueDatabaseReadWriteTransaction struct {
@@ -315,17 +320,19 @@ func partialExclusiveRangeKeys(readTransaction ocr3_1types.KeyValueDatabaseReadT
 	return keys, more, nil
 }
 
+// hiKeyInclToExcl converts a key intended as an inclusive upper bound into an
+// exclusive upper bound suitable for [ocr3_1types.KeyValueDatabaseReadTransaction.Range],
+// by appending a zero byte (the smallest byte) to a clone of the input.
+func hiKeyInclToExcl(hiKeyIncl []byte) []byte {
+	return append(bytes.Clone(hiKeyIncl), 0)
+}
+
 func partialInclusiveRangeKeys(readTransaction ocr3_1types.KeyValueDatabaseReadTransaction, loKey []byte, hiKeyIncl []byte, maxItems int) (keys [][]byte, more bool, err error) {
-	hiKeyExcl := append(bytes.Clone(hiKeyIncl), 0)
-	return partialExclusiveRangeKeys(readTransaction, loKey, hiKeyExcl, maxItems)
+	return partialExclusiveRangeKeys(readTransaction, loKey, hiKeyInclToExcl(hiKeyIncl), maxItems)
 }
 
-func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) partialExclusiveRangeKeys(loKey []byte, hiKeyExcl []byte, maxItems int) (keys [][]byte, more bool, err error) {
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) partialExclusiveRangeKeys(loKey []byte, hiKeyExcl []byte, maxItems int) (keys [][]byte, more bool, err error) {
 	return partialExclusiveRangeKeys(s.rawTransaction, loKey, hiKeyExcl, maxItems)
-}
-
-func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) partialInclusiveRangeKeys(loKey []byte, hiKeyIncl []byte, maxItems int) (keys [][]byte, more bool, err error) {
-	return partialInclusiveRangeKeys(s.rawTransaction, loKey, hiKeyIncl, maxItems)
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) partialInclusiveRangeKeys(loKey []byte, hiKeyIncl []byte, maxItems int) (keys [][]byte, more bool, err error) {
@@ -476,6 +483,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, v
 type SemanticOCR3_1KeyValueDatabaseReadTransaction struct {
 	rawTransaction ocr3_1types.KeyValueDatabaseReadTransaction
 	config         ocr3_1config.PublicConfig
+	logger         commontypes.Logger
 }
 
 var _ protocol.KeyValueDatabaseReadTransaction = &SemanticOCR3_1KeyValueDatabaseReadTransaction{}
@@ -862,6 +870,25 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadNode(nodeKey jmt.Nod
 	return serialization.DeserializeJmtNode(rawNode)
 }
 
+// ReadRootVersions returns up to maxItems version numbers of tree roots at or
+// above minRootVersion, in ascending order.
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadRootVersions(minRootVersion uint64, maxItems int) ([]uint64, bool, error) {
+	rootKeys, more, err := s.partialInclusiveRangeKeys(rootKey(minRootVersion), rootKey(math.MaxUint64), maxItems)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to range tree roots: %w", err)
+	}
+
+	versions := make([]uint64, 0, len(rootKeys))
+	for _, rootKey := range rootKeys {
+		version, err := deserializeRootKey(rootKey)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to deserialize root key: %w", err)
+		}
+		versions = append(versions, version)
+	}
+	return versions, more, nil
+}
+
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadRoot(version jmt.Version) (jmt.NodeKey, error) {
 	rawNodeKey, err := s.rawTransaction.Read(rootKey(version))
 	if err != nil {
@@ -967,6 +994,50 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobMeta(blobDigest 
 	return &blobMeta, nil
 }
 
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobDigestExpirySeqNrs(minBlobDigest blobtypes.BlobDigest, maxItems int) ([]protocol.BlobDigestExpirySeqNr, bool, error) {
+	loKey := blobMetaPrefixKey(minBlobDigest)
+	hiKeyExcl := hiKeyInclToExcl(blobMetaPrefixKey(blobtypes.MaxBlobDigest()))
+
+	it := s.rawTransaction.Range(loKey, hiKeyExcl)
+	defer it.Close()
+
+	var result []protocol.BlobDigestExpirySeqNr
+	more := false
+
+	for it.Next() {
+		if len(result) == maxItems {
+			more = true
+			break
+		}
+		key := it.Key()
+		blobDigest, err := deserializeBlobMetaPrefixKey(key)
+		if err != nil {
+			return nil, false, fmt.Errorf("error deserializing blob digest from blob meta key: %w", err)
+		}
+		blobMetaBytes, err := it.Value()
+		if err != nil {
+			return nil, false, fmt.Errorf("error reading blob meta value: %w", err)
+		}
+		if blobMetaBytes == nil {
+			return nil, false, fmt.Errorf("blob meta bytes are unexpectedly nil for blob digest %s", blobDigest)
+		}
+		blobMeta, err := serialization.DeserializeBlobMeta(blobMetaBytes)
+		if err != nil {
+			return nil, false, fmt.Errorf("error unmarshaling blob meta for blob digest %s: %w", blobDigest, err)
+		}
+		result = append(result, protocol.BlobDigestExpirySeqNr{
+			blobDigest,
+			blobMeta.ExpirySeqNr,
+		})
+	}
+
+	if err := it.Err(); err != nil {
+		return nil, false, fmt.Errorf("error iterating over blob metas: %w", err)
+	}
+
+	return result, more, nil
+}
+
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteBlobMeta(blobDigest protocol.BlobDigest, blobMeta protocol.BlobMeta) error {
 	metaBytes, err := serialization.SerializeBlobMeta(blobMeta)
 	if err != nil {
@@ -1026,6 +1097,15 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadStaleBlobIndex(maxSt
 	}
 
 	return staleBlobs, nil
+}
+
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ExistsStaleBlobIndex(staleBlob protocol.StaleBlob) (bool, error) {
+	key := staleBlobIndexPrefixKey(staleBlob)
+	value, err := s.rawTransaction.Read(key)
+	if err != nil {
+		return false, fmt.Errorf("Read failed: %w", err)
+	}
+	return value != nil, nil
 }
 
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteStaleBlobIndex(staleBlob protocol.StaleBlob) error {
@@ -1275,6 +1355,22 @@ func blobMetaPrefixKey(blobDigest protocol.BlobDigest) []byte {
 	return append([]byte(blobMetaPrefix), blobDigest[:]...)
 }
 
+func deserializeBlobMetaPrefixKey(enc []byte) (protocol.BlobDigest, error) {
+	if len(enc) < len(blobMetaPrefix) {
+		return blobtypes.BlobDigest{}, fmt.Errorf("encoding too short")
+	}
+	enc = enc[len(blobMetaPrefix):]
+	if len(enc) < len(protocol.BlobDigest{}) {
+		return blobtypes.BlobDigest{}, fmt.Errorf("encoding too short to contain blob digest")
+	}
+	blobDigest := protocol.BlobDigest(enc[:len(protocol.BlobDigest{})])
+	enc = enc[len(protocol.BlobDigest{}):]
+	if len(enc) != 0 {
+		return blobtypes.BlobDigest{}, fmt.Errorf("encoding too long")
+	}
+	return blobDigest, nil
+}
+
 func blobQuotaStatsPrefixKey(blobQuotaStatsType protocol.BlobQuotaStatsType, submitter commontypes.OracleID) []byte {
 	base := append([]byte(blobQuotaStatsPrefix), []byte(blobQuotaStatsType)...)
 	return append(base, []byte(fmt.Sprintf("%d", submitter))...)
@@ -1284,6 +1380,20 @@ func blobQuotaStatsPrefixKey(blobQuotaStatsType protocol.BlobQuotaStatsType, sub
 
 func rootKey(version uint64) []byte {
 	return append([]byte(treeRootPrefix), encodeBigEndianUint64(version)...)
+}
+
+func deserializeRootKey(enc []byte) (uint64, error) {
+	if len(enc) < len(treeRootPrefix) {
+		return 0, fmt.Errorf("encoding too short")
+	}
+	enc = enc[len(treeRootPrefix):]
+	if len(enc) < 8 {
+		return 0, fmt.Errorf("encoding too short to contain seqnr")
+	}
+	if len(enc) != 8 {
+		return 0, fmt.Errorf("encoding too long")
+	}
+	return binary.BigEndian.Uint64(enc), nil
 }
 
 // ────────────────────────── tree ───────────────────────────

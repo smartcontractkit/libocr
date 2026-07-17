@@ -104,11 +104,30 @@ type OffchainConfig struct {
 	// maximum age is exceeded, a new report will be created by the report
 	// generation protocol.
 	DeltaC time.Duration
+	// If TransmitDespiteContractReadError is true and MedianContract reads
+	// return an error, ShouldAcceptFinalizedReport and
+	// ShouldTransmitAcceptedReport will return that the report
+	// should be transmitted. "If in doubt, transmit!"
+	//
+	// Be careful setting this. It can cause increased transaction load and
+	// costs.
+	TransmitDespiteContractReadError bool
+	// If AcceptAfterFullTransmissionScheduleElapsed is true, a report will
+	// be accepted by ShouldAcceptFinalizedReport if the full transmission
+	// schedule has elapsed since the last accepted report.  This is useful
+	// to prevent missed heartbeats on chains where sometimes *all* nodes
+	// are unable to successfully land a transaction, because otherwise the
+	// "pending report check" will keep blocking later non-deviating
+	// reports from being accepted.
+	// This flag defaults to false. The corresponding flag on
+	// NumericalMedianFactory has the same effect; if either flag is true,
+	// the condition applies.
+	AcceptAfterFullTransmissionScheduleElapsed bool
 }
 
 func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 	var configProto NumericalMedianConfigProto
-	if err := proto.Unmarshal(b, &configProto); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, &configProto); err != nil {
 		return OffchainConfig{}, err
 	}
 
@@ -123,6 +142,8 @@ func DecodeOffchainConfig(b []byte) (OffchainConfig, error) {
 		configProto.GetAlphaAcceptInfinite(),
 		configProto.GetAlphaAcceptPpb(),
 		time.Duration(configProto.GetDeltaCNanoseconds()),
+		configProto.GetTransmitDespiteContractReadError(),
+		configProto.GetAcceptAfterFullTransmissionScheduleElapsed(),
 	}, nil
 }
 
@@ -138,6 +159,8 @@ func (c OffchainConfig) Encode() []byte {
 		c.AlphaAcceptInfinite,
 		c.AlphaAcceptPPB,
 		uint64(c.DeltaC),
+		c.TransmitDespiteContractReadError,
+		c.AcceptAfterFullTransmissionScheduleElapsed,
 	}
 	result, err := proto.Marshal(&configProto)
 	if err != nil {
@@ -276,10 +299,16 @@ type NumericalMedianFactory struct {
 	// function DefaultDeviationFunc. All oracles in the OCR protocol instance
 	// must run with the same deviation function.
 	DeviationFunc DeviationFunc
+	// The corresponding flag on OffchainConfig has the same effect;
+	// if either flag is true, the condition applies. See the
+	// comment on OffchainConfig.AcceptAfterFullTransmissionScheduleElapsed
+	// for details on what this does.
+	// It's preferable to configure this flag via OffchainConfig, but in cases
+	// where that is not feasible, you may set it here instead.
+	AcceptAfterFullTransmissionScheduleElapsed bool
 }
 
 func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, configuration types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
-
 	offchainConfig, err := DecodeOffchainConfig(configuration.OffchainConfig)
 	if err != nil {
 		return nil, types.ReportingPluginInfo{}, err
@@ -307,6 +336,16 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 		deviationFunc = fac.DeviationFunc
 	}
 
+	logger.Info("NewReportingPlugin configuration values", commontypes.LogFields{
+		"f":                                    configuration.F,
+		"n":                                    configuration.N,
+		"offchainConfig":                       offchainConfig,
+		"onchainConfig":                        onchainConfig,
+		"includeGasPriceSubunitsInObservation": fac.IncludeGasPriceSubunitsInObservation,
+		"hasCustomDeviationFunc":               fac.DeviationFunc != nil,
+		"acceptAfterFullTransmissionScheduleElapsed": fac.AcceptAfterFullTransmissionScheduleElapsed,
+	})
+
 	return &numericalMedian{
 			offchainConfig,
 			onchainConfig,
@@ -318,11 +357,14 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 			logger,
 			fac.ReportCodec,
 			deviationFunc,
+			fac.AcceptAfterFullTransmissionScheduleElapsed || offchainConfig.AcceptAfterFullTransmissionScheduleElapsed,
 
 			configuration.ConfigDigest,
 			configuration.F,
+			configuration.DurationAllTransmissionStages,
 			epochRound{},
 			new(big.Int),
+			time.Now(),
 			maxReportLength,
 		}, types.ReportingPluginInfo{
 			"NumericalMedian",
@@ -357,22 +399,25 @@ func DefaultDeviationFunc(_ context.Context, thresholdPPB uint64, old *big.Int, 
 var _ types.ReportingPlugin = (*numericalMedian)(nil)
 
 type numericalMedian struct {
-	offchainConfig                       OffchainConfig
-	onchainConfig                        OnchainConfig
-	contractTransmitter                  MedianContract
-	dataSource                           DataSource
-	juelsPerFeeCoinDataSource            DataSource
-	gasPriceSubunitsDataSource           DataSource
-	includeGasPriceSubunitsInObservation bool
-	logger                               loghelper.LoggerWithContext
-	reportCodec                          ReportCodec
-	deviationFunc                        DeviationFunc
+	offchainConfig                             OffchainConfig
+	onchainConfig                              OnchainConfig
+	contractTransmitter                        MedianContract
+	dataSource                                 DataSource
+	juelsPerFeeCoinDataSource                  DataSource
+	gasPriceSubunitsDataSource                 DataSource
+	includeGasPriceSubunitsInObservation       bool
+	logger                                     loghelper.LoggerWithContext
+	reportCodec                                ReportCodec
+	deviationFunc                              DeviationFunc
+	acceptAfterFullTransmissionScheduleElapsed bool
 
-	configDigest             types.ConfigDigest
-	f                        int
-	latestAcceptedEpochRound epochRound
-	latestAcceptedMedian     *big.Int
-	maxReportLength          int
+	configDigest                  types.ConfigDigest
+	f                             int
+	durationAllTransmissionStages time.Duration
+	latestAcceptedEpochRound      epochRound
+	latestAcceptedMedian          *big.Int
+	latestAcceptedTime            time.Time
+	maxReportLength               int
 }
 
 func (nm *numericalMedian) Query(ctx context.Context, repts types.ReportTimestamp) (types.Query, error) {
@@ -445,7 +490,7 @@ type ParsedAttributedObservation struct {
 
 func parseAttributedObservation(ao types.AttributedObservation) (ParsedAttributedObservation, error) {
 	var observationProto NumericalMedianObservationProto
-	if err := proto.Unmarshal(ao.Observation, &observationProto); err != nil {
+	if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(ao.Observation, &observationProto); err != nil {
 		return ParsedAttributedObservation{}, fmt.Errorf("attributed observation cannot be unmarshaled: %w", err)
 	}
 	value, err := DecodeValue(observationProto.Value)
@@ -655,8 +700,33 @@ func (nm *numericalMedian) shouldReport(ctx context.Context, repts types.ReportT
 	return false, nil
 }
 
+type latestTransmissionDetails struct {
+	ConfigDigest    types.ConfigDigest
+	EpochRound      epochRound
+	LatestAnswer    *big.Int
+	LatestTimestamp time.Time
+}
+
+func (nm *numericalMedian) getLatestTransmissionDetails(ctx context.Context) (*latestTransmissionDetails, error) {
+	configDigest, epoch, round, latestAnswer, latestTimestamp, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error during LatestTransmissionDetails: %w", err)
+	}
+	return &latestTransmissionDetails{
+		configDigest,
+		epochRound{epoch, round},
+		latestAnswer,
+		latestTimestamp,
+	}, nil
+}
+
 func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, repts types.ReportTimestamp, report types.Report) (bool, error) {
 	reportEpochRound := epochRound{repts.Epoch, repts.Round}
+
+	if !(len(report) <= nm.maxReportLength) {
+		return false, fmt.Errorf("report violates MaxReportLength limit set by ReportCodec. (reportLength: %v, maxReportLength: %v)", len(report), nm.maxReportLength)
+	}
+
 	if !nm.latestAcceptedEpochRound.Less(reportEpochRound) {
 		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
 			"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
@@ -665,42 +735,35 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		return false, nil
 	}
 
-	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
-	if err != nil {
-		return false, fmt.Errorf("error during LatestTransmissionDetails: %w", err)
-	}
-
-	contractEpochRound := epochRound{contractEpoch, contractRound}
-
-	if contractConfigDigest != nm.configDigest {
-		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, config digest mismatch", commontypes.LogFields{
-			"contractConfigDigest": contractConfigDigest,
-			"reportConfigDigest":   nm.configDigest,
-			"reportEpochRound":     reportEpochRound,
-		})
-		return false, nil
-	}
-
-	if !contractEpochRound.Less(reportEpochRound) {
-		nm.logger.Debug("ShouldAcceptFinalizedReport() = false, report is stale", commontypes.LogFields{
-			"contractEpochRound": contractEpochRound,
-			"reportEpochRound":   reportEpochRound,
-		})
-		return false, nil
-	}
-
-	if !(len(report) <= nm.maxReportLength) {
-		nm.logger.Warn("report violates MaxReportLength limit set by ReportCodec", commontypes.LogFields{
-			"reportEpochRound": reportEpochRound,
-			"reportLength":     len(report),
-			"maxReportLength":  nm.maxReportLength,
-		})
-		return false, nil
-	}
-
 	reportMedian, err := nm.reportCodec.MedianFromReport(ctx, report)
 	if err != nil {
 		return false, fmt.Errorf("error during MedianFromReport: %w", err)
+	}
+
+	medianContractReadErrorAcceptOverride := false
+	contractLatestTransmissionDetailsOrNil, err := nm.getLatestTransmissionDetails(ctx)
+	if err != nil {
+		if nm.offchainConfig.TransmitDespiteContractReadError {
+			medianContractReadErrorAcceptOverride = true
+			nm.logger.Error("error during getLatestTransmissionDetails", commontypes.LogFields{
+				"error":            err,
+				"reportEpochRound": reportEpochRound,
+			})
+			// We intentionally do not return an error here.
+
+		} else {
+			return false, fmt.Errorf("error during getLatestTransmissionDetails: %w", err)
+		}
+	}
+
+	contractConfigDigestMatches := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		contractConfigDigestMatches = contractLatestTransmissionDetailsOrNil.ConfigDigest == nm.configDigest
+	}
+
+	reportFresh := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		reportFresh = contractLatestTransmissionDetailsOrNil.EpochRound.Less(reportEpochRound)
 	}
 
 	deviates := false
@@ -711,22 +774,36 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 		}
 		deviates = result
 	}
-	nothingPending := !contractEpochRound.Less(nm.latestAcceptedEpochRound)
-	result := deviates || nothingPending
+
+	nothingPending := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		nothingPending = !contractLatestTransmissionDetailsOrNil.EpochRound.Less(nm.latestAcceptedEpochRound)
+	}
+
+	fullTransmissionScheduleElapsedSinceLastAccepted := time.Since(nm.latestAcceptedTime) > nm.durationAllTransmissionStages
+
+	result := medianContractReadErrorAcceptOverride || (contractConfigDigestMatches && reportFresh && (deviates || nothingPending || (nm.acceptAfterFullTransmissionScheduleElapsed && fullTransmissionScheduleElapsedSinceLastAccepted)))
 
 	nm.logger.Debug("ShouldAcceptFinalizedReport() = result", commontypes.LogFields{
-		"contractEpochRound":       contractEpochRound,
-		"reportEpochRound":         reportEpochRound,
-		"latestAcceptedEpochRound": nm.latestAcceptedEpochRound,
-		"alphaAcceptInfinite":      nm.offchainConfig.AlphaAcceptInfinite,
-		"alphaAcceptPPB":           nm.offchainConfig.AlphaAcceptPPB,
-		"deviates":                 deviates,
-		"result":                   result,
+		"contractLatestTransmissionDetailsOrNil":           contractLatestTransmissionDetailsOrNil,
+		"reportEpochRound":                                 reportEpochRound,
+		"latestAcceptedEpochRound":                         nm.latestAcceptedEpochRound,
+		"alphaAcceptInfinite":                              nm.offchainConfig.AlphaAcceptInfinite,
+		"alphaAcceptPPB":                                   nm.offchainConfig.AlphaAcceptPPB,
+		"medianContractReadErrorAcceptOverride":            medianContractReadErrorAcceptOverride,
+		"contractConfigDigestMatches":                      contractConfigDigestMatches,
+		"reportFresh":                                      reportFresh,
+		"nothingPending":                                   nothingPending,
+		"acceptAfterFullTransmissionScheduleElapsed":       nm.acceptAfterFullTransmissionScheduleElapsed,
+		"fullTransmissionScheduleElapsedSinceLastAccepted": fullTransmissionScheduleElapsedSinceLastAccepted,
+		"deviates": deviates,
+		"result":   result,
 	})
 
 	if result {
 		nm.latestAcceptedEpochRound = reportEpochRound
 		nm.latestAcceptedMedian = reportMedian
+		nm.latestAcceptedTime = time.Now()
 	}
 
 	return result, nil
@@ -735,31 +812,45 @@ func (nm *numericalMedian) ShouldAcceptFinalizedReport(ctx context.Context, rept
 func (nm *numericalMedian) ShouldTransmitAcceptedReport(ctx context.Context, repts types.ReportTimestamp, report types.Report) (bool, error) {
 	reportEpochRound := epochRound{repts.Epoch, repts.Round}
 
-	contractConfigDigest, contractEpoch, contractRound, _, _, err := nm.contractTransmitter.LatestTransmissionDetails(ctx)
+	medianContractReadErrorTransmitOverride := false
+	contractLatestTransmissionDetailsOrNil, err := nm.getLatestTransmissionDetails(ctx)
 	if err != nil {
-		return false, err
+		if nm.offchainConfig.TransmitDespiteContractReadError {
+			medianContractReadErrorTransmitOverride = true
+			nm.logger.Error("error during getLatestTransmissionDetails", commontypes.LogFields{
+				"error":            err,
+				"reportEpochRound": reportEpochRound,
+			})
+			// We intentionally do not return an error here.
+
+		} else {
+			return false, fmt.Errorf("error during getLatestTransmissionDetails: %w", err)
+		}
 	}
 
-	contractEpochRound := epochRound{contractEpoch, contractRound}
-
-	if contractConfigDigest != nm.configDigest {
-		nm.logger.Debug("ShouldTransmitAcceptedReport() = false, config digest mismatch", commontypes.LogFields{
-			"contractConfigDigest": contractConfigDigest,
-			"reportConfigDigest":   nm.configDigest,
-			"reportEpochRound":     reportEpochRound,
-		})
-		return false, nil
+	contractConfigDigestMatches := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		contractConfigDigestMatches = contractLatestTransmissionDetailsOrNil.ConfigDigest == nm.configDigest
 	}
 
-	if !contractEpochRound.Less(reportEpochRound) {
-		nm.logger.Debug("ShouldTransmitAcceptedReport() = false, report is stale", commontypes.LogFields{
-			"contractEpochRound": contractEpochRound,
-			"reportEpochRound":   reportEpochRound,
-		})
-		return false, nil
+	reportFresh := false
+	if contractLatestTransmissionDetailsOrNil != nil {
+		reportFresh = contractLatestTransmissionDetailsOrNil.EpochRound.Less(reportEpochRound)
 	}
 
-	return true, nil
+	result := medianContractReadErrorTransmitOverride || (contractConfigDigestMatches && reportFresh)
+
+	nm.logger.Debug("ShouldTransmitAcceptedReport() = result", commontypes.LogFields{
+		"contractLatestTransmissionDetailsOrNil":  contractLatestTransmissionDetailsOrNil,
+		"reportEpochRound":                        reportEpochRound,
+		"latestAcceptedEpochRound":                nm.latestAcceptedEpochRound,
+		"medianContractReadErrorTransmitOverride": medianContractReadErrorTransmitOverride,
+		"contractConfigDigestMatches":             contractConfigDigestMatches,
+		"reportFresh":                             reportFresh,
+		"result":                                  result,
+	})
+
+	return result, nil
 }
 
 func (nm *numericalMedian) Close() error {

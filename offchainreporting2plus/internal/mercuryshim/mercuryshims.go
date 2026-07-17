@@ -109,13 +109,16 @@ func ocr3MaxOutcomeLength(maxReportLength int) int {
 	return outcomeSerializationOverhead + maxReportLength + maxReportLength/2
 }
 
-func ReportingPluginLimits(mercuryPluginLimits ocr3types.MercuryPluginLimits) ocr3types.ReportingPluginLimits {
-	return ocr3types.ReportingPluginLimits{
-		0,
-		mercuryPluginLimits.MaxObservationLength,
-		ocr3MaxOutcomeLength(mercuryPluginLimits.MaxReportLength),
-		mercuryPluginLimits.MaxReportLength,
-		1,
+func ReportingPluginInfo(mercuryPluginInfo ocr3types.MercuryPluginInfo) ocr3types.ReportingPluginInfo {
+	return ocr3types.ReportingPluginInfo{
+		mercuryPluginInfo.Name,
+		ocr3types.ReportingPluginLimits{
+			0,
+			mercuryPluginInfo.Limits.MaxObservationLength,
+			ocr3MaxOutcomeLength(mercuryPluginInfo.Limits.MaxReportLength),
+			mercuryPluginInfo.Limits.MaxReportLength,
+			1,
+		},
 	}
 }
 

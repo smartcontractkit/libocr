@@ -52,7 +52,8 @@ type PublicConfig struct {
 	// attempt to transmit (if in their view the first and second stage didn't
 	// succeed).
 	//
-	// sum(S) should equal n.
+	// It is recommended to have sum(S) >= n to ensure all oracles are
+	// included as transmitters.
 	S []int
 	// Identities (i.e. public keys) of the oracles participating in this
 	// protocol instance.
@@ -90,6 +91,30 @@ type PublicConfig struct {
 // N is the number of oracles participating in the protocol
 func (c *PublicConfig) N() int {
 	return len(c.OracleIdentities)
+}
+
+// DurationAllTransmissionStages returns how long it takes until
+// all transmission stages have elapsed, i.e. by what time the final
+// transmitting oracle will have had one DeltaStage to transmit.
+// Recall that the OCR2 transmission schedule is described by N, S, and DeltaStage.
+func (c *PublicConfig) DurationAllTransmissionStages() time.Duration {
+	if c.N() == 0 {
+		return 0
+	}
+
+	coveredOracles := 0
+	lastNonZeroStageCount := 0
+	for stageIdx, stageSize := range c.S {
+		if stageSize > 0 {
+			lastNonZeroStageCount = stageIdx + 1
+		}
+		coveredOracles += stageSize
+		if coveredOracles >= c.N() {
+			return time.Duration(stageIdx+1) * c.DeltaStage
+		}
+	}
+
+	return time.Duration(lastNonZeroStageCount) * c.DeltaStage
 }
 
 func (c *PublicConfig) CheckParameterBounds() error {

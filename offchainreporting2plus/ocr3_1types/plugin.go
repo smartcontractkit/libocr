@@ -2,6 +2,8 @@ package ocr3_1types
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3types"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -429,6 +431,27 @@ type ReportingPluginLimits struct {
 	MaxPerOracleUnexpiredBlobCount int
 }
 
+// Validate checks that all fields are within their allowed ranges.
+// It returns a joined error listing every out-of-range field, or nil if valid.
+func (l ReportingPluginLimits) Validate() error {
+	var err error
+	check := func(name string, val, max int) {
+		if !(0 <= val && val <= max) {
+			err = errors.Join(err, fmt.Errorf("%s (%v) out of range. Should be between 0 and %v", name, val, max))
+		}
+	}
+	check("MaxQueryBytes", l.MaxQueryBytes, MaxMaxQueryBytes)
+	check("MaxObservationBytes", l.MaxObservationBytes, MaxMaxObservationBytes)
+	check("MaxReportBytes", l.MaxReportBytes, MaxMaxReportBytes)
+	check("MaxReportsPlusPrecursorBytes", l.MaxReportsPlusPrecursorBytes, MaxMaxReportsPlusPrecursorBytes)
+	check("MaxReportCount", l.MaxReportCount, MaxMaxReportCount)
+
+	check("MaxKeyValueModifiedKeys", l.MaxKeyValueModifiedKeys, MaxMaxKeyValueModifiedKeys)
+	check("MaxKeyValueModifiedKeysPlusValuesBytes", l.MaxKeyValueModifiedKeysPlusValuesBytes, MaxMaxKeyValueModifiedKeysPlusValuesBytes)
+	check("MaxBlobPayloadBytes", l.MaxBlobPayloadBytes, MaxMaxBlobPayloadBytes)
+	return err
+}
+
 //go-sumtype:decl ReportingPluginInfo
 
 type ReportingPluginInfo interface {
@@ -440,6 +463,13 @@ type ReportingPluginInfo1 struct {
 	Name string
 
 	Limits ReportingPluginLimits
+}
+
+func (i ReportingPluginInfo1) Validate() error {
+	if err := i.Limits.Validate(); err != nil {
+		return fmt.Errorf("Limits are invalid: %w", err)
+	}
+	return nil
 }
 
 var _ ReportingPluginInfo = ReportingPluginInfo1{}

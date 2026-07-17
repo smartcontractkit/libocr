@@ -2,8 +2,8 @@ package managed
 
 import (
 	"context"
-	"errors"
 	"fmt"
+
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,7 +39,7 @@ func RunManagedOCR3Oracle[RI any](
 	netEndpointFactory types.BinaryNetworkEndpointFactory,
 	offchainConfigDigester types.OffchainConfigDigester,
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPluginFactory ocr3types.ReportingPluginFactory[RI],
 ) {
 	subs := subprocesses.Subprocesses{}
@@ -139,12 +139,12 @@ func RunManagedOCR3Oracle[RI any](
 				"ManagedOCR3Oracle: error during reportingPlugin.Close()",
 			)
 
-			if err := validateOCR3ReportingPluginLimits(reportingPluginInfo.Limits); err != nil {
+			if err := reportingPluginInfo.Validate(); err != nil {
 				logger.Error("ManagedOCR3Oracle: invalid ReportingPluginInfo", commontypes.LogFields{
 					"error":               err,
 					"reportingPluginInfo": reportingPluginInfo,
 				})
-				return fmt.Errorf("ManagedOCR3Oracle: invalid MercuryPluginInfo"), false
+				return fmt.Errorf("ManagedOCR3Oracle: invalid ReportingPluginInfo"), false
 			}
 
 			maxSigLen := onchainKeyring.MaxSignatureLength()
@@ -176,7 +176,7 @@ func RunManagedOCR3Oracle[RI any](
 
 			// No need to binNetEndpoint.Start/Close since netEndpoint will handle that for us
 
-			netEndpoint := shim.NewOCR3SerializingEndpoint[RI](
+			netEndpoint, err := shim.NewOCR3SerializingEndpoint[RI](
 				chTelemetrySend,
 				sharedConfig.ConfigDigest,
 				binNetEndpoint,
@@ -187,6 +187,9 @@ func RunManagedOCR3Oracle[RI any](
 				sharedConfig.N(),
 				sharedConfig.F,
 			)
+			if err != nil {
+				return fmt.Errorf("ManagedOCR3Oracle: error during NewOCR3SerializingEndpoint: %w", err), false
+			}
 			if err := netEndpoint.Start(); err != nil {
 				return fmt.Errorf("ManagedOCR3Oracle: error during netEndpoint.Start(): %w", err), true
 			}
@@ -209,6 +212,7 @@ func RunManagedOCR3Oracle[RI any](
 				offchainKeyring,
 				onchainKeyring,
 				shim.LimitCheckOCR3ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
+				reportingPluginInfo,
 				shim.NewOCR3TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 
@@ -219,24 +223,4 @@ func RunManagedOCR3Oracle[RI any](
 		offchainConfigDigester,
 		defaultRetryParams(),
 	)
-}
-
-func validateOCR3ReportingPluginLimits(limits ocr3types.ReportingPluginLimits) error {
-	var err error
-	if !(0 <= limits.MaxQueryLength && limits.MaxQueryLength <= ocr3types.MaxMaxQueryLength) {
-		err = errors.Join(err, fmt.Errorf("MaxQueryLength (%v) out of range. Should be between 0 and %v", limits.MaxQueryLength, ocr3types.MaxMaxQueryLength))
-	}
-	if !(0 <= limits.MaxObservationLength && limits.MaxObservationLength <= ocr3types.MaxMaxObservationLength) {
-		err = errors.Join(err, fmt.Errorf("MaxObservationLength (%v) out of range. Should be between 0 and %v", limits.MaxObservationLength, ocr3types.MaxMaxObservationLength))
-	}
-	if !(0 <= limits.MaxOutcomeLength && limits.MaxOutcomeLength <= ocr3types.MaxMaxOutcomeLength) {
-		err = errors.Join(err, fmt.Errorf("MaxOutcomeLength (%v) out of range. Should be between 0 and %v", limits.MaxOutcomeLength, ocr3types.MaxMaxOutcomeLength))
-	}
-	if !(0 <= limits.MaxReportLength && limits.MaxReportLength <= ocr3types.MaxMaxReportLength) {
-		err = errors.Join(err, fmt.Errorf("MaxReportLength (%v) out of range. Should be between 0 and %v", limits.MaxReportLength, ocr3types.MaxMaxReportLength))
-	}
-	if !(0 <= limits.MaxReportCount && limits.MaxReportCount <= ocr3types.MaxMaxReportCount) {
-		err = errors.Join(err, fmt.Errorf("MaxReportCount (%v) out of range. Should be between 0 and %v", limits.MaxReportCount, ocr3types.MaxMaxReportCount))
-	}
-	return err
 }

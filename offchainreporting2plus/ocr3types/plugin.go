@@ -2,6 +2,8 @@ package ocr3types
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/smartcontractkit/libocr/commontypes"
@@ -311,4 +313,28 @@ type ReportingPluginInfo struct {
 	Name string
 
 	Limits ReportingPluginLimits
+}
+
+// Validate checks that all fields are within their allowed ranges.
+// It returns a joined error listing every out-of-range field, or nil if valid.
+func (l ReportingPluginLimits) Validate() error {
+	var err error
+	check := func(name string, val, max int) {
+		if !(0 <= val && val <= max) {
+			err = errors.Join(err, fmt.Errorf("%s (%v) out of range. Should be between 0 and %v", name, val, max))
+		}
+	}
+	check("MaxQueryLength", l.MaxQueryLength, MaxMaxQueryLength)
+	check("MaxObservationLength", l.MaxObservationLength, MaxMaxObservationLength)
+	check("MaxOutcomeLength", l.MaxOutcomeLength, MaxMaxOutcomeLength)
+	check("MaxReportLength", l.MaxReportLength, MaxMaxReportLength)
+	check("MaxReportCount", l.MaxReportCount, MaxMaxReportCount)
+	return err
+}
+
+func (i ReportingPluginInfo) Validate() error {
+	if err := i.Limits.Validate(); err != nil {
+		return fmt.Errorf("Limits are invalid: %w", err)
+	}
+	return nil
 }

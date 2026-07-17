@@ -4,12 +4,40 @@ import (
 	"fmt"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/protopreparsevalidation"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/ocr2/protocol"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
+
+// Deserializer owns reusable raw validation state and decodes untrusted OCR2
+// network messages. It is not safe for concurrent use.
+type Deserializer struct {
+	validator *protopreparsevalidation.Validator
+}
+
+func NewDeserializer(n int) (*Deserializer, error) {
+	root := (&MessageWrapper{}).ProtoReflect().Descriptor()
+	validator, err := protopreparsevalidation.Compile(root, map[protoreflect.FullName]int{
+		"offchainreporting2.MessageReportReq.attributed_signed_observations": n,
+		"offchainreporting2.AttestedReportMany.attributed_signatures":        n,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("compile OCR2 deserializer: %w", err)
+	}
+	return &Deserializer{validator}, nil
+}
+
+func MustNewDeserializer(n int) *Deserializer {
+	deserializer, err := NewDeserializer(n)
+	if err != nil {
+		panic(err)
+	}
+	return deserializer
+}
 
 // Serialize encodes a protocol.Message into a binary payload
 func Serialize(m protocol.Message) (b []byte, pbm *MessageWrapper, err error) {
@@ -24,10 +52,13 @@ func Serialize(m protocol.Message) (b []byte, pbm *MessageWrapper, err error) {
 	return b, pbm, nil
 }
 
-// Deserialize decodes a binary payload into a protocol.Message
-func Deserialize(b []byte) (protocol.Message, *MessageWrapper, error) {
+func (deserializer *Deserializer) Deserialize(b []byte) (protocol.Message, *MessageWrapper, error) {
+	if err := deserializer.validator.Validate(b); err != nil {
+		return nil, nil, fmt.Errorf("could not validate raw protobuf: %w", err)
+	}
+
 	pbm := &MessageWrapper{}
-	err := proto.Unmarshal(b, pbm)
+	err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, pbm)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not unmarshal protobuf: %w", err)
 	}

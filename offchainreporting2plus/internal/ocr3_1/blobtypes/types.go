@@ -9,6 +9,7 @@ import (
 	"hash"
 
 	"github.com/smartcontractkit/libocr/commontypes"
+	"github.com/smartcontractkit/libocr/internal/bigendianbytearray"
 	"github.com/smartcontractkit/libocr/internal/mt"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
@@ -69,6 +70,18 @@ var _ fmt.Stringer = BlobDigest{}
 
 func (bd BlobDigest) String() string {
 	return fmt.Sprintf("%x", bd[:])
+}
+
+func MinBlobDigest() BlobDigest {
+	return bigendianbytearray.Min32[BlobDigest]()
+}
+
+func MaxBlobDigest() BlobDigest {
+	return bigendianbytearray.Max32[BlobDigest]()
+}
+
+func WrappingIncrementBlobDigest(bd BlobDigest) BlobDigest {
+	return bigendianbytearray.WrappingIncrement32(bd)
 }
 
 func MakeBlobDigest(
@@ -259,7 +272,25 @@ func (h *BlobHandle) UnmarshalBinary(data []byte) error {
 		}
 		h.blobHandleSumType = &lc
 	default:
-		return fmt.Errorf("unknown BlobHandle version: %d", data[0])
+		return fmt.Errorf("unknown BlobHandle variant: %v", variant)
 	}
 	return nil
+}
+
+const (
+	// blobHandleVariantTagBytes accounts for the 1-byte variant tag that
+	// prefixes the marshalled BlobHandleSumType.
+	blobHandleVariantTagBytes = 1
+)
+
+// BlobHandleMarshalledBytesUpperBound returns a conservative upper bound on the
+// marshalled length of a BlobHandle produced in a protocol instance with
+// parameters (n, f).
+//
+// This computes the maximum across all possible BlobHandleSumType variants.
+func BlobHandleMarshalledBytesUpperBound(n int, f int) int {
+	// Take max across all variants (currently only LightCertifiedBlob)
+	maxVariantSize := LightCertifiedBlobMarshalledBytesUpperBound(n)
+
+	return blobHandleVariantTagBytes + maxVariantSize
 }

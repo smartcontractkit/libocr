@@ -31,8 +31,9 @@ func RunOracle[RI any](
 	metricsRegisterer prometheus.Registerer,
 	netEndpoint NetworkEndpoint[RI],
 	offchainKeyring types.OffchainKeyring,
-	onchainKeyring ocr3types.OnchainKeyring[RI],
+	onchainKeyring ocr3types.OnchainKeyring2[RI],
 	reportingPlugin ocr3types.ReportingPlugin[RI],
+	reportingPluginInfo ocr3types.ReportingPluginInfo,
 	telemetrySender TelemetrySender,
 ) {
 	o := oracleState[RI]{
@@ -49,6 +50,7 @@ func RunOracle[RI any](
 		offchainKeyring:     offchainKeyring,
 		onchainKeyring:      onchainKeyring,
 		reportingPlugin:     reportingPlugin,
+		reportingPluginInfo: reportingPluginInfo,
 		telemetrySender:     telemetrySender,
 	}
 	o.run()
@@ -66,8 +68,9 @@ type oracleState[RI any] struct {
 	metricsRegisterer   prometheus.Registerer
 	netEndpoint         NetworkEndpoint[RI]
 	offchainKeyring     types.OffchainKeyring
-	onchainKeyring      ocr3types.OnchainKeyring[RI]
+	onchainKeyring      ocr3types.OnchainKeyring2[RI]
 	reportingPlugin     ocr3types.ReportingPlugin[RI]
+	reportingPluginInfo ocr3types.ReportingPluginInfo
 	telemetrySender     TelemetrySender
 
 	chNetToPacemaker         chan<- MessageToPacemakerWithSender[RI]
@@ -130,8 +133,9 @@ type oracleState[RI any] struct {
 // This enables us to wait for their completion before exiting.
 func (o *oracleState[RI]) run() {
 	o.logger.Info("Oracle: running", commontypes.LogFields{
-		"localConfig":  fmt.Sprintf("%+v", o.localConfig),
-		"publicConfig": fmt.Sprintf("%+v", o.config.PublicConfig),
+		"localConfig":         fmt.Sprintf("%+v", o.localConfig),
+		"publicConfig":        fmt.Sprintf("%+v", o.config.PublicConfig),
+		"reportingPluginInfo": fmt.Sprintf("%+v", o.reportingPluginInfo),
 	})
 
 	chNetToPacemaker := make(chan MessageToPacemakerWithSender[RI])
