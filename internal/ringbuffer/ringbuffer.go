@@ -93,7 +93,6 @@ func (rb *RingBuffer[T]) PushEvict(item T) (evicted T, didEvict bool) {
 }
 
 func (rb *RingBuffer[T]) SetCap(cap int) {
-
 	// KISS !
 	temp := NewRingBuffer[T](cap) // will panic if cap <= 0
 	for {

@@ -6,13 +6,15 @@ pragma solidity ^0.8.19;
 /// @dev Defines the common method used to compute a Keccak-256 digest over a report and its context information.
 abstract contract OCR3AttestationVerifierBase {
     /// @notice Verifies and stores the list of provided public keys for later use within `verifyAttestation(...)`.
-    ///         Reverts if an invalid number of keys was provided or any key is found invalid.
+    ///         Reverts if an invalid number of keys was provided, any key is found invalid, or a duplicate key is
+    ///         provided.
     /// @param n The number of keys expected to be set by this call. Must match the actual number of keys present in
-    ///        the `keys` parameter. The maximum number of keys supported is 32 (based on the width of the
-    ///        attribution bitmask).
-    /// @param keys A concatenation of `n` public keys. The exact format of the key depends on the signature scheme used
-    ///        for verification (for example, for ECDSA, addresses of 20 bytes each would be used).
-    function _setVerificationKeys(uint8 n, bytes calldata keys) internal virtual;
+    ///        the `ocr3SignerPublicKeys` parameter. The maximum number of keys supported is 32 (based on the width of
+    ///        the attribution bitmask).
+    /// @param ocr3SignerPublicKeys A concatenation of `n` public keys from the OCR3 signers. The exact format of the
+    ///        keys depends on the signature scheme used for verification (for example, for ECDSA, addresses of 20 bytes
+    ///        each would be used).
+    function _setVerificationKeys(uint8 n, bytes calldata ocr3SignerPublicKeys) internal virtual;
 
     /// @notice Verifies the attestation for the given report.
     ///         Reverts if the attestation could not be verified successfully.

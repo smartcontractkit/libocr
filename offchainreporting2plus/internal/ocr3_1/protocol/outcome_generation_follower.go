@@ -1031,14 +1031,14 @@ func (outgen *outcomeGenerationState[RI]) backgroundCommitted(
 	roundCtx RoundContext,
 	kvReadTxn KeyValueDatabaseReadTransaction,
 ) {
-	_, ok := callPluginFromOutcomeGenerationBackground[error](
+	_, ok := callPluginFromOutcomeGenerationBackground[struct{}](
 		ctx,
 		logger,
 		"Committed",
 		outgen.config.WarnDurationCommitted,
 		roundCtx,
-		func(ctx context.Context, roundCtx RoundContext) (error, error) {
-			return outgen.reportingPlugin.Committed(ctx, roundCtx.SeqNr, kvReadTxn), nil
+		func(ctx context.Context, roundCtx RoundContext) (struct{}, error) {
+			return struct{}{}, outgen.reportingPlugin.Committed(ctx, roundCtx.SeqNr, kvReadTxn)
 		},
 	)
 	kvReadTxn.Discard()
@@ -1047,7 +1047,6 @@ func (outgen *outcomeGenerationState[RI]) backgroundCommitted(
 		logger.Info("continuing after ReportingPlugin.Committed returned an error", commontypes.LogFields{
 			"seqNr": roundCtx.SeqNr,
 		})
-
 	}
 
 	select {

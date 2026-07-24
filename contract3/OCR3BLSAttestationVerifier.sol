@@ -11,11 +11,11 @@ import "./OCR3BLSAttestationVerifierLib.sol";
 contract OCR3BLSAttestationVerifier is OCR3AttestationVerifierBase {
     // Reserve storage for up to 32 BLS public keys. The current implementation supports up to 32 keys, limited by the
     // width of the attribution bitmask used. Keeping the array size fixed at 32 entries is fine for smaller
-    // configurations, storage costs are only payed for the used number of keys.
-    OCR3BLSAttestationVerifierLib.G2PointAffine[32] s_keys;
+    // configurations, storage costs are only paid for the used number of keys.
+    OCR3BLSAttestationVerifierLib.G2PointAffine[32] s_ocr3BlsSignerPublicKeys;
 
-    function _setVerificationKeys(uint8 n, bytes calldata keys) internal override {
-        OCR3BLSAttestationVerifierLib.setVerificationKeys(s_keys, n, keys);
+    function _setVerificationKeys(uint8 n, bytes calldata ocr3BlsSignerPublicKeys) internal override {
+        OCR3BLSAttestationVerifierLib.setVerificationKeys(s_ocr3BlsSignerPublicKeys, n, ocr3BlsSignerPublicKeys);
     }
 
     function _verifyAttestation(
@@ -27,6 +27,6 @@ contract OCR3BLSAttestationVerifier is OCR3AttestationVerifierBase {
         bytes calldata attestation
     ) internal view override {
         bytes32 reportHash = _hashReport(configDigest, seqNr, report);
-        OCR3BLSAttestationVerifierLib.verifyAttestation(s_keys, n, f, reportHash, attestation);
+        OCR3BLSAttestationVerifierLib.verifyAttestation(s_ocr3BlsSignerPublicKeys, n, f, reportHash, attestation);
     }
 }

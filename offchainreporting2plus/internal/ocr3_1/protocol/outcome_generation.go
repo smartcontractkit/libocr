@@ -576,7 +576,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 		return
 	}
 	if err := outgen.isCompatibleUnattestedStateTransitionBlockSanityCheck(commitQC, ustb); err != nil {
-		outgen.logger.Critical("sanity check of unattested state transition block failed, very surprising!", commontypes.LogFields{
+		outgen.logger.Warn("sanity check of unattested state transition block failed. This is commonly caused by non-determinism in the ReportingPlugin", commontypes.LogFields{
 			"commitQCSeqNr":                  commitQC.CommitSeqNr,
 			"commitQC":                       commitQC,
 			"unattestedStateTransitionBlock": ustb,
@@ -685,16 +685,16 @@ func (outgen *outcomeGenerationState[RI]) isCompatibleUnattestedStateTransitionB
 	)
 
 	if stb.PrevHistoryDigest != commitQC.PrevHistoryDigest {
-		return fmt.Errorf("local state transition block prev history digest does not match commitQC: expected %s but got %s", commitQC.PrevHistoryDigest, stb.PrevHistoryDigest)
+		return fmt.Errorf("local state transition block prev history digest does not match commitQC: expected %v but got %v", commitQC.PrevHistoryDigest, stb.PrevHistoryDigest)
 	}
 	if stbStateWriteSetDigest != commitQC.StateWriteSetDigest {
-		return fmt.Errorf("local state transition block write set digest does not match commitQC: expected %s but got %s", commitQC.StateWriteSetDigest, stbStateWriteSetDigest)
+		return fmt.Errorf("local state transition block write set digest does not match commitQC: expected %v but got %v", commitQC.StateWriteSetDigest, stbStateWriteSetDigest)
 	}
 	if stb.StateRootDigest != commitQC.StateRootDigest {
-		return fmt.Errorf("local state transition block state root digest does not match commitQC: expected %s but got %s", commitQC.StateRootDigest, stb.StateRootDigest)
+		return fmt.Errorf("local state transition block state root digest does not match commitQC: expected %v but got %v", commitQC.StateRootDigest, stb.StateRootDigest)
 	}
 	if stb.ReportsPlusPrecursorDigest != commitQC.ReportsPlusPrecursorDigest {
-		return fmt.Errorf("local state transition block reportsPlusPrecursor digest does not match commitQC: expected %s but got %s", commitQC.ReportsPlusPrecursorDigest, stb.ReportsPlusPrecursorDigest)
+		return fmt.Errorf("local state transition block reportsPlusPrecursor digest does not match commitQC: expected %v but got %v", commitQC.ReportsPlusPrecursorDigest, stb.ReportsPlusPrecursorDigest)
 	}
 	return nil
 }

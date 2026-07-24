@@ -7,21 +7,21 @@ import "./OCR3BLSAttestationVerifierLib.sol";
 /// @dev The function modifiers of the main interface functions are updated from internal to external.
 library OCR3DynamicallyDispatchedBLSAttestationVerifierLib {
     function setVerificationKeys(
-        OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage s_verificationKeys,
+        OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
         uint8 n,
-        bytes calldata keys
+        bytes calldata ocr3BlsSignerPublicKeys
     ) external {
-        OCR3BLSAttestationVerifierLib.setVerificationKeys(s_verificationKeys, n, keys);
+        OCR3BLSAttestationVerifierLib.setVerificationKeys(s_ocr3BlsSignerPublicKeys, n, ocr3BlsSignerPublicKeys);
     }
 
     function verifyAttestation(
-        OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage s_verificationKeys,
+        OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
         uint8 n,
         uint8 f,
         bytes32 reportHash,
         bytes calldata attestation
     ) external view {
-        OCR3BLSAttestationVerifierLib.verifyAttestation(s_verificationKeys, n, f, reportHash, attestation);
+        OCR3BLSAttestationVerifierLib.verifyAttestation(s_ocr3BlsSignerPublicKeys, n, f, reportHash, attestation);
     }
 
     // Function to initialize the selectors for delegate-calling into this library.

@@ -13,15 +13,17 @@ library OCR3BLSAttestationVerifierLib {
     // #################################################################################################################
 
     /// @notice Verifies and stores the provided BLS public keys for later use within `verifyAttestation(...)`.
-    /// @param s_keys A list (stored in the application contract) holding the BLS public keys of all oracles in
-    ///        uncompressed, affine form. The size of 32 is the maximum number of keys supported (based on the width of
-    //         the attribution bitmask). Storage costs are only payed for the number of keys used `n`.
+    ///         Reverts if an invalid number of keys was provided, any key is found invalid, or a duplicate key is
+    ///         provided.
+    /// @param s_ocr3BlsSignerPublicKeys A list (stored in the application contract) holding the BLS public keys of all
+    ///        oracles in uncompressed, affine form. The size of 32 is the maximum number of keys supported (based on
+    ///        the width of the attribution bitmask). Storage costs are only paid for the number of keys used `n`.
     /// @param n The number of keys expected to be set by this call. Must match the actual number of keys present in
-    ///        the `keys` parameter.
-    /// @param keys A concatenation of `n` BLS public keys (uncompressed affine format with appended
-    ///             proof-of-possession).
+    ///        the `ocr3BlsSignerPublicKeys` parameter.
+    /// @param ocr3BlsSignerPublicKeys A concatenation of `n` BLS public keys (uncompressed affine format with appended
+    ///        proof-of-possession).
     ///
-    /// @dev Detailed format for parameter `keys`:
+    /// @dev Detailed format for parameter `ocr3BlsSignerPublicKeys`:
     ///       - concatenation of `n` values
     ///       - each value is composed of
     ///          - BLS public key in uncompressed affine format (128 bytes)
@@ -34,22 +36,31 @@ library OCR3BLSAttestationVerifierLib {
     ///                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^... innerHash
     ///                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^... outerHash
     ///
-    function setVerificationKeys(G2PointAffine[32] storage s_keys, uint8 n, bytes calldata keys) internal {
-        // Verify that `n` is consistent with the amount of data being passed in the `keys` parameter.
+    function setVerificationKeys(
+        G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
+        uint8 n,
+        bytes calldata ocr3BlsSignerPublicKeys
+    ) internal {
+        // Verify that `n` is consistent with the amount of data being passed in the `ocr3BlsSignerPublicKeys` parameter.
         // The maximum of 32 keys is based on the width of the attribution bitmask (currently set to 32 bits).
-        if (keys.length % KEYSIZE_WITH_POP != 0) {
+        if (ocr3BlsSignerPublicKeys.length % KEYSIZE_WITH_POP != 0) {
             revert KeysOfInvalidSize();
         }
-        if (keys.length / KEYSIZE_WITH_POP != n) {
+        if (ocr3BlsSignerPublicKeys.length / KEYSIZE_WITH_POP != n) {
             revert InvalidNumberOfKeys();
         }
         if (n > 32) {
             revert MaximumNumberOfKeysExceeded();
         }
 
+        // Temporary in-memory storage for the keys. This is used to check for duplicate keys at the end of this
+        // function. The size of 32 is the maximum number of keys supported (based on the width of the attribution
+        // bitmask).
+        G2PointAffine[32] memory ocr3BlsSignerPublicKeysMemory;
+
         // Temporary variable for the key to be verified in memory before it is written to storage. This value is
         // updated in each loop iteration and copied to storage after successful verification.
-        G2PointAffine memory key;
+        G2PointAffine memory ocr3BlsSignerPublicKey;
 
         // Reserve space for 160 bytes (=32x5 bytes) holding the domain separation tag and public key.
         // Initialize with the domain separation tag. The public key is set/updated in each loop iteration.
@@ -68,17 +79,21 @@ library OCR3BLSAttestationVerifierLib {
             // involved call to the ecPairing precompiles can only succeed if all inputs are indeed valid points in the
             // respective groups. In this regard, we (and the auditors) checked the specification (EIP-197, and the
             // Ethereum Yellowpaper) as well as the geth source code implementing the precompile.
-            innerHashInput[1] = key.x_imag = uint256(bytes32(keys[inputPosition:inputPosition += 32]));
-            innerHashInput[2] = key.x_real = uint256(bytes32(keys[inputPosition:inputPosition += 32]));
-            innerHashInput[3] = key.y_imag = uint256(bytes32(keys[inputPosition:inputPosition += 32]));
-            innerHashInput[4] = key.y_real = uint256(bytes32(keys[inputPosition:inputPosition += 32]));
+            innerHashInput[1] = ocr3BlsSignerPublicKey.x_imag =
+                uint256(bytes32(ocr3BlsSignerPublicKeys[inputPosition:inputPosition += 32]));
+            innerHashInput[2] = ocr3BlsSignerPublicKey.x_real =
+                uint256(bytes32(ocr3BlsSignerPublicKeys[inputPosition:inputPosition += 32]));
+            innerHashInput[3] = ocr3BlsSignerPublicKey.y_imag =
+                uint256(bytes32(ocr3BlsSignerPublicKeys[inputPosition:inputPosition += 32]));
+            innerHashInput[4] = ocr3BlsSignerPublicKey.y_real =
+                uint256(bytes32(ocr3BlsSignerPublicKeys[inputPosition:inputPosition += 32]));
 
             // Read the proof-of-possession, i.e., the signature value and signature counter byte.
             // The signature counter byte (type: bytes1) is, considered as 32 byte word, is left-aligned in memory.
             // (The most significant byte holds the counter value.) This alignment is critical for the hash computation
             // of `outerHash := keccak256(inputHash || counter byte)`.
-            bytes32 popSignature = bytes32(keys[inputPosition:inputPosition += 32]);
-            bytes1 popSignatureCounter = keys[inputPosition];
+            bytes32 popSignature = bytes32(ocr3BlsSignerPublicKeys[inputPosition:inputPosition += 32]);
+            bytes1 popSignatureCounter = ocr3BlsSignerPublicKeys[inputPosition];
             inputPosition += 1;
 
             // Prepare the signature verification by computing the actual value that was signed, i.e., `outerHash`,
@@ -95,27 +110,51 @@ library OCR3BLSAttestationVerifierLib {
                 outerHash := keccak256(outerHashInput, 33)
             }
 
-            // Actually verify the signature against the computed outer hash and revert on failure.
-            if (!_verifySignature(key, outerHash, popSignature)) {
+            // Actually verify the signature against the computed outer hash and revert on failure. If successful, the
+            // underlying call to the pairing-check precompile ensures that all fields from the provided public key are
+            // below the field modulus. This is required to ensure the comparison performed in the duplicate keys check
+            // is not susceptible to maliciously crafted keys.
+            if (!_verifySignature(ocr3BlsSignerPublicKey, outerHash, popSignature)) {
                 revert InvalidKey();
             }
 
-            // Write the verified key to the application contract's storage.
-            s_keys[i] = key;
+            // Write the verified key to the application contract's storage and to the temporary in-memory storage
+            // for the duplicate check at the end of this function. (For the in-memory values, we need to copy the
+            // individual fields of the struct to avoid just aliasing the source struct.)
+            ocr3BlsSignerPublicKeysMemory[i].x_imag = ocr3BlsSignerPublicKey.x_imag;
+            ocr3BlsSignerPublicKeysMemory[i].x_real = ocr3BlsSignerPublicKey.x_real;
+            ocr3BlsSignerPublicKeysMemory[i].y_imag = ocr3BlsSignerPublicKey.y_imag;
+            ocr3BlsSignerPublicKeysMemory[i].y_real = ocr3BlsSignerPublicKey.y_real;
+            s_ocr3BlsSignerPublicKeys[i] = ocr3BlsSignerPublicKey;
+        }
+
+        // Check for duplicate keys. Each key must be unique to ensure that no two oracles share the same signing
+        // identity, which could otherwise lead to incorrect attribution during attestation verification.
+        for (uint256 i = 0; i < n; ++i) {
+            for (uint256 j = i + 1; j < n; ++j) {
+                if (
+                    ocr3BlsSignerPublicKeysMemory[i].x_imag == ocr3BlsSignerPublicKeysMemory[j].x_imag
+                        && ocr3BlsSignerPublicKeysMemory[i].x_real == ocr3BlsSignerPublicKeysMemory[j].x_real
+                        && ocr3BlsSignerPublicKeysMemory[i].y_imag == ocr3BlsSignerPublicKeysMemory[j].y_imag
+                        && ocr3BlsSignerPublicKeysMemory[i].y_real == ocr3BlsSignerPublicKeysMemory[j].y_real
+                ) {
+                    revert DuplicateKey();
+                }
+            }
         }
     }
 
     /// @notice Verifies the attestation for the given report hash. Reverts on verification failure.
-    /// @param s_keys A list (stored in the application contract) holding the BLS public keys of all oracles in
-    ///        uncompressed, affine form.
+    /// @param s_ocr3BlsSignerPublicKeys A list (stored in the application contract) holding the BLS public keys of all
+    ///        oracles in uncompressed, affine form.
     /// @param n The total number of oracles. Used to verify the attribution bitmask as part of the attestation data.
     /// @param f Maximum number of faulty/dishonest oracles the protocol can tolerate while still working correctly.
     ///        An aggregate signature from exactly `f + 1` oracles is expected.
     /// @param reportHash hash of the report data with context information to be attested
     /// @param attestation A concatenation of the attribution bitmask (4 bytes), a BLS aggregate signature (32 bytes),
-    //         and the counter byte for the BLS signature.
+    ///        and the counter byte for the BLS signature.
     function verifyAttestation(
-        G2PointAffine[32] storage s_keys,
+        G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
         uint8 n,
         uint8 f,
         bytes32 reportHash,
@@ -132,7 +171,7 @@ library OCR3BLSAttestationVerifierLib {
         // reverts if the attribution data is invalid or contains less than the required number of signers.
         OCR3BLSAttestationVerifierLib.G2PointAffine memory verificationKey;
         uint256 numSigners;
-        (verificationKey, numSigners) = _computeVerificationKey(s_keys, n, attestation);
+        (verificationKey, numSigners) = _computeVerificationKey(s_ocr3BlsSignerPublicKeys, n, attestation);
 
         // Ensure the correct number of nodes participated in generating the attestation, f+1 signers are required.
         if (numSigners != f + 1) {
@@ -166,7 +205,7 @@ library OCR3BLSAttestationVerifierLib {
     // #################################################################################################################
 
     // Various constants defined below. These values are carefully chosen, and the implementation assumes that these
-    // values are set as they are - be careful when changing them. Defined here to improving readability of the code.
+    // values are set as they are - be careful when changing them. Defined here to improve readability of the code.
 
     // Size of a BLS public key in compressed affine format in bytes.
     uint256 private constant KEYSIZE = 128;
@@ -174,7 +213,7 @@ library OCR3BLSAttestationVerifierLib {
     // Size of a BLS public key in compressed affine format including a proof-of-possession in bytes.
     uint256 private constant KEYSIZE_WITH_POP = 161;
 
-    // // Size of the domain separation tag used for the proof-of-possession in bytes.
+    // Size of the domain separation tag used for the proof-of-possession in bytes.
     uint256 private constant DOMAIN_SEPARATION_TAG_SIZE = 32;
 
     // Size of a BLS signature in compressed format with appended counter byte in bytes.
@@ -197,7 +236,7 @@ library OCR3BLSAttestationVerifierLib {
     uint256 private constant DOMAIN_SEPARATION_TAG_BLS_PROOF_OF_POSSESSION =
         0x79537812dfe48a92fc860b8b010e8d6078b5c19e7037c4cf07f7bed69b54fffc;
 
-    // G2 points is on curve y² = x³ + twistB in GFp2, where TWIST_B = TWIST_B_REAL + i*TWIST+B_IMAG
+    // G2 points are on curve y² = x³ + twistB in GFp2, where TWIST_B = TWIST_B_REAL + i*TWIST_B_IMAG
     uint256 private constant TWIST_B_IMAG = 0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2;
     uint256 private constant TWIST_B_REAL = 0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5;
 
@@ -251,7 +290,7 @@ library OCR3BLSAttestationVerifierLib {
         uint256 hY;
 
         // Unpack the signature data into a point on G1.
-        // Return false if the unpacked failed.
+        // Return false if the unpacking failed.
         (ok, sX, sY) = _unpackToG1(uint256(signature));
         if (!ok) {
             return false;
@@ -313,11 +352,11 @@ library OCR3BLSAttestationVerifierLib {
     ///        aggregate signature.
     /// @return verificationKey the computed verification key
     /// @return numSigners the number of keys aggregated to form the verification key
-    function _computeVerificationKey(G2PointAffine[32] storage s_keys, uint256 n, bytes calldata attestation)
-        private
-        view
-        returns (G2PointAffine memory verificationKey, uint256 numSigners)
-    {
+    function _computeVerificationKey(
+        G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
+        uint256 n,
+        bytes calldata attestation
+    ) private view returns (G2PointAffine memory verificationKey, uint256 numSigners) {
         // Ensure the attribution bitmask is non-zero and that at the highest possibly set bit cannot exceed the bit for
         // the oracle with highest index. The non-zero check is needed to ensure we have a valid starting point for the
         // aggregation of the keys.
@@ -339,7 +378,7 @@ library OCR3BLSAttestationVerifierLib {
 
         // Set the basis for the aggregation to the public key corresponding to the lowest bit set.
         numSigners = 1;
-        G2PointJacobian memory vkJacobian = _jacobian(s_keys[i]);
+        G2PointJacobian memory vkJacobian = _jacobian(s_ocr3BlsSignerPublicKeys[i]);
 
         // Move to the next possibly set bit.
         ++i;
@@ -347,7 +386,7 @@ library OCR3BLSAttestationVerifierLib {
 
         while (bitmask > 0) {
             if ((bitmask & 1) > 0) {
-                vkJacobian = _addPoints(vkJacobian, s_keys[i]); // add the public key of the next oracle
+                vkJacobian = _addPoints(vkJacobian, s_ocr3BlsSignerPublicKeys[i]); // add the public key of the next oracle
                 ++numSigners; // keep track of the number of keys we aggregated
             }
             bitmask >>= 1;
@@ -694,7 +733,7 @@ library OCR3BLSAttestationVerifierLib {
     }
 
     /// @notice Return the affine representation of p. The value of p must not be zero, which cannot happen within the
-    ///         context this function _is used (i.e. for converting aggregated public keys into affine format).
+    ///         context in which this function is used (i.e. for converting aggregated public keys into affine format).
     /// @param p Jacobian-represented point of which to return affine representation.
     /// @return q affine representation of p
     ///
@@ -751,7 +790,7 @@ library OCR3BLSAttestationVerifierLib {
             mstore(add(ptr, 0x80), exponent) // exponent
             mstore(add(ptr, 0xa0), P) //        modulus
 
-            // Invoke the bipModExp precompile, revert on failure.
+            // Invoke the bigModExp precompile, revert on failure.
             if iszero(
                 staticcall(
                     gas(), // gas cost: no limit

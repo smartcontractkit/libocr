@@ -132,6 +132,8 @@ type oracleState[RI any] struct {
 // Finally, all sub-goroutines spawned in the protocol are attached to o.subprocesses
 // This enables us to wait for their completion before exiting.
 func (o *oracleState[RI]) run() {
+	defer o.logger.Info("Oracle: exiting", nil)
+
 	o.logger.Info("Oracle: running", commontypes.LogFields{
 		"localConfig":         fmt.Sprintf("%+v", o.localConfig),
 		"publicConfig":        fmt.Sprintf("%+v", o.config.PublicConfig),
@@ -247,9 +249,19 @@ func (o *oracleState[RI]) run() {
 	chNet := o.netEndpoint.Receive()
 
 	chDone := o.ctx.Done()
+	windDown := func() {
+		o.logger.Info("Oracle: winding down", nil)
+		o.childCancel()
+		o.subprocesses.Wait()
+	}
 	for {
 		select {
-		case msg := <-chNet:
+		case msg, ok := <-chNet:
+			if !ok {
+				o.logger.Info("Oracle: netEndpoint receive channel closed", nil)
+				windDown()
+				return
+			}
 			// This bounds check should never trigger since it's the netEndpoint's
 			// responsibility to only provide valid senders. We perform it for
 			// defense-in-depth.
@@ -267,10 +279,7 @@ func (o *oracleState[RI]) run() {
 		// ensure prompt exit
 		select {
 		case <-chDone:
-			o.logger.Debug("Oracle: winding down", nil)
-			o.childCancel()
-			o.subprocesses.Wait()
-			o.logger.Debug("Oracle: exiting", nil)
+			windDown()
 			return
 		default:
 		}

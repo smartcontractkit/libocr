@@ -362,14 +362,32 @@ func tryCopyFromPrevInstance(
 	}
 	defer prevKeyValueDatabase.Close()
 
+	candidatePrevSnapshotVersion, candidatePrevStateRootDigest, err := FindRoundedUpSnapshot(
+		logger,
+		prevRegisterer,
+		prevKeyValueDatabase,
+		prevConfigDigest,
+		prevSeqNr,
+	)
+	if err != nil {
+		logger.Warn("⚙️ tryCopyFromPrevInstance: error during FindRoundedUpSnapshot, couldn't find suitable snapshot in prev instance kvdb", commontypes.LogFields{
+			"prevConfigDigest": prevConfigDigest,
+			"prevSeqNr":        prevSeqNr,
+			"error":            err,
+		})
+		return nil
+	}
+
 	// We do not have access to the public config of the prev instance, so we
 	// reconstruct a good-enough public config for opening the semantic kvdb of
 	// the prev instance and reading the tree sync chunks.
 	prevPublicConfig := ocr3_1config.PublicConfig{
-		// We do not know the snapshot interval of the prev instance, but
-		// PrevSeqNr is guaranteed to be a snapshot sequence number in the prev
-		// instance, and we will call ReadTreeSyncChunk with it.
-		SnapshotInterval: util.PointerTo(uint64(1)),
+		// We do not know the snapshot interval of the prev instance, but we
+		// know that our snapshot of interest is of version
+		// candidatePrevSnapshotVersion. Setting that as SnapshotInterval will
+		// cause this snapshot to be read in ReadTreeSyncChunk(prevSeqNr, ...)
+		// calls.
+		SnapshotInterval: util.PointerTo(uint64(candidatePrevSnapshotVersion)),
 		ConfigDigest:     prevConfigDigest,
 		// Set all tree sync chunking parameters to be the same as the next
 		// instance. They are guaranteed to fit a maximally sized key-value due
@@ -407,6 +425,23 @@ func tryCopyFromPrevInstance(
 		return nil
 	}
 
+	// Check that the (known good, due to history digest check in
+	// findGenesisBlockInPrevKeyValueDatabase) genesis state root digest matches
+	// the root digest of the round-up snapshot we've found, otherwise the
+	// round-up snapshot is not usable for local tree-sync.
+	if genesisBlock.StateRootDigest != candidatePrevStateRootDigest {
+		logger.Warn("⚙️ tryCopyFromPrevInstance: state root digest mismatch between found prev block and root of round-up snapshot, can't use prev block. "+
+			"This is most likely due to *our* prev kvdb not containing the snapshot of interest, which could in rare cases be an indication of corruption. "+
+			"If this is the case for all oracles, the PrevFields are likely misconfigured.", commontypes.LogFields{
+			"prevSeqNr":                    prevSeqNr,
+			"prevConfigDigest":             prevConfigDigest,
+			"candidatePrevSnapshotVersion": candidatePrevSnapshotVersion,
+			"candidatePrevStateRootDigest": candidatePrevStateRootDigest,
+			"genesisBlockStateRootDigest":  genesisBlock.StateRootDigest,
+		})
+		return nil
+	}
+
 	err = CopyAllTreeSyncChunksFromPrevInstance(
 		ctx, logger, publicConfig, prevSeqNr, genesisBlock.StateRootDigest, prevTxn, nextSemanticKeyValueDatabase)
 	if err != nil {
@@ -440,6 +475,52 @@ func tryCopyFromPrevInstance(
 	}
 
 	return nil
+}
+
+// Returns the snapshot/tree root version and the digest of the tree root at
+// that version, for the minimum snapshot version that is expected to cover
+// prevSeqNr, without knowing the snapshot interval. The caller is responsible
+// for checking that indeed the state root is valid and covers up to and
+// including prevSeqNr but no further sequence numbers.
+func FindRoundedUpSnapshot(
+	logger loghelper.LoggerWithContext,
+	prevRegisterer prometheus.Registerer,
+	prevKeyValueDatabase ocr3_1types.KeyValueDatabase,
+	prevConfigDigest types.ConfigDigest,
+	prevSeqNr uint64,
+) (jmt.Version, protocol.StateRootDigest, error) {
+	prevSemanticKeyValueDatabase, err := shim.NewSemanticOCR3_1KeyValueDatabase(
+		prevKeyValueDatabase,
+		ocr3_1types.ReportingPluginLimits{},
+		ocr3_1config.PublicConfig{ConfigDigest: prevConfigDigest},
+		logger,
+		prevRegisterer,
+	)
+	if err != nil {
+		return 0, protocol.StateRootDigest{}, fmt.Errorf("error during NewSemanticOCR3_1KeyValueDatabase: %w", err)
+	}
+	defer prevSemanticKeyValueDatabase.Close()
+
+	prevTxn, err := prevSemanticKeyValueDatabase.NewReadTransactionUnchecked()
+	if err != nil {
+		return 0, protocol.StateRootDigest{}, fmt.Errorf("error during NewReadTransactionUnchecked: %w", err)
+	}
+	defer prevTxn.Discard()
+
+	versions, _, err := prevTxn.ReadRootVersions(prevSeqNr, 1)
+	if err != nil {
+		return 0, protocol.StateRootDigest{}, fmt.Errorf("error during ReadRootVersions: %w", err)
+	}
+	if len(versions) == 0 {
+		return 0, protocol.StateRootDigest{}, fmt.Errorf("no snapshots covering PrevSeqNr %v found", prevSeqNr)
+	}
+
+	candidate := versions[0]
+	rootDigest, err := jmt.ReadRootDigest(prevTxn, prevTxn, candidate)
+	if err != nil {
+		return 0, protocol.StateRootDigest{}, fmt.Errorf("error during ReadRootDigest: %w", err)
+	}
+	return candidate, rootDigest, nil
 }
 
 func CopyAllTreeSyncChunksFromPrevInstance(
@@ -564,7 +645,6 @@ func findGenesisBlockInPrevKeyValueDatabase(
 		return nil, nil
 	}
 
-	// check that history digest matches the block at prevSeqNr
 	prevAstb, err := prevTxn.ReadAttestedStateTransitionBlock(prevSeqNr)
 	if err != nil {
 		return nil, fmt.Errorf("error during ReadAttestedStateTransitionBlock: %w", err)
@@ -575,9 +655,13 @@ func findGenesisBlockInPrevKeyValueDatabase(
 	}
 
 	gstb := protocol.AttestedToGenesisStateTransitionBlock(prev.PrevConfigDigest, prevAstb)
+
+	// Checks that history digest matches the block at prevSeqNr, among other
+	// things. Errors because verification failure is most likely indicative of
+	// misconfigured PrevFields.
 	err = protocol.VerifyGenesisStateTransitionBlockFromPrevInstance(publicConfig, gstb)
 	if err != nil {
-		return nil, fmt.Errorf("error during VerifyGenesisStateTransitionBlockFromPrevInstance: %w", err)
+		return nil, fmt.Errorf("error during VerifyGenesisStateTransitionBlockFromPrevInstance, likely due to misconfigured PrevHistoryDigest in PublicConfig: %w", err)
 	}
 	return &gstb, nil
 }

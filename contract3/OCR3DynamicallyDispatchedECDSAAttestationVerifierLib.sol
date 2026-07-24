@@ -6,18 +6,22 @@ import "./OCR3ECDSAAttestationVerifierLib.sol";
 /// @title Shim for the core ECDSA attestation verifier library, allowing it to be pre-deployed separately.
 /// @dev The function modifiers of the main interface functions are updated from internal to external.
 library OCR3DynamicallyDispatchedECDSAAttestationVerifierLib {
-    function setVerificationKeys(uint256[32] storage s_keys, uint8 n, bytes calldata keys) external {
-        OCR3ECDSAAttestationVerifierLib.setVerificationKeys(s_keys, n, keys);
+    function setVerificationKeys(
+        uint256[32] storage s_ocr3EcdsaSignerPublicKeys,
+        uint8 n,
+        bytes calldata ocr3EcdsaSignerPublicKeys
+    ) external {
+        OCR3ECDSAAttestationVerifierLib.setVerificationKeys(s_ocr3EcdsaSignerPublicKeys, n, ocr3EcdsaSignerPublicKeys);
     }
 
     function verifyAttestation(
-        uint256[32] storage s_keys,
+        uint256[32] storage s_ocr3EcdsaSignerPublicKeys,
         uint8 n,
         uint8 f,
         bytes32 reportHash,
         bytes calldata attestation
     ) external view {
-        OCR3ECDSAAttestationVerifierLib.verifyAttestation(s_keys, n, f, reportHash, attestation);
+        OCR3ECDSAAttestationVerifierLib.verifyAttestation(s_ocr3EcdsaSignerPublicKeys, n, f, reportHash, attestation);
     }
 
     // Function to initialize the selectors for delegate-calling into this library.
