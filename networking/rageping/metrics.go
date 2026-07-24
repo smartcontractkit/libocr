@@ -48,7 +48,10 @@ func newLatencyMetrics(
 	}
 
 	roundTripLatencyBuckets := config.Buckets
-	if config.Buckets == nil {
+	// If no buckets are provided, use the default buckets. This matches the
+	// behavior of prometheus.NewHistogram when no buckets are provided, but we
+	// use our default instead of prometheus'.
+	if len(config.Buckets) == 0 {
 		roundTripLatencyBuckets = DefaultLatencyBuckets()
 	}
 	roundTripLatencySeconds := prometheus.NewHistogram(prometheus.HistogramOpts{

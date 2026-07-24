@@ -84,6 +84,30 @@ func findConsistentExtendedPrevFields(
 	} else {
 		blockSeqNr = treeRootVersion
 	}
+
+	// Sanity check: Logic in the managed package agrees with our derived blockSeqNr <-> treeRootVersion mapping.
+	{
+		foundSnapshotVersion, foundStateRootDigest, err := managed.FindRoundedUpSnapshot(
+			loghelper.MakeRootLoggerWithContext(DevnullLogger{}),
+			DevnullRegisterer{},
+			prevRawKVDB,
+			prevPublicConfig.ConfigDigest,
+			blockSeqNr,
+		)
+		if err != nil {
+			return ExtendedPrevFields{}, fmt.Errorf("managed.FindRoundedUpSnapshot would have errored for PrevSeqNr/BlockSeqNr %v", blockSeqNr)
+		}
+
+		if foundSnapshotVersion != treeRootVersion {
+			return ExtendedPrevFields{}, fmt.Errorf("managed.FindRoundedUpSnapshot would have returned snapshot version "+
+				"%d for PrevSeqNr/BlockSeqNr %v, but we are considering tree root version %d", foundSnapshotVersion, blockSeqNr, treeRootVersion)
+		}
+		if foundStateRootDigest != rootDigest {
+			return ExtendedPrevFields{}, fmt.Errorf("managed.FindRoundedUpSnapshot would have returned state root digest %x "+
+				"for PrevSeqNr/BlockSeqNr %v, but we are considering tree root version %d with state root digest %x", foundStateRootDigest, blockSeqNr, treeRootVersion, rootDigest)
+		}
+	}
+
 	prevAstb, err := prevTxn.ReadAttestedStateTransitionBlock(blockSeqNr)
 	if err != nil {
 		return ExtendedPrevFields{}, fmt.Errorf("failed to read attested state transition block %d: %w", blockSeqNr, err)

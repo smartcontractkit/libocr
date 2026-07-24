@@ -74,7 +74,7 @@ func RunStateSyncDestroyIfNeeded(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	kvDb KeyValueDatabase,
-	chNotificationFromStateSync <-chan struct{},
+	chStateSyncToStateSyncDestroyIfNeeded <-chan EventStateSyncDestroyIfNeededWake,
 ) {
 	logger = logger.MakeChild(commontypes.LogFields{"proto": "stateSyncDestroyIfNeeded"})
 
@@ -82,7 +82,7 @@ func RunStateSyncDestroyIfNeeded(
 
 	for {
 		select {
-		case <-chNotificationFromStateSync:
+		case <-chStateSyncToStateSyncDestroyIfNeeded:
 		case <-chDone:
 			return
 		}

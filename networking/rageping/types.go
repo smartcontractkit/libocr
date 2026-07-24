@@ -1,6 +1,7 @@
 package rageping
 
 import (
+	"math"
 	"sync"
 	"time"
 
@@ -55,7 +56,7 @@ type LatencyMetricsServiceConfig struct {
 	//  -   1 s  <  x <=   5 s
 	//  -   5 s  <  x <= infinity
 	//
-	// The value `nil` may be specified to use a set of pre-configured default bucket values.
+	// The value `nil` (or an empty slice) may be specified to use a set of pre-configured default bucket values.
 	// See DefaultLatencyBuckets() for the default values.
 	Buckets []float64
 }
@@ -70,6 +71,23 @@ func DefaultLatencyBuckets() []float64 {
 		2.500, 5.000,
 		10.000,
 	}
+}
+
+// latencyBucketsValid reports whether buckets is acceptable for the round-trip latency histogram. nil and empty slices
+// are accepted (both select DefaultLatencyBuckets in newLatencyMetrics). Otherwise every bound must be a positive
+// number of fractional seconds and the bounds must be strictly increasing. The strictly-increasing requirement matches
+// the check in prometheus.NewHistogram that panics during RegisterPeers; the positivity requirement is slightly
+// stricter than Prometheus but rejects bounds that are meaningless for a (non-negative) latency.
+func latencyBucketsValid(buckets []float64) bool {
+	for i, upperBound := range buckets {
+		if math.IsNaN(upperBound) || upperBound <= 0 {
+			return false
+		}
+		if i > 0 && upperBound <= buckets[i-1] {
+			return false
+		}
+	}
+	return true
 }
 
 // Initializes a new instance for collecting latency metrics. Metrics are collected for each passed configuration
@@ -103,6 +121,46 @@ func NewLatencyMetricsService(
 			continue
 		}
 
+		// The period and timeout values are used to derive stream rate limits and to drive the ticker in the run
+		// loop. Invalid values lead to broken rate limits (division by a zero MinPeriod) or panics in
+		// time.NewTicker/ticker.Reset (which require strictly positive durations). Reject such configurations here
+		// rather than crashing the run goroutine later.
+		if config.MinPeriod <= 0 {
+			logger.Error(
+				"invalid MinPeriod, ignoring configuration",
+				commontypes.LogFields{"minPeriod": config.MinPeriod},
+			)
+			continue
+		}
+		if config.MaxPeriod < config.MinPeriod {
+			logger.Error(
+				"invalid MaxPeriod (must be >= MinPeriod), ignoring configuration",
+				commontypes.LogFields{"minPeriod": config.MinPeriod, "maxPeriod": config.MaxPeriod},
+			)
+			continue
+		}
+		if config.Timeout <= 0 {
+			logger.Error(
+				"invalid Timeout (must be > 0), ignoring configuration",
+				commontypes.LogFields{"timeout": config.Timeout},
+			)
+			continue
+		}
+		if config.StartupDelay < 0 {
+			logger.Error(
+				"invalid StartupDelay (must be >= 0), ignoring configuration",
+				commontypes.LogFields{"startupDelay": config.StartupDelay},
+			)
+			continue
+		}
+		if !latencyBucketsValid(config.Buckets) {
+			logger.Error(
+				"invalid Buckets (must be positive, strictly increasing upper bounds in seconds), ignoring configuration",
+				commontypes.LogFields{"buckets": config.Buckets},
+			)
+			continue
+		}
+
 		serviceInstance := latencyMetricsService{
 			host,
 			registerer,
@@ -113,6 +171,13 @@ func NewLatencyMetricsService(
 			sync.Mutex{},
 		}
 		serviceGroup.instances = append(serviceGroup.instances, &serviceInstance)
+	}
+
+	if len(configs) > 0 && len(serviceGroup.instances) == 0 {
+		logger.Warn("latency metrics service not starting, no valid configs", commontypes.LogFields{
+			"hostPeerID": host.ID(),
+			"lenConfigs": len(configs),
+		})
 	}
 
 	return &serviceGroup

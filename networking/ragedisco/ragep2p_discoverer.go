@@ -142,6 +142,17 @@ func (r *Ragep2pDiscoverer) connectivityLoop() {
 					r.streamsMu.Unlock()
 					break
 				}
+				// The deserializer owns reusable raw validation state and is not
+				// safe for concurrent use, so each stream goroutine gets its own.
+				// Construct it here (rather than inside the goroutine) so a
+				// compilation failure, which would indicate a programming error,
+				// is surfaced instead of panicking.
+				deserializer, err := newDeserializer()
+				if err != nil {
+					logger.Critical("Failed to construct message deserializer. This should never happen!", reason(err))
+					r.streamsMu.Unlock()
+					break
+				}
 				// no point in keeping very large buffers, since only
 				// the latest messages matter anyways.
 				bufferSize := 2
@@ -182,7 +193,7 @@ func (r *Ragep2pDiscoverer) connectivityLoop() {
 							if !ok { // stream Close() will signal us when it's time to go
 								return
 							}
-							w, err := fromProtoWrappedBytes(m)
+							w, err := deserializer.fromProtoWrappedBytes(m)
 							if err != nil {
 								logger.Warn("Failed to unwrap incoming message", reason(err))
 								break

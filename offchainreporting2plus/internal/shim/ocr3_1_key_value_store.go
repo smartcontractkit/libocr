@@ -234,7 +234,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Delete(key []byte) 
 	if err := s.nilOrWriteSet.Delete(key); err != nil {
 
 		s.mu.Unlock()
-		return fmt.Errorf("failed to delete key %s from write set: %w", key, err)
+		return fmt.Errorf("failed to delete key %v from write set: %w", key, err)
 	}
 	s.mu.Unlock()
 	return s.rawTransaction.Delete(pluginPrefixedUnhashedKey(key))
@@ -264,7 +264,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) deletePrefixedKeys(
 			break
 		}
 		if err := s.rawTransaction.Delete(key); err != nil {
-			return false, numDeleted, fmt.Errorf("failed to delete key %s: %w", key, err)
+			return false, numDeleted, fmt.Errorf("failed to delete key %v: %w", key, err)
 		}
 		numDeleted++
 	}
@@ -469,13 +469,13 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) Write(key []byte, v
 	}
 	if err := s.nilOrWriteSet.Write(key, value); err != nil {
 		s.mu.Unlock()
-		return fmt.Errorf("failed to write key %s to write set: %w", key, err)
+		return fmt.Errorf("failed to write key %v to write set: %w", key, err)
 	}
 	s.mu.Unlock()
 
 	err := s.rawTransaction.Write(pluginPrefixedUnhashedKey(key), value)
 	if err != nil {
-		return fmt.Errorf("failed to write key %s to write set: %w", key, err)
+		return fmt.Errorf("failed to write key %v to write set: %w", key, err)
 	}
 	return nil
 }
@@ -577,7 +577,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteAttestedState
 	}
 	for _, key := range keys {
 		if err := s.rawTransaction.Delete(key); err != nil {
-			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+			return false, fmt.Errorf("failed to delete key %v: %w", key, err)
 		}
 	}
 	return !more, nil
@@ -798,7 +798,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) VerifyAndWriteTreeS
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobPayload(blobDigest protocol.BlobDigest) ([]byte, error) {
 	blobMeta, err := s.ReadBlobMeta(blobDigest)
 	if err != nil {
-		return nil, fmt.Errorf("error reading blob meta for %s: %w", blobDigest, err)
+		return nil, fmt.Errorf("error reading blob meta for %v: %w", blobDigest, err)
 	}
 	if blobMeta == nil {
 		return nil, nil
@@ -829,7 +829,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobPayload(blobDige
 
 		value, err := it.Value()
 		if err != nil {
-			return nil, fmt.Errorf("error reading value for key %s: %w", key, err)
+			return nil, fmt.Errorf("error reading value for key %v: %w", key, err)
 		}
 
 		expectedChunkSize := min(uint64(s.config.GetBlobChunkBytes()), residualLength)
@@ -872,7 +872,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadNode(nodeKey jmt.Nod
 
 // ReadRootVersions returns up to maxItems version numbers of tree roots at or
 // above minRootVersion, in ascending order.
-func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadRootVersions(minRootVersion uint64, maxItems int) ([]uint64, bool, error) {
+func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadRootVersions(minRootVersion jmt.Version, maxItems int) ([]jmt.Version, bool, error) {
 	rootKeys, more, err := s.partialInclusiveRangeKeys(rootKey(minRootVersion), rootKey(math.MaxUint64), maxItems)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to range tree roots: %w", err)
@@ -923,7 +923,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteRoots(minVers
 	}
 	for _, key := range keys {
 		if err := s.rawTransaction.Delete(key); err != nil {
-			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+			return false, fmt.Errorf("failed to delete key %v: %w", key, err)
 		}
 	}
 	return !more, nil
@@ -980,7 +980,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteBlobChunk(blo
 func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobMeta(blobDigest protocol.BlobDigest) (*protocol.BlobMeta, error) {
 	metaBytes, err := s.rawTransaction.Read(blobMetaPrefixKey(blobDigest))
 	if err != nil {
-		return nil, fmt.Errorf("error reading blob meta for %s: %w", blobDigest, err)
+		return nil, fmt.Errorf("error reading blob meta for %v: %w", blobDigest, err)
 	}
 	if metaBytes == nil {
 		// no record of the blob at all
@@ -989,7 +989,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobMeta(blobDigest 
 
 	blobMeta, err := serialization.DeserializeBlobMeta(metaBytes)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling blob meta for %s: %w", blobDigest, err)
+		return nil, fmt.Errorf("error unmarshaling blob meta for %v: %w", blobDigest, err)
 	}
 	return &blobMeta, nil
 }
@@ -1019,11 +1019,11 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobDigestExpirySeqN
 			return nil, false, fmt.Errorf("error reading blob meta value: %w", err)
 		}
 		if blobMetaBytes == nil {
-			return nil, false, fmt.Errorf("blob meta bytes are unexpectedly nil for blob digest %s", blobDigest)
+			return nil, false, fmt.Errorf("blob meta bytes are unexpectedly nil for blob digest %v", blobDigest)
 		}
 		blobMeta, err := serialization.DeserializeBlobMeta(blobMetaBytes)
 		if err != nil {
-			return nil, false, fmt.Errorf("error unmarshaling blob meta for blob digest %s: %w", blobDigest, err)
+			return nil, false, fmt.Errorf("error unmarshaling blob meta for blob digest %v: %w", blobDigest, err)
 		}
 		result = append(result, protocol.BlobDigestExpirySeqNr{
 			blobDigest,
@@ -1041,7 +1041,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadTransaction) ReadBlobDigestExpirySeqN
 func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) WriteBlobMeta(blobDigest protocol.BlobDigest, blobMeta protocol.BlobMeta) error {
 	metaBytes, err := serialization.SerializeBlobMeta(blobMeta)
 	if err != nil {
-		return fmt.Errorf("error marshaling blob meta for %s: %w", blobDigest, err)
+		return fmt.Errorf("error marshaling blob meta for %v: %w", blobDigest, err)
 	}
 	return s.rawTransaction.Write(blobMetaPrefixKey(blobDigest), metaBytes)
 }
@@ -1138,7 +1138,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteReportsPlusPr
 	}
 	for _, key := range keys {
 		if err := s.rawTransaction.Delete(key); err != nil {
-			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+			return false, fmt.Errorf("failed to delete key %v: %w", key, err)
 		}
 	}
 	return !more, nil
@@ -1188,7 +1188,7 @@ func (s *SemanticOCR3_1KeyValueDatabaseReadWriteTransaction) DeleteUnattestedSta
 	)
 	for _, key := range keys {
 		if err := s.rawTransaction.Delete(key); err != nil {
-			return false, fmt.Errorf("failed to delete key %s: %w", key, err)
+			return false, fmt.Errorf("failed to delete key %v: %w", key, err)
 		}
 	}
 	return !more, err

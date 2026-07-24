@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import "../OCR3BLSAttestationVerifier.sol";
 
@@ -21,9 +21,9 @@ contract DemoBLSAttestationVerifier is OCR3BLSAttestationVerifier {
         uint8 f; // maximum number of faulty/dishonest oracles the protocol can tolerate while still working correctly
     }
 
-    function setConfig(uint32 configVersion, uint8 n, uint8 f, bytes calldata keys) external {
+    function setConfig(uint32 configVersion, uint8 n, uint8 f, bytes calldata ocr3BlsSignerPublicKeys) external {
         s_hotVars = HotVars({configVersion: configVersion, n: n, f: f});
-        _setVerificationKeys(n, keys);
+        _setVerificationKeys(n, ocr3BlsSignerPublicKeys);
     }
 
     // We may want to load configDigest from storage instead.

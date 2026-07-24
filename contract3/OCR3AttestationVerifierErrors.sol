@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-// Raised when the number of provided verifications keys does not match the expected number of keys (parameter: n).
+// Raised when the number of provided verification keys does not match the expected number of keys (parameter: n).
 error InvalidNumberOfKeys();
 
-// Raised when the provided verifications keys are of invalid size.
+// Raised when the provided verification keys are of invalid size.
 error KeysOfInvalidSize();
 
 // Raised when an attempt to set more than 32 verification keys is made.
@@ -16,6 +16,10 @@ error MaximumNumberOfKeysExceeded();
 //  - ECDSA: the value 0x0000000000000000000000000000000000000000
 //  - BLS: a key with an invalid proof-of-possession
 error InvalidKey();
+
+// Raised when a duplicate verification key is provided during key set.
+// Each key must be unique to ensure correct attribution during attestation verification.
+error DuplicateKey();
 
 // Raised when the signature verification failed for the provided attestation.
 error InvalidAttestation();

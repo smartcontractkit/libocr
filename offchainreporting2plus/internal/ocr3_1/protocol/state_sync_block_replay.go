@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,6 +16,19 @@ const (
 
 	maxBlocksToReplayInOneGo = 100
 )
+
+type errReplayVerifiedBlock struct {
+	SeqNr uint64
+	Cause error
+}
+
+func (e *errReplayVerifiedBlock) Error() string {
+	return fmt.Sprintf("failed to replay verified block %d: %v", e.SeqNr, e.Cause)
+}
+
+func (e *errReplayVerifiedBlock) Unwrap() error {
+	return e.Cause
+}
 
 func tryReplay(ctx context.Context, kvDb KeyValueDatabase, logger loghelper.LoggerWithContext) error {
 	kvReadTxn, err := kvDb.NewReadTransactionUnchecked()
@@ -52,7 +66,7 @@ func tryReplay(ctx context.Context, kvDb KeyValueDatabase, logger loghelper.Logg
 				// next block found, has been verified before being persisted so we don't check again
 				err = replayVerifiedBlock(logger, tx, &block)
 				if err != nil {
-					return fmt.Errorf("failed to replay verified block %d: %w", seqNr, err)
+					return &errReplayVerifiedBlock{seqNr, err}
 				}
 				err = tx.Commit()
 				if err != nil {
@@ -102,7 +116,7 @@ func replayVerifiedBlock(logger loghelper.LoggerWithContext, kvReadWriteTxn KeyV
 	}
 
 	if stateRootDigest != stb.StateRootDigest {
-		return fmt.Errorf("state root digest mismatch from block replay for seq nr %d: expected %s, actual %s", seqNr, stb.StateRootDigest, stateRootDigest)
+		return fmt.Errorf("state root digest mismatch from block replay for seq nr %d: expected %v, actual %v", seqNr, stb.StateRootDigest, stateRootDigest)
 	}
 
 	return nil
@@ -112,15 +126,34 @@ func RunStateSyncBlockReplay(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	kvDb KeyValueDatabase,
-	chNotificationFromStateSync <-chan struct{},
+	chStateSyncToStateSyncBlockReplay <-chan EventStateSyncBlockReplayWake,
+	chStateSyncBlockReplayToStateSync chan<- EventStateSyncBlockReplayFailure,
 ) {
 	chDone := ctx.Done()
 	chTick := time.After(0)
+	notifyStateSyncOfFailedReplay := false
+	var failedReplaySeqNr uint64
 
 	for {
+		if notifyStateSyncOfFailedReplay {
+
+			select {
+			case chStateSyncBlockReplayToStateSync <- EventStateSyncBlockReplayFailure{failedReplaySeqNr}:
+				notifyStateSyncOfFailedReplay = false
+				logger.Info("StateBlockReplay: notified state sync of failed replay", commontypes.LogFields{
+					"failedReplaySeqNr": failedReplaySeqNr,
+				})
+
+				chTick = time.After(stateBlockReplayInterval)
+			case <-chDone:
+				return
+			}
+			continue
+		}
+
 		select {
 		case <-chTick:
-		case <-chNotificationFromStateSync:
+		case <-chStateSyncToStateSyncBlockReplay:
 		case <-chDone:
 			return
 		}
@@ -131,7 +164,18 @@ func RunStateSyncBlockReplay(
 			logger.Warn("StateBlockReplay: failed while trying to replay blocks", commontypes.LogFields{
 				"error": err,
 			})
-			chTick = time.After(stateBlockReplayFastFollowOnError)
+			var errReplayVerifiedBlock *errReplayVerifiedBlock
+			if errors.As(err, &errReplayVerifiedBlock) {
+				failedReplaySeqNr = errReplayVerifiedBlock.SeqNr
+				notifyStateSyncOfFailedReplay = true
+				logger.Info("StateBlockReplay: will notify state sync of failed replay", commontypes.LogFields{
+					"failedReplaySeqNr": errReplayVerifiedBlock.SeqNr,
+				})
+			} else {
+
+				chTick = time.After(stateBlockReplayFastFollowOnError)
+			}
+
 		} else {
 			chTick = time.After(stateBlockReplayInterval)
 		}

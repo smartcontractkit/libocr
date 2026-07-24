@@ -235,3 +235,14 @@ var _ EventToBlobExchange[struct{}] = EventBlobBroadcastGraceTimeout[struct{}]{}
 func (ev EventBlobBroadcastGraceTimeout[RI]) processBlobExchange(bex *blobExchangeState[RI]) {
 	bex.eventBlobBroadcastGraceTimeout(ev)
 }
+
+// Internal state sync <-> state sync subprocesses events for which we do not
+// implement EventToX.
+
+type EventStateSyncBlockReplayWake struct{}
+
+type EventStateSyncBlockReplayFailure struct {
+	SeqNr uint64
+}
+
+type EventStateSyncDestroyIfNeededWake struct{}

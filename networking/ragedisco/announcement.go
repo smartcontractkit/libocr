@@ -9,8 +9,10 @@ import (
 
 	ragetypes "github.com/smartcontractkit/libocr/ragep2p/types"
 
+	"github.com/smartcontractkit/libocr/internal/protopreparsevalidation"
 	"github.com/smartcontractkit/libocr/networking/ragedisco/serialization"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type unsignedAnnouncement struct {
@@ -277,7 +279,38 @@ func (ann Announcement) toProtoWrapped() (*serialization.MessageWrapper, error) 
 	return &msgWrapper, nil
 }
 
-func fromProtoWrappedBytes(b []byte) (WrappableMessage, error) {
+// deserializer owns reusable raw validation state and decodes untrusted
+// peer discovery network messages. It is not safe for concurrent use.
+type deserializer struct {
+	validator *protopreparsevalidation.Validator
+}
+
+func newDeserializer() (*deserializer, error) {
+	root := (&serialization.MessageWrapper{}).ProtoReflect().Descriptor()
+	validator, err := protopreparsevalidation.Compile(root, map[protoreflect.FullName]int{
+		// Be careful if you ever want to raise this. We are not guaranteed that other nodes have the same raised limit.
+		"ragedisco.Reconcile.anns":           MaxOracles,
+		"ragedisco.SignedAnnouncement.addrs": maxAddrsInAnnouncement,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("compile ragedisco deserializer: %w", err)
+	}
+	return &deserializer{validator}, nil
+}
+
+func mustNewDeserializer() *deserializer {
+	deserializer, err := newDeserializer()
+	if err != nil {
+		panic(err)
+	}
+	return deserializer
+}
+
+func (deserializer *deserializer) fromProtoWrappedBytes(b []byte) (WrappableMessage, error) {
+	if err := deserializer.validator.Validate(b); err != nil {
+		return nil, fmt.Errorf("could not validate raw protobuf: %w", err)
+	}
+
 	wrapper := &serialization.MessageWrapper{}
 	err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, wrapper)
 	if err != nil {

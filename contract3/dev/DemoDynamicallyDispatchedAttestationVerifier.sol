@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import "../OCR3DynamicallyDispatchedAttestationVerifier.sol";
 
@@ -23,9 +23,9 @@ contract DemoDynamicallyDispatchedAttestationVerifier is OCR3DynamicallyDispatch
 
     constructor(address verifierLibraryAddress) OCR3DynamicallyDispatchedAttestationVerifier(verifierLibraryAddress) {}
 
-    function setConfig(uint32 configVersion, uint8 n, uint8 f, bytes calldata keys) external {
+    function setConfig(uint32 configVersion, uint8 n, uint8 f, bytes calldata ocr3SignerPublicKeys) external {
         s_hotVars = HotVars({configVersion: configVersion, n: n, f: f});
-        _setVerificationKeys(n, keys);
+        _setVerificationKeys(n, ocr3SignerPublicKeys);
     }
 
     // We may want to load configDigest from storage instead.
