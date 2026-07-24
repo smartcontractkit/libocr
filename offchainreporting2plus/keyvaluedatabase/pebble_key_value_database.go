@@ -14,6 +14,15 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/types"
 )
 
+const (
+	// The default max memtable size for Pebble is 4MiB (quite low for today's machines).
+	// However, very large memtable sizes can also have more impact than just memory usage:
+	// allocating a large memtable requires a large contiguous memory region, which can take some time
+	// (pebble devs have observed that allocating a 64MiB memtable can take over 10ms. This is partially
+	// alleviated by a pebble internal memtable recycling mechanism).
+	pebbleBetterDefaultMaxMemTableSize = 64 << 20 // 64 MiB
+)
+
 var ErrPebbleReadWriteTransactionAlreadyOpen = errors.New("a read-write transaction is already open")
 
 // NewPebbleKeyValueDatabaseFactory produces a
@@ -61,7 +70,7 @@ type keyValueDatabaseReadOnlyForTooling interface {
 }
 
 func openPebbleKeyValueDatabase(dbPath string, createIfNotExists bool, readWrite bool) (ocr3_1types.KeyValueDatabase, error) {
-	opts := pebble.Options{}
+	opts := pebble.Options{MemTableSize: pebbleBetterDefaultMaxMemTableSize}
 	errorIfNotExists := !createIfNotExists
 	opts.ErrorIfNotExists = errorIfNotExists
 	opts.ReadOnly = !readWrite

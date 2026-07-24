@@ -123,6 +123,8 @@ type oracleState struct {
 // (with the exception of ReportGeneration which is explicitly managed by Pacemaker).
 // This enables us to wait for their completion before exiting.
 func (o *oracleState) run() {
+	defer o.logger.Info("Oracle: exiting", nil)
+
 	o.logger.Info("Oracle: running", commontypes.LogFields{
 		"localConfig":  fmt.Sprintf("%+v", o.localConfig),
 		"publicConfig": fmt.Sprintf("%+v", o.config.PublicConfig),
@@ -150,6 +152,7 @@ func (o *oracleState) run() {
 	// be careful if you want to change anything here.
 	// chNetTo* sends in message.go assume that their recipients are running.
 	o.childCtx, o.childCancel = context.WithCancel(context.Background())
+
 	defer o.childCancel()
 
 	o.subprocesses.Go(func() {
@@ -213,9 +216,19 @@ func (o *oracleState) run() {
 	chNet := o.netEndpoint.Receive()
 
 	chDone := o.ctx.Done()
+	windDown := func() {
+		o.logger.Info("Oracle: winding down", nil)
+		o.childCancel()
+		o.subprocesses.Wait()
+	}
 	for {
 		select {
-		case msg := <-chNet:
+		case msg, ok := <-chNet:
+			if !ok {
+				o.logger.Info("Oracle: netEndpoint receive channel closed", nil)
+				windDown()
+				return
+			}
 			// This bounds check should never trigger since it's the netEndpoint's
 			// responsibility to only provide valid senders. We perform it for
 			// defense-in-depth.
@@ -235,10 +248,7 @@ func (o *oracleState) run() {
 		// ensure prompt exit
 		select {
 		case <-chDone:
-			o.logger.Debug("Oracle: winding down", nil)
-			o.childCancel()
-			o.subprocesses.Wait()
-			o.logger.Debug("Oracle: exiting", nil)
+			windDown()
 			return
 		default:
 		}

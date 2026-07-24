@@ -206,13 +206,17 @@ type PublicConfig struct {
 	// instance will continue from. Sequence numbers in the next instance will
 	// continue from PrevSeqNr. This must be a snapshot sequence number for the
 	// previous instance, i.e., PrevSeqNr % PrevInstanceConfig.SnapshotInterval
-	// == 0. The overlapping oracle must have locally committed the state as of
-	// PrevSeqNr and the snapshot associated with PrevSeqNr must be in the
-	// retention window implied by
-	// PrevInstanceConfig.MaxHistoricalSnapshotsRetained and
+	// == 0, or the highest committed seq nr available locally on a backup. The
+	// overlapping oracle must have locally committed the state as of PrevSeqNr
+	// and the snapshot associated with PrevSeqNr must be in the retention
+	// window implied by PrevInstanceConfig.MaxHistoricalSnapshotsRetained and
 	// PrevInstanceConfig.SnapshotInterval. (For instances whose previous
 	// instance already has a PrevSeqNr, this imples PrevSeqNr >
 	// PrevInstanceConfig.PrevSeqNr.)
+	//
+	// It is highly recommended to rely on the
+	// lib/offchainreporting2plus/cmd/kvdbtool/ for determining this and other
+	// Prev fields.
 	//
 	// Be aware that any state transitions committed after PrevSeqNr in the
 	// previous instance will not be available in the next instance (and

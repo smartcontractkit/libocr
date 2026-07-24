@@ -267,6 +267,6 @@ func (mux *Muxer) Pop() (stream2types.OutboundBinaryMessage, internaltypes.Strea
 		return msg, sid
 	}
 
-	mux.logger.Info("Muxer: nothing to pop", commontypes.LogFields{})
+	mux.logger.Trace("Muxer: nothing to pop", commontypes.LogFields{})
 	return nil, internaltypes.StreamID{}
 }

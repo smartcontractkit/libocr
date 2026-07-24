@@ -34,23 +34,25 @@ func RunStateSync[RI any](
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	chNotificationToStateBlockReplay := make(chan struct{})
-	chNotificationToStateDestroyIfNeeded := make(chan struct{})
+	chStateSyncToStateSyncBlockReplay := make(chan EventStateSyncBlockReplayWake)
+	chStateSyncBlockReplayToStateSync := make(chan EventStateSyncBlockReplayFailure)
+	chStateSyncToStateSyncDestroyIfNeeded := make(chan EventStateSyncDestroyIfNeededWake)
 
 	subs.Go(func() {
-		RunStateSyncDestroyIfNeeded(ctx, logger, kvDb, chNotificationToStateDestroyIfNeeded)
+		RunStateSyncDestroyIfNeeded(ctx, logger, kvDb, chStateSyncToStateSyncDestroyIfNeeded)
 	})
 	subs.Go(func() {
 		RunStateSyncReap(ctx, config, logger, database, kvDb)
 	})
 	subs.Go(func() {
-		RunStateSyncBlockReplay(ctx, logger, kvDb, chNotificationToStateBlockReplay)
+		RunStateSyncBlockReplay(ctx, logger, kvDb, chStateSyncToStateSyncBlockReplay, chStateSyncBlockReplayToStateSync)
 	})
 
 	newStateSyncState(ctx,
 		chNetToStateSync,
-		chNotificationToStateBlockReplay,
-		chNotificationToStateDestroyIfNeeded,
+		chStateSyncToStateSyncBlockReplay,
+		chStateSyncBlockReplayToStateSync,
+		chStateSyncToStateSyncDestroyIfNeeded,
 		chOutcomeGenerationToStateSync,
 		chReportAttestationToStateSync,
 		config, database, id, kvDb, logger, netSender).run()
@@ -68,17 +70,18 @@ const (
 type stateSyncState[RI any] struct {
 	ctx context.Context
 
-	chNetToStateSync                     <-chan MessageToStateSyncWithSender[RI]
-	chNotificationToStateBlockReplay     chan<- struct{}
-	chNotificationToStateDestroyIfNeeded chan<- struct{}
-	chOutcomeGenerationToStateSync       <-chan EventToStateSync[RI]
-	chReportAttestationToStateSync       <-chan EventToStateSync[RI]
-	config                               ocr3_1config.SharedConfig
-	database                             Database
-	id                                   commontypes.OracleID
-	kvDb                                 KeyValueDatabase
-	logger                               loghelper.LoggerWithContext
-	netSender                            NetworkSender[RI]
+	chNetToStateSync                      <-chan MessageToStateSyncWithSender[RI]
+	chStateSyncToStateSyncBlockReplay     chan<- EventStateSyncBlockReplayWake
+	chStateSyncBlockReplayToStateSync     <-chan EventStateSyncBlockReplayFailure
+	chStateSyncToStateSyncDestroyIfNeeded chan<- EventStateSyncDestroyIfNeededWake
+	chOutcomeGenerationToStateSync        <-chan EventToStateSync[RI]
+	chReportAttestationToStateSync        <-chan EventToStateSync[RI]
+	config                                ocr3_1config.SharedConfig
+	database                              Database
+	id                                    commontypes.OracleID
+	kvDb                                  KeyValueDatabase
+	logger                                loghelper.LoggerWithContext
+	netSender                             NetworkSender[RI]
 
 	genesisSeqNr uint64
 
@@ -121,6 +124,8 @@ func (stasy *stateSyncState[RI]) run() {
 			ev.processStateSync(stasy)
 		case ev := <-stasy.chReportAttestationToStateSync:
 			ev.processStateSync(stasy)
+		case ev := <-stasy.chStateSyncBlockReplayToStateSync:
+			stasy.eventStateBlockReplayFailure(ev.SeqNr)
 		case <-stasy.tSendSummary:
 			stasy.eventTSendSummaryTimeout()
 		case <-stasy.blockSyncState.blockRequesterGadget.Ticker():
@@ -142,14 +147,14 @@ func (stasy *stateSyncState[RI]) run() {
 
 func (stasy *stateSyncState[RI]) pleaseTryToReplayBlock() {
 	select {
-	case stasy.chNotificationToStateBlockReplay <- struct{}{}:
+	case stasy.chStateSyncToStateSyncBlockReplay <- EventStateSyncBlockReplayWake{}:
 	default:
 	}
 }
 
 func (stasy *stateSyncState[RI]) pleaseDestroyStateIfNeeded() {
 	select {
-	case stasy.chNotificationToStateDestroyIfNeeded <- struct{}{}:
+	case stasy.chStateSyncToStateSyncDestroyIfNeeded <- EventStateSyncDestroyIfNeededWake{}:
 	default:
 	}
 }
@@ -221,6 +226,29 @@ func (stasy *stateSyncState[RI]) refreshStateSyncState() (ok bool) {
 	stasy.treeSyncState.pendingKeyDigestRanges = treeSyncStatus.PendingKeyDigestRanges
 	ok = true
 	return
+}
+
+func (stasy *stateSyncState[RI]) eventStateBlockReplayFailure(failedReplaySeqNr uint64) {
+	if !stasy.refreshStateSyncState() {
+		return
+	}
+
+	if failedReplaySeqNr != stasy.highestCommittedSeqNr+1 {
+		return
+	}
+	if stasy.highestPersistedStateTransitionBlockSeqNr <= stasy.highestCommittedSeqNr {
+		return
+	}
+	oldHighestPersistedStateTransitionBlockSeqNr := stasy.highestPersistedStateTransitionBlockSeqNr
+	stasy.logger.Warn("StateSync: block replay failed, rewinding highestPersistedStateTransitionBlockSeqNr to highestCommittedSeqNr", commontypes.LogFields{
+		"failedReplaySeqNr":                            failedReplaySeqNr,
+		"highestCommittedSeqNr":                        stasy.highestCommittedSeqNr,
+		"oldHighestPersistedStateTransitionBlockSeqNr": oldHighestPersistedStateTransitionBlockSeqNr,
+		"highestHeardSeqNr":                            stasy.highestHeardSeqNr,
+	})
+	stasy.highestPersistedStateTransitionBlockSeqNr = stasy.highestCommittedSeqNr
+	stasy.blockSyncState.sortedBlockBuffer.Clear(false)
+	stasy.blockSyncState.blockRequesterGadget.PleaseRecheckPendingItems()
 }
 
 func (stasy *stateSyncState[RI]) eventTSendSummaryTimeout() {
@@ -451,8 +479,9 @@ func (stasy *stateSyncState[RI]) mustTreeSyncToPrevInstance() bool {
 func newStateSyncState[RI any](
 	ctx context.Context,
 	chNetToStateSync <-chan MessageToStateSyncWithSender[RI],
-	chNotificationToStateBlockReplay chan<- struct{},
-	chNotificationToStateDestroyIfNeeded chan<- struct{},
+	chStateSyncToStateSyncBlockReplay chan<- EventStateSyncBlockReplayWake,
+	chStateSyncBlockReplayToStateSync <-chan EventStateSyncBlockReplayFailure,
+	chStateSyncToStateSyncDestroyIfNeeded chan<- EventStateSyncDestroyIfNeededWake,
 	chOutcomeGenerationToStateSync <-chan EventToStateSync[RI],
 	chReportAttestationToStateSync <-chan EventToStateSync[RI],
 	config ocr3_1config.SharedConfig,
@@ -477,8 +506,9 @@ func newStateSyncState[RI any](
 		ctx,
 
 		chNetToStateSync,
-		chNotificationToStateBlockReplay,
-		chNotificationToStateDestroyIfNeeded,
+		chStateSyncToStateSyncBlockReplay,
+		chStateSyncBlockReplayToStateSync,
+		chStateSyncToStateSyncDestroyIfNeeded,
 		chOutcomeGenerationToStateSync,
 		chReportAttestationToStateSync,
 		config,

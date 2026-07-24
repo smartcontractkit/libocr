@@ -217,11 +217,9 @@ func main() {
 			continue
 		}
 
-		if version <= highestCommittedSeqNr {
-			suitablePrevFields = append(suitablePrevFields, prevFields)
-			if prevFields.PrevSeqNr > maxPrevSeqNr {
-				maxPrevSeqNr = prevFields.PrevSeqNr
-			}
+		suitablePrevFields = append(suitablePrevFields, prevFields)
+		if prevFields.PrevSeqNr > maxPrevSeqNr {
+			maxPrevSeqNr = prevFields.PrevSeqNr
 		}
 	}
 

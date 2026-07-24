@@ -757,7 +757,7 @@ func (gprev *GenesisFromPrevInstance) Verify(config ocr3_1config.PublicConfig) e
 		return fmt.Errorf("GenesisFromPrevInstance is invalid when previous instance is not specified in PublicConfig")
 	}
 	if gprev.PrevHistoryDigest != prev.PrevHistoryDigest {
-		return fmt.Errorf("GenesisFromPrevInstance.PrevHistoryDigest (%x) does not match config.PrevHistoryDigest (%x)", gprev.PrevHistoryDigest, prev.PrevHistoryDigest)
+		return fmt.Errorf("GenesisFromPrevInstance.PrevHistoryDigest (%v) does not match config.PrevHistoryDigest (%v)", gprev.PrevHistoryDigest, prev.PrevHistoryDigest)
 	}
 	if gprev.PrevSeqNr != prev.PrevSeqNr {
 		return fmt.Errorf("GenesisFromPrevInstance.PrevSeqNr (%d) does not match config.PrevSeqNr (%d)", gprev.PrevSeqNr, prev.PrevSeqNr)

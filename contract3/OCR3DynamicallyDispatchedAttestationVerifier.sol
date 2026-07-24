@@ -4,11 +4,11 @@ pragma solidity ^0.8.19;
 import "./OCR3AttestationVerifierBase.sol";
 
 /// @title Base contract for on-deployment linking of a ECDSA or BLS attestation verifier library
-/// @dev The constructor takes an library address which must point to a deployed library of the following types:
-//        - OCR3DynamicallyDispatchedECDSAAttestationVerifierLib, or
-//        - OCR3DynamicallyDispatchedBLSAttestationVerifierLib.
+/// @dev The constructor takes a library address which must point to a deployed library of the following types:
+///        - OCR3DynamicallyDispatchedECDSAAttestationVerifierLib, or
+///        - OCR3DynamicallyDispatchedBLSAttestationVerifierLib.
 contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifierBase {
-    // Address of the pre-deployed library contact.
+    // Address of the pre-deployed library contract.
     address immutable i_verifierLibraryAddress;
 
     // Function selectors for the setVerificationKeys(...) and verifyAttestation(...) functions of the library.
@@ -18,7 +18,7 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
     // Placeholder for reserving storage for up to 32 verification keys. The used library stores an implementation
     // specific data structure within these reserved storages slots. 128 words are required for 32 keys, as each key is
     // composed of 4 words in the BLS case.
-    uint256[128] s_keys;
+    uint256[128] s_ocr3SignerPublicKeys;
 
     // Constructor used to specify the address of the predeployed verifier library to which the calls should be
     // forwarded to.
@@ -30,7 +30,7 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
         // where i_verifierLibraryAddress does not point to a contract. Additional details are provided in the comment
         // in the _delegatecall(...) helper below.
         (i_selectorSetVerificationKeys, i_selectorVerifyAttestation) =
-            (OCR3DynamicallyDispatchedAttestationVerifierSelectorInterface(verifierLibraryAddress).getSelectors());
+        (OCR3DynamicallyDispatchedAttestationVerifierSelectorInterface(verifierLibraryAddress).getSelectors());
     }
 
     // Helper function to perform a delegate call to the underlying verifier library.
@@ -56,12 +56,12 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
         }
     }
 
-    function _setVerificationKeys(uint8 n, bytes calldata keys) internal override {
+    function _setVerificationKeys(uint8 n, bytes calldata ocr3SignerPublicKeys) internal override {
         uint256 storagePtr;
         assembly {
-            storagePtr := s_keys.slot
+            storagePtr := s_ocr3SignerPublicKeys.slot
         }
-        _delegatecall(abi.encodeWithSelector(i_selectorSetVerificationKeys, storagePtr, n, keys));
+        _delegatecall(abi.encodeWithSelector(i_selectorSetVerificationKeys, storagePtr, n, ocr3SignerPublicKeys));
     }
 
     function _verifyAttestation(
@@ -75,7 +75,7 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
         bytes32 reportHash = _hashReport(configDigest, seqNr, report);
         uint256 storagePtr;
         assembly {
-            storagePtr := s_keys.slot
+            storagePtr := s_ocr3SignerPublicKeys.slot
         }
         _delegatecall(abi.encodeWithSelector(i_selectorVerifyAttestation, storagePtr, n, f, reportHash, attestation));
     }

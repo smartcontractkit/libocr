@@ -12,11 +12,11 @@ import "./OCR3ECDSAAttestationVerifierLib.sol";
 contract OCR3ECDSAAttestationVerifier is OCR3AttestationVerifierBase {
     // Reserve storage for up to 32 ECDSA public keys (i.e., the oracle's addresses). The current implementation
     // supports up to 32 keys, limited by the width of the attribution bitmask used. Keeping the array size fixed at 32
-    // entries is fine for smaller configurations, storage costs are only payed for the used number of keys.
-    uint256[32] s_keys;
+    // entries is fine for smaller configurations, storage costs are only paid for the used number of keys.
+    uint256[32] s_ocr3EcdsaSignerPublicKeys;
 
-    function _setVerificationKeys(uint8 n, bytes calldata keys) internal override {
-        OCR3ECDSAAttestationVerifierLib.setVerificationKeys(s_keys, n, keys);
+    function _setVerificationKeys(uint8 n, bytes calldata ocr3EcdsaSignerPublicKeys) internal override {
+        OCR3ECDSAAttestationVerifierLib.setVerificationKeys(s_ocr3EcdsaSignerPublicKeys, n, ocr3EcdsaSignerPublicKeys);
     }
 
     function _verifyAttestation(
@@ -28,6 +28,6 @@ contract OCR3ECDSAAttestationVerifier is OCR3AttestationVerifierBase {
         bytes calldata attestation
     ) internal view override {
         bytes32 reportHash = _hashReport(configDigest, seqNr, report);
-        OCR3ECDSAAttestationVerifierLib.verifyAttestation(s_keys, n, f, reportHash, attestation);
+        OCR3ECDSAAttestationVerifierLib.verifyAttestation(s_ocr3EcdsaSignerPublicKeys, n, f, reportHash, attestation);
     }
 }
