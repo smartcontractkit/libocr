@@ -48,6 +48,14 @@ const MaxMessageLength = types.MaxMessageLength
 // https://cs.opensource.google/go/go/+/master:src/crypto/tls/conn.go;drc=059a9eedf45f4909db6a24242c106be15fb27193;l=1454
 const netTimeout = 5 * time.Second
 
+// Bounds for the exponential backoff applied between failed Accepts in
+// Host.listenLoop. Some Accept errors are transient (eg. EMFILE/ENFILE when the
+// process has run out of file descriptors), so we must not stop accepting
+// inbound connections when we encounter one, but we also must not spin while
+// the condition persists.
+const minAcceptBackoff = 5 * time.Millisecond
+const maxAcceptBackoff = netTimeout
+
 type hostState uint8
 
 const (
@@ -753,13 +761,36 @@ func (ho *Host) listenLoop(ln net.Listener) {
 		}
 	})
 
+	backoff := minAcceptBackoff
 	for {
 		conn, err := ln.Accept()
-		ho.hostMetrics.inboundDialsTotal.Inc()
 		if err != nil {
-			ho.logger.Info("Exiting Host.listenLoop due to error while Accepting", commontypes.LogFields{"error": err})
-			return
+			// The listener is closed during shutdown, which makes Accept fail. That's the
+			// expected way for this loop to exit.
+			if ho.ctx.Err() != nil {
+				ho.logger.Info("Exiting Host.listenLoop", nil)
+				return
+			}
+			// Any other error may well be transient, so back off and keep accepting rather
+			// than permanently giving up on inbound connections.
+			ho.hostMetrics.acceptErrorsTotal.Inc()
+			ho.logger.Warn("Error in Host.listenLoop while Accepting, backing off", commontypes.LogFields{
+				"error":   err,
+				"backoff": backoff,
+				"min":     minAcceptBackoff,
+				"max":     maxAcceptBackoff,
+			})
+			select {
+			case <-time.After(backoff):
+			case <-ho.ctx.Done():
+				ho.logger.Info("Exiting Host.listenLoop", nil)
+				return
+			}
+			backoff = min(2*backoff, maxAcceptBackoff)
+			continue
 		}
+		backoff = minAcceptBackoff
+		ho.hostMetrics.inboundDialsTotal.Inc()
 		ho.subprocesses.Go(func() {
 			ho.handleIncomingConnection(conn)
 		})

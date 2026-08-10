@@ -36,7 +36,7 @@ library OCR3BLSAttestationVerifierLib {
     ///                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^... innerHash
     ///                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^... outerHash
     ///
-    function setVerificationKeys(
+    function setAttestationVerificationKeys(
         G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
         uint8 n,
         bytes calldata ocr3BlsSignerPublicKeys
@@ -44,13 +44,13 @@ library OCR3BLSAttestationVerifierLib {
         // Verify that `n` is consistent with the amount of data being passed in the `ocr3BlsSignerPublicKeys` parameter.
         // The maximum of 32 keys is based on the width of the attribution bitmask (currently set to 32 bits).
         if (ocr3BlsSignerPublicKeys.length % KEYSIZE_WITH_POP != 0) {
-            revert KeysOfInvalidSize();
+            revert AttestationVerificationKeysOfInvalidSize();
         }
         if (ocr3BlsSignerPublicKeys.length / KEYSIZE_WITH_POP != n) {
-            revert InvalidNumberOfKeys();
+            revert InvalidNumberOfAttestationVerificationKeys();
         }
         if (n > 32) {
-            revert MaximumNumberOfKeysExceeded();
+            revert MaximumNumberOfAttestationVerificationKeysExceeded();
         }
 
         // Temporary in-memory storage for the keys. This is used to check for duplicate keys at the end of this
@@ -115,7 +115,7 @@ library OCR3BLSAttestationVerifierLib {
             // below the field modulus. This is required to ensure the comparison performed in the duplicate keys check
             // is not susceptible to maliciously crafted keys.
             if (!_verifySignature(ocr3BlsSignerPublicKey, outerHash, popSignature)) {
-                revert InvalidKey();
+                revert InvalidAttestationVerificationKey();
             }
 
             // Write the verified key to the application contract's storage and to the temporary in-memory storage
@@ -138,7 +138,7 @@ library OCR3BLSAttestationVerifierLib {
                         && ocr3BlsSignerPublicKeysMemory[i].y_imag == ocr3BlsSignerPublicKeysMemory[j].y_imag
                         && ocr3BlsSignerPublicKeysMemory[i].y_real == ocr3BlsSignerPublicKeysMemory[j].y_real
                 ) {
-                    revert DuplicateKey();
+                    revert DuplicateAttestationVerificationKey();
                 }
             }
         }

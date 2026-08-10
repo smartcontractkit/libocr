@@ -14,8 +14,10 @@ contract OCR3BLSAttestationVerifier is OCR3AttestationVerifierBase {
     // configurations, storage costs are only paid for the used number of keys.
     OCR3BLSAttestationVerifierLib.G2PointAffine[32] s_ocr3BlsSignerPublicKeys;
 
-    function _setVerificationKeys(uint8 n, bytes calldata ocr3BlsSignerPublicKeys) internal override {
-        OCR3BLSAttestationVerifierLib.setVerificationKeys(s_ocr3BlsSignerPublicKeys, n, ocr3BlsSignerPublicKeys);
+    function _setAttestationVerificationKeys(uint8 n, bytes calldata ocr3BlsSignerPublicKeys) internal override {
+        OCR3BLSAttestationVerifierLib.setAttestationVerificationKeys(
+            s_ocr3BlsSignerPublicKeys, n, ocr3BlsSignerPublicKeys
+        );
     }
 
     function _verifyAttestation(

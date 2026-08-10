@@ -649,6 +649,8 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 		return
 	}
 
+	outgen.metrics.attestedBlocksWrittenTotal.Inc()
+
 	outgen.logger.Debug("successfully moved kv state to commit qc", commontypes.LogFields{
 		"oldCommittedKVSeqNr": committedKVSeqNr,
 		"newCommittedKVSeqNr": commitQC.CommitSeqNr,

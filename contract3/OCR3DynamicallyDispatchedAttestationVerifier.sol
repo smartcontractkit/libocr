@@ -11,8 +11,9 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
     // Address of the pre-deployed library contract.
     address immutable i_verifierLibraryAddress;
 
-    // Function selectors for the setVerificationKeys(...) and verifyAttestation(...) functions of the library.
-    bytes4 immutable i_selectorSetVerificationKeys;
+    // Function selectors for the setAttestationVerificationKeys(...) and verifyAttestation(...) functions of the
+    // library.
+    bytes4 immutable i_selectorSetAttestationVerificationKeys;
     bytes4 immutable i_selectorVerifyAttestation;
 
     // Placeholder for reserving storage for up to 32 verification keys. The used library stores an implementation
@@ -29,7 +30,7 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
         // delegatecall into the library, but is also security critical, it protects against potential misconfiguration,
         // where i_verifierLibraryAddress does not point to a contract. Additional details are provided in the comment
         // in the _delegatecall(...) helper below.
-        (i_selectorSetVerificationKeys, i_selectorVerifyAttestation) =
+        (i_selectorSetAttestationVerificationKeys, i_selectorVerifyAttestation) =
         (OCR3DynamicallyDispatchedAttestationVerifierSelectorInterface(verifierLibraryAddress).getSelectors());
     }
 
@@ -56,12 +57,14 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
         }
     }
 
-    function _setVerificationKeys(uint8 n, bytes calldata ocr3SignerPublicKeys) internal override {
+    function _setAttestationVerificationKeys(uint8 n, bytes calldata ocr3SignerPublicKeys) internal override {
         uint256 storagePtr;
         assembly {
             storagePtr := s_ocr3SignerPublicKeys.slot
         }
-        _delegatecall(abi.encodeWithSelector(i_selectorSetVerificationKeys, storagePtr, n, ocr3SignerPublicKeys));
+        _delegatecall(
+            abi.encodeWithSelector(i_selectorSetAttestationVerificationKeys, storagePtr, n, ocr3SignerPublicKeys)
+        );
     }
 
     function _verifyAttestation(
@@ -82,7 +85,7 @@ contract OCR3DynamicallyDispatchedAttestationVerifier is OCR3AttestationVerifier
 }
 
 /// @title Internal selector interface for dynamically dispatched OCR3 attestation verifier libraries
-/// @dev Exposes the selectors for the `setVerificationKeys(...)`, and `verifyAttestation(...)` functions.
+/// @dev Exposes the selectors for the `setAttestationVerificationKeys(...)`, and `verifyAttestation(...)` functions.
 /// @dev Required for delegate-calling into a pre-deployed library, implemented in the `DynamicallyDispatched` shims.
 interface OCR3DynamicallyDispatchedAttestationVerifierSelectorInterface {
     function getSelectors() external pure returns (bytes4, bytes4);

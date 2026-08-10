@@ -6,12 +6,14 @@ import "./OCR3BLSAttestationVerifierLib.sol";
 /// @title Shim for the core BLS attestation verifier library, allowing it to be pre-deployed separately.
 /// @dev The function modifiers of the main interface functions are updated from internal to external.
 library OCR3DynamicallyDispatchedBLSAttestationVerifierLib {
-    function setVerificationKeys(
+    function setAttestationVerificationKeys(
         OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage s_ocr3BlsSignerPublicKeys,
         uint8 n,
         bytes calldata ocr3BlsSignerPublicKeys
     ) external {
-        OCR3BLSAttestationVerifierLib.setVerificationKeys(s_ocr3BlsSignerPublicKeys, n, ocr3BlsSignerPublicKeys);
+        OCR3BLSAttestationVerifierLib.setAttestationVerificationKeys(
+            s_ocr3BlsSignerPublicKeys, n, ocr3BlsSignerPublicKeys
+        );
     }
 
     function verifyAttestation(
@@ -26,13 +28,15 @@ library OCR3DynamicallyDispatchedBLSAttestationVerifierLib {
 
     // Function to initialize the selectors for delegate-calling into this library.
     // Derived using keccak256 from the function signatures (without parameter names):
-    //  - keccak256("setVerificationKeys(OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage,uint8,bytes)")[:4]
+    //  - keccak256(
+    //        "setAttestationVerificationKeys(OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage,uint8,bytes)"
+    //    )[:4]
     //  - keccak256(
     //        "verifyAttestation(OCR3BLSAttestationVerifierLib.G2PointAffine[32] storage,uint8,uint8,bytes32,bytes)"
     //    )[:4]
     function getSelectors() external pure returns (bytes4, bytes4) {
         return (
-            OCR3DynamicallyDispatchedBLSAttestationVerifierLib.setVerificationKeys.selector,
+            OCR3DynamicallyDispatchedBLSAttestationVerifierLib.setAttestationVerificationKeys.selector,
             OCR3DynamicallyDispatchedBLSAttestationVerifierLib.verifyAttestation.selector
         );
     }

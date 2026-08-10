@@ -33,7 +33,7 @@ func (outgen *outcomeGenerationState[RI]) eventTInitialTimeout() {
 		"deltaInitial": outgen.config.GetDeltaInitial().String(),
 	})
 	select {
-	case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{}:
+	case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{outgen.sharedState.e}:
 	case <-outgen.ctx.Done():
 		return
 	}
@@ -981,7 +981,10 @@ func (outgen *outcomeGenerationState[RI]) tryProcessCommitPool() {
 					})
 					return
 				}
+
 			}
+		} else {
+			outgen.metrics.attestedBlocksWrittenTotal.Inc()
 		}
 	}
 
@@ -1087,7 +1090,7 @@ func (outgen *outcomeGenerationState[RI]) completeRound() {
 			"rMax":              outgen.config.RMax,
 		})
 		select {
-		case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{}:
+		case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{outgen.sharedState.e}:
 		case <-outgen.ctx.Done():
 			return
 		}
@@ -1100,7 +1103,7 @@ func (outgen *outcomeGenerationState[RI]) completeRound() {
 			"seqNr": outgen.sharedState.seqNr,
 		})
 		select {
-		case outgen.chOutcomeGenerationToPacemaker <- EventProgress[RI]{}:
+		case outgen.chOutcomeGenerationToPacemaker <- EventProgress[RI]{outgen.sharedState.e}:
 		case <-outgen.ctx.Done():
 			return
 		}
@@ -1120,7 +1123,7 @@ func (outgen *outcomeGenerationState[RI]) sendNewEpochRequestToPacemakerDueToLea
 		"seqNr":             outgen.sharedState.seqNr,
 	})
 	select {
-	case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{}:
+	case outgen.chOutcomeGenerationToPacemaker <- EventNewEpochRequest[RI]{outgen.sharedState.e}:
 	case <-outgen.ctx.Done():
 		return
 	}

@@ -188,7 +188,28 @@ func (pace *pacemakerState[RI]) run(restoredState PacemakerState) {
 	}
 }
 
-func (pace *pacemakerState[RI]) eventProgress() {
+func (pace *pacemakerState[RI]) eventProgress(ev EventProgress[RI]) {
+	if ev.Epoch > pace.e {
+		pace.logger.Critical("received progress event for future epoch, ignoring. This should not be possible", commontypes.LogFields{
+			"eventEpoch": ev.Epoch,
+			"epoch":      pace.e,
+		})
+		// Ignoring progress events from future epochs is the safer choice for
+		// liveness: if we processed them, we would reset the progress timer and
+		// could get stuck in the current epoch indefinitely (e.g. if a burst of
+		// spurious future-epoch progress events keeps arriving). By ignoring, the
+		// worst case is that we time out after config.DeltaProgress and move to
+		// the next epoch, devolving into a simpler "1-round per epoch" algorithm
+		// with leader rotation — which is still live.
+		return
+	}
+	if ev.Epoch < pace.e {
+		pace.logger.Trace("received progress event for past epoch, ignoring", commontypes.LogFields{
+			"eventEpoch": ev.Epoch,
+			"epoch":      pace.e,
+		})
+		return
+	}
 	pace.tProgress = time.After(pace.config.DeltaProgress)
 }
 
@@ -202,13 +223,42 @@ func (pace *pacemakerState[RI]) eventTResendTimeout() {
 }
 
 func (pace *pacemakerState[RI]) eventTProgressTimeout() {
+	pace.metrics.tProgressTimeoutsTotal.Inc()
 	pace.logger.Debug("TProgress fired", commontypes.LogFields{
 		"deltaProgress": pace.config.DeltaProgress.String(),
+		"e":             pace.e,
+		"l":             pace.l,
 	})
-	pace.eventNewEpochRequest()
+	pace.requestNewEpoch()
 }
 
-func (pace *pacemakerState[RI]) eventNewEpochRequest() {
+func (pace *pacemakerState[RI]) eventNewEpochRequest(ev EventNewEpochRequest[RI]) {
+	if ev.Epoch > pace.e {
+		pace.logger.Critical("received new epoch request event for future epoch, ignoring. This should not be possible", commontypes.LogFields{
+			"eventEpoch": ev.Epoch,
+			"epoch":      pace.e,
+		})
+		// Ignoring new-epoch requests from future epochs is the safer choice for
+		// liveness: if we processed them, a burst of spurious future-epoch requests
+		// could cause us to request new epochs constantly and earlier than expected,
+		// posing a potential censorship threat. By ignoring, the worst case is that
+		// we time out after config.DeltaProgress and move to the next epoch,
+		// devolving into a simpler "1-round per epoch" algorithm with leader
+		// rotation — which is still live.
+		return
+	}
+	if ev.Epoch < pace.e {
+		pace.logger.Trace("received new epoch request event for past epoch, ignoring", commontypes.LogFields{
+			"eventEpoch": ev.Epoch,
+			"epoch":      pace.e,
+		})
+		return
+	}
+
+	pace.requestNewEpoch()
+}
+
+func (pace *pacemakerState[RI]) requestNewEpoch() {
 	pace.tProgress = nil
 	epochPlusOne := pace.e + 1
 	if epochPlusOne <= pace.e {
@@ -218,7 +268,7 @@ func (pace *pacemakerState[RI]) eventNewEpochRequest() {
 
 	if pace.ne < epochPlusOne { // ne ← max{e + 1, ne}
 		if err := pace.persist(PacemakerState{pace.e, epochPlusOne}); err != nil {
-			pace.logger.Error("could not persist pacemaker state in eventNewEpochRequest", commontypes.LogFields{
+			pace.logger.Error("could not persist pacemaker state in requestNewEpoch", commontypes.LogFields{
 				"error": err,
 			})
 		}

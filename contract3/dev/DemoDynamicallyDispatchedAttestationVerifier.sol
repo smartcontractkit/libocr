@@ -25,7 +25,7 @@ contract DemoDynamicallyDispatchedAttestationVerifier is OCR3DynamicallyDispatch
 
     function setConfig(uint32 configVersion, uint8 n, uint8 f, bytes calldata ocr3SignerPublicKeys) external {
         s_hotVars = HotVars({configVersion: configVersion, n: n, f: f});
-        _setVerificationKeys(n, ocr3SignerPublicKeys);
+        _setAttestationVerificationKeys(n, ocr3SignerPublicKeys);
     }
 
     // We may want to load configDigest from storage instead.

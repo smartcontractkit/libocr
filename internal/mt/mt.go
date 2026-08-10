@@ -126,6 +126,14 @@ func Verify(expectedRootDigest Digest, index uint64, leafPreimage []byte, proof 
 		currentIndex /= 2
 	}
 
+	// Each proof element consumes one bit of the index. If any bits remain, the
+	// index is larger than what a proof of this length can encode
+	// (index >= 2^len(proof)). Such indices must be rejected, otherwise the
+	// same (leaf, proof) pair verifies for multiple indices (index malleability).
+	if currentIndex != 0 {
+		return fmt.Errorf("index %d out of bounds for proof of length %d", index, len(proof))
+	}
+
 	if currentDigest != expectedRootDigest {
 		return fmt.Errorf("computed root digest mismatch: computed %x, expected %x", currentDigest, expectedRootDigest)
 	}

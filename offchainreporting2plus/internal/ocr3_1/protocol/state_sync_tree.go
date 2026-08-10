@@ -550,6 +550,7 @@ func (stasy *stateSyncState[RI]) messageTreeSyncChunkResponse(msg MessageTreeSyn
 			"targetSeqNr": stasy.treeSyncState.targetSeqNr,
 			"rootDigest":  fmt.Sprintf("%x", stasy.treeSyncState.targetStateRootDigest),
 		})
+		stasy.metrics.treeSyncCompletedTotal.Inc()
 		stasy.treeSyncCompleted()
 		return
 	case VerifyAndWriteTreeSyncChunkResultOkNeedMore:

@@ -11,6 +11,7 @@ import (
 type hostMetrics struct {
 	registerer        prometheus.Registerer
 	inboundDialsTotal prometheus.Counter
+	acceptErrorsTotal prometheus.Counter
 }
 
 func newHostMetrics(registerer prometheus.Registerer, logger commontypes.Logger, self types.PeerID) *hostMetrics {
@@ -18,20 +19,31 @@ func newHostMetrics(registerer prometheus.Registerer, logger commontypes.Logger,
 
 	inboundDialsTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name:        "ragep2p_host_inbound_dials_total",
-		Help:        "The number of inbound dial attempts received by the host",
+		Help:        "The number of inbound dials successfully accepted by the host",
 		ConstLabels: labels,
 	})
 
 	metricshelper.RegisterOrLogError(logger, registerer, inboundDialsTotal, "ragep2p_host_inbound_dials_total")
 
+	acceptErrorsTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ragep2p_host_accept_errors_total",
+		Help: "The number of errors encountered by the host while accepting inbound connections. " +
+			"A sustained increase indicates that the host is unable to accept inbound connections.",
+		ConstLabels: labels,
+	})
+
+	metricshelper.RegisterOrLogError(logger, registerer, acceptErrorsTotal, "ragep2p_host_accept_errors_total")
+
 	return &hostMetrics{
 		registerer,
 		inboundDialsTotal,
+		acceptErrorsTotal,
 	}
 }
 
 func (m *hostMetrics) Close() {
 	m.registerer.Unregister(m.inboundDialsTotal)
+	m.registerer.Unregister(m.acceptErrorsTotal)
 }
 
 type peerMetrics struct {

@@ -274,10 +274,6 @@ func (t HighestCertifiedTimestamp) Less(t2 HighestCertifiedTimestamp) bool {
 		t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared && t.Epoch < t2.Epoch
 }
 
-func (t HighestCertifiedTimestamp) Equal(t2 HighestCertifiedTimestamp) bool {
-	return t.SeqNr == t2.SeqNr && t.CommittedElsePrepared == t2.CommittedElsePrepared && t.Epoch == t2.Epoch
-}
-
 const signedHighestCertifiedTimestampDomainSeparator = "ocr3 SignedHighestCertifiedTimestamp"
 
 type SignedHighestCertifiedTimestamp struct {
@@ -414,7 +410,7 @@ func (qc *EpochStartProof) Verify(
 		}
 	}
 
-	if !qc.HighestCertified.Timestamp().Equal(maximumTimestamp) {
+	if qc.HighestCertified.Timestamp() != maximumTimestamp {
 		return fmt.Errorf("mismatch between timestamp of HighestCertified (%v) and the max from HighestCertifiedProof (%v)", qc.HighestCertified.Timestamp(), maximumTimestamp)
 	}
 

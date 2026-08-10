@@ -432,6 +432,7 @@ func (stasy *stateSyncState[RI]) tryCompleteBlockSync() {
 	defer tx.Discard()
 
 	lastSeqNr := stasy.highestPersistedStateTransitionBlockSeqNr
+	blocksWritten := 0
 	for {
 		astb, ok := stasy.blockSyncState.sortedBlockBuffer.Min()
 		if !ok {
@@ -457,6 +458,7 @@ func (stasy *stateSyncState[RI]) tryCompleteBlockSync() {
 		}
 
 		lastSeqNr = seqNr
+		blocksWritten++
 		stasy.blockSyncState.sortedBlockBuffer.DeleteMin()
 	}
 
@@ -467,6 +469,7 @@ func (stasy *stateSyncState[RI]) tryCompleteBlockSync() {
 		})
 		return
 	}
+	stasy.metrics.attestedBlocksWrittenTotal.Add(float64(blocksWritten))
 	stasy.highestPersistedStateTransitionBlockSeqNr = lastSeqNr
 	stasy.pleaseTryToReplayBlock()
 }

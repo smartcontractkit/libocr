@@ -9,64 +9,73 @@ import "./OCR3AttestationVerifierErrors.sol";
 ///      library.
 library OCR3ECDSAAttestationVerifierLib {
     /// @notice Verifies and stores the provided ECDSA public keys for later use within `verifyAttestation(...)`.
-    ///         Reverts if an invalid number of keys was provided, any key is found invalid, or a duplicate key is
+    ///         Reverts if the decoded key count does not match `n`, any key is found invalid, or a duplicate key is
     ///         provided.
+    /// @dev Bytes-typed overload of `setAttestationVerificationKeys`. The keys are ABI-decoded into an `address[]`
+    ///      and forwarded to the address-typed overload, which performs all validation and storage. This exists for
+    ///      callers that hold the keys as opaque bytes (for example, dispatching through the scheme-agnostic
+    ///      `_setAttestationVerificationKeys(uint8, bytes)` interface).
     /// @param s_ocr3EcdsaSignerPublicKeys Storage space for holding all ECDSA verification keys (in the form of
-    ///        addresses). The first `n` values are populated with values from the `ocr3EcdsaSignerPublicKeys` parameter.
-    ///        The size of 32 is the maximum number of keys supported (based on the width of the attribution bitmask).
-    ///        Storage costs are only paid for the number of keys used `n`.
-    /// @param n The number of keys expected to be set by this call. Must match the actual number of keys present in
-    ///        the `ocr3EcdsaSignerPublicKeys` parameter.
-    /// @param ocr3EcdsaSignerPublicKeys A concatenation of `n` ECDSA public keys (i.e., addresses, 20 bytes each).
-    function setVerificationKeys(
+    ///        addresses). The first `n` values are populated. The size of 32 is the maximum number of keys supported
+    ///        (based on the width of the attribution bitmask). Storage costs are only paid for the number of keys used.
+    /// @param n The number of keys expected to be set by this call. Must match the number of keys decoded from the
+    ///        `ocr3EcdsaSignerPublicKeys` parameter.
+    /// @param ocr3EcdsaSignerPublicKeys The ABI-encoding of the signers' ECDSA public keys, i.e.
+    ///        `abi.encode(address[])`.
+    function setAttestationVerificationKeys(
         uint256[32] storage s_ocr3EcdsaSignerPublicKeys,
         uint8 n,
         bytes calldata ocr3EcdsaSignerPublicKeys
     ) internal {
-        // Verify that `n` is consistent with the amount of data being passed in the `ocr3EcdsaSignerPublicKeys` parameter.
+        address[] memory signers = abi.decode(ocr3EcdsaSignerPublicKeys, (address[]));
+        // Verify that `n` is consistent with the number of keys decoded from `ocr3EcdsaSignerPublicKeys`.
+        if (signers.length != n) {
+            revert InvalidNumberOfAttestationVerificationKeys();
+        }
+        setAttestationVerificationKeys(s_ocr3EcdsaSignerPublicKeys, signers);
+    }
+
+    /// @notice Verifies and stores the provided ECDSA public keys (as addresses) for later use within
+    ///         `verifyAttestation(...)`. Reverts if too many keys are provided, any key is found invalid, or a
+    ///         duplicate key is provided.
+    /// @dev Address-typed convenience overload of `setAttestationVerificationKeys`. Callers holding an `address[]`
+    ///      (the common case on EVM chains) can use this directly, without ABI-encoding the keys into the `bytes`
+    ///      layout and without supplying a redundant key count. The `bytes` overload remains available for callers
+    ///      that hold the keys as an ABI-encoded `address[]`.
+    /// @param s_ocr3EcdsaSignerPublicKeys Storage space for holding all ECDSA verification keys (in the form of
+    ///        addresses). The first `ocr3EcdsaSignerPublicKeys.length` values are populated. The size of 32 is the
+    ///        maximum number of keys supported (based on the width of the attribution bitmask). Storage costs are only
+    ///        paid for the number of keys used.
+    /// @param ocr3EcdsaSignerPublicKeys The ECDSA public keys (i.e., addresses) of the OCR3 signers.
+    function setAttestationVerificationKeys(
+        uint256[32] storage s_ocr3EcdsaSignerPublicKeys,
+        address[] memory ocr3EcdsaSignerPublicKeys
+    ) internal {
+        uint256 n = ocr3EcdsaSignerPublicKeys.length;
+
         // The maximum of 32 keys is based on the width of the attribution bitmask (currently set to 32 bits).
-        if (ocr3EcdsaSignerPublicKeys.length % 20 != 0) {
-            revert KeysOfInvalidSize();
-        }
-        if (ocr3EcdsaSignerPublicKeys.length / 20 != n) {
-            revert InvalidNumberOfKeys();
-        }
         if (n > 32) {
-            revert MaximumNumberOfKeysExceeded();
+            revert MaximumNumberOfAttestationVerificationKeysExceeded();
         }
 
-        // Temporary in-memory storage for the keys. This is used to check for duplicate keys at the end of this
-        // function. The size of 32 is the maximum number of keys supported (based on the width of the attribution
-        // bitmask).
-        uint160[32] memory ocr3EcdsaSignerPublicKeysMemory;
-
-        // Copy the provided keys from calldata (ocr3EcdsaSignerPublicKeys) to storage (s_ocr3EcdsaSignerPublicKeys).
-        // After copying, the i-th 32 byte storage slot holds the i-th 20 byte key (i.e., the signer's address) in its
-        // lower bytes.
-        uint256 pos = 0;
+        // Copy the provided keys to storage (s_ocr3EcdsaSignerPublicKeys). After copying, the i-th 32 byte storage
+        // slot holds the i-th 20 byte key (i.e., the signer's address) in its lower bytes.
         for (uint256 i = 0; i < n; ++i) {
-            // Read the next 20 byte key/address from the ocr3EcdsaSignerPublicKeys parameter and ensure the key/address
-            // is non-zero. Clearly the value 0x0000000000000000000000000000000000000000 is an invalid key/address,
-            // however, during signature verification the call to the ecRecover precompile returns zero on failure, and
-            // its return value is directly compared to s_ocr3EcdsaSignerPublicKeys[i], which therefore must never be
-            // zero.
-            uint160 key = uint160(bytes20(ocr3EcdsaSignerPublicKeys[pos:pos + 20]));
-            if (key == 0) {
-                revert InvalidKey();
+            address key = ocr3EcdsaSignerPublicKeys[i];
+            // Ensure the key/address is non-zero. Clearly the value 0x0000000000000000000000000000000000000000 is an
+            // invalid key/address to sign attestations from.
+            if (key == address(0)) {
+                revert InvalidAttestationVerificationKey();
             }
-            ocr3EcdsaSignerPublicKeysMemory[i] = key;
-            s_ocr3EcdsaSignerPublicKeys[i] = key;
-            pos += 20;
-        }
-
-        // Check for duplicate keys. Each key must be unique to ensure that no two oracles share the same signing
-        // identity, which could otherwise lead to incorrect attribution during attestation verification.
-        for (uint256 i = 0; i < n; ++i) {
-            for (uint256 j = i + 1; j < n; ++j) {
-                if (ocr3EcdsaSignerPublicKeysMemory[i] == ocr3EcdsaSignerPublicKeysMemory[j]) {
-                    revert DuplicateKey();
+            // Reject duplicate keys. Each key must be unique to ensure that no two oracles share the same signing
+            // identity, which could otherwise lead to incorrect attribution during attestation verification. `n` is at
+            // most 32, so the quadratic scan over the already-checked keys is cheap.
+            for (uint256 j = 0; j < i; ++j) {
+                if (ocr3EcdsaSignerPublicKeys[j] == key) {
+                    revert DuplicateAttestationVerificationKey();
                 }
             }
+            s_ocr3EcdsaSignerPublicKeys[i] = uint256(uint160(key));
         }
     }
 
@@ -81,7 +90,7 @@ library OCR3ECDSAAttestationVerifierLib {
     ///
     /// @dev Attestation format:
     ///       a) attribution bitmask (32 bits), and
-    ///       b) `n` signatures
+    ///       b) `f+1` signatures
     ///         - 64 bytes per signature, a tuple of (r, s) values
     ///         - `s` is normalized such that recovery id `v` for the public key is 0 (=27 for the ecrecover call),
     ///         - the signatures are sorted by oracle index (ascending order), the least significant set bit of the
@@ -196,19 +205,20 @@ library OCR3ECDSAAttestationVerifierLib {
                     // recoveredKey = mem[0:32]
                     // storedKey = s_ocr3EcdsaSignerPublicKeys[i]
                     let recoveredKey := mload(0) // zero if ecRecover failed
-                    let storedKey := sload(i) // always non-zero, ensured by `setVerificationKeys`
+                    let storedKey := sload(i) // always non-zero, ensured by `setAttestationVerificationKeys`
 
                     // As a second step for signature verification, compare the recovered public key with the stored
                     // one for the current index `i` and increment the `numValidSignatures` counter if the keys match.
                     //
-                    // Attention: Special care needs to be taken in case the above call to the ecRecover failed and thus
-                    // `recoveredKey` holds the value zero.
-                    //
-                    // The optimized check below relies on the fact that `storedKey` can never be zero - an invariant
-                    // ensured by the implementation of `setVerificationKeys`. Therefore, the equality instruction
-                    // correctly yields zero (and the counter `numValidSignatures` is not incremented) in the particular
-                    // case where the call to ecRecover precompile failed.
-                    numValidSignatures := add(numValidSignatures, eq(recoveredKey, storedKey))
+                    // Attention: Special care needs to be taken in case the above call to ecRecover failed, in which
+                    // case `recoveredKey` holds the value zero. The `gt(recoveredKey, 0)` guard ensures such a failed
+                    // recovery is never counted as valid. Under normal operation this is redundant with the equality
+                    // check, because `storedKey` is guaranteed non-zero by `setAttestationVerificationKeys` and a zero
+                    // `recoveredKey` therefore cannot match it. The guard is defense in depth: should that invariant
+                    // ever be violated and a stored slot hold zero, a failed ecRecover (also zero) would otherwise
+                    // match the zero slot and be counted as valid. The guard adds ~15 gas per signature.
+                    numValidSignatures :=
+                        add(numValidSignatures, and(eq(recoveredKey, storedKey), gt(recoveredKey, 0)))
                 }
 
                 // i += 1

@@ -288,6 +288,7 @@ func (o *oracleState[RI]) run() {
 			o.id,
 			o.kvDb,
 			o.logger,
+			o.metricsRegisterer,
 			o.netEndpoint,
 			o.reportingPlugin,
 		)

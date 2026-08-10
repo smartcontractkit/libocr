@@ -10,20 +10,24 @@ type EventToPacemaker[RI any] interface {
 	processPacemaker(pace *pacemakerState[RI])
 }
 
-type EventProgress[RI any] struct{}
+type EventProgress[RI any] struct {
+	Epoch uint64
+}
 
 var _ EventToPacemaker[struct{}] = (*EventProgress[struct{}])(nil) // implements EventToPacemaker
 
 func (ev EventProgress[RI]) processPacemaker(pace *pacemakerState[RI]) {
-	pace.eventProgress()
+	pace.eventProgress(ev)
 }
 
-type EventNewEpochRequest[RI any] struct{}
+type EventNewEpochRequest[RI any] struct {
+	Epoch uint64
+}
 
 var _ EventToPacemaker[struct{}] = (*EventNewEpochRequest[struct{}])(nil) // implements EventToPacemaker
 
 func (ev EventNewEpochRequest[RI]) processPacemaker(pace *pacemakerState[RI]) {
-	pace.eventNewEpochRequest()
+	pace.eventNewEpochRequest(ev)
 }
 
 type EventToOutcomeGeneration[RI any] interface {
