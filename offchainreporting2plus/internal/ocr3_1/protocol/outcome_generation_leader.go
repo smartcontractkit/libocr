@@ -87,13 +87,13 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		return
 	}
 
-	goodCount := 0
+	notBadCount := 0 // Note: just because a request is not marked bad does not mean it's good. Tertium datur!
 	var maxSender *commontypes.OracleID
 	for sender, epochStartRequest := range outgen.leaderState.epochStartRequests {
 		if epochStartRequest.bad {
 			continue
 		}
-		goodCount++
+		notBadCount++
 
 		if maxSender == nil || outgen.leaderState.epochStartRequests[*maxSender].message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.Less(epochStartRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
 			sender := sender
@@ -101,7 +101,7 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		}
 	}
 
-	if maxSender == nil || goodCount < outgen.config.ByzQuorumSize() {
+	if maxSender == nil || notBadCount < outgen.config.ByzQuorumSize() {
 		return
 	}
 

@@ -30,7 +30,7 @@ func (e *errReplayVerifiedBlock) Unwrap() error {
 	return e.Cause
 }
 
-func tryReplay(ctx context.Context, kvDb KeyValueDatabase, logger loghelper.LoggerWithContext) error {
+func tryReplay(ctx context.Context, kvDb KeyValueDatabase, logger loghelper.LoggerWithContext, metrics *stateSyncMetrics) error {
 	kvReadTxn, err := kvDb.NewReadTransactionUnchecked()
 	if err != nil {
 		return fmt.Errorf("failed to create read transaction")
@@ -77,6 +77,7 @@ func tryReplay(ctx context.Context, kvDb KeyValueDatabase, logger loghelper.Logg
 			if err != nil {
 				return fmt.Errorf("failed to replay block %d: %w", seqNr, err)
 			}
+			metrics.attestedBlocksReplayedTotal.Inc()
 			logger.Debug("StateBlockReplay: 🐌✅ committed", commontypes.LogFields{
 				"seqNr": seqNr,
 			})
@@ -126,6 +127,7 @@ func RunStateSyncBlockReplay(
 	ctx context.Context,
 	logger loghelper.LoggerWithContext,
 	kvDb KeyValueDatabase,
+	metrics *stateSyncMetrics,
 	chStateSyncToStateSyncBlockReplay <-chan EventStateSyncBlockReplayWake,
 	chStateSyncBlockReplayToStateSync chan<- EventStateSyncBlockReplayFailure,
 ) {
@@ -159,7 +161,7 @@ func RunStateSyncBlockReplay(
 		}
 
 		logger.Trace("StateBlockReplay: calling tryReplay", nil)
-		err := tryReplay(ctx, kvDb, logger)
+		err := tryReplay(ctx, kvDb, logger, metrics)
 		if err != nil {
 			logger.Warn("StateBlockReplay: failed while trying to replay blocks", commontypes.LogFields{
 				"error": err,

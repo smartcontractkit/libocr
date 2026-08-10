@@ -80,40 +80,26 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 	}
 
 	notBadCount := 0 // Note: just because a request is not marked bad does not mean it's good. Tertium datur!
-	for _, epochStartRequest := range outgen.leaderState.epochStartRequests {
-		if epochStartRequest.bad {
-			continue
-		}
-		notBadCount++
-	}
-
-	if notBadCount < outgen.config.ByzQuorumSize() {
-		return
-	}
-
-	// The not-bad entries in epochStartRequests here are guaranteed to be
-	// nonempty due to definition of ByzQuorumSize.
 	var maxSender *commontypes.OracleID
 	for sender, epochStartRequest := range outgen.leaderState.epochStartRequests {
 		if epochStartRequest.bad {
 			continue
 		}
-		if maxSender != nil {
-			maxTimestamp := outgen.leaderState.epochStartRequests[*maxSender].message.HighestCertified.Timestamp()
-			if !maxTimestamp.Less(epochStartRequest.message.HighestCertified.Timestamp()) {
-				continue
-			}
+		notBadCount++
+
+		if maxSender == nil || outgen.leaderState.epochStartRequests[*maxSender].message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp.Less(epochStartRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
+			sender := sender
+			maxSender = &sender
 		}
-		maxSender = &sender
 	}
 
-	if maxSender == nil {
+	if maxSender == nil || notBadCount < outgen.config.ByzQuorumSize() {
 		return
 	}
 
 	maxRequest := outgen.leaderState.epochStartRequests[*maxSender]
 
-	if !maxRequest.message.HighestCertified.Timestamp().Equal(maxRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp) {
+	if maxRequest.message.HighestCertified.Timestamp() != maxRequest.message.SignedHighestCertifiedTimestamp.HighestCertifiedTimestamp {
 		maxRequest.bad = true
 		outgen.logger.Warn("timestamp mismatch in MessageEpochStartRequest", commontypes.LogFields{
 			"sender":                          *maxSender,
@@ -163,15 +149,10 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 	if err := epochStartProof.Verify(outgen.ID(), outgen.config.OracleIdentities, outgen.config.ByzQuorumSize()); err != nil {
 		outgen.logger.Critical("EpochStartProof is invalid, very surprising!", commontypes.LogFields{
 			"proof": epochStartProof,
+			"error": err,
 		})
 		return
 	}
-
-	outgen.leaderState.phase = outgenLeaderPhaseSentEpochStart
-
-	outgen.logger.Info("broadcasting MessageEpochStart", commontypes.LogFields{
-		"contributors": contributors,
-	})
 
 	epochStartSignature31, err := MakeEpochStartSignature31(
 		outgen.ID(),
@@ -185,6 +166,13 @@ func (outgen *outcomeGenerationState[RI]) messageEpochStartRequest(msg MessageEp
 		})
 		return
 	}
+
+	outgen.leaderState.phase = outgenLeaderPhaseSentEpochStart
+
+	outgen.logger.Info("broadcasting MessageEpochStart", commontypes.LogFields{
+		"contributors":              contributors,
+		"highestCertifiedTimestamp": epochStartProof.HighestCertified.Timestamp(),
+	})
 
 	outgen.netSender.Broadcast(MessageEpochStart[RI]{
 		outgen.sharedState.e,

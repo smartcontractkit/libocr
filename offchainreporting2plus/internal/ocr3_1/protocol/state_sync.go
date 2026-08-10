@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/btree"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/smartcontractkit/libocr/commontypes"
 	"github.com/smartcontractkit/libocr/internal/loghelper"
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/config/ocr3_1config"
@@ -25,9 +26,14 @@ func RunStateSync[RI any](
 	id commontypes.OracleID,
 	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
+	metricsRegisterer prometheus.Registerer,
 	netSender NetworkSender[RI],
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 ) {
+
+	metrics := newStateSyncMetrics(metricsRegisterer, logger)
+	defer metrics.Close()
+
 	subs := subprocesses.Subprocesses{}
 	defer subs.Wait()
 
@@ -45,7 +51,7 @@ func RunStateSync[RI any](
 		RunStateSyncReap(ctx, config, logger, database, kvDb)
 	})
 	subs.Go(func() {
-		RunStateSyncBlockReplay(ctx, logger, kvDb, chStateSyncToStateSyncBlockReplay, chStateSyncBlockReplayToStateSync)
+		RunStateSyncBlockReplay(ctx, logger, kvDb, metrics, chStateSyncToStateSyncBlockReplay, chStateSyncBlockReplayToStateSync)
 	})
 
 	newStateSyncState(ctx,
@@ -55,7 +61,7 @@ func RunStateSync[RI any](
 		chStateSyncToStateSyncDestroyIfNeeded,
 		chOutcomeGenerationToStateSync,
 		chReportAttestationToStateSync,
-		config, database, id, kvDb, logger, netSender).run()
+		config, database, id, kvDb, logger, metrics, netSender).run()
 }
 
 type syncMode int
@@ -81,6 +87,7 @@ type stateSyncState[RI any] struct {
 	id                                    commontypes.OracleID
 	kvDb                                  KeyValueDatabase
 	logger                                loghelper.LoggerWithContext
+	metrics                               *stateSyncMetrics
 	netSender                             NetworkSender[RI]
 
 	genesisSeqNr uint64
@@ -489,6 +496,7 @@ func newStateSyncState[RI any](
 	id commontypes.OracleID,
 	kvDb KeyValueDatabase,
 	logger loghelper.LoggerWithContext,
+	metrics *stateSyncMetrics,
 	netSender NetworkSender[RI],
 ) *stateSyncState[RI] {
 	oracles := make([]*syncOracle, 0)
@@ -516,6 +524,7 @@ func newStateSyncState[RI any](
 		id,
 		kvDb,
 		logger.MakeUpdated(commontypes.LogFields{"proto": "stasy"}),
+		metrics,
 		netSender,
 
 		genesisSeqNr,

@@ -11,10 +11,38 @@ import (
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/ocr3_1types"
 )
 
+type attestedStateTransitionBlockWriter string
+
+const (
+	attestedStateTransitionBlockWriterOutcomeGeneration attestedStateTransitionBlockWriter = "outcome_generation"
+	attestedStateTransitionBlockWriterStateSync         attestedStateTransitionBlockWriter = "state_sync"
+)
+
+// newAttestedStateTransitionBlocksWrittenTotal is shared by
+// outcomeGenerationMetrics and stateSyncMetrics. The two variants are
+// registered from separate structs against the same registerer, and prometheus
+// only tolerates that if the name, help and label names match exactly.
+func newAttestedStateTransitionBlocksWrittenTotal(
+	registerer prometheus.Registerer,
+	logger commontypes.Logger,
+	writer attestedStateTransitionBlockWriter,
+) prometheus.Counter {
+	c := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_experimental_attested_state_transition_blocks_written_total",
+		Help: fmt.Sprintf("Total number of attested state transition blocks written with writer being one of %v",
+			[]attestedStateTransitionBlockWriter{
+				attestedStateTransitionBlockWriterOutcomeGeneration, attestedStateTransitionBlockWriterStateSync}),
+		ConstLabels: prometheus.Labels{"writer": string(writer)},
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, c, "ocr3_1_experimental_attested_state_transition_blocks_written_total")
+	return c
+}
+
 type pacemakerMetrics struct {
-	registerer prometheus.Registerer
-	epoch      prometheus.Gauge
-	leader     prometheus.Gauge
+	registerer             prometheus.Registerer
+	epoch                  prometheus.Gauge
+	leader                 prometheus.Gauge
+	tProgressTimeoutsTotal prometheus.Counter
 }
 
 func newPacemakerMetrics(registerer prometheus.Registerer,
@@ -32,24 +60,33 @@ func newPacemakerMetrics(registerer prometheus.Registerer,
 	})
 	metricshelper.RegisterOrLogError(logger, registerer, leader, "ocr3_1_experimental_leader_oid")
 
+	tProgressTimeoutsTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_experimental_t_progress_timeouts_total",
+		Help: "Total number of TProgress timeouts",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, tProgressTimeoutsTotal, "ocr3_1_experimental_t_progress_timeouts_total")
+
 	return &pacemakerMetrics{
 		registerer,
 		epoch,
 		leader,
+		tProgressTimeoutsTotal,
 	}
 }
 
 func (pm *pacemakerMetrics) Close() {
 	pm.registerer.Unregister(pm.epoch)
 	pm.registerer.Unregister(pm.leader)
+	pm.registerer.Unregister(pm.tProgressTimeoutsTotal)
 }
 
 type outcomeGenerationMetrics struct {
-	registerer                prometheus.Registerer
-	committedSeqNr            prometheus.Gauge
-	sentObservationsTotal     prometheus.Counter
-	includedObservationsTotal prometheus.Counter
-	ledCommittedRoundsTotal   prometheus.Counter
+	registerer                 prometheus.Registerer
+	committedSeqNr             prometheus.Gauge
+	sentObservationsTotal      prometheus.Counter
+	includedObservationsTotal  prometheus.Counter
+	ledCommittedRoundsTotal    prometheus.Counter
+	attestedBlocksWrittenTotal prometheus.Counter
 }
 
 func newOutcomeGenerationMetrics(registerer prometheus.Registerer,
@@ -88,12 +125,15 @@ func newOutcomeGenerationMetrics(registerer prometheus.Registerer,
 	})
 	metricshelper.RegisterOrLogError(logger, registerer, ledCommittedRoundsTotal, "ocr3_1_led_committed_rounds_total")
 
+	attestedBlocksWrittenTotal := newAttestedStateTransitionBlocksWrittenTotal(registerer, logger, attestedStateTransitionBlockWriterOutcomeGeneration)
+
 	return &outcomeGenerationMetrics{
 		registerer,
 		committedSeqNr,
 		sentObservationsTotal,
 		includedObservationsTotal,
 		ledCommittedRoundsTotal,
+		attestedBlocksWrittenTotal,
 	}
 }
 
@@ -102,6 +142,45 @@ func (om *outcomeGenerationMetrics) Close() {
 	om.registerer.Unregister(om.sentObservationsTotal)
 	om.registerer.Unregister(om.includedObservationsTotal)
 	om.registerer.Unregister(om.ledCommittedRoundsTotal)
+	om.registerer.Unregister(om.attestedBlocksWrittenTotal)
+}
+
+type stateSyncMetrics struct {
+	registerer                  prometheus.Registerer
+	attestedBlocksWrittenTotal  prometheus.Counter
+	attestedBlocksReplayedTotal prometheus.Counter
+	treeSyncCompletedTotal      prometheus.Counter
+}
+
+func newStateSyncMetrics(registerer prometheus.Registerer,
+	logger commontypes.Logger) *stateSyncMetrics {
+
+	attestedBlocksWrittenTotal := newAttestedStateTransitionBlocksWrittenTotal(registerer, logger, attestedStateTransitionBlockWriterStateSync)
+
+	attestedBlocksReplayedTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_experimental_attested_state_transition_blocks_replayed_total",
+		Help: "Total number of attested state transition blocks replayed",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, attestedBlocksReplayedTotal, "ocr3_1_experimental_attested_state_transition_blocks_replayed_total")
+
+	treeSyncCompletedTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_experimental_tree_sync_completed_total",
+		Help: "Total number of tree synchronizations to a snapshot successfully completed",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, treeSyncCompletedTotal, "ocr3_1_experimental_tree_sync_completed_total")
+
+	return &stateSyncMetrics{
+		registerer,
+		attestedBlocksWrittenTotal,
+		attestedBlocksReplayedTotal,
+		treeSyncCompletedTotal,
+	}
+}
+
+func (sm *stateSyncMetrics) Close() {
+	sm.registerer.Unregister(sm.attestedBlocksWrittenTotal)
+	sm.registerer.Unregister(sm.attestedBlocksReplayedTotal)
+	sm.registerer.Unregister(sm.treeSyncCompletedTotal)
 }
 
 type blobExchangeMetrics struct {

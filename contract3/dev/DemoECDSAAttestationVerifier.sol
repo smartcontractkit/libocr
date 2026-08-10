@@ -23,7 +23,7 @@ contract DemoECDSAAttestationVerifier is OCR3ECDSAAttestationVerifier {
 
     function setConfig(uint32 configVersion, uint8 n, uint8 f, bytes calldata ocr3EcdsaSignerPublicKeys) external {
         s_hotVars = HotVars({configVersion: configVersion, n: n, f: f});
-        _setVerificationKeys(n, ocr3EcdsaSignerPublicKeys);
+        _setAttestationVerificationKeys(n, ocr3EcdsaSignerPublicKeys);
     }
 
     // We may want to load configDigest from storage instead.

@@ -15,8 +15,19 @@ contract OCR3ECDSAAttestationVerifier is OCR3AttestationVerifierBase {
     // entries is fine for smaller configurations, storage costs are only paid for the used number of keys.
     uint256[32] s_ocr3EcdsaSignerPublicKeys;
 
-    function _setVerificationKeys(uint8 n, bytes calldata ocr3EcdsaSignerPublicKeys) internal override {
-        OCR3ECDSAAttestationVerifierLib.setVerificationKeys(s_ocr3EcdsaSignerPublicKeys, n, ocr3EcdsaSignerPublicKeys);
+    function _setAttestationVerificationKeys(uint8 n, bytes calldata ocr3EcdsaSignerPublicKeys) internal override {
+        OCR3ECDSAAttestationVerifierLib.setAttestationVerificationKeys(
+            s_ocr3EcdsaSignerPublicKeys, n, ocr3EcdsaSignerPublicKeys
+        );
+    }
+
+    /// @notice Address-typed convenience overload of `_setAttestationVerificationKeys`. Callers holding an
+    ///         `address[]` (the common case on EVM chains) can use this directly, without ABI-encoding the keys into
+    ///         the `bytes` layout and without supplying a redundant key count.
+    function _setAttestationVerificationKeys(address[] memory ocr3EcdsaSignerPublicKeys) internal {
+        OCR3ECDSAAttestationVerifierLib.setAttestationVerificationKeys(
+            s_ocr3EcdsaSignerPublicKeys, ocr3EcdsaSignerPublicKeys
+        );
     }
 
     function _verifyAttestation(

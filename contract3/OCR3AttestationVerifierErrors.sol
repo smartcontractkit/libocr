@@ -2,24 +2,24 @@
 pragma solidity ^0.8.19;
 
 // Raised when the number of provided verification keys does not match the expected number of keys (parameter: n).
-error InvalidNumberOfKeys();
+error InvalidNumberOfAttestationVerificationKeys();
 
 // Raised when the provided verification keys are of invalid size.
-error KeysOfInvalidSize();
+error AttestationVerificationKeysOfInvalidSize();
 
 // Raised when an attempt to set more than 32 verification keys is made.
 // An upper limit of 32 keys is enforced by the width of the bitmask used for the attribution data.
-error MaximumNumberOfKeysExceeded();
+error MaximumNumberOfAttestationVerificationKeysExceeded();
 
 // Raised when a provided verification key is found invalid.
 // Potential causes for invalid keys are, for example:
 //  - ECDSA: the value 0x0000000000000000000000000000000000000000
 //  - BLS: a key with an invalid proof-of-possession
-error InvalidKey();
+error InvalidAttestationVerificationKey();
 
 // Raised when a duplicate verification key is provided during key set.
 // Each key must be unique to ensure correct attribution during attestation verification.
-error DuplicateKey();
+error DuplicateAttestationVerificationKey();
 
 // Raised when the signature verification failed for the provided attestation.
 error InvalidAttestation();

@@ -124,4 +124,18 @@
 // to a misconfiguration in my infrastructure.
 //
 //	rate(ragep2p_host_inbound_dials_total[48h]) > 0
+//
+// Is my ragep2p host able to accept the inbound connections it receives?
+// Isolated failures are expected and harmless, ragep2p retries them with a
+// bounded backoff and recovers on its own. A failure that persists, however,
+// means that inbound connectivity is degraded and that the host depends
+// entirely on its own outbound dials succeeding. This usually points to
+// resource limits imposed on the process by the operating system.
+//
+// While accepts keep failing, ragep2p retries them at least once every five
+// seconds. A failure that persists for a full minute therefore shows up as
+// about twenty errors, whereas one that resolves within a few seconds shows up
+// as no more than a dozen.
+//
+//	increase(ragep2p_host_accept_errors_total[1m]) < 20
 package ragep2pnew
