@@ -23,6 +23,20 @@ type ReportingPluginFactory[RI any] interface {
 	) (ReportingPlugin[RI], ReportingPluginInfo, error)
 }
 
+// ReportingPluginFactory2 is like ReportingPluginFactory but additionally
+// provides a ReadOnlyKeyValueState.
+type ReportingPluginFactory2[RI any] interface {
+	// Creates a new reporting plugin instance. The instance may have
+	// associated goroutines or hold system resources, which should be
+	// released when its Close() function is called.
+	NewReportingPlugin(
+		context.Context,
+		ocr3types.ReportingPluginConfig,
+		BlobBroadcastFetcher,
+		ReadOnlyKeyValueState,
+	) (ReportingPlugin[RI], ReportingPluginInfo, error)
+}
+
 // Deprecated: Use KeyValueStateReader instead.
 type KeyValueReader = KeyValueStateReader
 
@@ -33,6 +47,78 @@ type KeyValueStateReader interface {
 	// If the key exists, the returned value will be non-nil.
 	// If the key does not exist, it returns (nil, nil).
 	Read(key []byte) ([]byte, error)
+}
+
+// ReadOnlyKeyValueState gives you read access to the replicated KeyValueState
+// from outside your ReportingPlugin's methods, for example to answer requests
+// from your own clients.
+//
+// Do not use it inside your ReportingPlugin's methods. Those methods are handed
+// a KeyValueStateReader argument and must use that one: they run at a specific
+// sequence number, and reading anything else would make them produce different
+// results on different oracles, which breaks agreement between them.
+type ReadOnlyKeyValueState interface {
+	// NewReadTransaction returns a read transaction over the replicated
+	// KeyValueState. You are responsible for discarding it, see
+	// [KeyValueStateReadTransaction].
+	//
+	// Only a limited number of read transactions may be open at once. Reaching
+	// that limit is not an error: NewReadTransaction blocks until one of the
+	// open transactions is discarded or ctx is done, and only in the latter
+	// case returns an error. Concurrent request handlers therefore queue
+	// rather than fail. Talk to the maintainers if you need the limit raised.
+	//
+	// NewReadTransaction also returns an error if the KeyValueState is
+	// temporarily unreadable because this oracle is starting up, shutting down
+	// or catching up with the other oracles, or if you call it from inside one
+	// of your ReportingPlugin's methods. Every one of these but the last can
+	// happen in normal operation: fail the request you were serving and try
+	// again later.
+	NewReadTransaction(ctx context.Context) (KeyValueStateReadTransaction, error)
+}
+
+// KeyValueStateReadTransaction provides read access to the replicated
+// KeyValueState at a fixed point in time.
+//
+// You must discard every transaction you open. The usual way is to write
+//
+//	readTransaction, err := keyValueState.NewReadTransaction(ctx)
+//	if err != nil {
+//		return err
+//	}
+//	defer readTransaction.Discard()
+//
+// immediately, before doing anything else. Until you discard it, this oracle
+// cannot reclaim the storage holding the older versions of the data your
+// transaction can still see. A transaction you never discard will make this
+// oracle's database grow without bound for as long as your plugin runs, and
+// will eventually slow down or stall the protocol. Nothing will stop you: this
+// is your responsibility, and we will only log about it.
+//
+// Hold a transaction for as short a time as you can. Read what you need,
+// discard it, and do the rest of your work afterwards. In particular, do not
+// call out over the network, wait on a lock, or block on anything else while
+// you hold one. The reads themselves take microseconds; if you hold a
+// transaction for longer than a round, something in your code is waiting when
+// it should not be.
+//
+// A transaction is safe for concurrent use.
+//
+// There is one case in which a transaction stops working before you discard it:
+// when the protocol instance shuts down, because the underlying database is
+// closed at that point. Read then returns an error.
+type KeyValueStateReadTransaction interface {
+	KeyValueStateReader
+
+	// SeqNr returns the sequence number this transaction reads at: it shows you
+	// the KeyValueState as it was once SeqNr() had been committed. Newer
+	// sequence numbers may be committed while you hold the transaction; what it
+	// shows you will not change.
+	SeqNr() uint64
+
+	// Discard releases the transaction. Calling it more than once is fine.
+	// Reading after it returns an error.
+	Discard()
 }
 
 // Deprecated: Use KeyValueStateReadWriter instead.

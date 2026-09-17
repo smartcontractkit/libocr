@@ -234,9 +234,11 @@ func NewHost(
 
 // Start listening on the network interfaces and dialling peers.
 func (ho *Host) Start() error {
-	succeeded := false
+	// Armed only once we've transitioned to open, so that a rejected Start()
+	// never tears down a Host that someone else started.
+	needsTeardown := false
 	defer func() {
-		if !succeeded {
+		if needsTeardown {
 			ho.Close()
 		}
 	}()
@@ -248,6 +250,7 @@ func (ho *Host) Start() error {
 		return fmt.Errorf("cannot Start() host that has already been started")
 	}
 	ho.state = hostStateOpen
+	needsTeardown = true
 
 	ho.subprocesses.Go(func() {
 		ho.dialLoop()
@@ -267,7 +270,7 @@ func (ho *Host) Start() error {
 		return fmt.Errorf("failed to start discoverer: %w", err)
 	}
 
-	succeeded = true
+	needsTeardown = false
 	return nil
 }
 

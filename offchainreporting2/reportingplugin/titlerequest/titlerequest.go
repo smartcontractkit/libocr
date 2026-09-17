@@ -40,24 +40,24 @@ type TitleRequestPluginFactory struct {
 
 func (fac *TitleRequestPluginFactory) NewReportingPlugin(_ context.Context, config types.ReportingPluginConfig) (types.ReportingPlugin, types.ReportingPluginInfo, error) {
 	return &TitleRequestPlugin{
-			config.F,
-			fac.Client,
-			fac.Contract,
-			map[[32]byte]bool{},
-			map[[32]byte]time.Time{},
-		}, types.ReportingPluginInfo{
-			"Title Request ReportingPlugin",
-			false,
-			types.ReportingPluginLimits{
-				// queries are empty
-				0,
-				// observations are at most 32 (request id) + 32 (title offset) + 32
-				// (title len) + maxTitleLen chars, let's generously round to 1000
-				1_000,
-				// reports follow the same format as observations
-				1_000,
-			},
-		}, nil
+		config.F,
+		fac.Client,
+		fac.Contract,
+		map[[32]byte]bool{},
+		map[[32]byte]time.Time{},
+	}, types.ReportingPluginInfo{
+		"Title Request ReportingPlugin",
+		false,
+		types.ReportingPluginLimits{
+			// queries are empty
+			0,
+			// observations are at most 32 (request id) + 32 (title offset) + 32
+			// (title len) + maxTitleLen chars, let's generously round to 1000
+			1_000,
+			// reports follow the same format as observations
+			1_000,
+		},
+	}, nil
 }
 
 var _ types.ReportingPlugin = (*TitleRequestPlugin)(nil)

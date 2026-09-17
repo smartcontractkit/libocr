@@ -22,6 +22,12 @@ const (
 // outcomeGenerationMetrics and stateSyncMetrics. The two variants are
 // registered from separate structs against the same registerer, and prometheus
 // only tolerates that if the name, help and label names match exactly.
+//
+// TODO: Rewrite this and the other ConstLabels-per-value metrics in the style
+// of newReadOnlyKeyValueStateMetrics in internal/shim/metrics.go: one
+// CounterVec defined once, WithLabelValues children exposed as plain Counter
+// fields, and the children unregistered in Close (which unregisters the vec).
+// That keeps name, help and label names in a single place.
 func newAttestedStateTransitionBlocksWrittenTotal(
 	registerer prometheus.Registerer,
 	logger commontypes.Logger,

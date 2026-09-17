@@ -79,9 +79,11 @@ func NewRagep2pDiscoverer(
 }
 
 func (r *Ragep2pDiscoverer) Start(host ragep2pwrapper.Host, keyring ragetypes.PeerKeyring, logger loghelper.LoggerWithContext) error {
-	succeeded := false
+	// Armed only once we've transitioned to started, so that a rejected Start()
+	// never tears down a Ragep2pDiscoverer that someone else started.
+	needsTeardown := false
 	defer func() {
-		if !succeeded {
+		if needsTeardown {
 			r.Close()
 		}
 	}()
@@ -93,6 +95,7 @@ func (r *Ragep2pDiscoverer) Start(host ragep2pwrapper.Host, keyring ragetypes.Pe
 		return fmt.Errorf("cannot start Ragep2pDiscoverer that is not unstarted, state was: %v", r.state)
 	}
 	r.state = ragep2pDiscovererStarted
+	needsTeardown = true
 	r.host = host
 	announceAddresses, ok := combinedAnnounceAddrsForDiscoverer(r.logger, r.announceAddresses)
 	if !ok {
@@ -120,7 +123,7 @@ func (r *Ragep2pDiscoverer) Start(host ragep2pwrapper.Host, keyring ragetypes.Pe
 	r.proc.Go(r.connectivityLoop)
 	r.proc.Go(r.writeLoop)
 
-	succeeded = true
+	needsTeardown = false
 	return nil
 }
 

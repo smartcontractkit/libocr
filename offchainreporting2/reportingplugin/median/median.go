@@ -347,34 +347,34 @@ func (fac NumericalMedianFactory) NewReportingPlugin(ctx context.Context, config
 	})
 
 	return &numericalMedian{
-			offchainConfig,
-			onchainConfig,
-			fac.ContractTransmitter,
-			fac.DataSource,
-			fac.JuelsPerFeeCoinDataSource,
-			fac.GasPriceSubunitsDataSource,
-			fac.IncludeGasPriceSubunitsInObservation,
-			logger,
-			fac.ReportCodec,
-			deviationFunc,
-			fac.AcceptAfterFullTransmissionScheduleElapsed || offchainConfig.AcceptAfterFullTransmissionScheduleElapsed,
+		offchainConfig,
+		onchainConfig,
+		fac.ContractTransmitter,
+		fac.DataSource,
+		fac.JuelsPerFeeCoinDataSource,
+		fac.GasPriceSubunitsDataSource,
+		fac.IncludeGasPriceSubunitsInObservation,
+		logger,
+		fac.ReportCodec,
+		deviationFunc,
+		fac.AcceptAfterFullTransmissionScheduleElapsed || offchainConfig.AcceptAfterFullTransmissionScheduleElapsed,
 
-			configuration.ConfigDigest,
-			configuration.F,
-			configuration.DurationAllTransmissionStages,
-			epochRound{},
-			new(big.Int),
-			time.Now(),
+		configuration.ConfigDigest,
+		configuration.F,
+		configuration.DurationAllTransmissionStages,
+		epochRound{},
+		new(big.Int),
+		time.Now(),
+		maxReportLength,
+	}, types.ReportingPluginInfo{
+		"NumericalMedian",
+		false,
+		types.ReportingPluginLimits{
+			0,
+			maxObservationLength,
 			maxReportLength,
-		}, types.ReportingPluginInfo{
-			"NumericalMedian",
-			false,
-			types.ReportingPluginLimits{
-				0,
-				maxObservationLength,
-				maxReportLength,
-			},
-		}, nil
+		},
+	}, nil
 }
 
 func DefaultDeviationFunc(_ context.Context, thresholdPPB uint64, old *big.Int, new *big.Int) (bool, error) {
