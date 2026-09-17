@@ -61,9 +61,11 @@ func newBootstrapperV2(
 }
 
 func (b *bootstrapperV2) Start() error {
-	succeeded := false
+	// Armed only once we've transitioned to started, so that a rejected Start()
+	// never tears down a bootstrapperV2 that someone else started.
+	needsTeardown := false
 	defer func() {
-		if !succeeded {
+		if needsTeardown {
 			b.Close()
 		}
 	}()
@@ -76,9 +78,10 @@ func (b *bootstrapperV2) Start() error {
 	}
 
 	b.state = bootstrapperStarted
+	needsTeardown = true
 
 	b.logger.Info("BootstrapperV2: Started listening", nil)
-	succeeded = true
+	needsTeardown = false
 	return nil
 }
 

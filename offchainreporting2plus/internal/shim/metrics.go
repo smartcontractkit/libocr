@@ -159,3 +159,75 @@ func (m *keyValueDatabaseMetrics) Close() {
 	m.registerer.Unregister(m.committedReadWriteTransactionsTotal)
 	m.registerer.Unregister(m.discardedReadWriteTransactionsTotal)
 }
+
+type readOnlyKeyValueStateMetrics struct {
+	registerer                        prometheus.Registerer
+	openReadTransactions              prometheus.GaugeFunc
+	oldestOpenReadTransactionDuration prometheus.GaugeFunc
+	openedReadTransactionsTotal       prometheus.Counter
+	refusedInsidePluginCallTotal      prometheus.Counter
+	refusedTooManyTotal               prometheus.Counter
+	refusedUnavailableTotal           prometheus.Counter
+}
+
+func newReadOnlyKeyValueStateMetrics(
+	registerer prometheus.Registerer,
+	logger commontypes.Logger,
+	openReadTransactionCount func() float64,
+	oldestOpenReadTransactionDurationSeconds func() float64,
+) *readOnlyKeyValueStateMetrics {
+	openReadTransactions := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "ocr3_1_experimental_key_value_state_open_read_transactions",
+		Help: "The number of read transactions the reporting plugin currently holds open.",
+	}, openReadTransactionCount)
+	metricshelper.RegisterOrLogError(logger, registerer, openReadTransactions, "ocr3_1_experimental_key_value_state_open_read_transactions")
+
+	// The number that predicts trouble. A read transaction keeps the database
+	// from reclaiming the versions of the data it can still see, and that cost
+	// is driven by how long the oldest one has been open rather than by how many
+	// are open.
+	oldestOpenReadTransactionDuration := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "ocr3_1_experimental_key_value_state_oldest_open_read_transaction_duration_seconds",
+		Help: "How long the oldest read transaction the reporting plugin holds open has been open, zero if none.",
+	}, oldestOpenReadTransactionDurationSeconds)
+	metricshelper.RegisterOrLogError(logger, registerer, oldestOpenReadTransactionDuration, "ocr3_1_experimental_key_value_state_oldest_open_read_transaction_duration_seconds")
+
+	openedReadTransactionsTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_experimental_key_value_state_opened_read_transactions_total",
+		Help: "The number of read transactions opened by the reporting plugin.",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, openedReadTransactionsTotal, "ocr3_1_experimental_key_value_state_opened_read_transactions_total")
+
+	// The vec itself is deliberately not kept: the per-reason counters are all
+	// the callers need, and unregistering any one of them unregisters the vec,
+	// see Close.
+	refusedReadTransactionsTotal := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "ocr3_1_experimental_key_value_state_refused_read_transactions_total",
+		Help: "The number of read transactions refused to the reporting plugin, by reason.",
+	}, []string{"reason"})
+	metricshelper.RegisterOrLogError(logger, registerer, refusedReadTransactionsTotal, "ocr3_1_experimental_key_value_state_refused_read_transactions_total")
+
+	return &readOnlyKeyValueStateMetrics{
+		registerer,
+		openReadTransactions,
+		oldestOpenReadTransactionDuration,
+		openedReadTransactionsTotal,
+		refusedReadTransactionsTotal.WithLabelValues("inside_plugin_call"),
+		refusedReadTransactionsTotal.WithLabelValues("too_many"),
+		refusedReadTransactionsTotal.WithLabelValues("unavailable"),
+	}
+}
+
+func (m *readOnlyKeyValueStateMetrics) Close() {
+	m.registerer.Unregister(m.openReadTransactions)
+	m.registerer.Unregister(m.oldestOpenReadTransactionDuration)
+	m.registerer.Unregister(m.openedReadTransactionsTotal)
+	// A child of a vec describes the vec's descriptor, and prometheus.Registerer
+	// documents that Unregister matches collectors by the descriptors they
+	// describe. So unregistering the first child unregisters the whole vec, and
+	// the remaining ones are no-ops. Unregistering all of them keeps this
+	// method oblivious to which is which.
+	m.registerer.Unregister(m.refusedInsidePluginCallTotal)
+	m.registerer.Unregister(m.refusedTooManyTotal)
+	m.registerer.Unregister(m.refusedUnavailableTotal)
+}
