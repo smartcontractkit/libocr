@@ -23,10 +23,26 @@ type ReportingPluginFactory[RI any] interface {
 	) (ReportingPlugin[RI], ReportingPluginInfo, error)
 }
 
+// ReportingPluginFactory2 is like ReportingPluginFactory but additionally
+// provides a [ReadOnlyKeyValueState]. See its documentation for transaction
+// ownership and lifetime requirements.
+type ReportingPluginFactory2[RI any] interface {
+	// Creates a new reporting plugin instance. The instance may have
+	// associated goroutines or hold system resources, which should be
+	// released when its Close() function is called.
+	NewReportingPlugin(
+		context.Context,
+		ocr3types.ReportingPluginConfig,
+		BlobBroadcastFetcher,
+		ReadOnlyKeyValueState,
+	) (ReportingPlugin[RI], ReportingPluginInfo, error)
+}
+
 // Deprecated: Use KeyValueStateReader instead.
 type KeyValueReader = KeyValueStateReader
 
 // KeyValueStateReader provides read access to the replicated KeyValueState.
+// Read is safe for concurrent use.
 type KeyValueStateReader interface {
 	// Read reads the value associated with the given key.
 	// A nil key is interpreted as an empty slice.
@@ -35,10 +51,104 @@ type KeyValueStateReader interface {
 	Read(key []byte) ([]byte, error)
 }
 
+// ReadOnlyKeyValueState gives you read access to the replicated KeyValueState,
+// for example to answer requests from your own clients.
+//
+// # ReportingPlugin method restrictions
+//
+// Do not use it, or any transaction obtained from it, inside [ReportingPlugin]
+// methods that:
+//   - are marked pure‡; or
+//   - receive a [KeyValueStateReader] or [KeyValueStateReadWriter] argument.
+//
+// Pure‡ methods must return results determined solely by their arguments, but
+// the state read through ReadOnlyKeyValueState is not. Methods that receive a
+// state reader or read-writer argument must use that argument instead, so that
+// they access state at the appropriate sequence number.
+//
+// # Transaction ownership and resource usage
+//
+// You are responsible for bounding the number of transactions you keep open
+// concurrently. The library does not enforce a cap: excessive concurrent usage
+// or leaked transactions can exhaust resources and degrade or stall the oracle.
+//
+// You must discard every transaction you open, promptly after reading what you
+// need. An open transaction prevents the database from reclaiming older versions
+// of the data it can still see. Long-held or leaked transactions can cause
+// unbounded storage growth. Do not call out over the network, wait on a lock, or
+// block on other work while holding a transaction open. See
+// [ReadOnlyKeyValueState.NewReadTransaction] for a deferred-discard example.
+//
+// # Plugin shutdown
+//
+// Before [ReportingPlugin.Close] returns, the plugin must discard all its
+// transactions and stop any goroutines that could open or use transactions.
+// Do not use ReadOnlyKeyValueState or its transactions after
+// [ReportingPlugin.Close] returns.
+//
+// # Monitoring
+//
+// Use the following Prometheus metrics to monitor transaction usage. Subtract
+// ocr3_1_read_only_key_value_state_discarded_transactions_total from
+// ocr3_1_read_only_key_value_state_opened_transactions_total for matching label
+// sets to track the number currently open. Monitor
+// ocr3_1_read_only_key_value_state_oldest_open_transaction_age_seconds
+// to detect long-held transactions and leaks.
+type ReadOnlyKeyValueState interface {
+	// NewReadTransaction returns a [KeyValueStateReadTransaction] over the
+	// replicated KeyValueState. See [ReadOnlyKeyValueState] for transaction
+	// ownership, lifetime, resource usage, and monitoring guidance.
+	//
+	// ctx applies only to this call, not to the returned transaction.
+	// Canceling ctx does not discard the transaction or prevent further reads;
+	// you must still call Discard.
+	//
+	// Defer Discard immediately after successfully opening a transaction:
+	//
+	//	readTransaction, err := keyValueState.NewReadTransaction(ctx)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	defer readTransaction.Discard()
+	//
+	// Errors can occur during normal operation, for example when the
+	// KeyValueState is temporarily unavailable while the oracle is starting up.
+	// Fail the request you were serving and try again later.
+	// See [ReadOnlyKeyValueState] for restrictions on use from ReportingPlugin
+	// methods.
+	NewReadTransaction(ctx context.Context) (KeyValueStateReadTransaction, error)
+}
+
+// KeyValueStateReadTransaction provides read access to the replicated
+// KeyValueState at a fixed point in time.
+//
+// See [ReadOnlyKeyValueState] for transaction ownership, lifetime, resource
+// usage, and monitoring guidance. A transaction is safe for concurrent use.
+//
+// See [ReadOnlyKeyValueState.NewReadTransaction] for a deferred-discard example.
+type KeyValueStateReadTransaction interface {
+	KeyValueStateReader
+
+	// SeqNr returns the sequence number this transaction reads at: it shows you
+	// the KeyValueState as it was once SeqNr() had been committed. Newer
+	// sequence numbers may be committed while you hold the transaction; what it
+	// shows you will not change.
+	SeqNr() uint64
+
+	// Discard releases the transaction. Calling it more than once is fine.
+	// After Discard returns, no further calls other than Discard may be made
+	// on the transaction.
+	Discard()
+}
+
 // Deprecated: Use KeyValueStateReadWriter instead.
 type KeyValueReadWriter = KeyValueStateReadWriter
 
 // KeyValueStateReadWriter provides read and write access to the replicated KeyValueState.
+//
+// Write and Delete are not safe for concurrent use: interleaved concurrent
+// writes and deletes may corrupt the resulting state transition. Perform all
+// writes and deletes from a single goroutine.
 type KeyValueStateReadWriter interface {
 	KeyValueStateReader
 	// Write writes the value for the provided key.
@@ -59,13 +169,13 @@ type KeyValueStateReadWriter interface {
 // To do so, the ReportingPlugin defines a number of callbacks that are called
 // by the OCR protocol logic at certain points in the protocol's execution flow.
 // The report generated by the ReportingPlugin must be in a format understood by
-// contract (or offchain target system) that the reports are transmitted to.
+// the contract (or offchain target system) that the reports are transmitted to.
 //
 // # Byzantine Fault Tolerance
 //
 // We assume that each correct node participating in the protocol instance will
 // be running the same ReportingPlugin implementation. However, not all nodes
-// may be correct; up to f nodes be faulty in arbitrary ways (aka byzantine
+// may be correct; up to f nodes may be faulty in arbitrary ways (aka byzantine
 // faults). For example, faulty nodes could be down, have intermittent
 // connectivity issues, send garbage messages, or be controlled by an adversary.
 //
@@ -85,7 +195,7 @@ type KeyValueStateReadWriter interface {
 //     given round
 //   - the observation returned by Observation is not included in the list of
 //     AttributedObservations passed to StateTransition
-//   - a [Query] or [Observation] is malformed. (For defense in depth, it is also
+//   - a [types.Query] or [types.Observation] is malformed. (For defense in depth, it is also
 //     recommended that malformed elements in the key value state are handled gracefully.)
 //   - instances of the ReportingPlugin run by different oracles have different
 //     call traces. E.g., the ReportingPlugin's Observation function may have been
@@ -140,8 +250,8 @@ type ReportingPlugin[RI any] interface {
 	// consistent view to different oracles (e.g. in case of observing a
 	// blockchain).
 	//
-	// You may assume that the seqNr is increasing strictly monotonically
-	// across the lifetime of a protocol instance.
+	// You may assume that the seqNr is increasing monotonically (though *not*
+	// strictly) across the lifetime of a protocol instance.
 	//
 	// The keyValueStateReader gives read access to the replicated KeyValueState
 	// at the point after seqNr - 1 is committed. It must not be used outside the execution
@@ -165,8 +275,8 @@ type ReportingPlugin[RI any] interface {
 	// Observation gets an observation from the underlying data source. Returns
 	// a value or an error.
 	//
-	// You may assume that the seqNr is increasing strictly monotonically
-	// across the lifetime of a protocol instance.
+	// You may assume that the seqNr is increasing monotonically (though *not*
+	// strictly) across the lifetime of a protocol instance.
 	//
 	// The keyValueStateReader gives read access to the replicated KeyValueState
 	// at the point after seqNr - 1 is committed. It must not be used outside the execution
@@ -193,8 +303,11 @@ type ReportingPlugin[RI any] interface {
 	//
 	// This function must be pure‡.
 	//
-	// You may assume that the seqNr is increasing strictly monotonically
-	// across the lifetime of a protocol instance.
+	// You may assume that the seqNr is increasing monotonically (though *not*
+	// strictly) across the lifetime of a protocol instance.
+	//
+	// This function may be called multiple times for the same seqNr, e.g. once
+	// for each observation.
 	//
 	// The keyValueStateReader gives read access to the replicated KeyValueState
 	// at the point after seqNr - 1 is committed. It must not be used outside the execution
@@ -219,6 +332,9 @@ type ReportingPlugin[RI any] interface {
 	// ValidateObservation) observations are sufficient to construct an outcome.
 	//
 	// This function must be pure‡.
+	//
+	// This function may be called multiple times for the same seqNr, e.g. on
+	// the leader as more observations arrive.
 	//
 	// This is an advanced feature. The "default" approach (what OCR1 & OCR2
 	// did) is to have this function call
@@ -258,8 +374,8 @@ type ReportingPlugin[RI any] interface {
 	//
 	// This function must be pure‡.
 	//
-	// You may assume that the seqNr is increasing strictly monotonically
-	// across the lifetime of a protocol instance.
+	// You may assume that the seqNr is increasing monotonically (though *not*
+	// strictly) across the lifetime of a protocol instance.
 	//
 	// You may assume that the provided list of attributed observations has been
 	// (1) validated by ValidateObservation on each element, (2) checked
@@ -271,7 +387,8 @@ type ReportingPlugin[RI any] interface {
 	// a ReportingPlugin to modify the replicated KeyValueState. The keyValueStateReadWriter must not be
 	// used outside the execution of this function. (It's okay to use it anywhere in the call tree rooted
 	// at this function and to pass it to separate goroutines, but they must stop using it before this
-	// function returns.)
+	// function returns. Do not call Write or Delete concurrently from multiple goroutines; perform all
+	// writes and deletes from a single goroutine.)
 	//
 	// The blobFetcher enables fetching blobs. It must not be used outside the execution
 	// of this function. (It's okay to use it anywhere in the call tree rooted at this function
@@ -288,12 +405,16 @@ type ReportingPlugin[RI any] interface {
 
 	// Committed notifies the plugin that seqNr has been committed.
 	// It might not be called for all sequence numbers.
-	// This method return an error != nil will not lead to the round being aborted/not committed.
+	// Returning an error != nil from this method will not lead to the round being aborted/not committed.
 	//
 	// Don't do anything slow in here.
 	//
 	// The keyValueStateReader gives read access to the replicated KeyValueState
 	// in the state that it is after the StateTransition for seqNr is computed.
+	// It must not be used outside the execution of this function. (It's okay to
+	// use it anywhere in the call tree rooted at this function and to pass it to
+	// separate goroutines, but they must stop using it before this function
+	// returns.)
 	Committed(
 		ctx context.Context,
 		seqNr uint64,
@@ -351,6 +472,9 @@ type ReportingPlugin[RI any] interface {
 	// needed, e.g. on shutdown of the protocol instance or shutdown of the
 	// oracle node. This will only be called after any calls to other functions
 	// of the plugin have completed.
+	//
+	// See [ReadOnlyKeyValueState] for transaction and goroutine cleanup
+	// requirements that must be satisfied before Close returns.
 	Close() error
 }
 
@@ -380,17 +504,18 @@ const (
 // Messages are checked against these values during (de)serialization. Be
 // careful when changing these values, they could lead to different versions
 // of a ReportingPlugin being unable to communicate with each other.
+//
+// MaxKeyValueModifiedKeys and MaxKeyValueModifiedKeysPlusValuesBytes concern
+// modifications to key-values inside the StateTransition method, rather than
+// returned data. Write(k, v) and Delete(k) count as modifications. A
+// modification that resets the value of a key to its original value at the
+// start of StateTransition will still count towards the limit.
 type ReportingPluginLimits struct {
 	MaxQueryBytes                int
 	MaxObservationBytes          int
 	MaxReportsPlusPrecursorBytes int
 	MaxReportBytes               int
 	MaxReportCount               int
-
-	// These limits concern modifications to key-values inside the
-	// StateTransition method. Write(k, v) and Delete(k) count as modifications.
-	// A modification that resets the value of a key to its original value at
-	// the start of StateTransition will still count towards the limit.
 
 	// MaxKeyValueModifiedKeys upper bounds the number of modified keys inside
 	// the StateTransition method. A key might be modified multiple times within
@@ -420,7 +545,7 @@ type ReportingPluginLimits struct {
 	// multiplying by a factor that accounts for a blob reaping interval in the
 	// tens of seconds.
 	MaxPerOracleUnexpiredBlobCumulativePayloadBytes int
-	// MaxPerOracleUnexpiredBlobCount is upper bounds the number of unreaped
+	// MaxPerOracleUnexpiredBlobCount upper bounds the number of unreaped
 	// blobs from a single oracle. Inbound broadcasts that would violate this
 	// upper bound will be rejected. Due to the asynchronous nature of blob
 	// reaping, an expired blob might not be reaped yet, and thus might still be

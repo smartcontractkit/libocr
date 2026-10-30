@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/smartcontractkit/libocr/offchainreporting2plus/internal/common"
 
@@ -44,7 +45,7 @@ func RunManagedOCR3_1Oracle[RI any](
 	offchainConfigDigester types.OffchainConfigDigester,
 	offchainKeyring types.OffchainKeyring,
 	onchainKeyring ocr3types.OnchainKeyring2[RI],
-	reportingPluginFactory ocr3_1types.ReportingPluginFactory[RI],
+	reportingPluginFactory ocr3_1types.ReportingPluginFactory2[RI],
 ) {
 	subs := subprocesses.Subprocesses{}
 	defer subs.Wait()
@@ -106,6 +107,12 @@ func RunManagedOCR3_1Oracle[RI any](
 			})
 
 			blobEndpointWrapper := protocol.BlobEndpointWrapper{}
+			readOnlyKeyValueStateWrapper := shim.NewReadOnlyKeyValueStateWrapper(childLogger, registerer)
+			// Close releases the goroutine and metrics the wrapper acquired on
+			// construction, on the early returns below as much as on the happy path.
+			// Disabling it, which has to happen between closing the plugin and
+			// closing the database, is deferred separately further down.
+			defer readOnlyKeyValueStateWrapper.Close()
 
 			maxDurationInitialization := sharedConfig.MaxDurationInitialization
 			initCtx, initCancel := context.WithTimeout(ctx, maxDurationInitialization)
@@ -132,18 +139,26 @@ func RunManagedOCR3_1Oracle[RI any](
 				sharedConfig.WarnDurationObservation,
 				sharedConfig.MaxDurationShouldAcceptAttestedReport,
 				sharedConfig.MaxDurationShouldTransmitAcceptedReport,
-			}, &blobEndpointWrapper)
+			}, &blobEndpointWrapper, readOnlyKeyValueStateWrapper)
 
 			ins.Stop()
 
 			if err != nil {
 				return fmt.Errorf("ManagedOCR3_1Oracle: error during NewReportingPlugin(): %w", err), true
 			}
-			defer loghelper.CloseLogError(
-				reportingPlugin,
-				logger,
-				"ManagedOCR3_1Oracle: error during reportingPlugin.Close()",
-			)
+			// Deferred twice: here as a safety net for the early returns below,
+			// and again further down so that on the happy path the plugin closes
+			// before the key value database does. The Once prevents a second
+			// Close, which per the docs may return an error and cause a spurious
+			// warning log.
+			closeLogErrorReportingPluginOnce := sync.OnceFunc(func() {
+				loghelper.CloseLogError(
+					reportingPlugin,
+					logger,
+					"ManagedOCR3_1Oracle: error during reportingPlugin.Close()",
+				)
+			})
+			defer closeLogErrorReportingPluginOnce()
 
 			var reportingPluginInfo ocr3_1types.ReportingPluginInfo1
 			switch rpi := reportingPluginInfo_.(type) {
@@ -270,6 +285,16 @@ func RunManagedOCR3_1Oracle[RI any](
 				"ManagedOCR3_1Oracle: error during semanticOCR3_1KeyValueDatabase.Close()",
 			)
 
+			// Shutdown order, by virtue of the defers below running in reverse:
+			// first the reporting plugin is closed, which is where a well-behaved
+			// plugin stops its goroutines and discards its read transactions;
+			// then the key value state is disabled, which logs and discards any
+			// read transactions a misbehaving plugin leaked; and only then, via
+			// the earlier defers, is the database closed.
+			readOnlyKeyValueStateWrapper.Enable(semanticOCR3_1KeyValueDatabase)
+			defer readOnlyKeyValueStateWrapper.Disable()
+			defer closeLogErrorReportingPluginOnce()
+
 			protocol.RunOracle[RI](
 				ctx,
 				&blobEndpointWrapper,
@@ -285,7 +310,10 @@ func RunManagedOCR3_1Oracle[RI any](
 				netEndpoint,
 				offchainKeyring,
 				onchainKeyring,
-				shim.LimitCheckOCR3_1ReportingPlugin[RI]{reportingPlugin, reportingPluginInfo.Limits},
+				shim.LimitCheckOCR3_1ReportingPlugin[RI]{
+					shim.ContextMarkingOCR3_1ReportingPlugin[RI]{reportingPlugin},
+					reportingPluginInfo.Limits,
+				},
 				shim.NewOCR3_1TelemetrySender(chTelemetrySend, childLogger, localConfig.EnableTransmissionTelemetry),
 			)
 

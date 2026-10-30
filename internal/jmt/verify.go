@@ -227,11 +227,18 @@ func verifySubrangePadded(
 ) error {
 	expectedLeftSiblingsAtDepth := make([]int, bitLength(Digest{}))
 	expectedRightSiblingsAtDepth := make([]int, bitLength(Digest{}))
+	// The bounding leaves' siblings are consumed as we bubble up the layers.
+	// We track the remaining siblings in local variables so that we don't
+	// mutate the caller's bounding leaves. A nil bounding leaf yields an empty
+	// local slice, so below we only need to consult the local slices.
+	var leftSiblings, rightSiblings []Digest
 	if leftBoundingLeafOrNil != nil {
 		expectedLeftSiblingsAtDepth = cumulativeOccurrencesOfBit(leftBoundingLeafOrNil.Leaf.KeyDigest, true)
+		leftSiblings = leftBoundingLeafOrNil.Siblings
 	}
 	if rightBoundingLeafOrNil != nil {
 		expectedRightSiblingsAtDepth = cumulativeOccurrencesOfBit(rightBoundingLeafOrNil.Leaf.KeyDigest, false)
+		rightSiblings = rightBoundingLeafOrNil.Siblings
 	}
 
 	layer := bottommostLayer
@@ -253,10 +260,10 @@ func verifySubrangePadded(
 
 				// Is this the rightmost node in layer?
 				if i+1 == len(layer) {
-					if rightBoundingLeafOrNil != nil && len(rightBoundingLeafOrNil.Siblings) > 0 && expectedRightSiblingsAtDepth[depth] == len(rightBoundingLeafOrNil.Siblings) {
+					if len(rightSiblings) > 0 && expectedRightSiblingsAtDepth[depth] == len(rightSiblings) {
 						// Either our right siblings cover this level.
-						rightSibling = sparseMerkleNode{false, rightBoundingLeafOrNil.Siblings[0]}
-						rightBoundingLeafOrNil.Siblings = rightBoundingLeafOrNil.Siblings[1:]
+						rightSibling = sparseMerkleNode{false, rightSiblings[0]}
+						rightSiblings = rightSiblings[1:]
 					} else {
 						// Or we put a placeholder node.
 						rightSibling = sparseMerkleNode{false, SparseMerklePlaceholderDigest}
@@ -278,10 +285,10 @@ func verifySubrangePadded(
 
 				// Is this the leftmost node in layer?
 				if i == 0 {
-					if leftBoundingLeafOrNil != nil && len(leftBoundingLeafOrNil.Siblings) > 0 && expectedLeftSiblingsAtDepth[depth] == len(leftBoundingLeafOrNil.Siblings) {
+					if len(leftSiblings) > 0 && expectedLeftSiblingsAtDepth[depth] == len(leftSiblings) {
 						// Either our left siblings cover this level.
-						leftSibling = sparseMerkleNode{false, leftBoundingLeafOrNil.Siblings[0]}
-						leftBoundingLeafOrNil.Siblings = leftBoundingLeafOrNil.Siblings[1:]
+						leftSibling = sparseMerkleNode{false, leftSiblings[0]}
+						leftSiblings = leftSiblings[1:]
 					} else {
 						// Or we put a placeholder node.
 						leftSibling = sparseMerkleNode{false, SparseMerklePlaceholderDigest}
@@ -310,11 +317,11 @@ func verifySubrangePadded(
 	if len(layer) != 1 {
 		return fmt.Errorf("unexpectedly ended with a non-singleton layer of %v nodes at the top", len(layer))
 	}
-	if leftBoundingLeafOrNil != nil && len(leftBoundingLeafOrNil.Siblings) != 0 {
-		return fmt.Errorf("unexpectedly ended with left siblings remaining: %v", len(leftBoundingLeafOrNil.Siblings))
+	if len(leftSiblings) != 0 {
+		return fmt.Errorf("unexpectedly ended with left siblings remaining: %v", len(leftSiblings))
 	}
-	if rightBoundingLeafOrNil != nil && len(rightBoundingLeafOrNil.Siblings) != 0 {
-		return fmt.Errorf("unexpectedly ended with right siblings remaining: %v", len(rightBoundingLeafOrNil.Siblings))
+	if len(rightSiblings) != 0 {
+		return fmt.Errorf("unexpectedly ended with right siblings remaining: %v", len(rightSiblings))
 	}
 	if layer[0].sparseMerkleNode.digest != expectedRootDigest {
 		return fmt.Errorf("computed root digest mismatch: computed %x, expected %x", layer[0].sparseMerkleNode.digest, expectedRootDigest)

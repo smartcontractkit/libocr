@@ -1342,6 +1342,9 @@ func (outgen *outcomeGenerationState[RI]) backgroundCheckAttributedSignedObserva
 	if myObservationIncluded {
 		outgen.metrics.includedObservationsTotal.Inc()
 	}
+	for _, aso := range asos {
+		outgen.metrics.theirIncludedObservationsTotal[aso.Observer].Inc()
+	}
 
 	return attributedObservations, true
 }

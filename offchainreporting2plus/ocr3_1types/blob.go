@@ -26,7 +26,7 @@ type BlobBroadcaster interface {
 	// future (e.g. in a query or observation). Note that BroadcastBlob may
 	// return an error, and callers must gracefully handle such an error. Errors
 	// might be transient, and related to resource exhaustion prevention, so
-	// callers are encouranged to employ a backoff when retrying. An error in
+	// callers are encouraged to employ a backoff when retrying. An error in
 	// BroadcastBlob should not cause Observation to error also. BroadcastBlob
 	// is a blocking call, and callers must ensure that it fits into their
 	// runtime envelope.

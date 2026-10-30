@@ -492,6 +492,9 @@ func (outgen *outcomeGenerationState[RI]) backgroundProposalOutcome(
 		if seen[outgen.id] {
 			outgen.metrics.includedObservationsTotal.Inc()
 		}
+		for observer := range seen {
+			outgen.metrics.theirIncludedObservationsTotal[observer].Inc()
+		}
 	}
 
 	outcomeInputsDigest := MakeOutcomeInputsDigest(

@@ -70,7 +70,7 @@ func makePacemakerState[RI any](
 		id:                             id,
 		localConfig:                    localConfig,
 		logger:                         logger.MakeUpdated(commontypes.LogFields{"proto": "pacemaker"}),
-		metrics:                        newPacemakerMetrics(metricsRegisterer, logger),
+		metrics:                        newPacemakerMetrics(metricsRegisterer, logger, config.N()),
 		netSender:                      netSender,
 		offchainKeyring:                offchainKeyring,
 		telemetrySender:                telemetrySender,
@@ -231,6 +231,8 @@ func (pace *pacemakerState[RI]) eventNewEpochRequest() {
 }
 
 func (pace *pacemakerState[RI]) messageNewEpochWish(msg MessageNewEpochWish[RI], sender commontypes.OracleID) {
+	pace.metrics.receivedNewEpochWishesTotal[sender].Inc()
+
 	if pace.newEpochWishes[sender] < msg.Epoch {
 		pace.newEpochWishes[sender] = msg.Epoch
 	}

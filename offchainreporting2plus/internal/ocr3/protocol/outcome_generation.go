@@ -60,7 +60,7 @@ func RunOutcomeGeneration[RI any](
 		id:                                     id,
 		localConfig:                            localConfig,
 		logger:                                 logger.MakeUpdated(commontypes.LogFields{"proto": "outgen"}),
-		metrics:                                newOutcomeGenerationMetrics(metricsRegisterer, logger),
+		metrics:                                newOutcomeGenerationMetrics(metricsRegisterer, logger, config.N()),
 		netSender:                              netSender,
 		offchainKeyring:                        offchainKeyring,
 		reportingPlugin:                        reportingPlugin,

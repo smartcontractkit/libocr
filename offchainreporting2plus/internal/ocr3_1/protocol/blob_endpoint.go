@@ -182,6 +182,11 @@ func (r *RoundBlobBroadcastFetcher) FetchBlob(ctx context.Context, handle ocr3_1
 	blobHandleSumType := blobtypes.ExtractBlobHandleSumType(handle)
 	switch cert := blobHandleSumType.(type) {
 	case *blobtypes.LightCertifiedBlob:
+		// This expiry comparison differs with blobExchangeState.hasBlobExpired
+		// (< here vs <= there) because the latter checks against an
+		// already-committed sequence number, while here we check against the
+		// sequence number that we might commit at the end of the round, but
+		// which we have not already committed.
 		if cert != nil && cert.ExpirySeqNr < r.seqNr {
 			return nil, fmt.Errorf("blob expired")
 		}

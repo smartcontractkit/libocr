@@ -39,14 +39,15 @@ func newAttestedStateTransitionBlocksWrittenTotal(
 }
 
 type pacemakerMetrics struct {
-	registerer             prometheus.Registerer
-	epoch                  prometheus.Gauge
-	leader                 prometheus.Gauge
-	tProgressTimeoutsTotal prometheus.Counter
+	registerer                  prometheus.Registerer
+	epoch                       prometheus.Gauge
+	leader                      prometheus.Gauge
+	tProgressTimeoutsTotal      prometheus.Counter
+	receivedNewEpochWishesTotal []prometheus.Counter
 }
 
 func newPacemakerMetrics(registerer prometheus.Registerer,
-	logger commontypes.Logger) *pacemakerMetrics {
+	logger commontypes.Logger, n int) *pacemakerMetrics {
 
 	epoch := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_1_epoch",
@@ -66,11 +67,24 @@ func newPacemakerMetrics(registerer prometheus.Registerer,
 	})
 	metricshelper.RegisterOrLogError(logger, registerer, tProgressTimeoutsTotal, "ocr3_1_experimental_t_progress_timeouts_total")
 
+	receivedNewEpochWishesTotal := make([]prometheus.Counter, n)
+	for i := range n {
+		receivedNewEpochWishesTotal[i] = prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "ocr3_1_received_new_epoch_wishes_total",
+			Help: "The total number of NewEpochWish messages received from the sender oracle. Note that " +
+				"oracles periodically resend their latest NewEpochWish every DeltaResend. This metric is " +
+				"useful for checking whether the sender oracle is up and participating in the protocol.",
+			ConstLabels: prometheus.Labels{"sender_oracle_id": fmt.Sprint(i)},
+		})
+		metricshelper.RegisterOrLogError(logger, registerer, receivedNewEpochWishesTotal[i], "ocr3_1_received_new_epoch_wishes_total")
+	}
+
 	return &pacemakerMetrics{
 		registerer,
 		epoch,
 		leader,
 		tProgressTimeoutsTotal,
+		receivedNewEpochWishesTotal,
 	}
 }
 
@@ -78,19 +92,23 @@ func (pm *pacemakerMetrics) Close() {
 	pm.registerer.Unregister(pm.epoch)
 	pm.registerer.Unregister(pm.leader)
 	pm.registerer.Unregister(pm.tProgressTimeoutsTotal)
+	for _, c := range pm.receivedNewEpochWishesTotal {
+		pm.registerer.Unregister(c)
+	}
 }
 
 type outcomeGenerationMetrics struct {
-	registerer                 prometheus.Registerer
-	committedSeqNr             prometheus.Gauge
-	sentObservationsTotal      prometheus.Counter
-	includedObservationsTotal  prometheus.Counter
-	ledCommittedRoundsTotal    prometheus.Counter
-	attestedBlocksWrittenTotal prometheus.Counter
+	registerer                     prometheus.Registerer
+	committedSeqNr                 prometheus.Gauge
+	sentObservationsTotal          prometheus.Counter
+	includedObservationsTotal      prometheus.Counter
+	ledCommittedRoundsTotal        prometheus.Counter
+	attestedBlocksWrittenTotal     prometheus.Counter
+	theirIncludedObservationsTotal []prometheus.Counter
 }
 
 func newOutcomeGenerationMetrics(registerer prometheus.Registerer,
-	logger commontypes.Logger) *outcomeGenerationMetrics {
+	logger commontypes.Logger, n int) *outcomeGenerationMetrics {
 
 	committedSeqNr := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "ocr3_1_committed_sequence_number",
@@ -127,6 +145,19 @@ func newOutcomeGenerationMetrics(registerer prometheus.Registerer,
 
 	attestedBlocksWrittenTotal := newAttestedStateTransitionBlocksWrittenTotal(registerer, logger, attestedStateTransitionBlockWriterOutcomeGeneration)
 
+	theirIncludedObservationsTotal := make([]prometheus.Counter, n)
+	for i := range n {
+		theirIncludedObservationsTotal[i] = prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "ocr3_1_their_included_observations_total",
+			Help: "The total number of (valid) observations by the observer oracle included in a proposal " +
+				"from the leader. Note that there is no guarantee that the proposal will actually get " +
+				"committed. This metric is useful for checking whether the observer oracle is able to " +
+				"regularly make observations that are included in proposals.",
+			ConstLabels: prometheus.Labels{"observer_oracle_id": fmt.Sprint(i)},
+		})
+		metricshelper.RegisterOrLogError(logger, registerer, theirIncludedObservationsTotal[i], "ocr3_1_their_included_observations_total")
+	}
+
 	return &outcomeGenerationMetrics{
 		registerer,
 		committedSeqNr,
@@ -134,6 +165,7 @@ func newOutcomeGenerationMetrics(registerer prometheus.Registerer,
 		includedObservationsTotal,
 		ledCommittedRoundsTotal,
 		attestedBlocksWrittenTotal,
+		theirIncludedObservationsTotal,
 	}
 }
 
@@ -143,6 +175,9 @@ func (om *outcomeGenerationMetrics) Close() {
 	om.registerer.Unregister(om.includedObservationsTotal)
 	om.registerer.Unregister(om.ledCommittedRoundsTotal)
 	om.registerer.Unregister(om.attestedBlocksWrittenTotal)
+	for _, c := range om.theirIncludedObservationsTotal {
+		om.registerer.Unregister(c)
+	}
 }
 
 type stateSyncMetrics struct {
@@ -150,10 +185,11 @@ type stateSyncMetrics struct {
 	attestedBlocksWrittenTotal  prometheus.Counter
 	attestedBlocksReplayedTotal prometheus.Counter
 	treeSyncCompletedTotal      prometheus.Counter
+	theirCommittedSeqNr         []prometheus.Gauge
 }
 
 func newStateSyncMetrics(registerer prometheus.Registerer,
-	logger commontypes.Logger) *stateSyncMetrics {
+	logger commontypes.Logger, n int) *stateSyncMetrics {
 
 	attestedBlocksWrittenTotal := newAttestedStateTransitionBlocksWrittenTotal(registerer, logger, attestedStateTransitionBlockWriterStateSync)
 
@@ -169,11 +205,25 @@ func newStateSyncMetrics(registerer prometheus.Registerer,
 	})
 	metricshelper.RegisterOrLogError(logger, registerer, treeSyncCompletedTotal, "ocr3_1_experimental_tree_sync_completed_total")
 
+	theirCommittedSeqNr := make([]prometheus.Gauge, n)
+	for i := range n {
+		theirCommittedSeqNr[i] = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "ocr3_1_their_committed_sequence_number",
+			Help: "The highest committed sequence number reported by the sender oracle in its latest " +
+				"state sync summary. Note that state sync summaries are not authenticated, so a faulty " +
+				"oracle may report arbitrary values. This metric is useful in comparison with " +
+				"ocr3_1_committed_sequence_number to check whether the sender oracle is keeping up.",
+			ConstLabels: prometheus.Labels{"sender_oracle_id": fmt.Sprint(i)},
+		})
+		metricshelper.RegisterOrLogError(logger, registerer, theirCommittedSeqNr[i], "ocr3_1_their_committed_sequence_number")
+	}
+
 	return &stateSyncMetrics{
 		registerer,
 		attestedBlocksWrittenTotal,
 		attestedBlocksReplayedTotal,
 		treeSyncCompletedTotal,
+		theirCommittedSeqNr,
 	}
 }
 
@@ -181,6 +231,9 @@ func (sm *stateSyncMetrics) Close() {
 	sm.registerer.Unregister(sm.attestedBlocksWrittenTotal)
 	sm.registerer.Unregister(sm.attestedBlocksReplayedTotal)
 	sm.registerer.Unregister(sm.treeSyncCompletedTotal)
+	for _, g := range sm.theirCommittedSeqNr {
+		sm.registerer.Unregister(g)
+	}
 }
 
 type blobExchangeMetrics struct {
