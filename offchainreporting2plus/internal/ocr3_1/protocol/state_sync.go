@@ -31,7 +31,7 @@ func RunStateSync[RI any](
 	reportingPlugin ocr3_1types.ReportingPlugin[RI],
 ) {
 
-	metrics := newStateSyncMetrics(metricsRegisterer, logger)
+	metrics := newStateSyncMetrics(metricsRegisterer, logger, config.N())
 	defer metrics.Close()
 
 	subs := subprocesses.Subprocesses{}
@@ -291,6 +291,7 @@ func (stasy *stateSyncState[RI]) messageStateSyncSummary(msg MessageStateSyncSum
 		msg.HighestCommittedSeqNr,
 		time.Now(),
 	}
+	stasy.metrics.theirCommittedSeqNr[sender].Set(float64(msg.HighestCommittedSeqNr))
 	stasy.updateHighestHeardFromSummaries()
 
 	stasy.tryToKickStartSync()

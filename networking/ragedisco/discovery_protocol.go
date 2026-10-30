@@ -129,9 +129,11 @@ func newDiscoveryProtocol(
 }
 
 func (p *discoveryProtocol) Start() error {
-	succeeded := false
+	// Armed only once we've transitioned to started, so that a rejected Start()
+	// never tears down a discoveryProtocol that someone else started.
+	needsTeardown := false
 	defer func() {
-		if !succeeded {
+		if needsTeardown {
 			p.Close()
 		}
 	}()
@@ -142,6 +144,7 @@ func (p *discoveryProtocol) Start() error {
 		return fmt.Errorf("cannot start discoveryProtocol that is not unstarted, state was: %v", p.state)
 	}
 	p.state = discoveryProtocolStarted
+	needsTeardown = true
 
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -153,7 +156,7 @@ func (p *discoveryProtocol) Start() error {
 	p.processes.Go(p.sendLoop)
 	p.processes.Go(p.saveLoop)
 	p.processes.Go(p.statusReportLoop)
-	succeeded = true
+	needsTeardown = false
 	return nil
 }
 

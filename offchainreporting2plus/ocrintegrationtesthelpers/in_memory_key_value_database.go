@@ -248,28 +248,32 @@ func (tx *inMemoryReadWriteTransaction) Range(loKey []byte, hiKeyExcl []byte) oc
 			nil,
 			nil,
 			nil,
+			nil,
 		}
 	}
 
 	ctx, cancel := context.WithCancel(tx.ctx)
 	ch := make(chan item)
+	done := make(chan struct{})
 	// Btree is not safe to share across goroutines with concurrent writes. We
 	// intentionally do not clone because as per the
-	// ocr3_1types.KeyValueDatabaseIterator interface, users must not write or
-	// delete keys while an iterator is opened. We want this to cause a nil
-	// dereference, panic, or other problematic behavior, so that we'll know we
-	// misuse the interface in protocol code.
+	// ocr3_1types.KeyValueDatabaseReadTransaction.Range contract, users must
+	// not write or delete keys while an iterator is opened. We want this to
+	// cause a nil dereference, panic, or other problematic behavior, so that
+	// we'll know we misuse the interface in protocol code.
 	tree := tx.updatedTree
 
 	iter := &inMemoryRangeIterator{
 		nil,
 		cancel,
+		done,
 		ch,
 		tx,
 		nil,
 	}
 
 	tx.db.subs.Go(func() {
+		defer close(done)
 		defer close(ch)
 		tree.AscendGreaterOrEqual(item{loKey, nil}, func(i item) bool {
 			if len(hiKeyExcl) > 0 && bytes.Compare(i.key, hiKeyExcl) >= 0 {
@@ -290,8 +294,13 @@ func (tx *inMemoryReadWriteTransaction) Range(loKey []byte, hiKeyExcl []byte) oc
 type inMemoryRangeIterator struct {
 	err    error
 	cancel context.CancelFunc
-	ch     chan item
-	tx     *inMemoryReadWriteTransaction
+	// done is closed once the iterator goroutine has stopped touching the
+	// tree. Close waits for it, so that after Close returns the iterator
+	// holds no resources anymore, and e.g. writes/deletes to the transaction
+	// may safely resume.
+	done chan struct{}
+	ch   chan item
+	tx   *inMemoryReadWriteTransaction
 
 	currentKey []byte
 }
@@ -301,6 +310,9 @@ var _ ocr3_1types.KeyValueDatabaseIterator = &inMemoryRangeIterator{}
 func (i *inMemoryRangeIterator) Close() error {
 	if i.cancel != nil {
 		i.cancel()
+	}
+	if i.done != nil {
+		<-i.done
 	}
 	return nil
 }
@@ -345,13 +357,16 @@ func (tx *inMemoryReadWriteTransaction) Commit() error {
 	}
 	defer tx.db.rwSerializationLock.Unlock()
 
-	if err := tx.db.commit(tx.updatedTree); err != nil {
-		return err
-	}
-
+	// Discard the transaction regardless of the commit outcome, as the Pebble
+	// implementation does. Otherwise a failed commit would leave the
+	// transaction looking live, and a subsequent Discard would release
+	// rwSerializationLock a second time, which is a fatal "unlock of unlocked
+	// mutex".
+	updatedTree := tx.updatedTree
 	tx.updatedTree = nil
 	tx.cancel()
-	return nil
+
+	return tx.db.commit(updatedTree)
 }
 
 func (tx *inMemoryReadWriteTransaction) Delete(key []byte) error {

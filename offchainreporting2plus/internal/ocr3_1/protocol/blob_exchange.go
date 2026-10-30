@@ -682,6 +682,8 @@ func (bex *blobExchangeState[RI]) eventHighestCommittedSeqNr(highestCommittedSeq
 }
 
 func (bex *blobExchangeState[RI]) hasBlobExpired(expirySeqNr uint64) bool {
+	// Expiration semantics: Once the blob's ExpirySeqNr is committed, oracles
+	// are not obliged to carry the blob anymore.
 	return expirySeqNr <= bex.highestCommittedSeqNr
 }
 

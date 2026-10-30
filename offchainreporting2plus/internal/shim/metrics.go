@@ -159,3 +159,124 @@ func (m *keyValueDatabaseMetrics) Close() {
 	m.registerer.Unregister(m.committedReadWriteTransactionsTotal)
 	m.registerer.Unregister(m.discardedReadWriteTransactionsTotal)
 }
+
+type readOnlyKeyValueStateMetrics struct {
+	registerer                   prometheus.Registerer
+	oldestOpenTransactionAge     prometheus.GaugeFunc
+	openedTransactionsTotal      prometheus.Counter
+	discardedTransactionsTotal   prometheus.Counter
+	refusedInsidePluginCallTotal prometheus.Counter
+	refusedUnavailableTotal      prometheus.Counter
+	transactionOpeningDuration   prometheus.Histogram
+	transactionAgeAtDiscard      prometheus.Histogram
+	transactionReads             prometheus.Histogram
+	transactionReadBytes         prometheus.Histogram
+}
+
+func newReadOnlyKeyValueStateMetrics(
+	registerer prometheus.Registerer,
+	logger commontypes.Logger,
+	oldestOpenTransactionAgeSeconds func() float64,
+) *readOnlyKeyValueStateMetrics {
+	// The number that predicts trouble. A read transaction keeps the database
+	// from reclaiming the versions of the data it can still see, and that cost
+	// is driven by how long the oldest one has been open rather than by how many
+	// are open.
+	oldestOpenTransactionAge := prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "ocr3_1_read_only_key_value_state_oldest_open_transaction_age_seconds",
+		Help: "Seconds since creation of the oldest KeyValueStateReadTransaction returned by " +
+			"ReadOnlyKeyValueState.NewReadTransaction that has not been discarded. Zero if none.",
+	}, oldestOpenTransactionAgeSeconds)
+	metricshelper.RegisterOrLogError(logger, registerer, oldestOpenTransactionAge, "ocr3_1_read_only_key_value_state_oldest_open_transaction_age_seconds")
+
+	openedTransactionsTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_read_only_key_value_state_opened_transactions_total",
+		Help: "The number of successful ReadOnlyKeyValueState.NewReadTransaction calls. Subtract " +
+			"ocr3_1_read_only_key_value_state_discarded_transactions_total for matching label sets to obtain the number currently open.",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, openedTransactionsTotal, "ocr3_1_read_only_key_value_state_opened_transactions_total")
+
+	discardedTransactionsTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "ocr3_1_read_only_key_value_state_discarded_transactions_total",
+		Help: "The number of transactions returned by ReadOnlyKeyValueState.NewReadTransaction that have been " +
+			"discarded through KeyValueStateReadTransaction.Discard. " +
+			"Repeated Discard calls count once.",
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, discardedTransactionsTotal, "ocr3_1_read_only_key_value_state_discarded_transactions_total")
+
+	// The vec itself is deliberately not kept: the per-reason counters are all
+	// the callers need, and unregistering any one of them unregisters the vec,
+	// see Close.
+	refusedTransactionsTotal := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "ocr3_1_read_only_key_value_state_refused_transactions_total",
+		Help: "The number of ReadOnlyKeyValueState.NewReadTransaction calls returning an error, labeled by reason: " +
+			"inside_plugin_call for use from a prohibited ReportingPlugin method, " +
+			"unavailable for unavailable state or failure to create a transaction.",
+	}, []string{"reason"})
+	metricshelper.RegisterOrLogError(logger, registerer, refusedTransactionsTotal, "ocr3_1_read_only_key_value_state_refused_transactions_total")
+
+	transactionOpeningDuration := prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "ocr3_1_experimental_read_only_key_value_state_transaction_opening_duration_seconds",
+		Help: "The duration in seconds of successful ReadOnlyKeyValueState.NewReadTransaction calls. " +
+			"Calls returning an error are excluded.",
+		// Explicit boundaries keep integer-second le labels exact.
+		Buckets: []float64{1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10},
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, transactionOpeningDuration, "ocr3_1_experimental_read_only_key_value_state_transaction_opening_duration_seconds")
+
+	transactionAgeAtDiscard := prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "ocr3_1_experimental_read_only_key_value_state_transaction_age_at_discard_seconds",
+		Help: "The age in seconds of each KeyValueStateReadTransaction returned by ReadOnlyKeyValueState.NewReadTransaction " +
+			"when discarded. Observed once per transaction on KeyValueStateReadTransaction.Discard.",
+		Buckets: []float64{1e-4, 1e-3, 1e-2, 1e-1, 1, 2, 5, 10, 100, 1000},
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, transactionAgeAtDiscard, "ocr3_1_experimental_read_only_key_value_state_transaction_age_at_discard_seconds")
+
+	transactionReads := prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "ocr3_1_experimental_read_only_key_value_state_transaction_reads",
+		Help: "The number of Read calls on each KeyValueStateReadTransaction returned by ReadOnlyKeyValueState.NewReadTransaction " +
+			"before discard, including errors and missing keys. Observed once on KeyValueStateReadTransaction.Discard. " +
+			"Calls after discard are excluded.",
+		Buckets: append([]float64{0}, prometheus.ExponentialBuckets(1, 10, 6)...),
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, transactionReads, "ocr3_1_experimental_read_only_key_value_state_transaction_reads")
+
+	transactionReadBytes := prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: "ocr3_1_experimental_read_only_key_value_state_transaction_read_bytes",
+		Help: "The sum of value lengths in bytes returned without error by Read on each KeyValueStateReadTransaction " +
+			"returned by ReadOnlyKeyValueState.NewReadTransaction. Repeated reads count separately. Observed once on " +
+			"KeyValueStateReadTransaction.Discard.",
+		Buckets: []float64{0, 100, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9},
+	})
+	metricshelper.RegisterOrLogError(logger, registerer, transactionReadBytes, "ocr3_1_experimental_read_only_key_value_state_transaction_read_bytes")
+
+	return &readOnlyKeyValueStateMetrics{
+		registerer,
+		oldestOpenTransactionAge,
+		openedTransactionsTotal,
+		discardedTransactionsTotal,
+		refusedTransactionsTotal.WithLabelValues("inside_plugin_call"),
+		refusedTransactionsTotal.WithLabelValues("unavailable"),
+		transactionOpeningDuration,
+		transactionAgeAtDiscard,
+		transactionReads,
+		transactionReadBytes,
+	}
+}
+
+func (m *readOnlyKeyValueStateMetrics) Close() {
+	m.registerer.Unregister(m.oldestOpenTransactionAge)
+	m.registerer.Unregister(m.openedTransactionsTotal)
+	m.registerer.Unregister(m.discardedTransactionsTotal)
+	m.registerer.Unregister(m.transactionOpeningDuration)
+	m.registerer.Unregister(m.transactionAgeAtDiscard)
+	m.registerer.Unregister(m.transactionReads)
+	m.registerer.Unregister(m.transactionReadBytes)
+	// A child of a vec describes the vec's descriptor, and prometheus.Registerer
+	// documents that Unregister matches collectors by the descriptors they
+	// describe. So unregistering the first child unregisters the whole vec, and
+	// the remaining ones are no-ops. Unregistering all of them keeps this
+	// method oblivious to which is which.
+	m.registerer.Unregister(m.refusedInsidePluginCallTotal)
+	m.registerer.Unregister(m.refusedUnavailableTotal)
+}

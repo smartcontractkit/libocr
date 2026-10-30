@@ -132,9 +132,11 @@ func newOCREndpointV3(
 
 // Start the ocrEndpointV3. Called once at the end of the initialization code.
 func (o *ocrEndpointV3) start() error {
-	succeeded := false
+	// Armed only once we've transitioned to started, so that a rejected start()
+	// never tears down an ocrEndpointV3 that someone else started.
+	needsTeardown := false
 	defer func() {
-		if !succeeded {
+		if needsTeardown {
 			o.Close()
 		}
 	}()
@@ -146,6 +148,7 @@ func (o *ocrEndpointV3) start() error {
 		return fmt.Errorf("cannot start ocrEndpointV3 that is not unstarted, state was: %d", o.state)
 	}
 	o.state = ocrEndpointStarted
+	needsTeardown = true
 
 	for oid, pid := range o.peerMapping {
 		if oid == o.ownOracleID {
@@ -209,7 +212,7 @@ func (o *ocrEndpointV3) start() error {
 	})
 
 	o.logger.Info("OCREndpointV3: Started listening", nil)
-	succeeded = true
+	needsTeardown = false
 	return nil
 }
 

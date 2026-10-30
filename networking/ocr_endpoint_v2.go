@@ -148,9 +148,11 @@ func streamNameFromConfigDigest(cd ocr2types.ConfigDigest) string {
 
 // Start the ocrEndpointV2. Should only be called once.
 func (o *ocrEndpointV2) Start() error {
-	succeeded := false
+	// Armed only once we've transitioned to started, so that a rejected Start()
+	// never tears down an ocrEndpointV2 that someone else started.
+	needsTeardown := false
 	defer func() {
-		if !succeeded {
+		if needsTeardown {
 			o.Close()
 		}
 	}()
@@ -162,6 +164,7 @@ func (o *ocrEndpointV2) Start() error {
 		return fmt.Errorf("cannot start ocrEndpointV2 that is not unstarted, state was: %d", o.state)
 	}
 	o.state = ocrEndpointStarted
+	needsTeardown = true
 
 	for oid, pid := range o.peerMapping {
 		if oid == o.ownOracleID {
@@ -199,7 +202,7 @@ func (o *ocrEndpointV2) Start() error {
 	})
 
 	o.logger.Info("OCREndpointV2: Started listening", nil)
-	succeeded = true
+	needsTeardown = false
 	return nil
 }
 

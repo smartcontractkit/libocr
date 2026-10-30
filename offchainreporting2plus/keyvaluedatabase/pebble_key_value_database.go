@@ -23,8 +23,6 @@ const (
 	pebbleBetterDefaultMaxMemTableSize = 64 << 20 // 64 MiB
 )
 
-var ErrPebbleReadWriteTransactionAlreadyOpen = errors.New("a read-write transaction is already open")
-
 // NewPebbleKeyValueDatabaseFactory produces a
 // [ocr3_1types.KeyValueDatabaseFactory] that creates Pebble databases under
 // the directory indicated by baseDir. The directory must exist and be
@@ -111,8 +109,6 @@ func (p *pebbleKeyValueDatabase) Close() error {
 	})
 	return err
 }
-
-// The resulting transaction is NOT thread-safe.
 
 func (p *pebbleKeyValueDatabase) NewReadTransaction() (ocr3_1types.KeyValueDatabaseReadTransaction, error) {
 	snapshot := p.db.NewSnapshot()
