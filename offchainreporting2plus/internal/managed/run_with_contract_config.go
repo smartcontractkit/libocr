@@ -182,16 +182,16 @@ func retryOnError(ctx context.Context, logger loghelper.LoggerWithContext, retry
 		// in every log line logged from fn.
 		err, retry := fn(ctx, logger, contractConfig)
 		if err == nil {
-			retryLogger.Info("runWithContractConfig: function exited without error. not retrying", nil)
+			retryLogger.Info("runWithContractConfig: function exited without error, not retrying", nil)
 			return
 		}
 		if !retry {
-			retryLogger.ErrorIfNotCanceled("runWithContractConfig: function exited with non-retriable error. not retrying", ctx, commontypes.LogFields{
+			retryLogger.ErrorIfNotCanceled("runWithContractConfig: function exited with non-retryable error, not retrying", ctx, commontypes.LogFields{
 				"error": err,
 			})
 			return
 		}
-		retryLogger.ErrorIfNotCanceled("runWithContractConfig: function returned error. sleeping before retrying", ctx, commontypes.LogFields{
+		retryLogger.ErrorIfNotCanceled("runWithContractConfig: function returned error, sleeping before retrying", ctx, commontypes.LogFields{
 			"error": err,
 			"sleep": sleep.String(),
 		})
@@ -199,7 +199,7 @@ func retryOnError(ctx context.Context, logger loghelper.LoggerWithContext, retry
 		select {
 		case <-time.After(sleep):
 		case <-ctx.Done():
-			retryLogger.Info("runWithContractConfig: context expired while sleeping before retrying. not retrying", nil)
+			retryLogger.Info("runWithContractConfig: context expired while sleeping before retrying, not retrying", nil)
 			return
 		}
 

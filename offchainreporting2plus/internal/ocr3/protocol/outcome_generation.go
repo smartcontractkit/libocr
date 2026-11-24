@@ -167,20 +167,21 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		false,
 		nil,
 		nil,
-		nil,
+
+		pool.NewPool[SignedObservation](0),
 		nil,
 	}
 
 	outgen.followerState = followerState[RI]{
 		outgenFollowerPhaseUnknown,
 		nil,
+		pool.NewPool[MessageRoundStart[RI]](0),
 		nil,
-		nil,
-		nil,
+		pool.NewPool[MessageProposal[RI]](0),
 		outcomeAndDigests{},
 		restoredCert,
-		nil,
-		nil,
+		pool.NewPool[PrepareSignature](0),
+		pool.NewPool[CommitSignature](0),
 	}
 
 	outgen.sharedState = sharedState{
@@ -233,7 +234,12 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 
 func (outgen *outcomeGenerationState[RI]) messageToOutcomeGeneration(msg MessageToOutcomeGenerationWithSender[RI]) {
 	msgEpoch := msg.msg.epoch()
-	if msgEpoch < outgen.sharedState.e {
+	if msgEpoch == 0 {
+
+		outgen.logger.Warn("dropping message for epoch 0", commontypes.LogFields{
+			"sender": msg.sender,
+		})
+	} else if msgEpoch < outgen.sharedState.e {
 		// drop
 		outgen.logger.Debug("dropping message for past epoch", commontypes.LogFields{
 			"epoch":    outgen.sharedState.e,

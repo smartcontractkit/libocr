@@ -10,6 +10,9 @@ type BlobHandle = blobtypes.BlobHandle
 
 //go-sumtype:decl BlobExpirationHint
 
+// BlobExpirationHint must be a BlobExpirationHintSequenceNumber value.
+// Anything else, including nil or a pointer to
+// BlobExpirationHintSequenceNumber, causes a panic.
 type BlobExpirationHint interface {
 	isBlobExpirationHint()
 }

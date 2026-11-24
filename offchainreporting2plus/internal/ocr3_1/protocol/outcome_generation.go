@@ -233,7 +233,8 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		false,
 		nil,
 		nil,
-		nil,
+
+		pool.NewPool[SignedObservation](0),
 		nil,
 	}
 
@@ -241,14 +242,14 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 		outgenFollowerPhaseUnknown,
 		nil,
 		false,
+		pool.NewPool[MessageRoundStart[RI]](0),
 		nil,
-		nil,
-		nil,
+		pool.NewPool[MessageProposal[RI]](0),
 		stateTransitionInfoDigests{},
 		nil,
 		restoredCert,
-		nil,
-		nil,
+		pool.NewPool[PrepareSignature](0),
+		pool.NewPool[CommitSignature](0),
 	}
 
 	outgen.sharedState = sharedState{
@@ -312,7 +313,12 @@ func (outgen *outcomeGenerationState[RI]) run(restoredCert CertifiedPrepareOrCom
 
 func (outgen *outcomeGenerationState[RI]) messageToOutcomeGeneration(msg MessageToOutcomeGenerationWithSender[RI]) {
 	msgEpoch := msg.msg.epoch()
-	if msgEpoch < outgen.sharedState.e {
+	if msgEpoch == 0 {
+
+		outgen.logger.Warn("dropping message for epoch 0", commontypes.LogFields{
+			"sender": msg.sender,
+		})
+	} else if msgEpoch < outgen.sharedState.e {
 		// drop
 		outgen.logger.Debug("dropping message for past epoch", commontypes.LogFields{
 			"epoch":    outgen.sharedState.e,
@@ -519,7 +525,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 			return
 		}
 		if committedKVSeqNr+1 != commitQC.CommitSeqNr {
-			outgen.logger.Debug("commit qc seq nr quite ahead from committed kv seq nr, can't do anything", commontypes.LogFields{
+			outgen.logger.Debug("commit qc seq nr too far ahead of committed kv seq nr, can't do anything", commontypes.LogFields{
 				"committedKVSeqNr": committedKVSeqNr,
 				"commitQCSeqNr":    commitQC.CommitSeqNr,
 			})
@@ -554,7 +560,7 @@ func (outgen *outcomeGenerationState[RI]) tryToMoveCertAndKVStateToCommitQC(comm
 	}
 
 	if commitQC.CommitSeqNr != committedKVSeqNr+1 {
-		outgen.logger.Debug("commit qc seq nr quite ahead from committed kv seq nr, can't do anything", commontypes.LogFields{
+		outgen.logger.Debug("commit qc seq nr too far ahead of committed kv seq nr, can't do anything", commontypes.LogFields{
 			"committedKVSeqNr": committedKVSeqNr,
 			"commitQCSeqNr":    commitQC.CommitSeqNr,
 		})

@@ -372,7 +372,7 @@ func (c *PublicConfig) MinRoundInterval() time.Duration {
 
 func (c *PublicConfig) CheckParameterBounds() error {
 	if c.F < 0 || c.F > math.MaxUint8 {
-		return errors.Errorf("number of potentially faulty oracles must fit in 8 bits.")
+		return errors.Errorf("number of potentially faulty oracles must fit in 8 bits")
 	}
 	return nil
 }
@@ -384,7 +384,7 @@ func PublicConfigFromContractConfig(skipInsaneForProductionChecks bool, change t
 
 func publicConfigFromContractConfig(skipInsaneForProductionChecks bool, change types.ContractConfig) (PublicConfig, config.SharedSecretEncryptions, error) {
 	if change.OffchainConfigVersion != config.OCR3_1OffchainConfigVersion {
-		return PublicConfig{}, config.SharedSecretEncryptions{}, fmt.Errorf("unsuppported OffchainConfigVersion %v, supported OffchainConfigVersion is %v", change.OffchainConfigVersion, config.OCR3_1OffchainConfigVersion)
+		return PublicConfig{}, config.SharedSecretEncryptions{}, fmt.Errorf("unsupported OffchainConfigVersion %v, supported OffchainConfigVersion is %v", change.OffchainConfigVersion, config.OCR3_1OffchainConfigVersion)
 	}
 
 	oc, err := deserializeOffchainConfig(change.OffchainConfig)

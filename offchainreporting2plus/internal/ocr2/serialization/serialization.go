@@ -261,7 +261,7 @@ func messageWrapperFromProtoMessage(wrapper *MessageWrapper) (protocol.Message, 
 
 func messageNewEpochFromProtoMessage(m *MessageNewEpoch) (protocol.MessageNewEpoch, error) {
 	if m == nil {
-		return protocol.MessageNewEpoch{}, fmt.Errorf("unable to extract a MessageNewEpoch value")
+		return protocol.MessageNewEpoch{}, fmt.Errorf("unable to extract MessageNewEpoch value")
 	}
 	return protocol.MessageNewEpoch{
 		uint32(m.Epoch),
@@ -270,7 +270,7 @@ func messageNewEpochFromProtoMessage(m *MessageNewEpoch) (protocol.MessageNewEpo
 
 func messageObserveReqFromProtoMessage(m *MessageObserveReq) (protocol.MessageObserveReq, error) {
 	if m == nil {
-		return protocol.MessageObserveReq{}, fmt.Errorf("unable to extract a MessageObserveReq value")
+		return protocol.MessageObserveReq{}, fmt.Errorf("unable to extract MessageObserveReq value")
 	}
 	return protocol.MessageObserveReq{
 		uint32(m.Epoch),
@@ -281,7 +281,7 @@ func messageObserveReqFromProtoMessage(m *MessageObserveReq) (protocol.MessageOb
 
 func messageObserveFromProtoMessage(m *MessageObserve) (protocol.MessageObserve, error) {
 	if m == nil {
-		return protocol.MessageObserve{}, fmt.Errorf("unable to extract a MessageObserve value")
+		return protocol.MessageObserve{}, fmt.Errorf("unable to extract MessageObserve value")
 	}
 	so, err := signedObservationFromProtoMessage(m.SignedObservation)
 	if err != nil {
@@ -296,7 +296,7 @@ func messageObserveFromProtoMessage(m *MessageObserve) (protocol.MessageObserve,
 
 func messageReportReqFromProtoMessage(m *MessageReportReq) (protocol.MessageReportReq, error) {
 	if m == nil {
-		return protocol.MessageReportReq{}, fmt.Errorf("unable to extract a MessageReportReq value")
+		return protocol.MessageReportReq{}, fmt.Errorf("unable to extract MessageReportReq value")
 	}
 	asos, err := attributedSignedObservationsFromProtoMessage(m.AttributedSignedObservations)
 	if err != nil {
@@ -312,7 +312,7 @@ func messageReportReqFromProtoMessage(m *MessageReportReq) (protocol.MessageRepo
 
 func attestedReportOneFromProtoMessage(m *AttestedReportOne) (protocol.AttestedReportOne, error) {
 	if m == nil {
-		return protocol.AttestedReportOne{}, fmt.Errorf("unable to extract a AttestedReportOne value")
+		return protocol.AttestedReportOne{}, fmt.Errorf("unable to extract AttestedReportOne value")
 	}
 
 	return protocol.AttestedReportOne{
@@ -324,7 +324,7 @@ func attestedReportOneFromProtoMessage(m *AttestedReportOne) (protocol.AttestedR
 
 func messageReportFromProtoMessage(m *MessageReport) (protocol.MessageReport, error) {
 	if m == nil {
-		return protocol.MessageReport{}, fmt.Errorf("unable to extract a MessageReport value")
+		return protocol.MessageReport{}, fmt.Errorf("unable to extract MessageReport value")
 	}
 
 	report, err := attestedReportOneFromProtoMessage(m.AttestedReport)
@@ -341,13 +341,13 @@ func messageReportFromProtoMessage(m *MessageReport) (protocol.MessageReport, er
 
 func attestedReportManyFromProtoMessage(m *AttestedReportMany) (protocol.AttestedReportMany, error) {
 	if m == nil {
-		return protocol.AttestedReportMany{}, fmt.Errorf("unable to extract a AttestedReportMany value")
+		return protocol.AttestedReportMany{}, fmt.Errorf("unable to extract AttestedReportMany value")
 	}
 
 	ass := make([]types.AttributedOnchainSignature, 0, len(m.AttributedSignatures))
 	for i, as := range m.AttributedSignatures {
 		if as == nil {
-			return protocol.AttestedReportMany{}, fmt.Errorf("unable to extract a AttestedReportMany value because AttributedSignatures[%v] is nil", i)
+			return protocol.AttestedReportMany{}, fmt.Errorf("unable to extract AttestedReportMany value because AttributedSignatures[%v] is nil", i)
 		}
 		ass = append(ass, types.AttributedOnchainSignature{
 			as.Signature,
@@ -363,7 +363,7 @@ func attestedReportManyFromProtoMessage(m *AttestedReportMany) (protocol.Atteste
 
 func messageFinalFromProtoMessage(m *MessageFinal) (protocol.MessageFinal, error) {
 	if m == nil {
-		return protocol.MessageFinal{}, fmt.Errorf("unable to extract a MessageFinal value")
+		return protocol.MessageFinal{}, fmt.Errorf("unable to extract MessageFinal value")
 	}
 	report, err := attestedReportManyFromProtoMessage(m.AttestedReport)
 	if err != nil {
@@ -384,7 +384,7 @@ func messageFinalFromProtoMessage(m *MessageFinal) (protocol.MessageFinal, error
 
 func messageFinalEchoFromProtoMessage(m *MessageFinalEcho) (protocol.MessageFinalEcho, error) {
 	if m == nil {
-		return protocol.MessageFinalEcho{}, fmt.Errorf("unable to extract a MessageFinalEcho value")
+		return protocol.MessageFinalEcho{}, fmt.Errorf("unable to extract MessageFinalEcho value")
 	}
 	final, err := messageFinalFromProtoMessage(m.Final)
 	if err != nil {
@@ -407,7 +407,7 @@ func attributedSignedObservationsFromProtoMessage(pbasos []*AttributedSignedObse
 
 func attributedSignedObservationFromProtoMessage(m *AttributedSignedObservation) (protocol.AttributedSignedObservation, error) {
 	if m == nil {
-		return protocol.AttributedSignedObservation{}, fmt.Errorf("unable to extract an AttributedSignedObservation value")
+		return protocol.AttributedSignedObservation{}, fmt.Errorf("unable to extract AttributedSignedObservation value")
 	}
 
 	signedObservation, err := signedObservationFromProtoMessage(m.SignedObservation)
@@ -423,7 +423,7 @@ func attributedSignedObservationFromProtoMessage(m *AttributedSignedObservation)
 
 func signedObservationFromProtoMessage(m *SignedObservation) (protocol.SignedObservation, error) {
 	if m == nil {
-		return protocol.SignedObservation{}, fmt.Errorf("unable to extract an SignedObservation value")
+		return protocol.SignedObservation{}, fmt.Errorf("unable to extract SignedObservation value")
 	}
 
 	return protocol.SignedObservation{

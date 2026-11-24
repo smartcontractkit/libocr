@@ -1711,7 +1711,7 @@ func (bex *blobExchangeState[RI]) processBlobFetchRequest(req blobFetchRequest) 
 	}
 
 	if bex.hasBlobExpired(cert.ExpirySeqNr) {
-		req.respond(bex.ctx, blobFetchResponse{nil, fmt.Errorf("blob expired")})
+		req.respond(bex.ctx, blobFetchResponse{nil, errBlobExpired})
 		return
 	}
 

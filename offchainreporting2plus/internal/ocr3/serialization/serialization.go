@@ -472,7 +472,7 @@ func (fpm *fromProtoMessage[RI]) messageWrapper(wrapper *MessageWrapper) (protoc
 
 func (fpm *fromProtoMessage[RI]) messageNewEpochWish(m *MessageNewEpochWish) (protocol.MessageNewEpochWish[RI], error) {
 	if m == nil {
-		return protocol.MessageNewEpochWish[RI]{}, fmt.Errorf("unable to extract a MessageNewEpochWish value")
+		return protocol.MessageNewEpochWish[RI]{}, fmt.Errorf("unable to extract MessageNewEpochWish value")
 	}
 	return protocol.MessageNewEpochWish[RI]{
 		m.Epoch,
@@ -481,7 +481,7 @@ func (fpm *fromProtoMessage[RI]) messageNewEpochWish(m *MessageNewEpochWish) (pr
 
 func (fpm *fromProtoMessage[RI]) messageEpochStartRequest(m *MessageEpochStartRequest) (protocol.MessageEpochStartRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageEpochStartRequest[RI]{}, fmt.Errorf("unable to extract a MessageEpochStartRequest value")
+		return protocol.MessageEpochStartRequest[RI]{}, fmt.Errorf("unable to extract MessageEpochStartRequest value")
 	}
 	hc, err := fpm.certifiedPrepareOrCommit(m.HighestCertified)
 	if err != nil {
@@ -500,7 +500,7 @@ func (fpm *fromProtoMessage[RI]) messageEpochStartRequest(m *MessageEpochStartRe
 
 func (fpm *fromProtoMessage[RI]) messageEpochStart(m *MessageEpochStart) (protocol.MessageEpochStart[RI], error) {
 	if m == nil {
-		return protocol.MessageEpochStart[RI]{}, fmt.Errorf("unable to extract a MessageEpochStart value")
+		return protocol.MessageEpochStart[RI]{}, fmt.Errorf("unable to extract MessageEpochStart value")
 	}
 	srqc, err := fpm.epochStartProof(m.EpochStartProof)
 	if err != nil {
@@ -515,7 +515,7 @@ func (fpm *fromProtoMessage[RI]) messageEpochStart(m *MessageEpochStart) (protoc
 
 func (fpm *fromProtoMessage[RI]) messageProposal(m *MessageProposal) (protocol.MessageProposal[RI], error) {
 	if m == nil {
-		return protocol.MessageProposal[RI]{}, fmt.Errorf("unable to extract a MessageProposal value")
+		return protocol.MessageProposal[RI]{}, fmt.Errorf("unable to extract MessageProposal value")
 	}
 	asos, err := fpm.attributedSignedObservations(m.AttributedSignedObservations)
 	if err != nil {
@@ -531,7 +531,7 @@ func (fpm *fromProtoMessage[RI]) messageProposal(m *MessageProposal) (protocol.M
 
 func (fpm *fromProtoMessage[RI]) messagePrepare(m *MessagePrepare) (protocol.MessagePrepare[RI], error) {
 	if m == nil {
-		return protocol.MessagePrepare[RI]{}, fmt.Errorf("unable to extract a MessagePrepare value")
+		return protocol.MessagePrepare[RI]{}, fmt.Errorf("unable to extract MessagePrepare value")
 	}
 	return protocol.MessagePrepare[RI]{
 		m.Epoch,
@@ -542,7 +542,7 @@ func (fpm *fromProtoMessage[RI]) messagePrepare(m *MessagePrepare) (protocol.Mes
 
 func (fpm *fromProtoMessage[RI]) messageCommit(m *MessageCommit) (protocol.MessageCommit[RI], error) {
 	if m == nil {
-		return protocol.MessageCommit[RI]{}, fmt.Errorf("unable to extract a MessageCommit value")
+		return protocol.MessageCommit[RI]{}, fmt.Errorf("unable to extract MessageCommit value")
 	}
 	return protocol.MessageCommit[RI]{
 		m.Epoch,
@@ -553,7 +553,7 @@ func (fpm *fromProtoMessage[RI]) messageCommit(m *MessageCommit) (protocol.Messa
 
 func (fpm *fromProtoMessage[RI]) certifiedPrepareOrCommit(m *CertifiedPrepareOrCommit) (protocol.CertifiedPrepareOrCommit, error) {
 	if m == nil {
-		return nil, fmt.Errorf("unable to extract a CertifiedPrepareOrCommit value")
+		return nil, fmt.Errorf("unable to extract CertifiedPrepareOrCommit value")
 	}
 	switch poc := m.PrepareOrCommit.(type) {
 	case *CertifiedPrepareOrCommit_Prepare:
@@ -575,7 +575,7 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepareOrCommit(m *CertifiedPrepareOrC
 
 func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol.CertifiedPrepare, error) {
 	if m == nil {
-		return protocol.CertifiedPrepare{}, fmt.Errorf("unable to extract a CertifiedPrepare value")
+		return protocol.CertifiedPrepare{}, fmt.Errorf("unable to extract CertifiedPrepare value")
 	}
 	var outcomeInputsDigest protocol.OutcomeInputsDigest
 	copy(outcomeInputsDigest[:], m.OutcomeInputsDigest)
@@ -602,7 +602,7 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol
 
 func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.CertifiedCommit, error) {
 	if m == nil {
-		return protocol.CertifiedCommit{}, fmt.Errorf("unable to extract a CertifiedCommit value")
+		return protocol.CertifiedCommit{}, fmt.Errorf("unable to extract CertifiedCommit value")
 	}
 	commitQuorumCertificate := make([]protocol.AttributedCommitSignature, 0, len(m.CommitQuorumCertificate))
 	for _, aps := range m.CommitQuorumCertificate {
@@ -625,7 +625,7 @@ func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.C
 
 func (fpm *fromProtoMessage[RI]) signedHighestCertifiedTimestamp(m *SignedHighestCertifiedTimestamp) (protocol.SignedHighestCertifiedTimestamp, error) {
 	if m == nil {
-		return protocol.SignedHighestCertifiedTimestamp{}, fmt.Errorf("unable to extract a SignedHighestCertifiedTimestamp value")
+		return protocol.SignedHighestCertifiedTimestamp{}, fmt.Errorf("unable to extract SignedHighestCertifiedTimestamp value")
 	}
 	hct, err := fpm.highestCertifiedTimestamp(m.HighestCertifiedTimestamp)
 	if err != nil {
@@ -640,7 +640,7 @@ func (fpm *fromProtoMessage[RI]) signedHighestCertifiedTimestamp(m *SignedHighes
 
 func (fpm *fromProtoMessage[RI]) highestCertifiedTimestamp(m *HighestCertifiedTimestamp) (protocol.HighestCertifiedTimestamp, error) {
 	if m == nil {
-		return protocol.HighestCertifiedTimestamp{}, fmt.Errorf("unable to extract a HighestCertifiedTimestamp value")
+		return protocol.HighestCertifiedTimestamp{}, fmt.Errorf("unable to extract HighestCertifiedTimestamp value")
 	}
 	return protocol.HighestCertifiedTimestamp{
 		m.SeqNr,
@@ -651,7 +651,7 @@ func (fpm *fromProtoMessage[RI]) highestCertifiedTimestamp(m *HighestCertifiedTi
 
 func (fpm *fromProtoMessage[RI]) epochStartProof(m *EpochStartProof) (protocol.EpochStartProof, error) {
 	if m == nil {
-		return protocol.EpochStartProof{}, fmt.Errorf("unable to extract a EpochStartProof value")
+		return protocol.EpochStartProof{}, fmt.Errorf("unable to extract EpochStartProof value")
 	}
 	hc, err := fpm.certifiedPrepareOrCommit(m.HighestCertified)
 	if err != nil {
@@ -685,7 +685,7 @@ func (fpm *fromProtoMessage[RI]) epochStartProof(m *EpochStartProof) (protocol.E
 
 func (fpm *fromProtoMessage[RI]) messageRoundStart(m *MessageRoundStart) (protocol.MessageRoundStart[RI], error) {
 	if m == nil {
-		return protocol.MessageRoundStart[RI]{}, fmt.Errorf("unable to extract a MessageRoundStart value")
+		return protocol.MessageRoundStart[RI]{}, fmt.Errorf("unable to extract MessageRoundStart value")
 	}
 	return protocol.MessageRoundStart[RI]{
 		m.Epoch,
@@ -697,7 +697,7 @@ func (fpm *fromProtoMessage[RI]) messageRoundStart(m *MessageRoundStart) (protoc
 
 func (fpm *fromProtoMessage[RI]) messageObservation(m *MessageObservation) (protocol.MessageObservation[RI], error) {
 	if m == nil {
-		return protocol.MessageObservation[RI]{}, fmt.Errorf("unable to extract a MessageObservation value")
+		return protocol.MessageObservation[RI]{}, fmt.Errorf("unable to extract MessageObservation value")
 	}
 	so, err := fpm.signedObservation(m.SignedObservation)
 	if err != nil {
@@ -712,7 +712,7 @@ func (fpm *fromProtoMessage[RI]) messageObservation(m *MessageObservation) (prot
 
 func (fpm *fromProtoMessage[RI]) messageReportSignatures(m *MessageReportSignatures) (protocol.MessageReportSignatures[RI], error) {
 	if m == nil {
-		return protocol.MessageReportSignatures[RI]{}, fmt.Errorf("unable to extract a MessageReportSignatures value")
+		return protocol.MessageReportSignatures[RI]{}, fmt.Errorf("unable to extract MessageReportSignatures value")
 	}
 	return protocol.MessageReportSignatures[RI]{
 		m.SeqNr,
@@ -722,7 +722,7 @@ func (fpm *fromProtoMessage[RI]) messageReportSignatures(m *MessageReportSignatu
 
 func (fpm *fromProtoMessage[RI]) messageCertifiedCommitRequest(m *MessageCertifiedCommitRequest) (protocol.MessageCertifiedCommitRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageCertifiedCommitRequest[RI]{}, fmt.Errorf("unable to extract a MessageCertifiedCommitRequest value")
+		return protocol.MessageCertifiedCommitRequest[RI]{}, fmt.Errorf("unable to extract MessageCertifiedCommitRequest value")
 	}
 	return protocol.MessageCertifiedCommitRequest[RI]{
 		m.SeqNr,
@@ -731,7 +731,7 @@ func (fpm *fromProtoMessage[RI]) messageCertifiedCommitRequest(m *MessageCertifi
 
 func (fpm *fromProtoMessage[RI]) messageCertifiedCommit(m *MessageCertifiedCommit) (protocol.MessageCertifiedCommit[RI], error) {
 	if m == nil {
-		return protocol.MessageCertifiedCommit[RI]{}, fmt.Errorf("unable to extract a MessageCertifiedCommit value")
+		return protocol.MessageCertifiedCommit[RI]{}, fmt.Errorf("unable to extract MessageCertifiedCommit value")
 	}
 	cpocc, err := fpm.certifiedCommit(m.CertifiedCommit)
 	if err != nil {
@@ -756,7 +756,7 @@ func (fpm *fromProtoMessage[RI]) attributedSignedObservations(pbasos []*Attribut
 
 func (fpm *fromProtoMessage[RI]) attributedSignedObservation(m *AttributedSignedObservation) (protocol.AttributedSignedObservation, error) {
 	if m == nil {
-		return protocol.AttributedSignedObservation{}, fmt.Errorf("unable to extract an AttributedSignedObservation value")
+		return protocol.AttributedSignedObservation{}, fmt.Errorf("unable to extract AttributedSignedObservation value")
 	}
 
 	signedObservation, err := fpm.signedObservation(m.SignedObservation)
@@ -777,7 +777,7 @@ func (fpm *fromProtoMessage[RI]) attributedSignedObservation(m *AttributedSigned
 
 func (fpm *fromProtoMessage[RI]) signedObservation(m *SignedObservation) (protocol.SignedObservation, error) {
 	if m == nil {
-		return protocol.SignedObservation{}, fmt.Errorf("unable to extract a SignedObservation value")
+		return protocol.SignedObservation{}, fmt.Errorf("unable to extract SignedObservation value")
 	}
 
 	return protocol.SignedObservation{
