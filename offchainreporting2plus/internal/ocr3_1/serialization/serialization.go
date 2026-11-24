@@ -980,7 +980,7 @@ func (fpm *fromProtoMessage[RI]) messageWrapper(wrapper *MessageWrapper) (protoc
 
 func (fpm *fromProtoMessage[RI]) messageNewEpochWish(m *MessageNewEpochWish) (protocol.MessageNewEpochWish[RI], error) {
 	if m == nil {
-		return protocol.MessageNewEpochWish[RI]{}, fmt.Errorf("unable to extract a MessageNewEpochWish value")
+		return protocol.MessageNewEpochWish[RI]{}, fmt.Errorf("unable to extract MessageNewEpochWish value")
 	}
 	return protocol.MessageNewEpochWish[RI]{
 		m.Epoch,
@@ -989,7 +989,7 @@ func (fpm *fromProtoMessage[RI]) messageNewEpochWish(m *MessageNewEpochWish) (pr
 
 func (fpm *fromProtoMessage[RI]) messageEpochStartRequest(m *MessageEpochStartRequest) (protocol.MessageEpochStartRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageEpochStartRequest[RI]{}, fmt.Errorf("unable to extract a MessageEpochStartRequest value")
+		return protocol.MessageEpochStartRequest[RI]{}, fmt.Errorf("unable to extract MessageEpochStartRequest value")
 	}
 	hc, err := fpm.certifiedPrepareOrCommit(m.HighestCertified)
 	if err != nil {
@@ -1008,7 +1008,7 @@ func (fpm *fromProtoMessage[RI]) messageEpochStartRequest(m *MessageEpochStartRe
 
 func (fpm *fromProtoMessage[RI]) messageEpochStart(m *MessageEpochStart) (protocol.MessageEpochStart[RI], error) {
 	if m == nil {
-		return protocol.MessageEpochStart[RI]{}, fmt.Errorf("unable to extract a MessageEpochStart value")
+		return protocol.MessageEpochStart[RI]{}, fmt.Errorf("unable to extract MessageEpochStart value")
 	}
 	srqc, err := fpm.epochStartProof(m.EpochStartProof)
 	if err != nil {
@@ -1023,7 +1023,7 @@ func (fpm *fromProtoMessage[RI]) messageEpochStart(m *MessageEpochStart) (protoc
 
 func (fpm *fromProtoMessage[RI]) messageProposal(m *MessageProposal) (protocol.MessageProposal[RI], error) {
 	if m == nil {
-		return protocol.MessageProposal[RI]{}, fmt.Errorf("unable to extract a MessageProposal value")
+		return protocol.MessageProposal[RI]{}, fmt.Errorf("unable to extract MessageProposal value")
 	}
 	asos, err := fpm.attributedSignedObservations(m.AttributedSignedObservations)
 	if err != nil {
@@ -1038,7 +1038,7 @@ func (fpm *fromProtoMessage[RI]) messageProposal(m *MessageProposal) (protocol.M
 
 func (fpm *fromProtoMessage[RI]) messagePrepare(m *MessagePrepare) (protocol.MessagePrepare[RI], error) {
 	if m == nil {
-		return protocol.MessagePrepare[RI]{}, fmt.Errorf("unable to extract a MessagePrepare value")
+		return protocol.MessagePrepare[RI]{}, fmt.Errorf("unable to extract MessagePrepare value")
 	}
 	return protocol.MessagePrepare[RI]{
 		m.Epoch,
@@ -1049,7 +1049,7 @@ func (fpm *fromProtoMessage[RI]) messagePrepare(m *MessagePrepare) (protocol.Mes
 
 func (fpm *fromProtoMessage[RI]) messageCommit(m *MessageCommit) (protocol.MessageCommit[RI], error) {
 	if m == nil {
-		return protocol.MessageCommit[RI]{}, fmt.Errorf("unable to extract a MessageCommit value")
+		return protocol.MessageCommit[RI]{}, fmt.Errorf("unable to extract MessageCommit value")
 	}
 	return protocol.MessageCommit[RI]{
 		m.Epoch,
@@ -1060,7 +1060,7 @@ func (fpm *fromProtoMessage[RI]) messageCommit(m *MessageCommit) (protocol.Messa
 
 func (fpm *fromProtoMessage[RI]) certifiedPrepareOrCommit(m *CertifiedPrepareOrCommit) (protocol.CertifiedPrepareOrCommit, error) {
 	if m == nil {
-		return nil, fmt.Errorf("unable to extract a CertifiedPrepareOrCommit value")
+		return nil, fmt.Errorf("unable to extract CertifiedPrepareOrCommit value")
 	}
 	switch poc := m.PrepareOrCommit.(type) {
 	case *CertifiedPrepareOrCommit_Prepare:
@@ -1090,7 +1090,7 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepareOrCommit(m *CertifiedPrepareOrC
 
 func (fpm *fromProtoMessage[RI]) genesisFromPrevInstance(m *GenesisFromPrevInstance) (protocol.GenesisFromPrevInstance, error) {
 	if m == nil {
-		return protocol.GenesisFromPrevInstance{}, fmt.Errorf("unable to extract a GenesisFromPrevInstance value")
+		return protocol.GenesisFromPrevInstance{}, fmt.Errorf("unable to extract GenesisFromPrevInstance value")
 	}
 	var prevHistoryDigest protocol.HistoryDigest
 	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
@@ -1102,7 +1102,7 @@ func (fpm *fromProtoMessage[RI]) genesisFromPrevInstance(m *GenesisFromPrevInsta
 
 func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol.CertifiedPrepare, error) {
 	if m == nil {
-		return protocol.CertifiedPrepare{}, fmt.Errorf("unable to extract a CertifiedPrepare value")
+		return protocol.CertifiedPrepare{}, fmt.Errorf("unable to extract CertifiedPrepare value")
 	}
 	var prevHistoryDigest protocol.HistoryDigest
 	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
@@ -1141,7 +1141,7 @@ func (fpm *fromProtoMessage[RI]) certifiedPrepare(m *CertifiedPrepare) (protocol
 
 func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.CertifiedCommit, error) {
 	if m == nil {
-		return protocol.CertifiedCommit{}, fmt.Errorf("unable to extract a CertifiedCommit value")
+		return protocol.CertifiedCommit{}, fmt.Errorf("unable to extract CertifiedCommit value")
 	}
 	var prevHistoryDigest protocol.HistoryDigest
 	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
@@ -1179,7 +1179,7 @@ func (fpm *fromProtoMessage[RI]) certifiedCommit(m *CertifiedCommit) (protocol.C
 
 func (fpm *fromProtoMessage[RI]) signedHighestCertifiedTimestamp(m *SignedHighestCertifiedTimestamp) (protocol.SignedHighestCertifiedTimestamp, error) {
 	if m == nil {
-		return protocol.SignedHighestCertifiedTimestamp{}, fmt.Errorf("unable to extract a SignedHighestCertifiedTimestamp value")
+		return protocol.SignedHighestCertifiedTimestamp{}, fmt.Errorf("unable to extract SignedHighestCertifiedTimestamp value")
 	}
 	hct, err := fpm.highestCertifiedTimestamp(m.HighestCertifiedTimestamp)
 	if err != nil {
@@ -1193,7 +1193,7 @@ func (fpm *fromProtoMessage[RI]) signedHighestCertifiedTimestamp(m *SignedHighes
 
 func (fpm *fromProtoMessage[RI]) highestCertifiedTimestamp(m *HighestCertifiedTimestamp) (protocol.HighestCertifiedTimestamp, error) {
 	if m == nil {
-		return protocol.HighestCertifiedTimestamp{}, fmt.Errorf("unable to extract a HighestCertifiedTimestamp value")
+		return protocol.HighestCertifiedTimestamp{}, fmt.Errorf("unable to extract HighestCertifiedTimestamp value")
 	}
 	return protocol.HighestCertifiedTimestamp{
 		m.SeqNr,
@@ -1204,7 +1204,7 @@ func (fpm *fromProtoMessage[RI]) highestCertifiedTimestamp(m *HighestCertifiedTi
 
 func (fpm *fromProtoMessage[RI]) epochStartProof(m *EpochStartProof) (protocol.EpochStartProof, error) {
 	if m == nil {
-		return protocol.EpochStartProof{}, fmt.Errorf("unable to extract a EpochStartProof value")
+		return protocol.EpochStartProof{}, fmt.Errorf("unable to extract EpochStartProof value")
 	}
 	hc, err := fpm.certifiedPrepareOrCommit(m.HighestCertified)
 	if err != nil {
@@ -1237,7 +1237,7 @@ func (fpm *fromProtoMessage[RI]) epochStartProof(m *EpochStartProof) (protocol.E
 
 func (fpm *fromProtoMessage[RI]) messageRoundStart(m *MessageRoundStart) (protocol.MessageRoundStart[RI], error) {
 	if m == nil {
-		return protocol.MessageRoundStart[RI]{}, fmt.Errorf("unable to extract a MessageRoundStart value")
+		return protocol.MessageRoundStart[RI]{}, fmt.Errorf("unable to extract MessageRoundStart value")
 	}
 	return protocol.MessageRoundStart[RI]{
 		fpm.requestHandle,
@@ -1249,7 +1249,7 @@ func (fpm *fromProtoMessage[RI]) messageRoundStart(m *MessageRoundStart) (protoc
 
 func (fpm *fromProtoMessage[RI]) messageObservation(m *MessageObservation) (protocol.MessageObservation[RI], error) {
 	if m == nil {
-		return protocol.MessageObservation[RI]{}, fmt.Errorf("unable to extract a MessageObservation value")
+		return protocol.MessageObservation[RI]{}, fmt.Errorf("unable to extract MessageObservation value")
 	}
 	so, err := fpm.signedObservation(m.SignedObservation)
 	if err != nil {
@@ -1265,7 +1265,7 @@ func (fpm *fromProtoMessage[RI]) messageObservation(m *MessageObservation) (prot
 
 func (fpm *fromProtoMessage[RI]) messageReportSignatures(m *MessageReportSignatures) (protocol.MessageReportSignatures[RI], error) {
 	if m == nil {
-		return protocol.MessageReportSignatures[RI]{}, fmt.Errorf("unable to extract a MessageReportSignatures value")
+		return protocol.MessageReportSignatures[RI]{}, fmt.Errorf("unable to extract MessageReportSignatures value")
 	}
 
 	var reportsPlusPrecursorDigest protocol.ReportsPlusPrecursorDigest
@@ -1280,7 +1280,7 @@ func (fpm *fromProtoMessage[RI]) messageReportSignatures(m *MessageReportSignatu
 
 func (fpm *fromProtoMessage[RI]) messageReportsPlusPrecursorRequest(m *MessageReportsPlusPrecursorRequest) (protocol.MessageReportsPlusPrecursorRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageReportsPlusPrecursorRequest[RI]{}, fmt.Errorf("unable to extract a MessageReportsPlusPrecursorRequest value")
+		return protocol.MessageReportsPlusPrecursorRequest[RI]{}, fmt.Errorf("unable to extract MessageReportsPlusPrecursorRequest value")
 	}
 	return protocol.MessageReportsPlusPrecursorRequest[RI]{
 		fpm.requestHandle,
@@ -1290,7 +1290,7 @@ func (fpm *fromProtoMessage[RI]) messageReportsPlusPrecursorRequest(m *MessageRe
 
 func (fpm *fromProtoMessage[RI]) messageReportsPlusPrecursor(m *MessageReportsPlusPrecursor) (protocol.MessageReportsPlusPrecursor[RI], error) {
 	if m == nil {
-		return protocol.MessageReportsPlusPrecursor[RI]{}, fmt.Errorf("unable to extract a MessageReportsPlusPrecursor value")
+		return protocol.MessageReportsPlusPrecursor[RI]{}, fmt.Errorf("unable to extract MessageReportsPlusPrecursor value")
 	}
 	return protocol.MessageReportsPlusPrecursor[RI]{
 		fpm.requestHandle,
@@ -1313,7 +1313,7 @@ func (fpm *fromProtoMessage[RI]) attributedSignedObservations(pbasos []*Attribut
 
 func (fpm *fromProtoMessage[RI]) attributedSignedObservation(m *AttributedSignedObservation) (protocol.AttributedSignedObservation, error) {
 	if m == nil {
-		return protocol.AttributedSignedObservation{}, fmt.Errorf("unable to extract an AttributedSignedObservation value")
+		return protocol.AttributedSignedObservation{}, fmt.Errorf("unable to extract AttributedSignedObservation value")
 	}
 
 	signedObservation, err := fpm.signedObservation(m.SignedObservation)
@@ -1334,7 +1334,7 @@ func (fpm *fromProtoMessage[RI]) attributedSignedObservation(m *AttributedSigned
 
 func (fpm *fromProtoMessage[RI]) signedObservation(m *SignedObservation) (protocol.SignedObservation, error) {
 	if m == nil {
-		return protocol.SignedObservation{}, fmt.Errorf("unable to extract a SignedObservation value")
+		return protocol.SignedObservation{}, fmt.Errorf("unable to extract SignedObservation value")
 	}
 
 	return protocol.SignedObservation{
@@ -1353,7 +1353,7 @@ func (fpm *fromProtoMessage[RI]) oracleID(m uint32) (commontypes.OracleID, error
 
 func (fpm *fromProtoMessage[RI]) messageBlockSyncRequest(m *MessageBlockSyncRequest) (protocol.MessageBlockSyncRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageBlockSyncRequest[RI]{}, fmt.Errorf("unable to extract a MessageBlockSyncRequest value")
+		return protocol.MessageBlockSyncRequest[RI]{}, fmt.Errorf("unable to extract MessageBlockSyncRequest value")
 	}
 	return protocol.MessageBlockSyncRequest[RI]{
 		fpm.requestHandle,
@@ -1366,7 +1366,7 @@ func (fpm *fromProtoMessage[RI]) messageBlockSyncRequest(m *MessageBlockSyncRequ
 
 func (fpm *fromProtoMessage[RI]) messageBlockSyncResponse(m *MessageBlockSyncResponse) (protocol.MessageBlockSyncResponse[RI], error) {
 	if m == nil {
-		return protocol.MessageBlockSyncResponse[RI]{}, fmt.Errorf("unable to extract a MessageBlockSyncResponse value")
+		return protocol.MessageBlockSyncResponse[RI]{}, fmt.Errorf("unable to extract MessageBlockSyncResponse value")
 	}
 	astbs, err := fpm.attestedStateTransitionBlocks(m.AttestedStateTransitionBlocks)
 	if err != nil {
@@ -1387,7 +1387,7 @@ func (fpm *fromProtoMessage[RI]) messageBlockSyncResponse(m *MessageBlockSyncRes
 
 func (fpm *fromProtoMessage[RI]) messageStateSyncSummary(m *MessageStateSyncSummary) (protocol.MessageStateSyncSummary[RI], error) {
 	if m == nil {
-		return protocol.MessageStateSyncSummary[RI]{}, fmt.Errorf("unable to extract a MessageStateSyncSummary value")
+		return protocol.MessageStateSyncSummary[RI]{}, fmt.Errorf("unable to extract MessageStateSyncSummary value")
 	}
 	return protocol.MessageStateSyncSummary[RI]{
 		m.LowestPersistedSeqNr,
@@ -1408,7 +1408,7 @@ func (fpm *fromProtoMessage[RI]) attestedStateTransitionBlocks(pbastbs []*Attest
 
 func (fpm *fromProtoMessage[RI]) attestedStateTransitionBlock(m *AttestedStateTransitionBlock) (protocol.AttestedStateTransitionBlock, error) {
 	if m == nil {
-		return protocol.AttestedStateTransitionBlock{}, fmt.Errorf("unable to extract a AttestedStateTransitionBlock value")
+		return protocol.AttestedStateTransitionBlock{}, fmt.Errorf("unable to extract AttestedStateTransitionBlock value")
 	}
 	stb, err := fpm.stateTransitionBlock(m.StateTransitionBlock)
 	if err != nil {
@@ -1426,7 +1426,7 @@ func (fpm *fromProtoMessage[RI]) attestedStateTransitionBlock(m *AttestedStateTr
 
 func (fpm *fromProtoMessage[RI]) stateTransitionBlock(m *StateTransitionBlock) (protocol.StateTransitionBlock, error) {
 	if m == nil {
-		return protocol.StateTransitionBlock{}, fmt.Errorf("unable to extract a StateTransitionBlock value")
+		return protocol.StateTransitionBlock{}, fmt.Errorf("unable to extract StateTransitionBlock value")
 	}
 	var prevHistoryDigest protocol.HistoryDigest
 	copy(prevHistoryDigest[:], m.PrevHistoryDigest)
@@ -1489,7 +1489,7 @@ func (fpm *fromProtoMessage[RI]) attributedCommitSignatures(pbasigs []*Attribute
 
 func (fpm *fromProtoMessage[RI]) attributedCommitSignature(m *AttributedCommitSignature) (protocol.AttributedCommitSignature, error) {
 	if m == nil {
-		return protocol.AttributedCommitSignature{}, fmt.Errorf("unable to extract an AttributedCommitSignature value")
+		return protocol.AttributedCommitSignature{}, fmt.Errorf("unable to extract AttributedCommitSignature value")
 	}
 	signer, err := fpm.oracleID(m.GetSigner())
 	if err != nil {
@@ -1503,7 +1503,7 @@ func (fpm *fromProtoMessage[RI]) attributedCommitSignature(m *AttributedCommitSi
 
 func (fpm *fromProtoMessage[RI]) keyValuePairWithDeletions(pbkvmod *KeyValueModification) (protocol.KeyValuePairWithDeletions, error) {
 	if pbkvmod == nil {
-		return protocol.KeyValuePairWithDeletions{}, fmt.Errorf("unable to extract a KeyValuePairWithDeletions value")
+		return protocol.KeyValuePairWithDeletions{}, fmt.Errorf("unable to extract KeyValuePairWithDeletions value")
 	}
 
 	return protocol.KeyValuePairWithDeletions{
@@ -1515,7 +1515,7 @@ func (fpm *fromProtoMessage[RI]) keyValuePairWithDeletions(pbkvmod *KeyValueModi
 
 func (fpm *fromProtoMessage[RI]) stateWriteSet(m *StateWriteSet) (protocol.StateWriteSet, error) {
 	if m == nil {
-		return protocol.StateWriteSet{}, fmt.Errorf("unable to extract an StateWriteSet value")
+		return protocol.StateWriteSet{}, fmt.Errorf("unable to extract StateWriteSet value")
 	}
 
 	writeSet := make([]protocol.KeyValuePairWithDeletions, 0, len(m.Entries))
@@ -1532,7 +1532,7 @@ func (fpm *fromProtoMessage[RI]) stateWriteSet(m *StateWriteSet) (protocol.State
 
 func (fpm *fromProtoMessage[RI]) messageBlobOffer(m *MessageBlobOffer) (protocol.MessageBlobOffer[RI], error) {
 	if m == nil {
-		return protocol.MessageBlobOffer[RI]{}, fmt.Errorf("unable to extract a MessageBlobOffer value")
+		return protocol.MessageBlobOffer[RI]{}, fmt.Errorf("unable to extract MessageBlobOffer value")
 	}
 	var chunkDigestsRoot mt.Digest
 	copy(chunkDigestsRoot[:], m.ChunkDigestsRoot)
@@ -1558,7 +1558,7 @@ func (fpm *fromProtoMessage[RI]) chunkDigests(pbcds [][]byte) ([]protocol.BlobCh
 
 func (fpm *fromProtoMessage[RI]) messageBlobOfferResponse(m *MessageBlobOfferResponse) (protocol.MessageBlobOfferResponse[RI], error) {
 	if m == nil {
-		return protocol.MessageBlobOfferResponse[RI]{}, fmt.Errorf("unable to extract a MessageBlobOfferResponse value")
+		return protocol.MessageBlobOfferResponse[RI]{}, fmt.Errorf("unable to extract MessageBlobOfferResponse value")
 	}
 
 	var blobDigest protocol.BlobDigest
@@ -1574,7 +1574,7 @@ func (fpm *fromProtoMessage[RI]) messageBlobOfferResponse(m *MessageBlobOfferRes
 
 func (fpm *fromProtoMessage[RI]) messageBlobChunkRequest(m *MessageBlobChunkRequest) (protocol.MessageBlobChunkRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageBlobChunkRequest[RI]{}, fmt.Errorf("unable to extract a MessageBlobChunkRequest value")
+		return protocol.MessageBlobChunkRequest[RI]{}, fmt.Errorf("unable to extract MessageBlobChunkRequest value")
 	}
 
 	var blobDigest protocol.BlobDigest
@@ -1590,7 +1590,7 @@ func (fpm *fromProtoMessage[RI]) messageBlobChunkRequest(m *MessageBlobChunkRequ
 
 func (fpm *fromProtoMessage[RI]) messageBlobChunkResponse(m *MessageBlobChunkResponse) (protocol.MessageBlobChunkResponse[RI], error) {
 	if m == nil {
-		return protocol.MessageBlobChunkResponse[RI]{}, fmt.Errorf("unable to extract a MessageBlobChunkResponse value")
+		return protocol.MessageBlobChunkResponse[RI]{}, fmt.Errorf("unable to extract MessageBlobChunkResponse value")
 	}
 
 	var blobDigest protocol.BlobDigest
@@ -1615,7 +1615,7 @@ func (fpm *fromProtoMessage[RI]) messageBlobChunkResponse(m *MessageBlobChunkRes
 
 func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkRequest(m *MessageTreeSyncChunkRequest) (protocol.MessageTreeSyncChunkRequest[RI], error) {
 	if m == nil {
-		return protocol.MessageTreeSyncChunkRequest[RI]{}, fmt.Errorf("unable to extract an MessageTreeSyncRequest value")
+		return protocol.MessageTreeSyncChunkRequest[RI]{}, fmt.Errorf("unable to extract MessageTreeSyncRequest value")
 	}
 	startIndex, err := fpm.digest(m.StartIndex)
 	if err != nil {
@@ -1640,7 +1640,7 @@ func (fpm *fromProtoMessage[RI]) treeSyncChunkProof(pbpns [][]byte) ([]jmt.Diges
 	for _, pbpn := range pbpns {
 		var pn jmt.Digest
 		if len(pbpn) != len(pn) {
-			return proof, fmt.Errorf("invalid proof node length, expected %d, got %d ", len(pn), len(pbpn))
+			return proof, fmt.Errorf("invalid proof node length, expected %d, got %d", len(pn), len(pbpn))
 		}
 		copy(pn[:], pbpn)
 		proof = append(proof, pn)
@@ -1650,7 +1650,7 @@ func (fpm *fromProtoMessage[RI]) treeSyncChunkProof(pbpns [][]byte) ([]jmt.Diges
 
 func (fpm *fromProtoMessage[RI]) keyValuePair(pbkvp *KeyValuePair) (protocol.KeyValuePair, error) {
 	if pbkvp == nil {
-		return protocol.KeyValuePair{}, fmt.Errorf("unable to extract a KeyValuePair value")
+		return protocol.KeyValuePair{}, fmt.Errorf("unable to extract KeyValuePair value")
 	}
 
 	return protocol.KeyValuePair{
@@ -1682,7 +1682,7 @@ func (fpm *fromProtoMessage[RI]) digest(pbdigest []byte) (jmt.Digest, error) {
 
 func (fpm *fromProtoMessage[RI]) leafKeyAndValueDigests(pblkd *LeafKeyAndValueDigests) (jmt.LeafKeyAndValueDigests, error) {
 	if pblkd == nil {
-		return jmt.LeafKeyAndValueDigests{}, fmt.Errorf("unable to extract a LeafKeyAndValueDigests value")
+		return jmt.LeafKeyAndValueDigests{}, fmt.Errorf("unable to extract LeafKeyAndValueDigests value")
 	}
 	keyDigest, err := fpm.digest(pblkd.KeyDigest)
 	if err != nil {
@@ -1700,7 +1700,7 @@ func (fpm *fromProtoMessage[RI]) leafKeyAndValueDigests(pblkd *LeafKeyAndValueDi
 
 func (fpm *fromProtoMessage[RI]) boundingLeaf(pbbl *BoundingLeaf) (jmt.BoundingLeaf, error) {
 	if pbbl == nil {
-		return jmt.BoundingLeaf{}, fmt.Errorf("unable to extract a BoundingLeaf value")
+		return jmt.BoundingLeaf{}, fmt.Errorf("unable to extract BoundingLeaf value")
 	}
 	leafKeyAndValueDigests, err := fpm.leafKeyAndValueDigests(pbbl.Leaf)
 	if err != nil {
@@ -1730,7 +1730,7 @@ func (fpm *fromProtoMessage[RI]) treeSyncChunkBoundingLeaves(pbbls []*BoundingLe
 
 func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkResponse(m *MessageTreeSyncChunkResponse) (protocol.MessageTreeSyncChunkResponse[RI], error) {
 	if m == nil {
-		return protocol.MessageTreeSyncChunkResponse[RI]{}, fmt.Errorf("unable to extract an MessageTreeSyncChunk value")
+		return protocol.MessageTreeSyncChunkResponse[RI]{}, fmt.Errorf("unable to extract MessageTreeSyncChunk value")
 	}
 	startIndex, err := fpm.digest(m.StartIndex)
 	if err != nil {
@@ -1766,7 +1766,7 @@ func (fpm *fromProtoMessage[RI]) messageTreeSyncChunkResponse(m *MessageTreeSync
 
 func (fpm *fromProtoMessage[RI]) keyDigestRange(pbr *KeyDigestRange) (protocol.KeyDigestRange, error) {
 	if pbr == nil {
-		return protocol.KeyDigestRange{}, fmt.Errorf("unable to extract a KeyDigestRange value")
+		return protocol.KeyDigestRange{}, fmt.Errorf("unable to extract KeyDigestRange value")
 	}
 	startIndex, err := fpm.digest(pbr.StartIndex)
 	if err != nil {

@@ -62,7 +62,10 @@ type Stream interface {
 
 var _ Stream = (ragep2pwrapper.Stream)(nil)
 
-//sumtype:decl
+//go-sumtype:decl NewStreamArgs
+
+// NewStreamArgs must be a NewStreamArgs1 value. Anything else, including nil
+// or a pointer to NewStreamArgs1, causes a panic.
 type NewStreamArgs interface {
 	isNewStreamArgs()
 }
@@ -224,7 +227,7 @@ func (f *peerGroup) NewStream(remotePeerID string, newStreamArgs NewStreamArgs) 
 		}
 		return &managedStream, nil
 	default:
-		panic("unreachable")
+		panic(fmt.Sprintf("unexpected NewStreamArgs type %T", args))
 	}
 }
 

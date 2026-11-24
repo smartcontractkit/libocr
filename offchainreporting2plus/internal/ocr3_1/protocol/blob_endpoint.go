@@ -62,7 +62,24 @@ type BlobEndpoint struct {
 	chBlobFetchRequest     chan<- blobFetchRequest
 }
 
-var errBlobEndpointUnavailable = fmt.Errorf("blob endpoint unavailable")
+var (
+	errBlobEndpointUnavailable = fmt.Errorf("blob endpoint unavailable")
+	errZeroValueBlobHandle     = fmt.Errorf("zero value blob handle provided")
+	errBlobExpired             = fmt.Errorf("blob expired")
+)
+
+func lightCertifiedBlobFromHandle(handle ocr3_1types.BlobHandle) (*LightCertifiedBlob, error) {
+	switch cert := blobtypes.ExtractBlobHandleSumType(handle).(type) {
+	case nil:
+	case *LightCertifiedBlob:
+		if cert != nil {
+			return cert, nil
+		}
+	default:
+		panic(fmt.Sprintf("unexpected blob handle type %T", cert))
+	}
+	return nil, errZeroValueBlobHandle
+}
 
 func expirySeqNr(expirationHint ocr3_1types.BlobExpirationHint) uint64 {
 	switch beh := expirationHint.(type) {
@@ -111,6 +128,11 @@ func (be *BlobEndpoint) BroadcastBlob(ctx context.Context, payload []byte, expir
 var _ ocr3_1types.BlobBroadcaster = &BlobEndpoint{}
 
 func (be *BlobEndpoint) FetchBlob(ctx context.Context, handle ocr3_1types.BlobHandle) ([]byte, error) {
+	cert, err := lightCertifiedBlobFromHandle(handle)
+	if err != nil {
+		return nil, err
+	}
+
 	chRequestDone := ctx.Done()
 	chEndpointDone := be.ctx.Done()
 
@@ -118,43 +140,29 @@ func (be *BlobEndpoint) FetchBlob(ctx context.Context, handle ocr3_1types.BlobHa
 	chDone := make(chan struct{})
 	defer close(chDone)
 
-	blobHandleSumType := blobtypes.ExtractBlobHandleSumType(handle)
-	if blobHandleSumType == nil {
-		return nil, fmt.Errorf("zero value blob handle provided")
+	request := blobFetchRequest{
+		*cert,
+		chResponse,
+		chDone,
 	}
 
-	switch handle := blobHandleSumType.(type) {
-	case *LightCertifiedBlob:
-		if handle == nil {
-			return nil, fmt.Errorf("zero value blob handle provided")
-		}
-
-		request := blobFetchRequest{
-			*handle,
-			chResponse,
-			chDone,
-		}
-
+	select {
+	case be.chBlobFetchRequest <- request:
 		select {
-		case be.chBlobFetchRequest <- request:
-			select {
-			case response := <-chResponse:
-				if response.err != nil {
-					return nil, response.err
-				}
-				return response.payload, nil
-			case <-chEndpointDone:
-				return nil, be.ctx.Err()
-			case <-chRequestDone:
-				return nil, ctx.Err()
+		case response := <-chResponse:
+			if response.err != nil {
+				return nil, response.err
 			}
+			return response.payload, nil
 		case <-chEndpointDone:
 			return nil, be.ctx.Err()
 		case <-chRequestDone:
 			return nil, ctx.Err()
 		}
-	default:
-		panic(fmt.Sprintf("unexpected blob handle type %T", handle))
+	case <-chEndpointDone:
+		return nil, be.ctx.Err()
+	case <-chRequestDone:
+		return nil, ctx.Err()
 	}
 }
 
@@ -179,19 +187,17 @@ func (r *RoundBlobBroadcastFetcher) BroadcastBlob(ctx context.Context, payload [
 }
 
 func (r *RoundBlobBroadcastFetcher) FetchBlob(ctx context.Context, handle ocr3_1types.BlobHandle) ([]byte, error) {
-	blobHandleSumType := blobtypes.ExtractBlobHandleSumType(handle)
-	switch cert := blobHandleSumType.(type) {
-	case *blobtypes.LightCertifiedBlob:
-		// This expiry comparison differs with blobExchangeState.hasBlobExpired
-		// (< here vs <= there) because the latter checks against an
-		// already-committed sequence number, while here we check against the
-		// sequence number that we might commit at the end of the round, but
-		// which we have not already committed.
-		if cert != nil && cert.ExpirySeqNr < r.seqNr {
-			return nil, fmt.Errorf("blob expired")
-		}
-		return r.blobBroadcastFetcher.FetchBlob(ctx, handle)
-	default:
-		panic(fmt.Sprintf("unexpected blob handle type %T", handle))
+	cert, err := lightCertifiedBlobFromHandle(handle)
+	if err != nil {
+		return nil, err
 	}
+	// This expiry comparison differs with blobExchangeState.hasBlobExpired
+	// (< here vs <= there) because the latter checks against an
+	// already-committed sequence number, while here we check against the
+	// sequence number that we might commit at the end of the round, but
+	// which we have not already committed.
+	if cert.ExpirySeqNr < r.seqNr {
+		return nil, errBlobExpired
+	}
+	return r.blobBroadcastFetcher.FetchBlob(ctx, handle)
 }

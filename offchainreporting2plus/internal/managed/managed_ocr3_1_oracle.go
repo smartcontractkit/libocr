@@ -164,6 +164,15 @@ func RunManagedOCR3_1Oracle[RI any](
 			switch rpi := reportingPluginInfo_.(type) {
 			case ocr3_1types.ReportingPluginInfo1:
 				reportingPluginInfo = rpi
+			case *ocr3_1types.ReportingPluginInfo1:
+				if rpi == nil {
+					return fmt.Errorf("ManagedOCR3_1Oracle: NewReportingPlugin() returned nil *ReportingPluginInfo1"), false
+				}
+				reportingPluginInfo = *rpi
+			case nil:
+				return fmt.Errorf("ManagedOCR3_1Oracle: NewReportingPlugin() returned nil ReportingPluginInfo"), false
+			default:
+				panic(fmt.Sprintf("unexpected ReportingPluginInfo type %T", rpi))
 			}
 
 			if err := reportingPluginInfo.Validate(); err != nil {

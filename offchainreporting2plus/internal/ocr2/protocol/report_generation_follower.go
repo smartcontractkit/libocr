@@ -90,7 +90,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	// thus ensures that at most RMax rounds are possible for the current leader.
 	if repgen.followerState.r > repgen.config.RMax {
 		repgen.logger.Debug(
-			"messageReportReq: leader sent MessageObserveReq past its expiration "+
+			"messageObserveReq: leader sent MessageObserveReq past its expiration "+
 				"round. Time to change leader",
 			commontypes.LogFields{
 				"round":        repgen.followerState.r,
@@ -149,7 +149,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 
 	so, err := MakeSignedObservation(repgen.followerReportTimestamp(), msg.Query, o, repgen.offchainKeyring.OffchainSign)
 	if err != nil {
-		repgen.logger.Error("messageObserveReq: could not make SignedObservation observation", commontypes.LogFields{
+		repgen.logger.Error("messageObserveReq: could not make SignedObservation", commontypes.LogFields{
 			"round": repgen.followerState.r,
 			"error": err,
 		})
@@ -157,7 +157,7 @@ func (repgen *reportGenerationState) messageObserveReq(msg MessageObserveReq, se
 	}
 
 	if err := so.Verify(repgen.followerReportTimestamp(), msg.Query, repgen.offchainKeyring.OffchainPublicKey()); err != nil {
-		repgen.logger.Error("MakeSignedObservation produced invalid signature:", commontypes.LogFields{
+		repgen.logger.Error("MakeSignedObservation produced invalid signature", commontypes.LogFields{
 			"round": repgen.followerState.r,
 			"error": err,
 		})
